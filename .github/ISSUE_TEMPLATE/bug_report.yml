@@ -1,0 +1,59 @@
+name: Bug report
+description: Something came out wrong, or did not come out at all
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful report has the document that triggers it, or a small one that does.
+        If yours is private, describe its structure instead - two columns, a scanned page,
+        an EPUB with figures - and a fixture can be built from that.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you got, and what you expected instead.
+      placeholder: |
+        Translated a two-column PDF to PDF with DeepL. The table in section 2 came out as one
+        line of text with the rows below it empty.
+    validations:
+      required: true
+
+  - type: input
+    id: source-format
+    attributes:
+      label: Input and output format
+      placeholder: "EPUB in, PDF out"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - Local model (LM Studio, Ollama, llama.cpp)
+        - DeepL
+        - Another OpenAI-compatible endpoint
+        - Not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The title bar, or `layoutkeep --version`. Say if you built it yourself.
+      placeholder: "1.0.0 (packaged .exe)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash report, if the application closed
+      description: |
+        `%APPDATA%\LayoutKeep\layoutkeep_crash.log` for a Python error,
+        `layoutkeep_fault.log` for a crash inside Qt. Neither contains document text.
+      render: text

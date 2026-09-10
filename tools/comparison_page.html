@@ -1,0 +1,439 @@
+<title>Termal Yorulma Çevirisi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&display=swap">
+<style>
+  :root {
+    --ground: #eceff4;
+    --surface: #ffffff;
+    --sunk: #e2e7ee;
+    --ink: #131a24;
+    --muted: #5d6b7f;
+    --rule: #ccd4de;
+    --accent: #1d4ed8;
+    --accent-soft: #dbe3fb;
+    --warm: #c2560f;
+    --shadow: 0 1px 2px rgba(19, 26, 36, .07), 0 8px 24px rgba(19, 26, 36, .07);
+    --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --serif: "IBM Plex Serif", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0f141a;
+      --surface: #161d25;
+      --sunk: #1c242e;
+      --ink: #e4eaf2;
+      --muted: #93a1b4;
+      --rule: #2a343f;
+      --accent: #6f9bff;
+      --accent-soft: #1e2b45;
+      --warm: #f0955a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0f141a;
+    --surface: #161d25;
+    --sunk: #1c242e;
+    --ink: #e4eaf2;
+    --muted: #93a1b4;
+    --rule: #2a343f;
+    --accent: #6f9bff;
+    --accent-soft: #1e2b45;
+    --warm: #f0955a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 20px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ---- masthead ------------------------------------------------------ */
+  header { display: flex; flex-direction: column; gap: 6px; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 27px;
+    line-height: 1.15;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .runhead {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0;
+  }
+  .runhead em { font-style: italic; }
+
+  /* The measured run, as a strip of readings rather than cards: these are instrument
+     readings about one job, not five separate things. */
+  .readings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 26px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+  }
+  .reading { display: flex; flex-direction: column; gap: 1px; padding: 2px 0; }
+  .reading dt {
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .reading dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .reading dd small { font-size: 11.5px; color: var(--muted); }
+
+  /* ---- the comparison stage ------------------------------------------ */
+  .stagewrap { display: flex; flex-direction: column; gap: 10px; }
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 868 / 1228;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+  }
+  .stage img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+  }
+  .side-tr {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 0 0 calc(var(--split) * 1%));
+  }
+  .tag {
+    position: absolute;
+    top: 10px;
+    z-index: 3;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    background: var(--accent-soft);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    pointer-events: none;
+  }
+  .tag-en { left: 10px; }
+  .tag-tr { right: 10px; }
+
+  .divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--split) * 1%);
+    width: 2px;
+    margin-left: -1px;
+    background: var(--accent);
+    z-index: 4;
+  }
+  .knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    box-shadow: var(--shadow);
+    display: grid;
+    place-items: center;
+    cursor: ew-resize;
+  }
+  .knob::before {
+    content: "";
+    width: 13px;
+    height: 9px;
+    background: var(--accent);
+    clip-path: polygon(0 50%, 38% 0, 38% 100%, 62% 0, 62% 100%, 100% 50%);
+  }
+  .knob:focus-visible { outline: 3px solid var(--warm); outline-offset: 3px; }
+
+  /* ---- page rail ------------------------------------------------------ */
+  .rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .rail-label {
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .pg {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    padding: 5px 0;
+    text-align: center;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .pg:hover { border-color: var(--accent); }
+  .pg[aria-current="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+  :root[data-theme="dark"] .pg[aria-current="true"],
+  .pg:focus-visible { outline-offset: 2px; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .pg[aria-current="true"] { color: #0f141a; }
+  }
+  :root[data-theme="dark"] .pg[aria-current="true"] { color: #0f141a; }
+
+  .hint {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0;
+  }
+  kbd {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 1px 5px;
+    border: 1px solid var(--rule);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    background: var(--sunk);
+  }
+
+  /* ---- phases --------------------------------------------------------- */
+  .phases { display: flex; flex-direction: column; gap: 7px; }
+  .phases h2 {
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin: 0;
+  }
+  .phase {
+    display: grid;
+    grid-template-columns: 96px 1fr 74px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .phase-bar { height: 8px; background: var(--sunk); border-radius: 1px; overflow: hidden; }
+  .phase-bar i { display: block; height: 100%; background: var(--accent); }
+  .phase-bar i.write { background: var(--warm); }
+  .phase-num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--muted);
+  }
+
+  footer {
+    font-size: 12.5px;
+    color: var(--muted);
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+  footer p { margin: 0 0 6px; }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 620px) {
+    h1 { font-size: 22px; }
+    .phase { grid-template-columns: 78px 1fr 62px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Termal Yorulma Çevirisi</h1>
+    <p class="runhead">
+      <em>Lindqvist ve ark. — Katmanlı Kompozit Levhaların Termal Yorulması</em>,
+      İngilizceden Türkçeye, DeepL ile. Aynı A4 geometrisinden 105 dpi'de alınmış iki render;
+      ayırıcıyı sürükleyin.
+    </p>
+  </header>
+
+  <dl class="readings" id="readings"></dl>
+
+  <div class="stagewrap">
+    <div class="stage" id="stage" style="--split: 50">
+      <span class="tag tag-en">EN</span>
+      <img id="imgEn" alt="Kaynak sayfa, İngilizce">
+      <div class="side-tr"><img id="imgTr" alt="Çevrilmiş sayfa, Türkçe"></div>
+      <span class="tag tag-tr">TR</span>
+      <div class="divider" id="divider">
+        <div class="knob" id="knob" role="slider" tabindex="0"
+             aria-label="Karşılaştırma ayırıcısı" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="50" aria-valuetext="%50"></div>
+      </div>
+    </div>
+
+    <div class="rail" id="rail"><span class="rail-label">Sayfa</span></div>
+    <p class="hint">
+      <kbd>←</kbd> <kbd>→</kbd> sayfa değiştirir; ayırıcı seçiliyken aynı tuşlar onu kaydırır.
+      Sahnenin herhangi bir yerine tıklamak ayırıcıyı oraya taşır.
+    </p>
+  </div>
+
+  <section class="phases" id="phases">
+    <h2>Ölçülen süre, aşama aşama</h2>
+  </section>
+
+  <footer>
+    <p id="provenance"></p>
+    <p>
+      Ölçüm <code>tools/bench_pipeline.py</code> ile alındı; belge
+      <code>tools/make_academic_paper.py</code> tarafından üretiliyor, yani boş bir kopyadan
+      yeniden kurulabilir.
+    </p>
+  </footer>
+</div>
+
+<script>
+  const EN = /*__EN__*/;
+  const TR = /*__TR__*/;
+  const STATS = /*__STATS__*/;
+
+  const stage = document.getElementById("stage");
+  const knob = document.getElementById("knob");
+  const imgEn = document.getElementById("imgEn");
+  const imgTr = document.getElementById("imgTr");
+  const rail = document.getElementById("rail");
+
+  let page = 0;
+  let split = 50;
+
+  function showPage(index) {
+    page = Math.max(0, Math.min(EN.length - 1, index));
+    imgEn.src = EN[page];
+    imgTr.src = TR[page];
+    for (const btn of rail.querySelectorAll(".pg")) {
+      btn.setAttribute("aria-current", String(Number(btn.dataset.page) === page));
+    }
+  }
+
+  function setSplit(value) {
+    split = Math.max(0, Math.min(100, value));
+    stage.style.setProperty("--split", split);
+    knob.setAttribute("aria-valuenow", String(Math.round(split)));
+    knob.setAttribute("aria-valuetext", "%" + Math.round(split));
+  }
+
+  function splitFromEvent(event) {
+    const box = stage.getBoundingClientRect();
+    setSplit(((event.clientX - box.left) / box.width) * 100);
+  }
+
+  let dragging = false;
+  stage.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    stage.setPointerCapture(event.pointerId);
+    splitFromEvent(event);
+  });
+  stage.addEventListener("pointermove", (event) => { if (dragging) splitFromEvent(event); });
+  const stopDrag = () => { dragging = false; };
+  stage.addEventListener("pointerup", stopDrag);
+  stage.addEventListener("pointercancel", stopDrag);
+
+  // Arrow keys drive whichever thing has focus: the divider when it is selected, the page
+  // otherwise. Home and End jump the divider to one side, which is how you check a single
+  // page against the other language without dragging.
+  knob.addEventListener("keydown", (event) => {
+    const step = event.shiftKey ? 10 : 2;
+    if (event.key === "ArrowLeft") setSplit(split - step);
+    else if (event.key === "ArrowRight") setSplit(split + step);
+    else if (event.key === "Home") setSplit(0);
+    else if (event.key === "End") setSplit(100);
+    else return;
+    event.preventDefault();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.target === knob) return;
+    if (event.key === "ArrowLeft") showPage(page - 1);
+    else if (event.key === "ArrowRight") showPage(page + 1);
+    else return;
+    event.preventDefault();
+  });
+
+  for (let i = 0; i < EN.length; i += 1) {
+    const btn = document.createElement("button");
+    btn.className = "pg";
+    btn.type = "button";
+    btn.textContent = String(i + 1);
+    btn.dataset.page = String(i);
+    btn.addEventListener("click", () => showPage(i));
+    rail.appendChild(btn);
+  }
+
+  const readings = [
+    ["Sayfa", STATS.pages, ""],
+    ["Karakter", STATS.characters.toLocaleString("tr-TR"), ""],
+    ["Segment", STATS.segments.toLocaleString("tr-TR"), ""],
+    ["İstek", STATS.requests, "DeepL"],
+    ["İnceleme bayrağı", STATS.flagged, "segment"],
+    ["Toplam süre", STATS.seconds, "sn"],
+  ];
+  document.getElementById("readings").innerHTML = readings
+    .map(([label, value, unit]) =>
+      `<div class="reading"><dt>${label}</dt><dd>${value}${unit ? ` <small>${unit}</small>` : ""}</dd></div>`)
+    .join("");
+
+  const longest = Math.max(...STATS.phases.map((p) => p.seconds), 0.1);
+  document.getElementById("phases").insertAdjacentHTML("beforeend", STATS.phases
+    .map((p) => `<div class="phase">
+        <span>${p.name}</span>
+        <span class="phase-bar"><i class="${p.name.startsWith("write") ? "write" : ""}"
+          style="width: ${Math.max(1, (p.seconds / longest) * 100)}%"></i></span>
+        <span class="phase-num">${p.seconds.toFixed(1)} sn</span>
+      </div>`)
+    .join(""));
+
+  document.getElementById("provenance").textContent =
+    `${STATS.pages} sayfa, ${STATS.characters.toLocaleString("tr-TR")} karakter, ` +
+    `${STATS.requests} istek, ${STATS.flagged} segment incelemeye işaretlendi. ` +
+    `Toplam ${STATS.seconds} saniye.`;
+
+  showPage(0);
+  setSplit(50);
+</script>

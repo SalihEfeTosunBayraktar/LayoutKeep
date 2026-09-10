@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    # The default branch here is master; a workflow that only watches main never runs.
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS runners bill at 10x Linux minutes. Keep it here while the repo is public;
+        # move it behind tags if the repo ever goes private. See docs/PACKAGING.md.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # 3.13 is the target. 3.14 breaks the phase-2 OCR dependencies.
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e ".[pdf,epub,ui,fitting,dev]"
+
+      - name: Lint
+        run: python -m ruff check src/ tools/ tests/
+
+      - name: Test
+        # Qt needs an offscreen platform plugin on headless runners.
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests/ -q --junitxml=test-results.xml
+
+      - name: Check licences
+        # The project is AGPL-3.0. A dependency under a non-commercial or RAIL licence
+        # would be incompatible, and that is far cheaper to catch here than later.
+        run: |
+          python -m pip install pip-licenses
+          python -m piplicenses --format=markdown --with-urls
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results.xml
+
+  package:
+    # A wheel that does not build, or one that leaves out the fonts and the typing marker, is a
+    # release that fails on someone else's machine. Cheaper to catch on every push.
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Build the distribution
+        run: |
+          python -m pip install build twine
+          python -m build
+
+      - name: Check its metadata
+        run: python -m twine check dist/*
+
+      - name: Check what it carries
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          wheel = sorted(glob.glob("dist/*.whl"))[-1]
+          with zipfile.ZipFile(wheel) as archive:
+              names = archive.namelist()
+          assert any(n.endswith("py.typed") for n in names), "typing marker missing"
+          assert sum(1 for n in names if n.endswith(".ttf")) >= 10, "substitute fonts missing"
+          print(f"{wheel}: {len(names)} entries, fonts and typing marker present")
+          PY
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install -e ".[pdf,epub,ui,fitting]"
+          python -m pip install pyinstaller
+
+      - name: Build
+        run: python -m PyInstaller packaging/layoutkeep.spec --noconfirm
+
+      # The build is UNSIGNED. Windows SmartScreen will warn users who run it.
+      # Signing needs a certificate the project does not have - see docs/PACKAGING.md.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LayoutKeep-windows-unsigned
+          path: dist/LayoutKeep/

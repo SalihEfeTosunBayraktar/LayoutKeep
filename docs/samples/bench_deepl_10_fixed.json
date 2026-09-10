@@ -1,0 +1,44 @@
+{
+  "document": "academic_paper_10.pdf",
+  "provider": "deepl",
+  "pages": 10,
+  "blocks": 741,
+  "segments": 731,
+  "characters": 30603,
+  "images": 4,
+  "flagged": 37,
+  "requests": 91,
+  "quota_used": 30410,
+  "phases": [
+    {
+      "name": "read",
+      "seconds": 0.3334538999997676,
+      "detail": "10 pages"
+    },
+    {
+      "name": "segment",
+      "seconds": 0.006229499999790278,
+      "detail": "731 segments"
+    },
+    {
+      "name": "translate",
+      "seconds": 12.709054500000093,
+      "detail": "30,603 chars"
+    },
+    {
+      "name": "fit",
+      "seconds": 39.44972820000021,
+      "detail": "86 shrunk or reworded"
+    },
+    {
+      "name": "apply",
+      "seconds": 0.008068999999977677,
+      "detail": ""
+    },
+    {
+      "name": "write pdf",
+      "seconds": 12.678642700000182,
+      "detail": "400 KB"
+    }
+  ]
+}

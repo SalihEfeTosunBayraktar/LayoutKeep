@@ -1,0 +1,135 @@
+[project]
+name = "layoutkeep"
+version = "1.0.0"
+description = "Layout-preserving document and e-book translation"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"   # target 3.13; 3.14 breaks the phase-2 OCR tier
+license = "AGPL-3.0-or-later"
+keywords = ["translation", "pdf", "epub", "docx", "ocr", "layout", "localization"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Natural Language :: German",
+    "Natural Language :: Turkish",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Text Processing :: Markup",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Legendnoobe/LayoutKeep"
+Source = "https://github.com/Legendnoobe/LayoutKeep"
+Issues = "https://github.com/Legendnoobe/LayoutKeep/issues"
+Changelog = "https://github.com/Legendnoobe/LayoutKeep/blob/master/CHANGELOG.md"
+
+[project.scripts]
+layoutkeep = "layoutkeep.cli:main"
+layoutkeep-gui = "layoutkeep.ui.app:main"
+
+[project.optional-dependencies]
+pdf = ["pymupdf>=1.28.2"]           # import pymupdf, NOT fitz (deprecated)
+epub = ["ebooklib>=0.20", "lxml>=6.1.2"]  # lxml does the content edits, ebooklib only OPF/spine
+docx = ["lxml>=6.1.2"]  # zipfile + lxml only; python-docx re-serializes document.xml on save
+fitting = ["fonttools>=4.0"]         # glyph coverage + real metrics, no PyMuPDF (D1/D2)
+# opencv-python-headless, not opencv-python: RapidOCR pulls OpenCV in, and the full build
+# adds GUI and video-codec baggage a bundled desktop app never calls.
+ocr = [
+    "rapidocr>=3.9.2",
+    "onnxruntime>=1.29.0",
+    "opencv-python-headless>=4.10",
+    "Pillow>=10",
+    "numpy>=1.26",
+]  # NOT rapidocr-onnxruntime (dead, <3.13)
+ui = ["PySide6>=6.11.2", "keyring"]
+dev = ["pytest", "pytest-qt", "pytest-html", "ruff"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# The substitute fonts must travel with the package. Without them, font substitution
+# silently degrades to whatever happens to be installed on the machine.
+# `py.typed` is what tells a type checker the hints in this package are meant to be used.
+# Without it every annotation here is invisible to anything that imports it.
+layoutkeep = [
+    "py.typed",
+    "assets/fonts/*.ttf",
+    "assets/fonts/licenses/*.txt",
+    "assets/fonts/*.md",
+    "assets/*.svg",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# Audit reproductions are evidence: they are kept as they were run, not tidied afterwards.
+# Rewriting one to please the linter would change the thing the finding rests on.
+exclude = ["tools/audit"]
+
+[tool.ruff.lint]
+# Stated rather than inherited. Nothing in the project said which rules it was checked
+# against, so the answer was whatever the installed ruff happened to default to - a
+# contributor with a different version would be held to a different standard, and CI's lint
+# step would mean something else than it does here.
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # import order
+    "N",         # pep8 naming
+    "UP",        # pyupgrade: idioms the target version makes obsolete
+    "B",         # bugbear
+    "C4",        # comprehensions
+    "SIM",       # simplifications
+    "ISC",       # implicit string concatenation
+    "PIE",
+    "RET",       # returns
+    "TRY",       # exception handling
+    "BLE",       # blind except
+    "S",         # bandit: security patterns
+    "PTH",       # pathlib over os.path
+    "RUF",
+]
+ignore = [
+    # A long docstring line is not worth breaking a sentence over.
+    "E501",
+    # The interface, the comments and half the strings are Turkish. "ı", "ş" and "ğ" are not
+    # ambiguous characters here, they are the language, and 1201 of these fired on it.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # Qt method names are Qt's: overriding `mousePressEvent` with a lower-case name would not
+    # override anything.
+    "N802",
+    # The URL a provider is called on comes from the user's own endpoint configuration. That is
+    # the feature, and the check cannot tell it from an attacker-supplied one.
+    "S310",
+    # The codebase deliberately catches broad exceptions at boundaries where a failure must be
+    # reported rather than propagated - a crash handler, a measurement loop. Those sites say so.
+    "TRY003",
+    "TRY300",
+    "TRY301",
+    "TRY400",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The PUA delimiter that hides a value from the model is a constant, not a credential.
+"src/layoutkeep/core/protect.py" = ["S105"]
+# `rPr` and `pPr` are OOXML element names. Lower-casing them would hide what they refer to.
+"src/layoutkeep/readers/docx_reader.py" = ["N803", "N806"]
+# Tests assert, use fixtures with implicit returns, and reach into private members on purpose.
+"tests/*" = ["S101", "SLF001", "S311", "S603", "S318", "N805", "E402", "PTH"]
+# Tools are scripts: they print, they take paths from argv, they are run by hand.
+# A fixture generator seeds a PRNG to make the same document every time; that is the point.
+"tools/*" = ["S101", "T201", "PTH123", "E402", "S603", "S311"]
+# Reproductions and fixtures manipulate sys.path before importing the package under test.
+"tests/conftest.py" = ["E402"]

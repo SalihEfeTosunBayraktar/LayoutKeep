@@ -1,0 +1,35 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+*.lkproj
+models/
+out/
+
+# transient artefacts
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+gloss.json
+*.epub
+_artifacts/
+*.spec.bak
+layoutkeep_crash.log
+
+# training local env and artifacts
+training/.venv-train/
+training/output_model/
+training/merged_model/
+training/gguf_model/
+training/live_metrics.json
+
+# The 100-page fixture and its translation: 6 MB of something `tools/make_academic_paper.py`
+# rebuilds on demand. The 10-page pair is committed because the README and the comparison page
+# are built from it; the measurements taken at 100 pages live in docs/samples/bench_*.json.
+docs/samples/academic_paper.pdf
+docs/samples/academic_paper.tr.pdf
