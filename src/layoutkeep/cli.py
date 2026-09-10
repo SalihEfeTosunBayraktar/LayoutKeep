@@ -177,6 +177,18 @@ def cmd_translate(args: argparse.Namespace) -> int:
     if out.resolve() == src.resolve():
         raise SystemExit("Output path is the same as the input. Refusing to overwrite the source.")
 
+    # The same policy the desktop application applies, from the same module. A conversion that
+    # is locked there and runs here would be the CLI quietly shipping output the project has
+    # measured and does not stand behind.
+    from layoutkeep.core import capabilities
+
+    if not capabilities.is_open(src.suffix, out.suffix):
+        raise SystemExit(
+            f"{src.suffix} to {out.suffix} is not enabled in this build. Only PDF to PDF is. "
+            "The measurements behind that are in docs/ENGINE-ARCHITECTURE.md, and "
+            "tools/audit/format_matrix.py reproduces them."
+        )
+
     print(f"reading   {src}")
     doc = _read_document(src)
     doc.source_lang = args.from_lang

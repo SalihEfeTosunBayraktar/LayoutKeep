@@ -1,6 +1,6 @@
 # LayoutKeep Audit Evidence (tools/audit)
 
-Denetim kanıtı betikleri — `docs/AUDIT-BULGULAR.md` ve `docs/AUDIT-PROJE-ANALIZI.md`'deki
+Audit scripts - the evidence behind
 "kanıt (koşuldu)" iddialarının tamamı buradaki betiklerle yeniden üretilebilir.
 
 ## Nasıl koşulur
@@ -49,4 +49,5 @@ değiştirmek olur. (Not: `ruff check tools/` tüm tools'u tararken exclude'u uy
   bilinçli: her kanıt kendi kendine yeter.
 - Çıktı dosyaları (`*.epub`, `*.pdf`, `*.sqlite`) betiklerle üretilir; repo'ya girmez
   (`.gitignore`: `*.epub`, `*.lkproj`, `*.sqlite`).
-- Denetim raporları: `docs/AUDIT-BULGULAR.md` (33 bulgu, B1–B33), `docs/AUDIT-PROJE-ANALIZI.md`.
+- The current measurement of every format pair: `format_matrix.py`, written up in
+  `docs/ENGINE-ARCHITECTURE.md`. The older audit reports were working notes and are not kept.

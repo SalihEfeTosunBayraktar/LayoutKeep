@@ -23,10 +23,10 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/Legendnoobe/LayoutKeep"
-Source = "https://github.com/Legendnoobe/LayoutKeep"
-Issues = "https://github.com/Legendnoobe/LayoutKeep/issues"
-Changelog = "https://github.com/Legendnoobe/LayoutKeep/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/SalihEfeTosunBayraktar/LayoutKeep"
+Source = "https://github.com/SalihEfeTosunBayraktar/LayoutKeep"
+Issues = "https://github.com/SalihEfeTosunBayraktar/LayoutKeep/issues"
+Changelog = "https://github.com/SalihEfeTosunBayraktar/LayoutKeep/blob/main/CHANGELOG.md"
 
 [project.scripts]
 layoutkeep = "layoutkeep.cli:main"
@@ -47,7 +47,11 @@ ocr = [
     "numpy>=1.26",
 ]  # NOT rapidocr-onnxruntime (dead, <3.13)
 ui = ["PySide6>=6.11.2", "keyring"]
-dev = ["pytest", "pytest-qt", "pytest-html", "ruff"]
+# Pillow and numpy are test dependencies as well as OCR ones: the fixtures draw their own
+# images and several tests assert on pixels. They were only ever installed as a side
+# effect of the `ocr` extra, so CI - which does not install it - could not collect eight
+# test modules at all.
+dev = ["pytest", "pytest-qt", "pytest-html", "ruff", "Pillow>=10", "numpy>=1.26"]
 
 [build-system]
 requires = ["setuptools>=68"]

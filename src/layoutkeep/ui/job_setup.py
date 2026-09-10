@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from layoutkeep.core import capabilities
 from layoutkeep.ui.drop_zone import DropZoneWidget
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.job import JobConfig, ProviderConfig
@@ -206,16 +207,43 @@ class _JobSetupUiBuilder:
         self._start_btn.setMinimumHeight(42)
 
     def _fill_format_combo(self) -> None:
-        """(Re)fill the format box, keeping whatever was chosen."""
+        """(Re)fill the format box, keeping whatever was chosen.
+
+        A target this build cannot do well is listed, marked with a lock and the one sentence
+        that says what it would cost, and cannot be picked. Leaving it out would say the project
+        does not convert to EPUB; leaving it selectable would say it does it well. Neither is
+        true - see `core/capabilities.py` and docs/ENGINE-ARCHITECTURE.md.
+        """
         chosen = self._output_format.currentData()
+        source_suffix = Path(self._input_path.text().strip()).suffix.lower()
+        locked_colour = ThemeManager.current_palette().text_muted
+
         self._output_format.blockSignals(True)
         self._output_format.clear()
-        for ext, label in _format_choices():
-            self._output_format.addItem(label, ext)
-        if chosen is not None:
-            index = self._output_format.findData(chosen)
-            if index >= 0:
-                self._output_format.setCurrentIndex(index)
+        model = self._output_format.model()
+        for row, (ext, label) in enumerate(_format_choices()):
+            unlocked = bool(source_suffix) and capabilities.is_open(source_suffix, ext)
+            text = label if unlocked else f"{label} — {UIStrings.get('LOCKED_SUFFIX')}"
+            self._output_format.addItem(text, ext)
+            if unlocked:
+                continue
+            item = model.item(row)
+            item.setEnabled(False)
+            item.setIcon(get_svg_icon("lock", color=locked_colour, size=14))
+            reason_key = capabilities.lock_reason_key(
+                capabilities.resolve_target(source_suffix, ext)
+            )
+            if reason_key:
+                item.setToolTip(UIStrings.get(reason_key))
+
+        index = self._output_format.findData(chosen) if chosen is not None else -1
+        if index < 0 or not model.item(index).isEnabled():
+            index = next(
+                (row for row in range(self._output_format.count())
+                 if model.item(row).isEnabled()),
+                0,
+            )
+        self._output_format.setCurrentIndex(index)
         self._output_format.blockSignals(False)
 
     def _build_settings_card(self) -> SetupCard:
@@ -408,6 +436,9 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
         # Input path dışarıdan değişirse dropzone ve çıktıyı senkronize eder / Syncs dropzone on path change
         if text and self._drop_zone._current_path != text:
             self._drop_zone.set_file_path(text)
+        # Which targets are open depends on what was opened, so the box is rebuilt here rather
+        # than once at startup.
+        self._fill_format_combo()
         if text and not self._output_path.text():
             self._update_output_path(text)
 
@@ -563,6 +594,14 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             return UIStrings.ERR_MISSING_INPUT
         if not Path(input_path).exists():
             return f"{UIStrings.ERR_INPUT_NOT_FOUND}{input_path}"
+
+        # A locked pair is refused here as well as in the format box: the box can only grey out
+        # a target, and it is the source that is locked when someone opens an EPUB.
+        target = self._output_format.currentData() or "auto"
+        if not capabilities.is_open(Path(input_path).suffix, str(target)):
+            if capabilities.open_targets(Path(input_path).suffix):
+                return UIStrings.get("LOCKED_BODY")
+            return UIStrings.get("LOCKED_SOURCE_BODY")
 
         output_path = self._output_path.text().strip()
         if not output_path:

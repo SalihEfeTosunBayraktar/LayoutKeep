@@ -6,6 +6,11 @@
   <a href="README.md">English</a> · <a href="README.tr.md">Türkçe</a>
 </p>
 
+<p align="center">
+  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html"><strong>Çevrilmiş bir belgeyi yan yana görün →</strong></a><br>
+  <sub>Akademik bir makalenin on sayfası, İngilizce ve Türkçe, sürüklenebilir bir ayırıcı altında.</sub>
+</p>
+
 # LayoutKeep
 
 Belgeleri, e-kitapları ve görselleri **düzenini koruyarak** çevirir — yazı tipleri, renkler,
@@ -14,9 +19,12 @@ biçimlendirme, metin yönü ve yapı, hedef dilin izin verdiği ölçüde özg�
 Yerel çalışır. Modelini kendin getirirsin: LM Studio, Ollama veya llama.cpp üzerinden yerel bir
 LLM, ya da OpenAI-uyumlu herhangi bir bulut uç noktası. Belgelerinin makineden çıkması gerekmez.
 
-> **Durum: çalışıyor, etkin geliştirme altında.** Masaüstü uygulaması, komut satırı arayüzü ve
-> PDF, EPUB, DOCX, HTML ile görseller için okuyucu/yazıcılar bugün çalışıyor. Pürüzler duruyor —
-> [Bilinen sınırlar](#bilinen-sınırlar).
+> **Durum: PDF'ten PDF'e açık. Diğer her şey kilitli.** EPUB, DOCX, HTML ve görseller için
+> okuyucu ve yazıcılar var, ve bu dönüşümlerin hepsi ölçüldü: hiçbiri hata vermiyor, birkaçı ise
+> belgenin görsellerini, kalın/italik biçimlendirmesini veya kelimelerinin üçte birini sessizce
+> kaybediyor. Arayüzde kaldırılmadan ya da sunulmadan, kilitle ve gerekçesiyle gösteriliyorlar.
+> Ölçüm ve her birinin açılması için ne gerektiği:
+> [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md).
 
 ---
 
@@ -59,14 +67,52 @@ Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim b
 hatırlanır. Her ekranın koyu bir varyantı var — görüntüler
 [`docs/screenshots/`](docs/screenshots/) altında.
 
+## Daha uzun bir örnek, ve maliyeti
+
+Yukarıdaki tek bir sayfa. Bu on sayfa: iki sütunlu, numaralı bölümleri, etiketli çizgi
+grafikleri, başlık satırlı tabloları, mikroskop görüntüleri, üst bilgisi ve sayfa numaraları olan
+üretilmiş bir akademik makale, DeepL ile İngilizceden Türkçeye çevrildi. Kaynak ve çıktı
+[`docs/samples/`](docs/samples/) içinde (`academic_paper_10.pdf` ve `academic_paper_10.tr.pdf`),
+üreteci [`tools/make_academic_paper.py`](tools/make_academic_paper.py) — boş bir kopyadan
+yeniden kurulabilir.
+
+| | |
+|---|---:|
+| Sayfa | 10 |
+| Okunan blok | 741 |
+| Çevrilen | 91 istekte 30.603 karakter |
+| İncelemeye işaretlenen | 731 segmentin 37'si |
+| Süre | **65,2 sn** — 12,7 sn çeviri, 39,4 sn sığdırma, 12,7 sn PDF yazma |
+
+![Süre nereye gidiyor](docs/images/bench_10_pages.png)
+
+**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe,
+sürüklediğiniz bir ayırıcının altında. Kendi kendine yeten tek bir dosya (görseller içinde
+taşınıyor) ve güncel çıktıdan
+[`tools/make_comparison_page.py`](tools/make_comparison_page.py) ile yeniden üretiliyor; yani
+boru hattının artık yapmadığı bir şeyi gösteremez.
+
+Çeviri, geçen sürenin beşte birinden az. **Asıl pahalı kısım, çevirinin İngilizce için
+ayarlanmış kutulara geri sığdırılması** — kaynaktan uzun bir dilin bedeli orada ödeniyor ve o 37
+inceleme bayrağı oradan geliyor. PDF yazmak burada ucuz ama ölçekle kötüleşiyor: 100 sayfalık bir
+koşu sayfa başına 7 saniye, buradaki 1,3 saniyeye karşılık.
+[`docs/BENCHMARK.md`](docs/BENCHMARK.md) tüm rakamları ve nedenini içerir.
+
 ## Ne çalışıyor
 
-| Girdi | Çıktı | Sadakat |
+| Girdi → Çıktı | Durum | Ölçüm |
 |---|---|---|
-| Dijital PDF (metin katmanlı) | PDF, EPUB, DOCX, HTML, PNG/JPG | yüksek — özgün PDF yerinde düzenlenir, şekiller ve vektör çizimler dokunulmaz |
-| EPUB | EPUB, PDF, DOCX, HTML, PNG/JPG | EPUB→EPUB'da yüksek (düzen CSS'te yaşar); PDF yeniden akıtır, sınırlara bakın |
-| DOCX | yukarıdakilerin tümü | iyi |
-| Görseller (PNG/JPG) | görsel, PDF ve diğerleri | orta — OCR'a bağlı |
+| **PDF → PDF** | **açık** | tüm metin, tüm biçimlendirme, şekiller ve vektör çizimler dokunulmadan — özgün dosya yerinde düzenlenir |
+| PDF → EPUB | kilitli | kalın ve italik parçaların tamamı kayboluyor: 10'da 0 |
+| EPUB → PDF, EPUB → DOCX | kilitli | DocIR'in taşıdığı görseli düşürüyor: 1'de 0 |
+| DOCX → EPUB | kilitli | biçimlendirme kayboluyor: 2'de 0 |
+| herhangi bir şey → PNG/JPG | kilitli | görselin metin katmanı olmaz; sonuç aranamaz |
+| EPUB → EPUB, DOCX → DOCX | kilitli | ölçümleri iyi; çevrelerindeki kod oturunca açılacaklar |
+
+Her satır [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py) çıktısıdır, kendiniz
+çalıştırabilirsiniz. Kilit tek bir modülde —
+[`core/capabilities.py`](src/layoutkeep/core/capabilities.py) — ve hem uygulama hem komut satırı
+onu okur, dolayısıyla neyin hazır olduğu konusunda ayrı düşemezler.
 
 Latin yazılar (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, …). Veri modeli bir `direction`
 alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uygulanmış değil.
@@ -168,8 +214,27 @@ Bayraklar `.lkproj` dosyasına yazılır ve komut satırı skor tablosunda sayı
 İngilizce README'deki [Known limits](README.md#known-limits) bölümü bu listenin kaynağıdır ve
 ölçümlerle birlikte orada tutulur — iki dilde iki ayrı doğruluk iddiası yerine tek bir yer.
 
-Sürüm 1 için açık kalan bilinen kusurlar
-[`docs/RELEASE-V1.md`](docs/RELEASE-V1.md) içinde, kanıtlarıyla listelenir.
+Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
+[`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) içindedir.
+
+## Ayarlama
+
+Düzen aşamalarının dayandığı sayılar — bir tablo satırının hücreleri sayılmak için iki kutunun ne
+kadar örtüşmesi gerektiği, iki satırın hâlâ aynı paragraf sayılması için ne kadar uzak
+durabileceği, metnin okunabilirliğini yitirmeden ne kadar küçültülebileceği — çalışma anında
+**Gelişmiş Ayarlar → Geliştirici** altında düzenlenebilir. Her birinin ne yaptığı ve yanlış
+ayarlanırsa neyin bozulacağı yanında yazar, varsayılanlar kodun geldiği değerlerdir ve bir
+sıfırlama düğmesi vardır. Değerler kullanıldıkları yerde okunur, dolayısıyla değişiklik yeniden
+başlatma istemez. Komut satırı aynı dosyayı okur, böylece ikisi tek makinede birbirinden
+ayrışamaz.
+
+## Testler hakkında bir not
+
+Paket geniş ve yeşil. **Bunu zayıf kanıt sayın.** Bu projede bulunan her ciddi kusur, ürünün
+gerçek bir belge üzerinde çalıştırılmasından çıktı, hiçbiri geçen bir testten çıkmadı — sessizce
+düşürülen şekiller, sayfa aralığının attığı sayfalar, kaydedilen projeye ulaşmadan atılan
+inceleme bayrakları, paketlenmiş derlemede tamamen ölü bir özellik. Buradaki testler zor yoldan
+öğrenilmiş olanı sabitler; onu keşfetmezler. Çalıştırın.
 
 ## Mimari
 

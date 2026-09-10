@@ -1,0 +1,442 @@
+[
+  {
+    "source": "pdf",
+    "target": "pdf",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "after": {
+      "characters": 1089,
+      "words": 210,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "pdf",
+    "target": "epub",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "after": {
+      "characters": 1106,
+      "words": 209,
+      "images": 0,
+      "pages": 2,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "pdf",
+    "target": "docx",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "after": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "pdf",
+    "target": "html",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "after": {
+      "characters": 1098,
+      "words": 237,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "pdf",
+    "target": "png",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 1091,
+      "words": 206,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 10
+    },
+    "after": {
+      "characters": 1091,
+      "words": 201,
+      "images": 1,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "epub",
+    "target": "pdf",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "after": {
+      "characters": 292,
+      "words": 54,
+      "images": 0,
+      "pages": 2,
+      "styled_runs": 5
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "epub",
+    "target": "epub",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "after": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "epub",
+    "target": "docx",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "after": {
+      "characters": 285,
+      "words": 54,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 2
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "epub",
+    "target": "html",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "after": {
+      "characters": 293,
+      "words": 71,
+      "images": 1,
+      "pages": 1,
+      "styled_runs": 3
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "epub",
+    "target": "png",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 285,
+      "words": 55,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 3
+    },
+    "after": {
+      "characters": 189,
+      "words": 37,
+      "images": 1,
+      "pages": 2,
+      "styled_runs": 0
+    },
+    "files_written": 2,
+    "notes": []
+  },
+  {
+    "source": "docx",
+    "target": "pdf",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "after": {
+      "characters": 211,
+      "words": 37,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 4
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "docx",
+    "target": "epub",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "after": {
+      "characters": 244,
+      "words": 46,
+      "images": 0,
+      "pages": 5,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "docx",
+    "target": "docx",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "after": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "docx",
+    "target": "html",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "after": {
+      "characters": 221,
+      "words": 53,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 2
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "docx",
+    "target": "png",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 211,
+      "words": 38,
+      "images": 0,
+      "pages": 4,
+      "styled_runs": 2
+    },
+    "after": {
+      "characters": 147,
+      "words": 27,
+      "images": 1,
+      "pages": 4,
+      "styled_runs": 0
+    },
+    "files_written": 4,
+    "notes": []
+  },
+  {
+    "source": "png",
+    "target": "pdf",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "after": {
+      "characters": 34,
+      "words": 7,
+      "images": 1,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "png",
+    "target": "epub",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "after": {
+      "characters": 49,
+      "words": 10,
+      "images": 0,
+      "pages": 2,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "png",
+    "target": "docx",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "after": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "png",
+    "target": "html",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "after": {
+      "characters": 41,
+      "words": 9,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  },
+  {
+    "source": "png",
+    "target": "png",
+    "ok": true,
+    "error": "",
+    "before": {
+      "characters": 34,
+      "words": 7,
+      "images": 0,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "after": {
+      "characters": 34,
+      "words": 7,
+      "images": 1,
+      "pages": 1,
+      "styled_runs": 0
+    },
+    "files_written": 1,
+    "notes": []
+  }
+]

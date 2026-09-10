@@ -1,117 +1,134 @@
-# LayoutKeep — Ortak Sözleşme (tüm ajanlar için bağlayıcı)
+# LayoutKeep — the contract (binding on everyone working on this project)
 
-Bu dosya, projede çalışan **her** ajanın (Claude alt ajanları ve Antigravity ajanları) uyması gereken
-değişmezleri tanımlar. Kod yazmadan önce oku.
+The invariants every contributor works to. Read it before writing code. Where this document and
+an opinion disagree, this document wins; where this document and a measurement disagree, fix the
+document and say what the measurement was.
 
 ---
 
-## 1. Proje kimliği
+## 1. What this project is
 
 | | |
 |---|---|
-| Ad | LayoutKeep |
-| Amaç | Belge/e-kitap/görselleri **düzen, font, renk, stil korunarak** çevirmek |
-| Lisans | **AGPL-3.0-or-later** (açık kaynak, ticari kısıt yok) |
-| Platform | Windows / macOS / Linux |
-| Faz 1 kapsamı | **Sadece Latin yazı sistemi** (TR, EN, DE, FR, ES, IT, PT, NL, PL…) |
-| UI | PySide6 |
-| Python | **3.13 hedef** (3.14 wheel'leri güvenilmez — sistem 3.14 kullanma, venv aç) |
+| Name | LayoutKeep |
+| Purpose | Translate documents, e-books and images **keeping their layout, fonts, colour and styling** |
+| Licence | **AGPL-3.0-or-later** |
+| Platforms | Windows / macOS / Linux |
+| Phase 1 scope | **Latin script only** (TR, EN, DE, FR, ES, IT, PT, NL, PL…) |
+| Interface | PySide6 |
+| Python | **3.13** (3.14 wheels are not dependable yet — do not use a system 3.14, make a venv) |
 
 ---
 
-## 2. Mimari değişmezler — bunlar tartışmaya kapalı
+## 2. Architectural invariants — not open for debate
 
-### D1 — DocIR tek gerçek kaynaktır
-Her okuyucu (`readers/`) girdiyi **DocIR**'e çevirir. Her yazıcı (`writers/`) **sadece** DocIR'den üretir.
-Okuyucu ile yazıcı birbirini asla doğrudan tanımaz. Yeni format eklemek = 1 okuyucu + 1 yazıcı, çekirdek değişmez.
+### D1 — DocIR is the single source of truth
+Every reader in `readers/` turns its input into **DocIR**. Every writer in `writers/` produces
+its output from DocIR and nothing else. A reader and a writer never know about each other.
+Adding a format means adding one reader and one writer; the core does not change.
 
-### D2 — Çeviri katmanı düzenden habersizdir
-`providers/` sadece `list[Segment] -> list[Segment]` bilir. Font, bbox, PDF diye bir kavramı yoktur.
-Bu sayede sağlayıcı değiştirmek tek satırlık iştir.
+### D2 — The translation layer knows nothing about layout
+`providers/` only knows `list[Segment] -> list[Segment]`. It has no concept of a font, a bounding
+box or a PDF. That is what makes changing provider a one-line job.
 
-### D3 — Sığdırma, çeviriden sonra ayrı bir aşamadır
-`fitting/` çeviri metnini alır ve kutuya sığdırır. Çeviri sağlayıcısı sığdırmayı düşünmez;
-sadece `max_len` ipucu alır ve `fitting` gerekirse **yeniden çeviri** isteyebilir.
+### D3 — Fitting is a separate stage, after translation
+`fitting/` takes the translated text and fits it to its box. The provider does not think about
+fitting; it receives a `max_len` hint, and `fitting` may ask for a **shorter translation** when
+it needs one.
 
-### D4 — Latin-only ama RTL'e hazır
-`Span.direction` alanı **şimdi** var ve `"ltr"` sabitleniyor. Kod hiçbir yerde LTR varsayımını
-gömmez (örn. "metin soldan başlar" gibi sabit mantık `direction`'a bakmalı).
-RTL uygulanmaz ama mimari onu dışlamaz.
+### D4 — Latin-only, but ready for RTL
+`Span.direction` exists **now** and is pinned to `"ltr"`. No code anywhere hard-codes the
+assumption of left-to-right — logic like "text starts at the left" reads `direction` instead.
+RTL is not implemented, but the architecture does not shut it out.
 
-**Kapsam teyidi (kullanıcı, 2026-09-02):** Sadece Latin. RTL ve CJK **kapsam dışı** — sormaya
-gerek yok, mimari hazır kalsın yeter.
+**Scope, confirmed by the project owner (2026-09-02):** Latin only. RTL and CJK are **out of
+scope** — no need to ask; just leave the architecture able to accept them.
 
-**Ama yön ≠ oryantasyon.** Latin metin de eğik, dik, baş aşağı veya aynalanmış olabilir ve bunlar
-gerçek belgelerde sık görülür. `Block.rotation` bunun için var. İki durumu karıştırma:
-- **Döndürme** — yön vektöründen (`line["dir"]`) türetilir, açı olarak taşınır.
-- **Aynalama** — dönüşüm matrisinin determinantı negatiftir. Yön vektörü bunu **gösteremez**;
-  aynalanmış bir satır gayet normal bir açı bildirebilir ama ters render edilir. Sadece açıya
-  bakarak geri yazmak metni sessizce düzeltir ve düzeni bozar.
+**But direction is not orientation.** Latin text can be tilted, vertical, upside down or
+mirrored, and real documents are full of it. `Block.rotation` is for that. Two distinct things:
 
-Aynalamayı üretemiyorsak bile **tespit edip `needs_review` işaretlemek**, sessizce düzeltmekten
-iyidir. Kullanıcıya yanlış bir belgeyi doğruymuş gibi vermek bu projede en kötü sonuçtur.
+- **Rotation** — derived from the flow direction vector (`line["dir"]`), carried as an angle.
+- **Mirroring** — the transform matrix has a negative determinant. The direction vector
+  **cannot show this**: a mirrored line reports a perfectly ordinary angle and renders
+  backwards. Writing it back from the angle alone silently "corrects" the text and destroys the
+  layout.
 
-**Durum: tespit ediliyor.** Uzun süre "yön vektörü determinantı gösteremez, dolayısıyla aynalama
-tespit edilemez" diye kayıtlıydı. İlk yarısı doğru, ikincisi değildi. Yön vektörü taşıyamaz ama
-glifler taşıyor: saf bir döndürmede glif, taban çizgisindeki orijininden `dir`'in çeyrek tur
-döndürülmüş yönüne doğru uzanır; aynalama `dir`'e dokunmadan bu tarafı ters çevirir. 0/45/90/180/270
-derecede, aynalı ve aynasız ölçüldü - izdüşüm on düz durumda +0.65, on aynalı durumda -0.65.
-Eşik ayarı yok, işaret yeterli. Bkz. `readers/pdf_reader.py:_span_is_mirrored`.
+Even where mirroring cannot be reproduced, **detecting it and setting `needs_review`** beats
+silently correcting it. Handing someone a wrong document that looks right is the worst outcome
+this project can produce.
 
-### D5 — Her şey yeniden çalıştırılabilir olmalı
-İşlem sonucu `.lkproj` (JSON) olarak diske yazılır. Kullanıcı kapatıp açınca kaldığı yerden devam eder,
-çeviriyi elle düzeltip yeniden üretebilir. **Tek seferlik, durumsuz boru hattı yazma.**
+**Status: detected.** This was recorded for a long time as "the direction vector cannot show the
+determinant, therefore mirroring cannot be detected". The first half is true and the second was
+not. The vector cannot carry it, but the glyphs can: in a pure rotation a glyph extends from its
+baseline origin towards `dir` turned a quarter turn; mirroring flips that side without touching
+`dir`. Measured at 0/45/90/180/270 degrees, mirrored and not — the projection came out +0.65 in
+ten upright cases and −0.65 in ten mirrored ones. No threshold to tune; the sign is enough. See
+`readers/pdf_reader.py:_span_is_mirrored`.
 
-### D6 — Çeviri kalitesi segment bayraklarıyla izlenir
-%100 otomatik doğruluk hedefi yok. Her segment `confidence` ve `needs_review` taşır ve
-bu bayraklar çeviri motoru içinde işlevseldir (fitting motoru taşan segmenti işaretler,
-passthrough literal yakaladığında flag'ler, CLI skor tablosu sayar). **Gözden geçirme
-editörü kaldırıldı** (2026-09): uygulama akışı 1. Belge → 2. Çeviri → 3. Tamamlandı
-(çıktıyı aç / klasörde göster / yeni çeviri). Bayraklar .lkproj'e yazılmaya devam eder;
-UI'da ayrı bir düzeltme ekranı yoktur.
+### D5 — Everything must be resumable
+A job's state is written to disk as `.lkproj` (JSON). Close the application and reopen it and the
+work continues; a translation can be corrected by hand and the document rebuilt. **Do not write
+a one-shot, stateless pipeline.**
+
+### D6 — Translation quality is tracked with segment flags
+There is no goal of 100% automatic correctness. Every segment carries `confidence` and
+`needs_review`, and those flags do real work inside the engine: the fitting engine marks a
+segment that overflowed, the passthrough check flags a literal it caught, the CLI's score table
+counts them. **The correction editor was removed** (2026-09): the application flow is
+1. Document → 2. Translation → 3. Done (open the output / show it in the folder / start another).
+Flags are still written to `.lkproj`; there is no separate correction screen in the interface.
+
+### D7 — A conversion is offered only when it has been measured
+A format pair is enabled when the evidence says it holds up, and locked otherwise — visible, with
+a lock and one sentence saying what it would cost. `core/capabilities.py` is the one place that
+decides, and both the interface and the command line read it, so they cannot drift apart.
+`docs/ENGINE-ARCHITECTURE.md` holds the measurements and
+`tools/audit/format_matrix.py` reproduces them.
 
 ---
 
-## 3. Dizin sahipliği — çakışmayı önleyen tek kural
+## 3. Directory ownership — the rule that prevents collisions
 
-**Bir ajan yalnızca kendi dizinine yazar.** Başka dizinde değişiklik gerekiyorsa, kod yazmaz;
-şefe (ana Claude oturumu) bildirir.
+**Write only in your own directory.** If a change is needed elsewhere, do not write it; report it.
 
-| Dizin | Sahip |
+| Directory | Owner |
 |---|---|
-| `src/layoutkeep/core/` | Şef (ana oturum) — DocIR ve ortak tipler |
-| `src/layoutkeep/readers/pdf_reader.py`, `writers/pdf_writer.py` | `lk-pdf` |
-| `src/layoutkeep/readers/epub_reader.py`, `writers/epub_writer.py` | `lk-epub` |
+| `src/layoutkeep/core/` | Lead — DocIR and the shared types |
+| `readers/pdf_reader.py`, `writers/pdf_writer.py` | `lk-pdf` |
+| `readers/epub_reader.py`, `writers/epub_writer.py` | `lk-epub` |
 | `src/layoutkeep/providers/` | `lk-provider` |
 | `src/layoutkeep/fitting/` | `lk-fitting` |
-| `src/layoutkeep/ui/` | `lk-ui` (veya Antigravity) |
-| `tests/` | `lk-verify` (diğerleri kendi testini yazabilir, ama `lk-verify` denetler) |
-| `docs/`, `_agents/` | Şef |
+| `src/layoutkeep/ui/` | `lk-ui` |
+| `tests/` | `lk-verify` (others may write their own tests, `lk-verify` audits them) |
+| `docs/` | Lead |
 
-`core/` **hiçbir alt ajan tarafından değiştirilmez.** Şema değişikliği talebi şefe gider.
+`core/` is **not modified by any sub-agent.** A schema change is a request to the lead.
 
 ---
 
-## 4. Kodlama kuralları
+## 4. Coding rules
 
-- Kod, commit mesajı ve kod içi yorum **İngilizce**. Kullanıcıya rapor **Türkçe**.
-- Type hint zorunlu. `from __future__ import annotations` her dosyada.
-- Çekirdek modüller (`core/`, `fitting/`, `providers/`) **ağır bağımlılık import etmez** —
-  PyMuPDF sadece `readers/pdf_reader.py` ve `writers/pdf_writer.py` içinde geçer.
-  Bu, test edilebilirliği ve ileride motor değiştirmeyi mümkün kılar.
-- İstenmeyen soyutlama yok. Tek kullanımlık kod için factory/registry/plugin yazma.
-- Mevcut kod stiline uy. İlgisiz kodu "iyileştirme". Ölü kod görürsen **sil değil, bildir**.
-- Her değişen satır doğrudan verilen göreve izlenebilmeli.
+- Code, commit messages and in-code comments are **English**. Reports to the project owner are
+  **Turkish**.
+- Type hints are required. `from __future__ import annotations` in every file.
+- Core modules (`core/`, `fitting/`, `providers/`) **import no heavy dependency** — PyMuPDF
+  appears only in `readers/pdf_reader.py` and `writers/pdf_writer.py`. That is what keeps them
+  testable and leaves the door open to changing engine later.
+- No unrequested abstraction. Do not write a factory, a registry or a plugin system for code
+  with one caller.
+- Match the surrounding style. Do not "improve" unrelated code. If you find dead code,
+  **report it, do not delete it** — unless your own change is what orphaned it.
+- Every changed line must be traceable to the task that was asked for.
 
-## 5. Doğrulama kuralı
+## 5. The verification rule
 
-"Bitti" demeden önce **çalıştır ve çıktıyı göster**. Test yoksa yaz.
-Çıktı olmadan "çalışıyor" iddiası kabul edilmez. Başarısız testi başarılı gibi raporlama —
-başarısızsa çıktısıyla birlikte söyle.
+Before saying "done", **run it and show the output**. If there is no test, write one. A claim of
+"it works" without output is not accepted. Never report a failing test as passing — if it fails,
+say so and show it.
 
-## 6. Yasak
+## 6. Forbidden
 
-- DRM kırma kodu — hiçbir biçimde.
-- `core/` şemasını izinsiz değiştirmek.
-- Ağır bağımlılığı (torch, paddle) Faz 1'e sokmak.
-- API anahtarını düz metin dosyaya yazmak — OS keychain (`keyring`) kullanılır.
+- DRM circumvention, in any form.
+- Changing the `core/` schema without asking.
+- Bringing a heavy dependency (torch, paddle) into Phase 1.
+- Writing an API key to a plain-text file — the OS keychain (`keyring`) is used.

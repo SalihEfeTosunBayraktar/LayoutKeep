@@ -49,6 +49,6 @@ same document, with readers and writers for PDF, EPUB, DOCX, HTML and images.
 
 ### Known at release
 
-See `docs/RELEASE-V1.md` for what was verified before release and what is still open, with
+See `docs/ENGINE-ARCHITECTURE.md` for what was verified before release and what is still open, with
 evidence for each. The largest open defect is table structure: cells on one line are read as a
 single block, so a translated table loses its rows even though its numbers survive.

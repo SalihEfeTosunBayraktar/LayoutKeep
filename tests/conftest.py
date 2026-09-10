@@ -24,6 +24,37 @@ import pytest
 
 pytest.importorskip("PySide6")
 
+
+def pytest_collection_modifyitems(config, items):
+    """Skip the tests that need a real OCR engine when one is not installed.
+
+    `rapidocr` and its ONNX runtime are the heaviest thing this project depends on and CI does
+    not install them - reasonably, since image conversion is locked (see
+    docs/ENGINE-ARCHITECTURE.md). Their absence used to stop pytest collecting eight modules
+    outright, which reads as "the build is broken" rather than "this optional engine is not
+    here". Pillow and numpy, which the fixtures need to draw their own images, are ordinary test
+    dependencies and are declared as such in pyproject.toml.
+    """
+    try:
+        import rapidocr  # noqa: F401
+    except ImportError:
+        skip = pytest.mark.skip(reason="OCR engine (rapidocr) not installed")
+        for item in items:
+            if any(name in str(item.fspath) for name in _OCR_TEST_MODULES):
+                item.add_marker(skip)
+
+
+#: Test modules that cannot run a step without the OCR engine actually being present.
+_OCR_TEST_MODULES = (
+    "test_ocr_engine",
+    "test_inpaint",
+    "test_image_reader",
+    "test_image_writer",
+    "test_conversion_matrix",
+    "test_cross_format",
+    "test_outlined_text",
+)
+
 from layoutkeep.core import paths
 from layoutkeep.ui import settings
 
