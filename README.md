@@ -6,6 +6,11 @@
   <a href="README.md">English</a> · <a href="README.tr.md">Türkçe</a>
 </p>
 
+<p align="center">
+  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html"><strong>See a translated document side by side →</strong></a><br>
+  <sub>Ten pages of an academic paper, English and Turkish, under a divider you drag.</sub>
+</p>
+
 # LayoutKeep
 
 Translate documents, e-books and images **while keeping their layout** — fonts, colours, styling,
@@ -78,12 +83,12 @@ from an empty checkout.
 
 ![Where the time goes](docs/images/bench_10_pages.png)
 
-**[Open the page-by-page comparison](docs/comparison.html)** — all ten pages, English and Turkish
+**[Open the page-by-page comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — all ten pages, English and Turkish
 overlaid with a divider you drag across. It is a single self-contained file (the renders travel
 inside it), rebuilt from the current output by
 [`tools/make_comparison_page.py`](tools/make_comparison_page.py), so it can never show a
-comparison of something the pipeline no longer does. Viewing it from GitHub needs Pages enabled
-for the repository, or a local clone and a browser.
+comparison of something the pipeline no longer does. The file itself is
+[`docs/comparison.html`](docs/comparison.html) if you would rather open it from a clone.
 
 Translation is under a fifth of the wall clock. **Fitting the translation back into boxes that
 were set for English is the expensive part** — it is where a language that runs longer than the
