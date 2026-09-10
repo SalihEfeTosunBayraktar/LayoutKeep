@@ -45,7 +45,7 @@ jobs:
           python -m pip install pip-licenses
           python -m piplicenses --format=markdown --with-urls
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.os }}
@@ -105,7 +105,7 @@ jobs:
 
       # The build is UNSIGNED. Windows SmartScreen will warn users who run it.
       # Signing needs a certificate the project does not have - see docs/PACKAGING.md.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: LayoutKeep-windows-unsigned
           path: dist/LayoutKeep/
