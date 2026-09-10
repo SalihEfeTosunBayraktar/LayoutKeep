@@ -22,15 +22,34 @@ either side persisting byte offsets between reader and writer runs.
 
 from __future__ import annotations
 
+import base64
+import contextlib
 import re
 import zipfile
 from pathlib import Path
 
 from lxml import etree
 
-from layoutkeep.core.docir import BBox, Block, BlockRole, Document, Line, Page, Span, Style
+from layoutkeep.core.docir import (
+    BBox,
+    Block,
+    BlockRole,
+    Document,
+    ImageRef,
+    Line,
+    Page,
+    Span,
+    Style,
+)
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
+A_NS = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+R_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+#: OOXML sizes drawings in English Metric Units; DocIR works in points, 12700 to the point.
+_EMU_PER_POINT = 12700
+
 
 _DUMMY_BBOX = BBox(0.0, 0.0, 0.0, 0.0)
 
@@ -212,6 +231,65 @@ def _extract_footnote_paragraphs(raw: bytes, part: str) -> list[Block]:
     return blocks
 
 
+def _relationship_targets(rels_raw: bytes | None) -> dict[str, str]:
+    """Relationship id to the part it points at, for one document part's .rels file."""
+    if not rels_raw:
+        return {}
+    root = _parse(rels_raw)
+    targets: dict[str, str] = {}
+    for rel in root.iter():
+        rel_id = rel.get("Id")
+        target = rel.get("Target")
+        if rel_id and target:
+            targets[rel_id] = target
+    return targets
+
+
+def _extract_images(
+    raw: bytes, contents: dict[str, bytes], rels: dict[str, str]
+) -> list[ImageRef]:
+    """Every picture a part draws, in document order, with its bytes and its declared size.
+
+    This reader had none of it. A Word document's figures were gone before the translation layer
+    saw them, and every conversion out of DOCX produced a document with no pictures - which the
+    format matrix reported as the *writer* dropping images, because the reader it counts with
+    could not see them either (docs/ENGINE-ARCHITECTURE.md).
+
+    The picture's bytes are carried rather than its relationship id: a `.lkproj` has to stay
+    readable on a machine that no longer has the source document (CONTRACT.md D5), and a writer
+    rebuilding into another format has nothing to resolve an id against.
+    """
+    root = _parse(raw)
+    images: list[ImageRef] = []
+    for order, drawing in enumerate(root.iter(f"{W}drawing")):
+        blip = next(drawing.iter(f"{A_NS}blip"), None)
+        if blip is None:
+            continue
+        target = rels.get(blip.get(f"{R_NS}embed", ""), "")
+        if not target:
+            continue
+        payload = contents.get(f"word/{target.lstrip('/')}") or contents.get(target.lstrip("/"))
+        if not payload:
+            continue
+
+        width = height = 0.0
+        extent = next(drawing.iter(f"{WP}extent"), None)
+        if extent is not None:
+            with contextlib.suppress(TypeError, ValueError):
+                width = int(extent.get("cx", "0")) / _EMU_PER_POINT
+                height = int(extent.get("cy", "0")) / _EMU_PER_POINT
+
+        images.append(
+            ImageRef(
+                bbox=BBox(0.0, 0.0, width, height),
+                data=base64.b64encode(payload).decode("ascii"),
+                fmt=(Path(target).suffix.lstrip(".").lower() or "png"),
+                order=order,
+            )
+        )
+    return images
+
+
 def read_docx(path: str | Path) -> Document:
     """Read a DOCX file into a DocIR Document.
 
@@ -237,7 +315,21 @@ def read_docx(path: str | Path) -> Document:
 
     if "word/document.xml" in contents:
         blocks = _extract_paragraphs(contents["word/document.xml"], "word/document.xml", None)
-        pages.append(Page(number=page_num, width=0.0, height=0.0, blocks=blocks, source_ref="word/document.xml"))
+        images = _extract_images(
+            contents["word/document.xml"],
+            contents,
+            _relationship_targets(contents.get("word/_rels/document.xml.rels")),
+        )
+        pages.append(
+            Page(
+                number=page_num,
+                width=0.0,
+                height=0.0,
+                blocks=blocks,
+                images=images,
+                source_ref="word/document.xml",
+            )
+        )
         page_num += 1
 
     for name in sorted(names):
