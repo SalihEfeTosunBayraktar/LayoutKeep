@@ -104,11 +104,10 @@ scales badly: a 100-page run costs 7 seconds a page against this one's 1.3.
 | Input → Output | State | Measured |
 |---|---|---|
 | **PDF → PDF** | **open** | all text, all styling, figures and vector art untouched — the original file is edited in place |
-| EPUB → DOCX | locked | drops images DocIR is holding: 0 of 1 survives |
 | EPUB/DOCX → PNG | locked | a third of the words cannot be read back: 63% and 73% |
 | anything → PNG/JPG | locked | an image has no text layer; the result cannot be searched |
 | → HTML | locked | a paged document collapses to one flow: 1 page out of 4 |
-| PDF → EPUB, EPUB → PDF, EPUB → EPUB, DOCX → DOCX | locked | these measure well now, and open one at a time as the code around them settles |
+| PDF → EPUB, EPUB → PDF, EPUB → EPUB, EPUB → DOCX, DOCX → DOCX | locked | these measure well now, and open one at a time as the code around them settles |
 
 Every row is [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py), which you can run
 yourself. The lock is one module — [`core/capabilities.py`](src/layoutkeep/core/capabilities.py) —

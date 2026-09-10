@@ -17,7 +17,7 @@ runs marked bold or italic.
 | | → pdf | → epub | → docx | → html | → png |
 |---|---|---|---|---|---|
 | **pdf →** | 100% · 10/10 styled | 101% · 10/10 styled | 100% · 10/10 | 101% · 10/10 | 91% · 0/10 |
-| **epub →** | 100% · 1/1 img | 100% · 1/1 img · 3/3 | 100% · **0/1 img** · 1/2 pages | 104% · 1/1 img | **63%** · 1/1 img |
+| **epub →** | 100% · 1/1 img | 100% · 1/1 img · 3/3 | 100% · 1/1 img · 1/2 pages | 104% · 1/1 img | **63%** · 1/1 img |
 | **docx →** | 100% · 4/2 styled | 119% · 2/2 styled · 5/4 pages | 100% · 2/2 | 110% · 2/2 · 1/4 pages | **73%** |
 | **png →** | 100% · 1 img | 143% | 100% | 129% | 100% |
 
@@ -69,20 +69,21 @@ held one, the PDF had none. It does not. The EPUB fixture's 1x1 PNG had `IHDD` w
 `IHDR`, so it was not a decodable image at all, and MuPDF was right to refuse to draw it. The
 fixture had been that way for a long time without anyone noticing, because the reader tests only
 ask whether the bytes survive the round trip, and bytes do not care whether they decode. With a
-real PNG, epub→pdf carries its image: 1/1. `docx_generator` still drops it, which is why that
-entry survives above.
+real PNG, epub→pdf carries its image: 1/1.
 
 **The dropped images, again.** With the fixture repaired, epub→docx still read 0/1, and the
 obvious conclusion - that the DOCX generator drops images where the PDF one does not - was also
-wrong. The generator embeds the picture correctly. The reader that counts the output cannot see
-pictures at all. Every number in the `img` column is only ever as good as the reader used to
-check it, which is a limitation of this method and is now stated rather than discovered again.
+wrong. The generator embeds the picture correctly; `readers/docx_reader.py` had no image
+handling at all, so nothing read from a DOCX ever carried a figure regardless of target. That
+part was real and is now fixed - epub→docx reads 1/1. Every number in the `img` column is only
+ever as good as the reader used to check it, which is a limitation of this method and is now
+stated rather than discovered again.
 
 The moral is not that measurement is unreliable. It is that the instrument - the fixtures it
 uses and the readers it counts with - is part of what is being measured, and an instrument that
 has never been checked against something known-good is a source of confident numbers rather than
-true ones. Three of the defects this document originally reported were the instrument. The ones
-that survived that scrutiny are worth more for it.
+true ones. Three of the defects this document originally reported were the instrument, and a
+fourth was real and has since been fixed. The ones that survive both are worth more for it.
 
 ## Why the diagonal is clean
 
@@ -105,12 +106,12 @@ document from DocIR alone. They are thinner, and where they are thin it is in or
   zero `<b>`, `<strong>`, `<i>` or `<em>` tags and zero `font-weight` declarations. It rendered
   the block's flattened text, which throws every span away. It renders spans now: pdf→epub went
   from 0/10 styled runs to 10/10, docx→epub from 0/2 to 2/2.
-* **`docx_reader` reads no images at all.** This entry said "`docx_generator` drops images",
-  measured as epub→docx 0/1. The generator does not drop them: the DOCX it writes contains the
-  media part, the drawing and the blip that references it. What cannot see them is the reader
-  used to count the output - `readers/docx_reader.py` has no image handling whatsoever. So the
-  figure was measuring the reader, and the defect is real but on the other side: **anything read
-  from a DOCX arrives with no figures**, and a DOCX source loses every picture it has.
+* **`docx_reader` read no images at all** — since fixed. This entry said "`docx_generator`
+  drops images", measured as epub→docx 0/1. The generator was never dropping them: the DOCX it
+  writes contains the media part, the drawing and the blip that references it. What could not
+  see them was the reader used to count the output - `readers/docx_reader.py` had no image
+  handling whatsoever, so every DOCX source lost every picture it had on the way back into
+  DocIR, regardless of target. It reads them now: epub→docx went from 0/1 to 1/1.
 * **An image with no geometry was embedded one EMU square** - since fixed. A reflowable source
   gives a picture a place in the flow and no box, and the DOCX generator sized the drawing from
   that empty box: present in the package, invisible on the page. It now falls back to the
