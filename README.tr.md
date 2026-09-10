@@ -103,11 +103,11 @@ koşu sayfa başına 7 saniye, buradaki 1,3 saniyeye karşılık.
 | Girdi → Çıktı | Durum | Ölçüm |
 |---|---|---|
 | **PDF → PDF** | **açık** | tüm metin, tüm biçimlendirme, şekiller ve vektör çizimler dokunulmadan — özgün dosya yerinde düzenlenir |
-| PDF → EPUB | kilitli | kalın ve italik parçaların tamamı kayboluyor: 10'da 0 |
-| EPUB → PDF, EPUB → DOCX | kilitli | DocIR'in taşıdığı görseli düşürüyor: 1'de 0 |
-| DOCX → EPUB | kilitli | biçimlendirme kayboluyor: 2'de 0 |
+| EPUB → DOCX | kilitli | DocIR'in taşıdığı görseli düşürüyor: 1'de 0 |
+| EPUB/DOCX → PNG | kilitli | kelimelerin üçte biri geri okunamıyor: %63 ve %73 |
 | herhangi bir şey → PNG/JPG | kilitli | görselin metin katmanı olmaz; sonuç aranamaz |
-| EPUB → EPUB, DOCX → DOCX | kilitli | ölçümleri iyi; çevrelerindeki kod oturunca açılacaklar |
+| → HTML | kilitli | sayfalı belge tek akışa çöküyor: 4 sayfadan 1 |
+| PDF → EPUB, EPUB → PDF, EPUB → EPUB, DOCX → DOCX | kilitli | artık ölçümleri iyi; çevrelerindeki kod oturdukça teker teker açılacaklar |
 
 Her satır [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py) çıktısıdır, kendiniz
 çalıştırabilirsiniz. Kilit tek bir modülde —

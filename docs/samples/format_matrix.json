@@ -38,7 +38,7 @@
       "words": 238,
       "images": 0,
       "pages": 2,
-      "styled_runs": 0
+      "styled_runs": 10
     },
     "files_written": 1,
     "notes": []
@@ -122,9 +122,9 @@
       "styled_runs": 3
     },
     "after": {
-      "characters": 292,
-      "words": 69,
-      "images": 0,
+      "characters": 285,
+      "words": 68,
+      "images": 1,
       "pages": 2,
       "styled_runs": 5
     },
@@ -210,8 +210,8 @@
       "styled_runs": 3
     },
     "after": {
-      "characters": 189,
-      "words": 45,
+      "characters": 182,
+      "words": 43,
       "images": 1,
       "pages": 2,
       "styled_runs": 0
@@ -258,7 +258,7 @@
       "words": 57,
       "images": 0,
       "pages": 5,
-      "styled_runs": 0
+      "styled_runs": 2
     },
     "files_written": 1,
     "notes": []

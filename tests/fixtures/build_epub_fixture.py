@@ -100,11 +100,15 @@ CHAP2_XHTML = b"""<?xml version="1.0" encoding="utf-8"?>
 </html>
 """
 
-# 1x1 transparent PNG, arbitrary binary content whose bytes just need to survive untouched.
+# A real 1x1 transparent PNG. It used to be almost one: the chunk type read "IHDD" instead of
+# "IHDR", which no decoder accepts. That went unnoticed because the reader tests only ask whether
+# the bytes survive the round trip, and bytes do not care whether they decode. Anything that
+# actually draws the image - the PDF and DOCX generators - was measured as "drops images" when
+# what it did was refuse to draw a corrupt one.
 COVER_PNG = bytes.fromhex(
-    "89504e470d0a1a0a0000000d494844440000000100000001080600000"
-    "01f15c4890000000a49444154789c6360000002000155274db3000000"
-    "0049454e44ae426082"
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+    "1f15c4890000000d4944415478da63606060600000000500017aa85750"
+    "0000000049454e44ae426082"
 )
 
 

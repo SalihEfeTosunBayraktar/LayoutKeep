@@ -16,17 +16,22 @@ runs marked bold or italic.
 
 | | → pdf | → epub | → docx | → html | → png |
 |---|---|---|---|---|---|
-| **pdf →** | 100% · 10/10 styled | 101% · **0/10 styled** | 100% · 10/10 | 101% · 10/10 | 91% · 0/10 |
-| **epub →** | 101% · **0/1 img** | 100% · 1/1 img · 3/3 | 100% · **0/1 img** · 1/2 pages | 104% · 1/1 img | **66%** · 1/1 img |
-| **docx →** | 100% · 4/2 styled | 119% · **0/2 styled** | 100% · 2/2 | 110% · 2/2 · 1/4 pages | **73%** |
+| **pdf →** | 100% · 10/10 styled | 101% · 10/10 styled | 100% · 10/10 | 101% · 10/10 | 91% · 0/10 |
+| **epub →** | 100% · 1/1 img | 100% · 1/1 img · 3/3 | 100% · **0/1 img** · 1/2 pages | 104% · 1/1 img | **63%** · 1/1 img |
+| **docx →** | 100% · 4/2 styled | 119% · 2/2 styled · 5/4 pages | 100% · 2/2 | 110% · 2/2 · 1/4 pages | **73%** |
 | **png →** | 100% · 1 img | 143% | 100% | 129% | 100% |
+
+This table has been corrected twice since it was first published, both times because the
+instrument was wrong rather than the thing it measured. What those corrections were is at the
+end, under *What this measurement got wrong*, because a measurement that hides its own errata is
+worth less than one that never claimed precision.
 
 Two things to read out of it before anything else.
 
-**Nothing fails.** Twenty pairs, no exceptions, no error dialogs. Five of them quietly hand back
-a document missing its images, its emphasis, or a third of its words. A conversion that throws is
-a bug someone fixes; a conversion that succeeds and returns less than it was given is a bug
-nobody reports.
+**Nothing fails.** Twenty pairs, no exceptions, no error dialogs. Several of them quietly hand
+back a document missing its images or a third of its words. A conversion that throws is a bug
+someone fixes; a conversion that succeeds and returns less than it was given is a bug nobody
+reports.
 
 **The diagonal is clean and everything off it is not.** Every same-format pair keeps what it was
 given: pdf→pdf 100% with all ten styled runs, epub→epub with its image and all three styled runs,
@@ -48,6 +53,29 @@ rather than tidied away — a table that shows only the numbers supporting its a
 measurement. The lesson is the one this project keeps relearning: check the instrument before
 believing what it says about the thing.
 
+## What this measurement got wrong
+
+Twice, and both times the instrument rather than the subject. They are recorded here rather than
+quietly amended, because the whole argument of this document rests on believing its numbers.
+
+**The word counts.** The counter joined a document's blocks with nothing between them, so the
+last word of one block and the first of the next counted as one word, while every output format
+separates them with markup and counted two. That produced figures of 115%, 129%, 139% and 153%,
+and an explanation of them — offered here — blaming chapter titles and navigation. It was not.
+With the join fixed, those four read between 100% and 104%.
+
+**The dropped images.** This document said `pdf_generator` drops images on the EPUB path: DocIR
+held one, the PDF had none. It does not. The EPUB fixture's 1x1 PNG had `IHDD` where a PNG has
+`IHDR`, so it was not a decodable image at all, and MuPDF was right to refuse to draw it. The
+fixture had been that way for a long time without anyone noticing, because the reader tests only
+ask whether the bytes survive the round trip, and bytes do not care whether they decode. With a
+real PNG, epub→pdf carries its image: 1/1. `docx_generator` still drops it, which is why that
+entry survives above.
+
+The moral is not that measurement is unreliable. It is that a fixture is part of the instrument,
+and an instrument that has never been checked against something known-good is a source of
+confident numbers rather than true ones.
+
 ## Why the diagonal is clean
 
 There are two families of writers in `writers/`, and `converter.py` picks between them by asking
@@ -62,24 +90,28 @@ all stay because they are never rebuilt. Only the text is replaced. Years of the
 project have gone into that path, and the diagonal shows it.
 
 The second family — `pdf_generator`, `epub_generator`, `docx_generator`, `html_writer` — builds a
-document from DocIR alone. They are thin. Measured, verified, reproducible:
+document from DocIR alone. They are thinner, and where they are thin it is in ordinary ways:
 
-* **`epub_generator` writes no emphasis at all.** DocIR holds ten styled runs from
-  `sample_report.pdf` — a bold title, an italic subtitle, bold headings. The EPUB it produces
-  contains zero `<b>`, `<strong>`, `<i>` or `<em>` tags and zero `font-weight` or `font-style`
-  declarations. The information reached the writer and the writer dropped it.
-* **`pdf_generator` drops images on the EPUB path.** DocIR holds one image with `order=5`. The
-  PDF it produces contains zero images and zero drawings. Same for the DOCX path.
+* **`epub_generator` wrote no emphasis at all** — since fixed. DocIR held ten styled runs from
+  `sample_report.pdf` (a bold title, an italic subtitle, bold headings) and the EPUB contained
+  zero `<b>`, `<strong>`, `<i>` or `<em>` tags and zero `font-weight` declarations. It rendered
+  the block's flattened text, which throws every span away. It renders spans now: pdf→epub went
+  from 0/10 styled runs to 10/10, docx→epub from 0/2 to 2/2.
+* **`docx_generator` drops images.** DocIR holds one image with `order=5`; the DOCX has none.
+  This one is real and is not fixed.
+* **Rendering to an image loses a third of the words** — epub→png 63%, docx→png 73%, against
+  pdf→png at 91%. The words are drawn; what varies is whether OCR can read them back, which is
+  the only way to check an output with no text layer. Worth understanding before that row opens.
 
-Both are ordinary defects in ordinary code. Neither is evidence that the architecture is wrong.
+None of this is evidence that the architecture is wrong.
 
 ## The three options that were on the table
 
 **"Write a universal intermediate format and convert through it."** This already exists and is
 called DocIR. `docs/CONTRACT.md` D1 has required it since the beginning: every reader produces
 it, every writer consumes it, and readers and writers never know about each other. The
-measurements confirm the intermediate is not the problem — DocIR *had* the image the PDF
-generator dropped, and *had* the bold runs the EPUB generator dropped. Building a second
+measurements confirm the intermediate is not the problem — DocIR *had* the bold runs the EPUB
+generator dropped, and *has* the image the DOCX generator still drops. Building a second
 intermediate would not have carried them any better; the writers would still be thin.
 
 **"Separate conversion engines for every combination."** Sixteen cross-format pairs, each its own

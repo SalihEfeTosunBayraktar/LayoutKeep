@@ -32,10 +32,12 @@ def test_job_setup_range_selection(qtbot, tmp_path, monkeypatch):
     assert not widget._range_input.isHidden()
     widget._range_input.setText("1-5, 8")
 
-    src = tmp_path / "in.epub"
+    # A page range is a PDF idea, and PDF to PDF is the pair this build enables; a locked pair
+    # is refused before a job is ever emitted.
+    src = tmp_path / "in.pdf"
     src.write_text("sample")
     widget._input_path.setText(str(src))
-    widget._output_path.setText(str(tmp_path / "out.epub"))
+    widget._output_path.setText(str(tmp_path / "out.pdf"))
 
     received_config = []
     widget.job_ready.connect(received_config.append)
