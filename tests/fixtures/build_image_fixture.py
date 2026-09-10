@@ -134,6 +134,22 @@ def build_skewed(path: str | Path) -> None:
     img.save(path)
 
 
+SPARSE_PAGE_TEXT = "Page footer text"
+
+
+def build_sparse_page(path: str | Path) -> None:
+    """A near-blank full page with one short line tucked near the top-left corner - the shape a
+    DOCX header, footer or footnote takes once it becomes its own A4-sized DocIR page
+    (`pdf_generator.py`'s flowing-page fallback gives every page the same sheet size) and gets
+    rasterized to PNG. At real size, RapidOCR's small/fast detector found nothing on a page this
+    sparse - not because the text was unreadable, only alone on a canvas far larger than itself.
+    """
+    img = Image.new("RGB", (1240, 1755), "white")
+    d = ImageDraw.Draw(img)
+    d.text((100, 120), SPARSE_PAGE_TEXT, font=_font(20), fill="black")
+    img.save(path)
+
+
 if __name__ == "__main__":
     out_dir = Path(__file__).parent
     build_plain_white(out_dir / "img_plain_white.png")

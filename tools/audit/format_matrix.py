@@ -106,13 +106,13 @@ def count_docir(path: Path) -> Counts:
     )
 
 
-def count_output(path: Path, target: str, extra_files: int) -> Counts:
+def count_output(path: Path, target: str, extra_files: int, all_files: list[Path]) -> Counts:
     """What a reader finds in the written file. For a target this project cannot read back
     (html), the file is parsed directly rather than guessed at."""
     if target == "html":
         return _count_html(path)
     if target == "png":
-        return _count_images(path, extra_files)
+        return _count_images(all_files or [path], extra_files)
     counts = count_docir(path)
     if target == "pdf" and counts.words == 0 and counts.images:
         # A PDF written from an image source carries its words as pixels, exactly as its source
@@ -155,29 +155,48 @@ def _count_html(path: Path) -> Counts:
     styled = len(re.findall(r"<(b|strong|i|em)\b", body, flags=re.I))
     styled += len(re.findall(r"font-weight\s*:\s*(bold|[6-9]00)", body, flags=re.I))
     styled += len(re.findall(r"font-style\s*:\s*italic", body, flags=re.I))
+    # `html_writer.py` wraps every DocIR page in its own `<section class="page-container">`;
+    # this used to be hardcoded to 1 regardless of how many there actually were, which is how
+    # docx->html was reported as collapsing 4 pages into 1 when the writer was never asked to
+    # and did not. The style block is already stripped above, so this cannot match the CSS rule
+    # that shares the class name.
+    pages = len(re.findall(r'<section[^>]*class="page-container"', body, flags=re.I)) or 1
     text = re.sub(r"<[^>]+>", " ", body)
     text = re.sub(r"&[a-z]+;|&#\d+;", " ", text)
     return Counts(
         characters=len(text.replace(" ", "").replace("\n", "")),
         words=len(text.split()),
         images=images,
-        pages=1,
+        pages=pages,
         styled_runs=styled,
     )
 
 
-def _count_images(path: Path, extra_files: int) -> Counts:
+def _count_images(paths: list[Path], extra_files: int) -> Counts:
     """An image target has no text layer at all - the words are pixels. Text is read back with
     the same OCR the image reader uses, so "did the words survive" is answerable rather than
-    assumed. Where OCR is unavailable the count is left at zero and a note says so."""
+    assumed. Where OCR is unavailable the count is left at zero and a note says so.
+
+    A multi-page source becomes one PNG per page (`writers/converter.py`'s `_write_image_target`:
+    `out.png`, `out-002.png`, `out-003.png`, ...) - every file has to be OCR'd and summed, or a
+    document's later pages are invisible to this measurement while its page count still claims
+    they were checked. That undercounted epub→png and docx→png by exactly their first page's
+    share of the total: measuring only `out.png` against both pages' word count read as the
+    second page's words having vanished, when they were simply never looked at.
+    """
     try:
         from layoutkeep.writers.converter import read_any_document
 
-        doc = read_any_document(path)
-        text = "\n".join(b.text for _, b in doc.iter_blocks())
+        words = 0
+        characters = 0
+        for path in paths:
+            doc = read_any_document(path)
+            text = "\n".join(b.text for _, b in doc.iter_blocks())
+            words += len(text.split())
+            characters += len(text.replace(" ", "").replace("\n", ""))
         return Counts(
-            characters=len(text.replace(" ", "").replace("\n", "")),
-            words=len(text.split()),
+            characters=characters,
+            words=words,
             images=1,
             pages=1 + extra_files,
             styled_runs=0,
@@ -208,7 +227,9 @@ def run_pair(source: Path, target: str, work: Path) -> Pair:
         out = work / f"{source.stem}_to.{target}"
         written = write_any_document(doc, source, out)
         result.files_written = len(written) if written else 1
-        result.after = count_output(out, target, max(0, result.files_written - 1))
+        result.after = count_output(
+            out, target, max(0, result.files_written - 1), written or [out]
+        )
         result.ok = True
     except Exception as exc:  # noqa: BLE001 - a pair that raises is a result, not a crash
         result.error = f"{type(exc).__name__}: {exc}".strip()[:300]

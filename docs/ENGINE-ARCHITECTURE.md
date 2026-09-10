@@ -17,26 +17,42 @@ runs marked bold or italic.
 | | → pdf | → epub | → docx | → html | → png |
 |---|---|---|---|---|---|
 | **pdf →** | 100% · 10/10 styled | 101% · 10/10 styled | 100% · 10/10 | 101% · 10/10 | 91% · 0/10 |
-| **epub →** | 100% · 1/1 img | 100% · 1/1 img · 3/3 | 100% · 1/1 img · 1/2 pages | 104% · 1/1 img | **63%** · 1/1 img |
-| **docx →** | 100% · 4/2 styled | 119% · 2/2 styled · 5/4 pages | 100% · 2/2 | 110% · 2/2 · 1/4 pages | **73%** |
+| **epub →** | 100% · 1/1 img | 100% · 1/1 img · 3/3 | 100% · 1/1 img · 1/2 pages | 104% · 1/1 img · 2/2 pages | 101% · 1/1 img |
+| **docx →** | 100% · 4/2 styled | 119% · 2/2 styled · 5/4 pages | 100% · 2/2 | 110% · 2/2 · 4/4 pages | 100% |
 | **png →** | 100% · 1 img | 143% | 100% | 129% | 100% |
 
-This table has been corrected twice since it was first published, both times because the
-instrument was wrong rather than the thing it measured. What those corrections were is at the
-end, under *What this measurement got wrong*, because a measurement that hides its own errata is
-worth less than one that never claimed precision.
+This table has been corrected five times since it was first published - three times because the
+instrument was wrong, twice because a real defect it correctly found got fixed. What those
+corrections were is at the end, under *What this measurement got wrong* and *Why the diagonal is
+clean*, because a measurement that hides its own errata is worth less than one that never claimed
+precision.
 
-Two things to read out of it before anything else.
+Two things to read out of it before anything else, and a third that only became true after five
+rounds of checking the instrument.
 
-**Nothing fails.** Twenty pairs, no exceptions, no error dialogs. Several of them quietly hand
-back a document missing its images or a third of its words. A conversion that throws is a bug
-someone fixes; a conversion that succeeds and returns less than it was given is a bug nobody
-reports.
+**Nothing fails.** Twenty pairs, no exceptions, no error dialogs. A conversion that throws is a
+bug someone fixes; a conversion that succeeds and returns less than it was given is a bug nobody
+reports, which is the entire reason this table exists.
 
-**The diagonal is clean and everything off it is not.** Every same-format pair keeps what it was
-given: pdf→pdf 100% with all ten styled runs, epub→epub with its image and all three styled runs,
-docx→docx, png→png. Every cross-format pair loses something. That is not a coincidence, and it is
-the whole finding.
+**The diagonal is clean.** Every same-format pair keeps everything it was given: pdf→pdf 100%
+with all ten styled runs, epub→epub with its image and all three styled runs, docx→docx, png→png.
+Nothing surprising there - see *Why the diagonal is clean* for the reason.
+
+**Almost everything else now reads at or near 100% too.** That was not true of the first version
+of this table, which is the whole reason the errata sections below exist. Of the sixteen
+cross-format pairs, one is genuinely short - pdf→png at 91%, and even that is not lost content
+(see below) - and the rest sit at 100% or a little over, the over explained in the next section.
+This document's original thesis was that cross-format conversions lose real content; four of the
+five defects it reported turned out to be its own measuring tool. What is left is thin enough
+that locking every cross-format pair on fidelity grounds alone is no longer the finding it once
+was - see *What is being done now*.
+
+**pdf→png's 91% is not missing content.** Its character count matches the source exactly (1091
+of 1091); only the word count is short, because RapidOCR occasionally reads two adjacent short
+spans as one recognized run without the space between them that was there in the source. Every
+character survives; some of the whitespace that separates them into words does not. Left as a
+known texture of OCR word-counting rather than investigated further, since the character count
+already answers the question this table exists to ask.
 
 ### Where the percentages above 100 come from
 
@@ -55,8 +71,8 @@ believing what it says about the thing.
 
 ## What this measurement got wrong
 
-Twice, and both times the instrument rather than the subject. They are recorded here rather than
-quietly amended, because the whole argument of this document rests on believing its numbers.
+Four times, and every time the instrument rather than the subject. They are recorded here rather
+than quietly amended, because the whole argument of this document rests on believing its numbers.
 
 **The word counts.** The counter joined a document's blocks with nothing between them, so the
 last word of one block and the first of the next counted as one word, while every output format
@@ -79,11 +95,19 @@ part was real and is now fixed - epub→docx reads 1/1. Every number in the `img
 ever as good as the reader used to check it, which is a limitation of this method and is now
 stated rather than discovered again.
 
+**The collapsed pages.** This document said a paged document collapses to one HTML flow - docx→html
+measured 1 page out of 4. `html_writer.py` never did that: it wraps every DocIR page in its own
+`<section class="page-container">`, and all four were there in the file. The counter reading the
+output hardcoded `pages=1` regardless of what it found, a leftover from before this measurement
+checked pages at all. Counting the actual `<section>` tags gives docx→html 4/4, epub→html 2/2.
+
 The moral is not that measurement is unreliable. It is that the instrument - the fixtures it
-uses and the readers it counts with - is part of what is being measured, and an instrument that
+builds and the readers it counts with - is part of what is being measured, and an instrument that
 has never been checked against something known-good is a source of confident numbers rather than
-true ones. Three of the defects this document originally reported were the instrument, and a
-fourth was real and has since been fixed. The ones that survive both are worth more for it.
+true ones. Four of the defects this document originally reported were the instrument, and one -
+the OCR detector losing sparse pages (see *Why the diagonal is clean*) - was real and has since
+been fixed. What survives both is worth more for it: essentially nothing does. Every number in
+this table now reads at or near 100%, or is explained.
 
 ## Why the diagonal is clean
 
@@ -116,9 +140,16 @@ document from DocIR alone. They are thinner, and where they are thin it is in or
   gives a picture a place in the flow and no box, and the DOCX generator sized the drawing from
   that empty box: present in the package, invisible on the page. It now falls back to the
   picture's own pixel size, read from its header.
-* **Rendering to an image loses a third of the words** — epub→png 63%, docx→png 73%, against
-  pdf→png at 91%. The words are drawn; what varies is whether OCR can read them back, which is
-  the only way to check an output with no text layer. Worth understanding before that row opens.
+* **Rendering to an image lost a third of the words** - since fixed, and not where it looked.
+  epub→png read 63%, docx→png 73%, against pdf→png at 91%; the shape of it (single-page pdf→png
+  fine, multi-page epub/docx→png badly wrong) pointed at the writer, but the words were on every
+  page, drawn correctly. A DOCX's header, footer and footnotes become their own DocIR pages with
+  no geometry, and `pdf_generator.py`'s flowing layout gives every page the same A4 sheet to keep
+  a document looking like one - reasonable for a PDF, but rasterized to PNG it puts one 20px line
+  of text alone on a 1240x1755 canvas, and RapidOCR's small/fast detector found nothing on a page
+  that sparse. The fix lives in the OCR engine, not the writer: `RapidOcrEngine.recognize` now
+  crops to the page's own content, padded, before handing it to the detector - the same model
+  then reads the same line at 98% confidence. epub→png and docx→png both read 100%+ now.
 
 None of this is evidence that the architecture is wrong.
 
@@ -128,8 +159,9 @@ None of this is evidence that the architecture is wrong.
 called DocIR. `docs/CONTRACT.md` D1 has required it since the beginning: every reader produces
 it, every writer consumes it, and readers and writers never know about each other. The
 measurements confirm the intermediate is not the problem — DocIR *had* the bold runs the EPUB
-generator dropped, and *has* the image the DOCX generator still drops. Building a second
-intermediate would not have carried them any better; the writers would still be thin.
+generator dropped and *had* the image the DOCX reader could not see, both now carried through.
+Building a second intermediate would not have carried them any better than the first one already
+did; the gap was always downstream of it.
 
 **"Separate conversion engines for every combination."** Sixteen cross-format pairs, each its own
 engine. Every fix to table detection or literal protection would then need doing sixteen times,
@@ -164,8 +196,18 @@ build:
 
 Only **PDF → PDF** is enabled. The other targets stay visible, with a lock and a plain sentence
 saying what is not ready, because hiding them would misrepresent the project's scope while
-offering them misrepresents their quality. They come back one at a time, each when the row of
-this table that covers it reads the way the diagonal does.
+offering them misrepresents their quality.
+
+**Most of that lock was earned by this document's own mistakes, not by the code.** It went into
+its first draft claiming widespread content loss across cross-format conversions; four of five
+defects it reported were the measuring tool - a broken test fixture, two missing readers, a
+hardcoded page count - and the fifth, a real OCR detector limitation, is fixed. What remains
+below 100% is pdf→png's 91%, which is a whitespace-counting quirk with the character count intact,
+not lost content. Whether that is enough evidence to open any of these pairs is a product
+decision, not a measurement one, and is left to whoever owns that call rather than decided here.
+What this document still stands behind is the *architecture* finding: the generators were thinner
+than the writers, two of them have since been made as serious, and the format matrix is what to
+run before trusting the next one.
 
 The matrix is a tool, not a document: rerun it after any change to a reader or a writer.
 

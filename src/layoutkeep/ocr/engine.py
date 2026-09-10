@@ -21,9 +21,12 @@ import io
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from PIL import Image
+
+if TYPE_CHECKING:
+    import numpy as np
 
 #: What `recognize()` accepts besides an already-open `Image.Image`: a filesystem path (str or
 #: `Path`) or raw encoded image bytes. A path is the obvious first thing a caller reaches for -
@@ -107,13 +110,19 @@ class RapidOcrEngine:
     def recognize(self, image: ImageSource) -> list[TextBox]:
         import numpy as np
 
-        result = self._engine()(np.array(_to_image(image).convert("RGB")))
+        array = np.array(_to_image(image).convert("RGB"))
+        crop = _content_crop(array)
+        x_off, y_off = (crop[0], crop[1]) if crop else (0, 0)
+        if crop is not None:
+            array = array[crop[1] : crop[3], crop[0] : crop[2]]
+
+        result = self._engine()(array)
         if result.boxes is None:
             return []
         boxes: list[TextBox] = []
         for polygon, text, score in zip(result.boxes, result.txts, result.scores, strict=True):
-            xs = [p[0] for p in polygon]
-            ys = [p[1] for p in polygon]
+            xs = [p[0] + x_off for p in polygon]
+            ys = [p[1] + y_off for p in polygon]
             boxes.append(
                 TextBox(
                     text=text,
@@ -122,3 +131,38 @@ class RapidOcrEngine:
                 )
             )
         return boxes
+
+
+#: A page whose content sits in a small corner of an otherwise blank canvas defeats the
+#: detector: a DOCX header, footer or footnote becomes its own DocIR page with no geometry of
+#: its own, and `pdf_generator.py` gives it a full A4 sheet to keep every page the same size -
+#: reasonable for a document, but on a 1240x1755 raster with one 20px-tall line of text near the
+#: top, RapidOCR's small/fast detector found nothing at all. Cropped to that line with a margin,
+#: the same model reads it at 98% confidence. Measured: a 4-page DOCX (body + header + footer +
+#: footnotes) round-tripped through PNG lost 27% of its words this way - not a translation
+#: defect, a detector blind spot on sparse pages.
+_CROP_PAD_PX = 60
+#: Below this on a 0-255 grayscale a pixel counts as content, not background. Generous rather
+#: than exact: JPEG artefacts near white must not register as text.
+_CONTENT_THRESHOLD = 245
+#: Fewer dark pixels than this and there is nothing to crop to - an actually blank page, not a
+#: sparse one. Falls through to detecting on the whole image, which correctly finds nothing.
+_MIN_CONTENT_PIXELS = 4
+
+
+def _content_crop(array: np.ndarray) -> tuple[int, int, int, int] | None:
+    """The rectangle holding everything non-blank on the page, padded, or None if there is
+    nothing to crop to. Only ever removes blank margin - it cannot cut into real content, since
+    the box is the exact bounds of every below-threshold pixel plus a margin."""
+    import numpy as np
+
+    gray = np.asarray(Image.fromarray(array).convert("L"))
+    ys, xs = np.where(gray < _CONTENT_THRESHOLD)
+    if len(xs) < _MIN_CONTENT_PIXELS:
+        return None
+    height, width = gray.shape
+    x0 = max(0, int(xs.min()) - _CROP_PAD_PX)
+    y0 = max(0, int(ys.min()) - _CROP_PAD_PX)
+    x1 = min(width, int(xs.max()) + _CROP_PAD_PX)
+    y1 = min(height, int(ys.max()) + _CROP_PAD_PX)
+    return (x0, y0, x1, y1)
