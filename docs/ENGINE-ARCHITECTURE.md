@@ -16,9 +16,9 @@ runs marked bold or italic.
 
 | | → pdf | → epub | → docx | → html | → png |
 |---|---|---|---|---|---|
-| **pdf →** | 102% · 10/10 styled | 101% · **0/10 styled** | 100% · 10/10 | 115% · 10/10 | 98% · 0/10 |
-| **epub →** | 98% · **0/1 img** | 100% · 1/1 img · 3/3 | 98% · **0/1 img** · 1/2 pages | 129% · 1/1 img | **67%** · 1/1 img |
-| **docx →** | 97% · 4/2 styled | 121% · **0/2 styled** | 100% · 2/2 | 139% · 2/2 · 1/4 pages | **71%** |
+| **pdf →** | 100% · 10/10 styled | 101% · **0/10 styled** | 100% · 10/10 | 101% · 10/10 | 91% · 0/10 |
+| **epub →** | 101% · **0/1 img** | 100% · 1/1 img · 3/3 | 100% · **0/1 img** · 1/2 pages | 104% · 1/1 img | **66%** · 1/1 img |
+| **docx →** | 100% · 4/2 styled | 119% · **0/2 styled** | 100% · 2/2 | 110% · 2/2 · 1/4 pages | **73%** |
 | **png →** | 100% · 1 img | 143% | 100% | 129% | 100% |
 
 Two things to read out of it before anything else.
@@ -29,17 +29,24 @@ a bug someone fixes; a conversion that succeeds and returns less than it was giv
 nobody reports.
 
 **The diagonal is clean and everything off it is not.** Every same-format pair keeps what it was
-given: pdf→pdf 102% with all ten styled runs, epub→epub with its image and all three styled runs,
+given: pdf→pdf 100% with all ten styled runs, epub→epub with its image and all three styled runs,
 docx→docx, png→png. Every cross-format pair loses something. That is not a coincidence, and it is
 the whole finding.
 
 ### Where the percentages above 100 come from
 
-`epub→html` at 129% and `docx→html` at 139% are the HTML counter reading chapter titles and
-navigation the body does not contain — measurement noise, not invented text. `png→epub` at 143%
-is seven words against ten on a fixture too small for a ratio to mean much. They are left in
-rather than tidied away, because a table that only shows the numbers that support its argument is
-not a measurement.
+An earlier version of this table showed 115%, 129%, 139% and 153% in the HTML and EPUB columns,
+and the explanation offered for them here was wrong. It was not chapter titles and navigation. It
+was this measurement's own counter: it joined block text with nothing between blocks, so the last
+word of one block and the first word of the next were counted as a single word, while the output
+formats separate them with markup and count two. Fixing the join moved those four numbers to
+between 100% and 104%.
+
+What is left is small and honest: `png→epub` at 143% is ten words against seven, on a fixture too
+small for a ratio to mean anything, and `docx→epub` at 119% is of the same kind. They are left in
+rather than tidied away — a table that shows only the numbers supporting its argument is not a
+measurement. The lesson is the one this project keeps relearning: check the instrument before
+believing what it says about the thing.
 
 ## Why the diagonal is clean
 

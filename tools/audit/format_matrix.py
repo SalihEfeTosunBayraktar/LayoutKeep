@@ -89,7 +89,7 @@ def count_docir(path: Path) -> Counts:
     from layoutkeep.writers.converter import read_any_document
 
     doc = read_any_document(path)
-    text = "".join(b.text for _, b in doc.iter_blocks())
+    text = "\n".join(b.text for _, b in doc.iter_blocks())
     styled = sum(
         1
         for _, block in doc.iter_blocks()
@@ -140,7 +140,7 @@ def _ocr_pdf(path: Path) -> Counts:
         for number, page in enumerate(pdf):
             shot = Path(tmp) / f"p{number}.png"
             page.get_pixmap(dpi=150).save(str(shot))
-            text = "".join(b.text for _, b in read_any_document(shot).iter_blocks())
+            text = "\n".join(b.text for _, b in read_any_document(shot).iter_blocks())
             words += len(text.split())
             characters += len("".join(text.split()))
     return Counts(characters=characters, words=words)
@@ -174,7 +174,7 @@ def _count_images(path: Path, extra_files: int) -> Counts:
         from layoutkeep.writers.converter import read_any_document
 
         doc = read_any_document(path)
-        text = "".join(b.text for _, b in doc.iter_blocks())
+        text = "\n".join(b.text for _, b in doc.iter_blocks())
         return Counts(
             characters=len(text.replace(" ", "").replace("\n", "")),
             words=len(text.split()),

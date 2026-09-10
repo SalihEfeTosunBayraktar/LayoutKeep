@@ -6,14 +6,14 @@
     "error": "",
     "before": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
     },
     "after": {
       "characters": 1089,
-      "words": 210,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
@@ -28,14 +28,14 @@
     "error": "",
     "before": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
     },
     "after": {
       "characters": 1106,
-      "words": 209,
+      "words": 238,
       "images": 0,
       "pages": 2,
       "styled_runs": 0
@@ -50,14 +50,14 @@
     "error": "",
     "before": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
     },
     "after": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
@@ -72,7 +72,7 @@
     "error": "",
     "before": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
@@ -94,14 +94,14 @@
     "error": "",
     "before": {
       "characters": 1091,
-      "words": 206,
+      "words": 235,
       "images": 0,
       "pages": 1,
       "styled_runs": 10
     },
     "after": {
       "characters": 1091,
-      "words": 201,
+      "words": 213,
       "images": 1,
       "pages": 1,
       "styled_runs": 0
@@ -116,14 +116,14 @@
     "error": "",
     "before": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
     },
     "after": {
       "characters": 292,
-      "words": 54,
+      "words": 69,
       "images": 0,
       "pages": 2,
       "styled_runs": 5
@@ -138,14 +138,14 @@
     "error": "",
     "before": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
     },
     "after": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
@@ -160,14 +160,14 @@
     "error": "",
     "before": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
     },
     "after": {
       "characters": 285,
-      "words": 54,
+      "words": 68,
       "images": 0,
       "pages": 1,
       "styled_runs": 2
@@ -182,7 +182,7 @@
     "error": "",
     "before": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
@@ -204,14 +204,14 @@
     "error": "",
     "before": {
       "characters": 285,
-      "words": 55,
+      "words": 68,
       "images": 1,
       "pages": 2,
       "styled_runs": 3
     },
     "after": {
       "characters": 189,
-      "words": 37,
+      "words": 45,
       "images": 1,
       "pages": 2,
       "styled_runs": 0
@@ -226,14 +226,14 @@
     "error": "",
     "before": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
     },
     "after": {
       "characters": 211,
-      "words": 37,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 4
@@ -248,14 +248,14 @@
     "error": "",
     "before": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
     },
     "after": {
       "characters": 244,
-      "words": 46,
+      "words": 57,
       "images": 0,
       "pages": 5,
       "styled_runs": 0
@@ -270,14 +270,14 @@
     "error": "",
     "before": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
     },
     "after": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
@@ -292,7 +292,7 @@
     "error": "",
     "before": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
@@ -314,14 +314,14 @@
     "error": "",
     "before": {
       "characters": 211,
-      "words": 38,
+      "words": 48,
       "images": 0,
       "pages": 4,
       "styled_runs": 2
     },
     "after": {
       "characters": 147,
-      "words": 27,
+      "words": 35,
       "images": 1,
       "pages": 4,
       "styled_runs": 0

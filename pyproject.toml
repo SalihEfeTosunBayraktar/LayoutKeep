@@ -1,6 +1,6 @@
 [project]
 name = "layoutkeep"
-version = "1.0.0"
+version = "0.9.0"
 description = "Layout-preserving document and e-book translation"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"   # target 3.13; 3.14 breaks the phase-2 OCR tier

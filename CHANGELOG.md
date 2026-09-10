@@ -2,9 +2,25 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
-## 1.0.0 — 2026-09-09
+## 0.9.0 — 2026-09-10
+
+The first published build, and it does one thing.
+
+- **Only PDF to PDF is enabled.** Every format pair was measured with an identity translation
+  (`tools/audit/format_matrix.py`). None of them fail; five of them return a document quietly
+  missing its images, its emphasis or a third of its words. Those are locked in the interface
+  with a padlock and the reason, rather than removed or offered.
+  `docs/ENGINE-ARCHITECTURE.md` is the measurement and the plan.
+- `core/capabilities.py` is the single place that decides, read by both the application and the
+  command line, so they cannot disagree about what is ready. `docs/CONTRACT.md` D7 makes it a
+  rule: a conversion is offered only when it has been measured.
+- The version was 1.0.0 before this. A build that deliberately does one conversion is not a 1.0,
+  so it is 0.9.0 and the release is marked as a pre-release.
+
+### Earlier work, previously listed as 1.0.0 — 2026-09-09
 
 The first release. A desktop application and a CLI that translate a document and hand back the
+same document, with readers and writers for PDF, EPUB, DOCX, HTML and images. A desktop application and a CLI that translate a document and hand back the
 same document, with readers and writers for PDF, EPUB, DOCX, HTML and images.
 
 ### Translation
