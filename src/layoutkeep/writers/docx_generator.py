@@ -67,6 +67,78 @@ class _PackagedImage:
     height_emu: int
 
 
+#: Pixels are converted at the CSS reference resolution. A reflowable source says nothing about
+#: physical size, and 96 dpi is what every browser and e-reader assumes when asked the same
+#: question, so a figure lands at the size its author saw.
+_PIXELS_PER_INCH = 96.0
+_EMU_PER_INCH = 914400
+
+
+def _intrinsic_size_emu(payload: bytes) -> tuple[int, int]:
+    """The picture's own width and height in EMU, read from its header.
+
+    A reflowable document gives an image a place in the flow and no geometry, so `bbox` arrives
+    empty and sizing the drawing from it embedded the picture at one EMU square: present in the
+    package, invisible on the page, and counted as a lost image by the format matrix.
+
+    The header is parsed here rather than through an imaging library because this module has
+    none, and adding one to read four integers would be a poor trade. Anything unrecognised gets
+    a modest default instead of nothing - an image at the wrong size can be corrected by whoever
+    opens the document; an image one EMU wide cannot even be found.
+    """
+    width_px, height_px = _pixel_size(payload)
+    scale = _EMU_PER_INCH / _PIXELS_PER_INCH
+    return int(width_px * scale), int(height_px * scale)
+
+
+def _pixel_size(payload: bytes) -> tuple[int, int]:
+    """Width and height in pixels for the formats a document actually carries."""
+    if payload[:8] == b"\x89PNG\r\n\x1a\n" and payload[12:16] == b"IHDR":
+        return (
+            int.from_bytes(payload[16:20], "big"),
+            int.from_bytes(payload[20:24], "big"),
+        )
+    if payload[:3] == b"\xff\xd8\xff":
+        return _jpeg_pixel_size(payload)
+    if payload[:6] in (b"GIF87a", b"GIF89a"):
+        return (
+            int.from_bytes(payload[6:8], "little"),
+            int.from_bytes(payload[8:10], "little"),
+        )
+    #: Four inches wide at 96 dpi: big enough to be seen and read, small enough not to dominate.
+    return 384, 288
+
+
+#: JPEG frame headers. Every one of these carries the image's dimensions; the others (restart
+#: intervals, Huffman tables, the entropy-coded data itself) do not, and DHT/DAC/SOS are where
+#: scanning has to stop.
+_JPEG_FRAME_MARKERS = frozenset(
+    {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+)
+
+
+def _jpeg_pixel_size(payload: bytes) -> tuple[int, int]:
+    offset = 2
+    while offset + 9 < len(payload):
+        if payload[offset] != 0xFF:
+            offset += 1
+            continue
+        marker = payload[offset + 1]
+        if marker in _JPEG_FRAME_MARKERS:
+            return (
+                int.from_bytes(payload[offset + 7 : offset + 9], "big"),
+                int.from_bytes(payload[offset + 5 : offset + 7], "big"),
+            )
+        if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+            offset += 2
+            continue
+        segment = int.from_bytes(payload[offset + 2 : offset + 4], "big")
+        if segment < 2:
+            break
+        offset += 2 + segment
+    return 384, 288
+
+
 def _collect_images(doc: Document) -> tuple[dict[int, _PackagedImage], list[_PackagedImage]]:
     """Assign a package part and relationship id to every image in the document.
 
@@ -80,8 +152,12 @@ def _collect_images(doc: Document) -> tuple[dict[int, _PackagedImage], list[_Pac
         for _image_number, image in enumerate(page.images, 1):
             if not image.data:
                 continue
-            width = max(1, int(image.bbox.width * _EMU_PER_POINT))
-            height = max(1, int(image.bbox.height * _EMU_PER_POINT))
+            width = int(image.bbox.width * _EMU_PER_POINT)
+            height = int(image.bbox.height * _EMU_PER_POINT)
+            if width <= 0 or height <= 0:
+                width, height = _intrinsic_size_emu(base64.b64decode(image.data))
+            width = max(1, width)
+            height = max(1, height)
             if width > _MAX_IMAGE_WIDTH_EMU:
                 height = max(1, int(height * _MAX_IMAGE_WIDTH_EMU / width))
                 width = _MAX_IMAGE_WIDTH_EMU

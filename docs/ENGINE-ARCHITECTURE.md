@@ -72,9 +72,17 @@ ask whether the bytes survive the round trip, and bytes do not care whether they
 real PNG, epub→pdf carries its image: 1/1. `docx_generator` still drops it, which is why that
 entry survives above.
 
-The moral is not that measurement is unreliable. It is that a fixture is part of the instrument,
-and an instrument that has never been checked against something known-good is a source of
-confident numbers rather than true ones.
+**The dropped images, again.** With the fixture repaired, epub→docx still read 0/1, and the
+obvious conclusion - that the DOCX generator drops images where the PDF one does not - was also
+wrong. The generator embeds the picture correctly. The reader that counts the output cannot see
+pictures at all. Every number in the `img` column is only ever as good as the reader used to
+check it, which is a limitation of this method and is now stated rather than discovered again.
+
+The moral is not that measurement is unreliable. It is that the instrument - the fixtures it
+uses and the readers it counts with - is part of what is being measured, and an instrument that
+has never been checked against something known-good is a source of confident numbers rather than
+true ones. Three of the defects this document originally reported were the instrument. The ones
+that survived that scrutiny are worth more for it.
 
 ## Why the diagonal is clean
 
@@ -97,8 +105,16 @@ document from DocIR alone. They are thinner, and where they are thin it is in or
   zero `<b>`, `<strong>`, `<i>` or `<em>` tags and zero `font-weight` declarations. It rendered
   the block's flattened text, which throws every span away. It renders spans now: pdf→epub went
   from 0/10 styled runs to 10/10, docx→epub from 0/2 to 2/2.
-* **`docx_generator` drops images.** DocIR holds one image with `order=5`; the DOCX has none.
-  This one is real and is not fixed.
+* **`docx_reader` reads no images at all.** This entry said "`docx_generator` drops images",
+  measured as epub→docx 0/1. The generator does not drop them: the DOCX it writes contains the
+  media part, the drawing and the blip that references it. What cannot see them is the reader
+  used to count the output - `readers/docx_reader.py` has no image handling whatsoever. So the
+  figure was measuring the reader, and the defect is real but on the other side: **anything read
+  from a DOCX arrives with no figures**, and a DOCX source loses every picture it has.
+* **An image with no geometry was embedded one EMU square** - since fixed. A reflowable source
+  gives a picture a place in the flow and no box, and the DOCX generator sized the drawing from
+  that empty box: present in the package, invisible on the page. It now falls back to the
+  picture's own pixel size, read from its header.
 * **Rendering to an image loses a third of the words** — epub→png 63%, docx→png 73%, against
   pdf→png at 91%. The words are drawn; what varies is whether OCR can read them back, which is
   the only way to check an output with no text layer. Worth understanding before that row opens.

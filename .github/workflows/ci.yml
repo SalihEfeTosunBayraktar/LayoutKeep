@@ -46,7 +46,14 @@ jobs:
       # real key - here the keys are fixtures and the machine is thrown away afterwards.
       - name: Keyring backend (Linux)
         if: runner.os == 'Linux'
-        run: python -m pip install keyrings.alt
+        run: |
+          python -m pip install keyrings.alt
+          # Exported from here rather than set on the test step, because a step-level `env:`
+          # with a conditional expression still defines the variable on the other platforms -
+          # as an empty string - and keyring then tries to import a module named "" and dies
+          # with "ValueError: Empty module name". Windows and macOS have a real keychain and
+          # must be left to use it.
+          echo "PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring" >> "$GITHUB_ENV"
 
       - name: Lint
         run: python -m ruff check src/ tools/ tests/
@@ -55,7 +62,6 @@ jobs:
         # Qt needs an offscreen platform plugin on headless runners.
         env:
           QT_QPA_PLATFORM: offscreen
-          PYTHON_KEYRING_BACKEND: ${{ runner.os == 'Linux' && 'keyrings.alt.file.PlaintextKeyring' || '' }}
         run: python -m pytest tests/ -q --junitxml=test-results.xml
 
       - name: Check licences
