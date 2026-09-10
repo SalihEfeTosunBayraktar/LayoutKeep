@@ -39,6 +39,15 @@ jobs:
       - name: Install
         run: python -m pip install -e ".[pdf,epub,ui,fitting,dev]"
 
+      # A headless Linux runner has no keychain, so `keyring` raises NoKeyringError and
+      # every test of the API-key store fails on an environment problem rather than on
+      # anything about the code. A file backend gives those tests something real to write
+      # to. It is plaintext, which is exactly what the application refuses to do with a
+      # real key - here the keys are fixtures and the machine is thrown away afterwards.
+      - name: Keyring backend (Linux)
+        if: runner.os == 'Linux'
+        run: python -m pip install keyrings.alt
+
       - name: Lint
         run: python -m ruff check src/ tools/ tests/
 
@@ -46,6 +55,7 @@ jobs:
         # Qt needs an offscreen platform plugin on headless runners.
         env:
           QT_QPA_PLATFORM: offscreen
+          PYTHON_KEYRING_BACKEND: ${{ runner.os == 'Linux' && 'keyrings.alt.file.PlaintextKeyring' || '' }}
         run: python -m pytest tests/ -q --junitxml=test-results.xml
 
       - name: Check licences

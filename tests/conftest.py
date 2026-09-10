@@ -25,6 +25,41 @@ import pytest
 pytest.importorskip("PySide6")
 
 
+@pytest.fixture(autouse=True)
+def _no_modal_dialogs(monkeypatch):
+    """Answer every message box instead of showing one.
+
+    `QMessageBox.warning` blocks until someone clicks it, and on a headless runner nobody ever
+    does: the suite stopped dead for twenty-five minutes on one test with no output and no
+    failure, which reads as a hung machine rather than a test asking a question. It was asking a
+    question - a validation error had opened a dialog.
+
+    The calls are recorded on the class so a test can assert that the user was warned, which is
+    usually the thing worth asserting anyway.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    shown: list[tuple[str, str, str]] = []
+
+    def record(kind, default):
+        def call(_parent=None, title="", text="", *args, **kwargs):
+            shown.append((kind, str(title), str(text)))
+            return default
+        return call
+
+    monkeypatch.setattr(QMessageBox, "warning", record("warning", QMessageBox.StandardButton.Ok))
+    monkeypatch.setattr(QMessageBox, "critical", record("critical", QMessageBox.StandardButton.Ok))
+    monkeypatch.setattr(
+        QMessageBox, "information", record("information", QMessageBox.StandardButton.Ok)
+    )
+    monkeypatch.setattr(QMessageBox, "question", record("question", QMessageBox.StandardButton.No))
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: QMessageBox.StandardButton.Ok)
+    monkeypatch.setattr(QMessageBox, "exec_", lambda self: QMessageBox.StandardButton.Ok, raising=False)
+    QMessageBox.shown_in_test = shown
+    yield shown
+    QMessageBox.shown_in_test = []
+
+
 def pytest_collection_modifyitems(config, items):
     """Skip the tests that need a real OCR engine when one is not installed.
 

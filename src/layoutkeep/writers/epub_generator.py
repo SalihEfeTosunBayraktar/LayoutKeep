@@ -12,6 +12,41 @@ from pathlib import Path
 from layoutkeep.core.docir import BlockRole, Document, ImageRef, Page
 
 
+def _inline_html(block) -> str:
+    """A block's text as XHTML, keeping the emphasis its spans carry.
+
+    The block's flattened `.text` was used here, which threw every span away: measured on
+    `sample_report.pdf`, ten bold and italic runs reached DocIR and none of them reached the
+    EPUB - not a tag, not a declaration (docs/ENGINE-ARCHITECTURE.md). A book whose headings are
+    no longer headings is a different book.
+
+    Only bold and italic are marked, and only where a run actually carries them: wrapping every
+    run in a tag would satisfy a naive test and produce markup worse than the plain text it
+    replaced. Point sizes and colours are deliberately not carried - in a reflowable book those
+    belong to the reading system, not to the paragraph.
+    """
+    lines: list[str] = []
+    for line in block.lines:
+        parts: list[str] = []
+        for span in line.spans:
+            text = html.escape(span.text)
+            if not text:
+                continue
+            if span.style.italic:
+                text = f"<em>{text}</em>"
+            if span.style.bold:
+                text = f"<strong>{text}</strong>"
+            parts.append(text)
+        rendered = "".join(parts).strip()
+        if rendered:
+            lines.append(rendered)
+    if lines:
+        return "<br/>".join(lines)
+    # A block with no spans still has text - readers that build blocks without span detail rely
+    # on it, and dropping their content to gain styling would be a poor trade.
+    return html.escape(block.text.strip()).replace(chr(10), "<br/>")
+
+
 def _render_page_xhtml(page: Page, title: str, image_names: dict[int, str]) -> str:
     # Sayfa içeriğini XHTML olarak biçimlendirir / Formats page content as XHTML
     body_parts: list[str] = []
@@ -21,7 +56,7 @@ def _render_page_xhtml(page: Page, title: str, image_names: dict[int, str]) -> s
             if name:
                 body_parts.append(f'<p><img src="{name}" alt=""/></p>')
             continue
-        text = html.escape(item.text.strip()).replace(chr(10), "<br/>")
+        text = _inline_html(item)
         if not text:
             continue
         if item.role == BlockRole.TITLE:

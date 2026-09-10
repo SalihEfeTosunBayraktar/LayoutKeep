@@ -20,8 +20,7 @@ import pymupdf
 
 sys.path.insert(0, str(Path(__file__).parent))
 from fixtures.build_epub_fixture import build_sample_epub
-
-from layoutkeep.readers.epub_reader import read_epub
+from fixtures.build_pdf_fixture import build_two_column
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
@@ -35,7 +34,10 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_cli_translate_epub_to_epub(tmp_path: Path) -> None:
+def test_cli_refuses_a_locked_conversion(tmp_path: Path) -> None:
+    """EPUB to EPUB measures well and is still locked in this build, and the command line has to
+    say so rather than write a file the interface would not have produced. See
+    `core/capabilities.py` and docs/ENGINE-ARCHITECTURE.md."""
     src = tmp_path / "sample.epub"
     build_sample_epub(src)
     out = tmp_path / "out.tr.epub"
@@ -44,18 +46,15 @@ def test_cli_translate_epub_to_epub(tmp_path: Path) -> None:
         "translate", str(src), "--to", "tr", "--from", "en",
         "--provider", "fake", "--output", str(out),
     )
-    assert result.returncode == 0, result.stderr
-
-    # Output re-opens with the same spine and non-empty translated blocks.
-    doc = read_epub(out)
-    assert [p.source_ref for p in doc.pages] == ["chap1.xhtml", "chap2.xhtml"]
-    chapter = next(b for p in doc.pages for b in p.blocks if b.text.strip() == "[tr] Chapter One")
-    assert chapter is not None
+    assert result.returncode != 0
+    assert "not enabled" in (result.stderr + result.stdout)
+    assert not out.exists(), "a refused conversion must not leave a file behind"
 
 
-def test_cli_translate_epub_to_pdf(tmp_path: Path) -> None:
-    src = tmp_path / "sample.epub"
-    build_sample_epub(src)
+def test_cli_translates_a_pdf_end_to_end(tmp_path: Path) -> None:
+    """The conversion this build is for, run the whole way through the command line."""
+    src = tmp_path / "sample.pdf"
+    build_two_column(src)
     out = tmp_path / "out.tr.pdf"
 
     result = _run_cli(
@@ -67,5 +66,4 @@ def test_cli_translate_epub_to_pdf(tmp_path: Path) -> None:
     pdf = pymupdf.open(str(out))
     assert pdf.page_count >= 1
     full_text = "".join(pdf[p].get_text() for p in range(pdf.page_count))
-    # The chapter heading made it into the PDF as translated text.
-    assert "[tr] Chapter One" in full_text
+    assert "[tr]" in full_text, "the translation reached the page"

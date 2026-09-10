@@ -249,6 +249,12 @@ bilmez. Sözleşme [`docs/CONTRACT.md`](docs/CONTRACT.md) içinde.
 
 AGPL-3.0. Bkz. [LICENSE](LICENSE).
 
+Paketlenen yazı tipleri (Tinos, Arimo, Cousine, Caladea, Carlito, Noto) SIL Open Font License 1.1
+altındadır; lisans metinleri `src/layoutkeep/assets/fonts/licenses/` içinde onlarla birlikte gelir.
+
+Bu projenin üzerine kurulduğu her şey — kullanılan her kütüphane, her yazı tipi ve örnek
+belgelerin nereden geldiği — lisanslarıyla birlikte [CREDITS.md](CREDITS.md) içinde listelenmiştir.
+
 ## Hukuki not
 
 Bu araç, çevirme hakkına sahip olduğunuz belgeler için bir çeviri aracıdır. Telif hakkıyla

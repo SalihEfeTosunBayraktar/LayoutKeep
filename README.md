@@ -267,6 +267,9 @@ already learned the hard way; they do not discover it. Run the thing.
 Bundled fonts (Tinos, Arimo, Cousine, Caladea, Carlito, Noto) are under the SIL Open Font License
 1.1; their licence texts travel with them in `src/layoutkeep/assets/fonts/licenses/`.
 
+Everything this project is built on — every library, every font, and where the sample documents
+come from — is listed with its licence in [CREDITS.md](CREDITS.md).
+
 ## Legal note
 
 LayoutKeep does not remove DRM and will refuse protected files. Translating a copyrighted work

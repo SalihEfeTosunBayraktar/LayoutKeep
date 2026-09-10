@@ -32,9 +32,9 @@ def test_emits_job_config_with_selected_values(qtbot, tmp_path, monkeypatch):
     widget = JobSetupWidget()
     qtbot.addWidget(widget)
 
-    input_path = tmp_path / "book.epub"
+    input_path = tmp_path / "book.pdf"
     input_path.write_text("x")
-    output_path = tmp_path / "book.out.epub"
+    output_path = tmp_path / "book.out.pdf"
 
     widget._input_path.setText(str(input_path))
     widget._output_path.setText(str(output_path))
@@ -59,7 +59,7 @@ def test_fake_provider_selection_ignores_openai_settings(qtbot, tmp_path, monkey
     monkeypatch.setenv("LAYOUTKEEP_DEV_PROVIDERS", "1")
     widget = JobSetupWidget()
     qtbot.addWidget(widget)
-    input_path = tmp_path / "book.epub"
+    input_path = tmp_path / "book.pdf"
     input_path.write_text("x")
     widget._input_path.setText(str(input_path))
     widget._output_path.setText(str(tmp_path / "book.out.epub"))
@@ -126,7 +126,7 @@ def test_start_with_openai_provider_and_no_model_is_refused(qtbot, tmp_path, mon
     the GUI must fail the same way instead of starting a job that cannot work."""
     widget = JobSetupWidget()
     qtbot.addWidget(widget)
-    input_path = tmp_path / "book.epub"
+    input_path = tmp_path / "book.pdf"
     input_path.write_text("x")
     widget._input_path.setText(str(input_path))
     widget._output_path.setText(str(tmp_path / "out.epub"))
@@ -148,7 +148,7 @@ def test_start_with_openai_provider_and_no_model_is_refused(qtbot, tmp_path, mon
 def test_start_with_openai_provider_and_model_succeeds(qtbot, tmp_path):
     widget = JobSetupWidget()
     qtbot.addWidget(widget)
-    input_path = tmp_path / "book.epub"
+    input_path = tmp_path / "book.pdf"
     input_path.write_text("x")
     widget._input_path.setText(str(input_path))
     widget._output_path.setText(str(tmp_path / "out.epub"))
@@ -213,10 +213,12 @@ def test_fake_provider_selectable_from_profile_combo_in_gui(qtbot, tmp_path, mon
     widget = JobSetupWidget()
     qtbot.addWidget(widget)
 
-    src = tmp_path / "book.epub"
+    # PDF to PDF: the pair this build enables. A locked pair would be refused before the
+    # provider was ever consulted, and this test is about the provider.
+    src = tmp_path / "book.pdf"
     src.write_text("dummy")
     widget._input_path.setText(str(src))
-    widget._output_path.setText(str(tmp_path / "book.out.epub"))
+    widget._output_path.setText(str(tmp_path / "book.out.pdf"))
 
     # Profil listesinde Fake / Test sağlayıcı bulunmalı ve seçilebilmeli
     combo = widget._provider_profile_combo
