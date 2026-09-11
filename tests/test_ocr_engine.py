@@ -7,8 +7,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from fixtures.build_image_fixture import (
+    DENSE_PAGE_NEEDLE,
     PLAIN_TEXT,
     SPARSE_PAGE_TEXT,
+    build_dense_page,
     build_plain_white,
     build_sparse_page,
 )
@@ -115,3 +117,35 @@ def test_recognize_accepts_pil_image(tmp_path: Path) -> None:
 
     assert len(boxes) == 1
     assert boxes[0].text == PLAIN_TEXT
+
+
+def test_recognize_does_not_lose_a_line_on_a_dense_page(tmp_path: Path) -> None:
+    """The content-cropping fix above cost recall it did not need to on a page it was never meant
+    to touch. Measured on a real DOCX report: a page whose text filled 82% of it lost a whole
+    paragraph to RapidOCR once it was cropped to that content, tight but never touching a glyph -
+    the crop was innocent by the letter of what it removed and still changed the image enough
+    (aspect ratio, the resize RapidOCR's own preprocessing applies before its network sees it) to
+    cost recall the same page had at its native, uncropped size. `_content_crop` now declines to
+    crop once the content already covers most of the page - this fixture reproduces that shape
+    synthetically (content ~80%+) so the regression cannot come back unnoticed.
+    """
+    src = tmp_path / "dense.png"
+    build_dense_page(src)
+
+    boxes = RapidOcrEngine().recognize(Image.open(src))
+
+    found = " ".join(b.text for b in boxes)
+    assert DENSE_PAGE_NEEDLE in found, found
+
+
+def test_content_crop_declines_a_page_that_is_mostly_content(tmp_path: Path) -> None:
+    """Direct test of the gate, not just its effect: a dense page must not be cropped at all."""
+    import numpy as np
+
+    from layoutkeep.ocr.engine import _content_crop
+
+    src = tmp_path / "dense.png"
+    build_dense_page(src)
+    array = np.array(Image.open(src).convert("RGB"))
+
+    assert _content_crop(array) is None

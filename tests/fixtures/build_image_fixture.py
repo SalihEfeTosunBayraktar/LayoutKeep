@@ -150,6 +150,38 @@ def build_sparse_page(path: str | Path) -> None:
     img.save(path)
 
 
+#: One line the dense-page fixture buries in the middle of many others, the way a real DOCX
+#: report's body text does. Found by name in the regression test rather than just counted, so a
+#: partial-page miss shows up as a specific missing sentence and not a slightly-lower word tally
+#: that could be blamed on ordinary OCR noise elsewhere on the page.
+DENSE_PAGE_NEEDLE = "Cells that fell outside the expected range were flagged for review."
+
+
+def build_dense_page(path: str | Path) -> None:
+    """A full A4 page with body text filling most of it - the shape that exposed a regression in
+    the sparse-page fix above: cropping tight to content, which is only supposed to happen on a
+    page like `build_sparse_page`'s, was for a while applied here too because nothing stopped it
+    on a page whose content already covers most of the sheet. On a real document that crop (still
+    the exact bounds of the content, padded - it never touched a glyph) measured 82% of the page
+    and cost RapidOCR a whole paragraph of recall it had at native, uncropped resolution. Content
+    this dense must be read exactly as sparse content is not: left alone.
+    """
+    img = Image.new("RGB", (1240, 1755), "white")
+    d = ImageDraw.Draw(img)
+    lines = (
+        ["Quarterly Test Summary", ""]
+        + [f"Line {n}: a routine sentence padding out this page like a real report's body." for n in range(1, 16)]
+        + ["", DENSE_PAGE_NEEDLE, ""]
+        + [f"Line {n}: another routine sentence, filling the page below the needle line too." for n in range(16, 31)]
+    )
+    y = 80
+    for line in lines:
+        if line:
+            d.text((80, y), line, font=_font(20), fill="black")
+        y += 34
+    img.save(path)
+
+
 if __name__ == "__main__":
     out_dir = Path(__file__).parent
     build_plain_white(out_dir / "img_plain_white.png")

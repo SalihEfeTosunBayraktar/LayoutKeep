@@ -148,12 +148,22 @@ _CONTENT_THRESHOLD = 245
 #: Fewer dark pixels than this and there is nothing to crop to - an actually blank page, not a
 #: sparse one. Falls through to detecting on the whole image, which correctly finds nothing.
 _MIN_CONTENT_PIXELS = 4
+#: Crop only when it would remove at least this much of the page. Measured on a real document:
+#: cropping a *dense* page (content covering 82% of it) made the detector miss a paragraph it
+#: found on the same page uncropped - the box was still the exact bounds of the content, nothing
+#: was trimmed into, but a tighter crop still changed the image enough (aspect ratio, the resize
+#: the detector applies before its network sees it) to cost real recall it already had. The
+#: sparse pages this exists for - a DOCX header, footer or footnote alone on an A4 sheet -
+#: measured at 2-6% of the page; a typical full page of body text sits at 70-85%. The threshold
+#: sits well clear of both, so cropping only ever fires on the page shape it was written for.
+_MIN_SPARSE_RATIO = 0.5
 
 
 def _content_crop(array: np.ndarray) -> tuple[int, int, int, int] | None:
-    """The rectangle holding everything non-blank on the page, padded, or None if there is
-    nothing to crop to. Only ever removes blank margin - it cannot cut into real content, since
-    the box is the exact bounds of every below-threshold pixel plus a margin."""
+    """The rectangle holding everything non-blank on the page, padded - but only when the page
+    is sparse enough that cropping can only help. Returns None (detect on the full page) for an
+    actually blank page, and also for a page whose content already fills most of it, where a
+    tighter crop has been measured to cost recall instead of buying any."""
     import numpy as np
 
     gray = np.asarray(Image.fromarray(array).convert("L"))
@@ -165,4 +175,7 @@ def _content_crop(array: np.ndarray) -> tuple[int, int, int, int] | None:
     y0 = max(0, int(ys.min()) - _CROP_PAD_PX)
     x1 = min(width, int(xs.max()) + _CROP_PAD_PX)
     y1 = min(height, int(ys.max()) + _CROP_PAD_PX)
+
+    if (x1 - x0) * (y1 - y0) > _MIN_SPARSE_RATIO * width * height:
+        return None  # not sparse enough for cropping to be worth the risk
     return (x0, y0, x1, y1)

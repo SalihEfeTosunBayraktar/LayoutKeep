@@ -140,16 +140,31 @@ document from DocIR alone. They are thinner, and where they are thin it is in or
   gives a picture a place in the flow and no box, and the DOCX generator sized the drawing from
   that empty box: present in the package, invisible on the page. It now falls back to the
   picture's own pixel size, read from its header.
-* **Rendering to an image lost a third of the words** - since fixed, and not where it looked.
+* **Rendering to an image lost a third of the words** - since fixed, and not where it looked, and
+  the fix itself cost a second round when a real document found what the fixture had not.
   epub→png read 63%, docx→png 73%, against pdf→png at 91%; the shape of it (single-page pdf→png
   fine, multi-page epub/docx→png badly wrong) pointed at the writer, but the words were on every
   page, drawn correctly. A DOCX's header, footer and footnotes become their own DocIR pages with
   no geometry, and `pdf_generator.py`'s flowing layout gives every page the same A4 sheet to keep
   a document looking like one - reasonable for a PDF, but rasterized to PNG it puts one 20px line
   of text alone on a 1240x1755 canvas, and RapidOCR's small/fast detector found nothing on a page
-  that sparse. The fix lives in the OCR engine, not the writer: `RapidOcrEngine.recognize` now
-  crops to the page's own content, padded, before handing it to the detector - the same model
-  then reads the same line at 98% confidence. epub→png and docx→png both read 100%+ now.
+  that sparse. `RapidOcrEngine.recognize` was given a fix that crops to the page's own content,
+  padded, before handing it to the detector - the same model then reads the same line at 98%
+  confidence. Measured on the format matrix's small fixture, that fix looked complete: epub→png
+  and docx→png both read 100%+.
+
+  It was not complete. Asked to build a realistic multi-page document and check the same
+  conversion by hand rather than trust the fixture, a 450-word DOCX report turned up a second
+  bug the crop had introduced: on a page whose body text filled 82% of it, cropping to that
+  content - still the exact bounds of the content, padded, not touching a glyph - made the
+  detector drop a whole paragraph it read correctly at native, uncropped size. The crop was safe
+  by the letter of what it removed and still cost real recall on a page it was never meant to
+  touch. `_content_crop` now declines to crop once the content already covers roughly half the
+  page or more - the actual sparse pages this exists for measured 2-6%, comfortably clear of the
+  50% gate, so the fix for the original bug is untouched and the page shape that regressed it is
+  now left at native resolution. The 450-word document reads at 100.2% now (one harmless "+/-"
+  tokenisation split accounts for the rounding), verified by hand, not by re-running the fixture -
+  the fixture's own pages are too small to have shown either bug at realistic scale.
 
 None of this is evidence that the architecture is wrong.
 
