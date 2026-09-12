@@ -16,41 +16,45 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from layoutkeep.core import capabilities
 
-
-def test_pdf_to_pdf_is_open():
-    assert capabilities.is_open(".pdf", ".pdf")
-
-
-def test_diagonal_pairs_are_open():
-    """Same-format conversions are open: they edit in place and the matrix
-    measures them at 100% or better on a real document."""
-    assert capabilities.is_open(".pdf", ".pdf")
-    assert capabilities.is_open(".epub", ".epub")
-    assert capabilities.is_open(".docx", ".docx")
-    assert capabilities.is_open(".png", ".png")
+#: The five pairs measured at 100% across every metric in format_matrix.json.
+MEASURED_PAIRS = [
+    (".pdf", ".pdf"),
+    (".pdf", ".docx"),
+    (".epub", ".epub"),
+    (".docx", ".docx"),
+    (".png", ".docx"),
+]
 
 
-def test_diagonal_is_case_insensitive():
+def test_measured_pairs_are_open():
+    """Every conversion the matrix measures at 100% is open."""
+    for source, target in MEASURED_PAIRS:
+        assert capabilities.is_open(source, target), f"{source}->{target} should be open"
+
+
+def test_measured_pairs_are_case_insensitive():
     """The check is case-insensitive, like the rest of the system."""
-    assert capabilities.is_open(".PDF", ".pdf")
-    assert capabilities.is_open(".Epub", ".EPUB")
+    assert capabilities.is_open(".PDF", ".DOCX")
+    assert capabilities.is_open(".EPUB", ".epub")
 
 
 def test_same_as_source_resolves_before_it_is_judged():
-    """\"auto\" resolves to the source format. If that pair is open the
+    """"auto" resolves to the source format. If that pair is open the
     conversion is allowed; if it is locked the conversion is refused."""
-    assert capabilities.is_open(".pdf", "auto")
+    assert capabilities.is_open(".pdf", "auto")  # diagonal: open
     assert capabilities.is_open(".epub", "auto")  # diagonal: open
     assert capabilities.is_open(".docx", "auto")  # diagonal: open
+    assert not capabilities.is_open(".png", "auto")  # png→png is locked
     assert not capabilities.is_open(".html", "auto")  # cross-format: locked
     assert capabilities.resolve_target(".epub", "auto") == ".epub"
 
 
 def test_every_locked_target_says_why():
     """A lock with no reason is an interface saying "no" and nothing else."""
-    for target in (".epub", ".docx", ".html", ".png", ".jpg"):
+    for target in (".epub", ".html", ".png", ".jpg"):
         assert capabilities.lock_reason_key(target), f"{target} has no reason"
     assert capabilities.lock_reason_key(".pdf") == ""
+    assert capabilities.lock_reason_key(".docx") == ""
 
 
 def test_the_reasons_exist_in_every_interface_language():
@@ -86,8 +90,8 @@ def test_the_command_line_refuses_a_locked_pair(tmp_path: Path):
 
 
 def test_open_targets_lists_what_can_be_picked():
-    assert capabilities.open_targets(".pdf") == ("auto", ".pdf")
+    assert capabilities.open_targets(".pdf") == ("auto", ".pdf", ".docx")
     assert capabilities.open_targets(".epub") == ("auto", ".epub")
     assert capabilities.open_targets(".docx") == ("auto", ".docx")
-    assert capabilities.open_targets(".png") == ("auto", ".png")
+    assert capabilities.open_targets(".png") == (".docx",)
     assert capabilities.open_targets(".html") == ()

@@ -35,12 +35,13 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_cli_refuses_a_locked_conversion(tmp_path: Path) -> None:
-    """EPUB to EPUB measures well and is still locked in this build, and the command line has to
-    say so rather than write a file the interface would not have produced. See
-    `core/capabilities.py` and docs/ENGINE-ARCHITECTURE.md."""
+    """EPUB to PDF is locked in this build (the reflow generators are not ready - see
+    docs/ENGINE-ARCHITECTURE.md), and the command line has to say so rather than write a file
+    the interface would not have produced. EPUB→EPUB itself is open now, so the refusal has to
+    be exercised on a genuinely locked target."""
     src = tmp_path / "sample.epub"
     build_sample_epub(src)
-    out = tmp_path / "out.tr.epub"
+    out = tmp_path / "out.tr.pdf"
 
     result = _run_cli(
         "translate", str(src), "--to", "tr", "--from", "en",

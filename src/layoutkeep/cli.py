@@ -184,7 +184,8 @@ def cmd_translate(args: argparse.Namespace) -> int:
 
     if not capabilities.is_open(src.suffix, out.suffix):
         raise SystemExit(
-            f"{src.suffix} to {out.suffix} is not enabled in this build. Only PDF to PDF is. "
+            f"{src.suffix} to {out.suffix} is not enabled in this build. The open pairs are "
+            "PDF→PDF, PDF→DOCX, EPUB→EPUB, DOCX→DOCX and PNG→DOCX. "
             "The measurements behind that are in docs/ENGINE-ARCHITECTURE.md, and "
             "tools/audit/format_matrix.py reproduces them."
         )
