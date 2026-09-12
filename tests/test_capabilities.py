@@ -17,19 +17,32 @@ sys.path.insert(0, str(Path(__file__).parent))
 from layoutkeep.core import capabilities
 
 
-def test_pdf_to_pdf_is_the_only_open_pair():
+def test_pdf_to_pdf_is_open():
     assert capabilities.is_open(".pdf", ".pdf")
-    assert capabilities.is_open(".PDF", ".pdf"), "the check is case-insensitive"
-    for target in (".epub", ".docx", ".html", ".png", ".jpg"):
-        assert not capabilities.is_open(".pdf", target)
-    for source in (".epub", ".docx", ".png", ".html"):
-        assert not capabilities.is_open(source, ".pdf")
+
+
+def test_diagonal_pairs_are_open():
+    """Same-format conversions are open: they edit in place and the matrix
+    measures them at 100% or better on a real document."""
+    assert capabilities.is_open(".pdf", ".pdf")
+    assert capabilities.is_open(".epub", ".epub")
+    assert capabilities.is_open(".docx", ".docx")
+    assert capabilities.is_open(".png", ".png")
+
+
+def test_diagonal_is_case_insensitive():
+    """The check is case-insensitive, like the rest of the system."""
+    assert capabilities.is_open(".PDF", ".pdf")
+    assert capabilities.is_open(".Epub", ".EPUB")
 
 
 def test_same_as_source_resolves_before_it_is_judged():
-    """"auto" is open for a PDF and locked for an EPUB, because it means different things."""
+    """\"auto\" resolves to the source format. If that pair is open the
+    conversion is allowed; if it is locked the conversion is refused."""
     assert capabilities.is_open(".pdf", "auto")
-    assert not capabilities.is_open(".epub", "auto")
+    assert capabilities.is_open(".epub", "auto")  # diagonal: open
+    assert capabilities.is_open(".docx", "auto")  # diagonal: open
+    assert not capabilities.is_open(".html", "auto")  # cross-format: locked
     assert capabilities.resolve_target(".epub", "auto") == ".epub"
 
 
@@ -74,4 +87,7 @@ def test_the_command_line_refuses_a_locked_pair(tmp_path: Path):
 
 def test_open_targets_lists_what_can_be_picked():
     assert capabilities.open_targets(".pdf") == ("auto", ".pdf")
-    assert capabilities.open_targets(".epub") == ()
+    assert capabilities.open_targets(".epub") == ("auto", ".epub")
+    assert capabilities.open_targets(".docx") == ("auto", ".docx")
+    assert capabilities.open_targets(".png") == ("auto", ".png")
+    assert capabilities.open_targets(".html") == ()
