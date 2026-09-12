@@ -48,6 +48,23 @@ def build() -> str:
         for row in json.loads(VERIFY.read_text(encoding="utf-8")):
             verify[row["pair"]] = row
 
+    # Two rows per pair in the real-run table: the prose-only source and the rich source
+    # (charts, photos, tables) - the second is where the silent losses were actually found.
+    rich_note = {"pdf->pdf": "görselli", "pdf->docx": "görselli", "epub->epub": "görselli",
+                 "docx->docx": "görselli", "png->docx": "grafik OCR'lı"}
+    real_rows = []
+    for pair_key, v in verify.items():
+        if "ratios" not in v:
+            continue
+        r = v["ratios"]
+        is_rich = "rich" in v["source"] or "rich" in v["output"]
+        kind = "zengin (grafik+foto+tablo)" if is_rich else "yalnız metin"
+        real_rows.append(
+            f"<tr><td>{v['pair']} · {kind}</td><td>{v['source']}</td><td>{v['output']}</td>"
+            f"<td>{r['characters']}</td><td>{r['words']}</td><td>{r['pages']}</td>"
+            f"<td>{r['images']}</td><td>{r['styled_runs']}</td></tr>"
+        )
+
     sources = ["pdf", "epub", "docx", "png"]
     targets = ["pdf", "epub", "docx", "html", "png"]
 
@@ -89,18 +106,6 @@ def build() -> str:
             )
         body_rows.append(
             f'<tr><th>{FORMAT_LABELS.get(s, s)}</th>{"".join(cells_html)}</tr>'
-        )
-
-    # Real-run summary table
-    real_rows = []
-    for pair_key, v in verify.items():
-        if "ratios" not in v:
-            continue
-        r = v["ratios"]
-        real_rows.append(
-            f"<tr><td>{v['pair']}</td><td>{v['source']}</td><td>{v['output']}</td>"
-            f"<td>{r['characters']}</td><td>{r['words']}</td><td>{r['pages']}</td>"
-            f"<td>{r['images']}</td><td>{r['styled_runs']}</td></tr>"
         )
 
     return f"""<!DOCTYPE html>
@@ -160,9 +165,9 @@ gerçek <code>google/gemma-4-e4b</code> çevirisiyle 5 açık çiftin fiziksel d
 <tbody>{''.join(body_rows)}</tbody>
 </table>
 
-<h2>Gerçek çeviri doğrulaması — 5 açık çift (gemma-4-e4b, LM Studio)</h2>
+<h2>Gerçek çeviri doğrulaması — 5 açık çift × 2 kaynak (gemma-4-e4b, LM Studio)</h2>
 <table>
-<thead><tr><th>Çift</th><th>Kaynak dosya</th><th>Çıktı</th><th>Karakter</th><th>Kelime</th><th>Sayfa</th><th>Görsel</th><th>Biçim</th></tr></thead>
+<thead><tr><th>Çift · kaynak tipi</th><th>Kaynak dosya</th><th>Çıktı</th><th>Karakter</th><th>Kelime</th><th>Sayfa</th><th>Görsel</th><th>Biçim</th></tr></thead>
 <tbody>
 {''.join(real_rows) or '<tr><td colspan="8" class="na">verify.json yok</td></tr>'}
 </tbody>
@@ -172,9 +177,11 @@ gerçek <code>google/gemma-4-e4b</code> çevirisiyle 5 açık çiftin fiziksel d
 <b>Notlar.</b>
 <ol style="margin:8px 0 0 18px">
 <li>Kimlik matrisinde <b>metin/görsel/sayfa/biçim %100</b> = dönüşüm hiçbir şey kaybetmedi; Türkçe gerçek çeviride kelime/karakter oranı doğal olarak değişir (eklemeli dil → daha az kelime, daha çok karakter).</li>
-<li>Gerçek çeviri turlarında <b>0 segment needs_review</b>, 16/16 ve 20/20 sayısal literal (ölçü, parça no) eksiksiz aktarıldı.</li>
-<li>pdf→png %91 kelime: OCR boşluk sayımı quirk'i, karakter sayısı birebir (1091/1091) — içerik kaybı değil.</li>
-<li>Açık 5 çift: PDF→PDF, PDF→Word, EPUB→EPUB, Word→Word, PNG→Word. Kilitli hedefler nedenleriyle UI'da gösteriliyor.</li>
+<li><b>Zengin kaynak turu (grafik + foto + tablo) iki sessiz kayıp yakaladı ve düzeltildi:</b> (a) epub yazıcısı tek span'lı kalın tablo başlıklarını düz metne indiriyordu — <code>epub_writer._block_replacement_html</code> düzeltildi, test <code>test_whole_block_bold_keeps_its_tag_when_translated</code>; (b) docx üreteci yalnız dominant stili yazıyordu, satır içi kalın/italik run'lar kayboluyordu — <code>docx_generator._paragraph_xml</code> span bazlı run yazacak şekilde düzeltildi, test <code>test_inline_bold_italic_runs_survive_generation</code>. Düzeltmelerden sonra zengin turda 5/5 çift görsel ve biçimde %100.</li>
+<li>pdf→Word'de sayfa oranı %50: kayıp değil — 24/24 blok, 3/3 görsel, 9/9 biçim aktı; DOCX akışkan formattır, PDF'in 2 fiziksel sayfası tek gövdeye akar (sayma tarifi farklı).</li>
+<li>pdf→png %91 kelime: OCR boşluk sayımı quirk'i, karakter sayısı birebir — içerik kaybı değil.</li>
+<li>CLI raporlama düzeltildi: <code>needs_review</code> sayımı <code>apply_segments</code>'ten SONRA yapılır (marker kaybı bayrağı artık özete yansıyor; zengin pdf turu 3 bayraklı segment doğru raporlanıyor).</li>
+<li>Metin turlarında 16/16 ve 20/20 sayısal literal (ölçü, parça no) eksiksiz; 0 segment needs_review (zengin pdf turunda 3 overflow-bayraklı segment dürüstçe raporlandı).</li>
 </ol>
 </div>
 </body></html>"""

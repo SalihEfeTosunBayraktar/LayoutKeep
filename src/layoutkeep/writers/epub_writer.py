@@ -307,12 +307,33 @@ def _render_inline_html(spans: list[Span], dominant_key: tuple[bool, bool], tag_
 
 def _block_replacement_html(block: Block, source_root: etree._Element, tag: str, idx: int) -> str:
     """The HTML to put where `block`'s old text was: plain escaped text unless the translation
-    kept multiple differently-styled spans, in which case inline tags are rebuilt around them."""
+    kept styling worth carrying, in which case inline tags are rebuilt around it.
+
+    A single span is only "plain" when its style matches the source element's own default -
+    plain text in a <td>. A single span that is itself bold (a whole-cell header like
+    <td><b>Cell</b></td>) must keep its tag: bold IS the block's dominant style there, so no
+    inline marker was ever generated, and the pre-fix writer wrote the tag away silently.
+    What the source element actually wrapped the text in is decided by `_source_tag_map`,
+    which re-walks the original XHTML - not by the span count alone."""
     spans = block.lines[0].spans if block.lines else []
     if len(spans) <= 1:
-        # No inline styling to carry, or apply_segments() lost the markers and already flagged
-        # needs_review - either way the existing plain-text path is correct and must not regress.
-        return _escape_text(block.text)
+        text = _escape_text(block.text)
+        if not spans:
+            return text
+        style = spans[0].style
+        if not (style.bold or style.italic):
+            return text
+        tag_map = _source_tag_map(source_root, tag, idx)
+        bold_tag, italic_tag = tag_map.get((style.bold, style.italic), (None, None))
+        if style.bold and not bold_tag:
+            bold_tag = _DEFAULT_BOLD_TAG
+        if style.italic and not italic_tag:
+            italic_tag = _DEFAULT_ITALIC_TAG
+        if italic_tag:
+            text = f"<{italic_tag}>{text}</{italic_tag}>"
+        if bold_tag:
+            text = f"<{bold_tag}>{text}</{bold_tag}>"
+        return text
     dominant = block.dominant_style()
     dominant_key = (dominant.bold, dominant.italic)
     tag_map = _source_tag_map(source_root, tag, idx)

@@ -37,14 +37,21 @@ def count_document(path: Path) -> dict:
 
 
 PAIRS = [
+    # prose-only sources (original run)
     ("sample_report.pdf", "report.tr.pdf", "pdf->pdf"),
     ("sample_report.pdf", "report.tr.docx", "pdf->docx"),
     ("sample.epub", "sample.tr.epub", "epub->epub"),
     ("battery_test_report.docx", "battery.tr.docx", "docx->docx"),
     ("battery_test_report.png", "battery-from-png.tr.docx", "png->docx"),
+    # rich sources: charts, photos, tables (2026-09-12)
+    ("rich_report.pdf", "rich.tr.pdf", "pdf->pdf"),
+    ("rich_report.pdf", "rich.tr.docx", "pdf->docx"),
+    ("rich_book.epub", "richepub.tr.epub", "epub->epub"),
+    ("rich_report.docx", "richdocx.tr.docx", "docx->docx"),
+    ("rich_report.png", "richpng.tr.docx", "png->docx"),
 ]
 
-SRC_DIRS = [Path("docs/samples"), Path("_artifacts/input")]
+SRC_DIRS = [Path("tests/fixtures"), Path("docs/samples"), Path("_artifacts/input")]
 OUT_DIR = Path("_artifacts/output/faz1-real")
 
 

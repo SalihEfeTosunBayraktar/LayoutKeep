@@ -207,6 +207,48 @@ def test_translation_dropping_markers_falls_back_to_plain_text(tmp_path: Path) -
     assert "<0>" not in after and "</0>" not in after
 
 
+def test_whole_block_bold_keeps_its_tag_when_translated(tmp_path: Path) -> None:
+    """A block whose single span is already bold (e.g. <td><b>Cell</b></td>) has no *inline*
+    marker run - bold IS the dominant style, so docir sends it as plain text and the translation
+    comes back as one plain span. The writer must not then write the <b> away.
+
+    Found by the real-model verification run on rich_book.epub (2026-09-12): the three bold
+    table headers survived the reader, survived docir, and were silently flattened to plain
+    <td> text on write-back. The identity matrix never caught it because an unchanged block
+    is skipped verbatim by _rewrite_page."""
+    from layoutkeep.core.docir import apply_segments, segments_from_document
+
+    src, doc = _read(tmp_path)
+    segments = segments_from_document(doc)
+
+    # The chap2 table cell 'Row one, cell one' is a plain <td>. Rebuild it as the whole-block-bold
+    # case: a single bold span, exactly what <td><b>Cell</b></td> produces in the reader.
+    chap2 = doc.pages[1]
+    target = next(b for b in chap2.blocks if b.text == "Row one, cell one")
+    from layoutkeep.core.docir import Line, Span, Style
+
+    base = target.dominant_style()
+    bold = Style(
+        font_family=base.font_family, size=base.size, bold=True, italic=base.italic,
+        color=base.color,
+    )
+    target.lines = [Line(spans=[Span(text="Birinci satır, ilk hücre", bbox=target.bbox, style=bold)])]
+    seg = next(s for s in segments if s.block_id == target.id)
+    seg.target = "Birinci satır, ilk hücre"
+
+    apply_segments(doc, [seg])
+    assert not seg.needs_review
+
+    out = tmp_path / "out.epub"
+    write_epub(doc, src, out)
+    after = _page_xhtml(out, "chap2.xhtml").decode("utf-8")
+
+    # The single bold span must keep a bold tag in the output, not be flattened.
+    assert "<b>Birinci satır, ilk hücre</b>" in after or "<strong>Birinci satır, ilk hücre</strong>" in after, (
+        "whole-block bold was flattened to plain text on write-back"
+    )
+
+
 def test_broken_markers_stripped_not_leaked_raw(tmp_path: Path) -> None:
     """K2: unusable marker syntax (unknown style index, mismatched close) must be stripped
     before the text is written - `<1>BÖLÜM I.</0>` leaking into the EPUB as-is was observed

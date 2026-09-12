@@ -269,10 +269,9 @@ def cmd_translate(args: argparse.Namespace) -> int:
                   f"{' - rest flagged for review' if honoured < checked else ''}")
 
     done = sum(1 for s in translated if s.translated)
-    review = sum(1 for s in translated if s.needs_review)
     cached = sum(1 for s in translated if s.from_memory)
     print(f"translated {done}/{len(translated)} in {elapsed:.1f}s"
-          f"  cached={cached}  needs_review={review}")
+          f"  cached={cached}")
 
     marker_stats = getattr(provider, "last_marker_repair_stats", None) or getattr(
         getattr(provider, "inner", None), "last_marker_repair_stats", None
@@ -307,6 +306,12 @@ def cmd_translate(args: argparse.Namespace) -> int:
                 print(f"          {fit_stats['overflow']} still overflow - flagged for review")
 
     orphans = apply_segments(doc, translated)
+    # needs_review is counted here, after apply_segments: that is the step that raises the
+    # flag on a translation which dropped its inline markers (bold/italic lost). Counting it
+    # earlier reported 0 while the markers line above said "still wrong" - two numbers in the
+    # same report contradicting each other.
+    review = sum(1 for s in translated if s.needs_review)
+    print(f"review    {review} segment(s) flagged for review")
     if orphans:
         print(f"WARNING   {len(orphans)} translated segments did not match any block: "
               f"{orphans[:5]}{'...' if len(orphans) > 5 else ''}")
