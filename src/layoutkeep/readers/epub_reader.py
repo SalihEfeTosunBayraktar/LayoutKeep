@@ -223,13 +223,24 @@ def _walk_images(
     out: list[Block],
 ) -> None:
     """`alt`/`title` on <img> carry translatable text but aren't Blocks in the tag sense, so they
-    get synthetic CAPTION blocks whose id encodes which attribute they came from."""
+    get synthetic CAPTION blocks whose id encodes which attribute they came from.
+
+    When the two attributes hold the same text - common, since authoring tools often default
+    `title` to `alt` - only one block is emitted. Found rendering a real EPUB->DOCX output:
+    `<img alt="Capacity chart" title="Capacity chart">` produced two identical visible "Capacity
+    chart" paragraphs in the generated DOCX. Not caught by tools/audit/faz2_candidates.py's
+    word-diff, because that reads the source through the same reader - the duplication was
+    already baked into both the "before" and "after" counts, so it never showed up as a delta.
+    """
     tag = _localname(el)
     if tag in ("img", "image"):
         idx = img_idx[0]
         img_idx[0] += 1
-        for attr, suffix in (("alt", "alt"), ("title", "title")):
-            value = el.get(attr)
+        alt = el.get("alt")
+        title = el.get("title")
+        if title and alt and title.strip() == alt.strip():
+            title = None
+        for value, suffix in ((alt, "alt"), (title, "title")):
             if value and value.strip():
                 out.append(
                     Block(

@@ -17,6 +17,7 @@ out/
 *.sqlite-shm
 gloss.json
 *.epub
+!tests/fixtures/rich_book.epub
 _artifacts/
 *.spec.bak
 layoutkeep_crash.log
