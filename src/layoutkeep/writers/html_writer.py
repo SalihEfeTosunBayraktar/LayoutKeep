@@ -98,6 +98,15 @@ img {
   display: block;
   margin: 1em auto;
 }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+td {
+  border: 1px solid var(--lk-border);
+  padding: 0.4em 0.6em;
+}
 
 @media print {
   body { background: transparent; padding: 0; }
@@ -149,20 +158,75 @@ def _render_block(block: Block) -> str:
     return f"<{tag}{extra_class}{align_attr}>{content}</{tag}>"
 
 
+def _render_table(cells: list[Block]) -> str:
+    """Cells that share a `table_id`, written back as real `<tr>`/`<td>` rows and columns
+    instead of one paragraph per cell.
+
+    Before `table_row`/`table_col` existed on `Block` (core/docir.py), a reader that correctly
+    found a table had nowhere to put that fact except reading order - a writer rebuilding the
+    page saw sixteen ordinary paragraphs and had no way to tell they used to be a 4x4 grid.
+    """
+    rows: dict[int, dict[int, Block]] = {}
+    for cell in cells:
+        rows.setdefault(cell.table_row, {})[cell.table_col] = cell
+
+    rows_html: list[str] = []
+    for row_index in sorted(rows):
+        cells_html: list[str] = []
+        for col_index in sorted(rows[row_index]):
+            cell = rows[row_index][col_index]
+            lines_html = ["".join(_render_span(span) for span in line.spans) for line in cell.lines]
+            content = "<br/>\n".join(s for s in lines_html if s) or html.escape(cell.text.strip())
+            align_attr = (
+                f' style="text-align: {cell.align};"' if cell.align and cell.align != "left" else ""
+            )
+            cells_html.append(f"<td{align_attr}>{content}</td>")
+        rows_html.append(f"      <tr>{''.join(cells_html)}</tr>")
+    body = "\n".join(rows_html)
+    return f"<table>\n    <tbody>\n{body}\n    </tbody>\n  </table>"
+
+
 def _render_page(page: Page) -> str:
     # Tek bir sayfanın içeriğini işler / Processes contents of a single page
     blocks_html: list[str] = []
     in_list = False
+    table_buffer: list[Block] = []
+    open_table_id: int | None = None
+
+    def flush_table() -> None:
+        nonlocal open_table_id
+        if table_buffer:
+            blocks_html.append(_render_table(table_buffer))
+            table_buffer.clear()
+        open_table_id = None
 
     for block in page.content_in_reading_order():
         if isinstance(block, ImageRef):
             # A figure the source carried. Inline as a data URI so the export stays one file.
+            flush_table()
             if in_list:
                 blocks_html.append("</ul>")
                 in_list = False
             if block.data:
                 blocks_html.append(f'<img src="{block.data_uri}" alt=""/>')
             continue
+        # table_row/table_col are only populated by pdf_reader.py so far - epub_reader.py and
+        # docx_reader.py assign BlockRole.TABLE but leave both at their -1 default. Grouping by
+        # position for those blocks would put every one of them at grid position (-1, -1) and
+        # collapse a whole table down to its last cell, which is what happened here: rendering a
+        # real epub->html output before this guard dropped rich_book.epub's table from 5 cells
+        # to 1. Until every reader fills the grid in, a table without real positions falls back
+        # to the one-paragraph-per-cell rendering it already had.
+        if block.role == BlockRole.TABLE and block.table_row >= 0 and block.table_col >= 0:
+            if in_list:
+                blocks_html.append("</ul>")
+                in_list = False
+            if open_table_id is not None and block.table_id != open_table_id:
+                flush_table()
+            table_buffer.append(block)
+            open_table_id = block.table_id
+            continue
+        flush_table()
         if block.role == BlockRole.LIST:
             if not in_list:
                 blocks_html.append("<ul>")
@@ -176,6 +240,7 @@ def _render_page(page: Page) -> str:
             if rendered:
                 blocks_html.append(rendered)
 
+    flush_table()
     if in_list:
         blocks_html.append("</ul>")
 

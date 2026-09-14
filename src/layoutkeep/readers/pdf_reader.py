@@ -526,12 +526,19 @@ def _similar_height(a: Block, b: Block) -> bool:
     return shorter > 0 and taller / shorter <= tunables.get(_HEIGHT_SIMILARITY_KEY)
 
 
-def _grid_blocks(blocks: list[Block]) -> set[str]:
-    """Ids of blocks that sit in a grid - a table's cells.
+def _table_grid(blocks: list[Block]) -> dict[str, tuple[int, int, int]]:
+    """(table_id, row, col) for every block that sits in a table grid, keyed by block id.
 
     A row of cells and a line of a paragraph look alike to a merger that only asks about font
     size, vertical gap and horizontal overlap. What tells them apart is repetition: cells line
     up into columns across consecutive rows, and a paragraph has no columns to line up with.
+
+    Which table a row belongs to is found by chaining that relation transitively (row 1 lines up
+    with row 2, row 2 lines up with row 3 -> rows 1-3 are one table) via union-find over row
+    indices, rather than only ever comparing a row to its immediate neighbour - the middle row of
+    a three-row table is what every other row matches against, and a purely pairwise scan without
+    the union step would still find the table, but two tables placed close enough that their
+    outer rows also pass the alignment test would merge into one.
     """
     # A row is blocks that share a band *and* a height. Without the height test the paragraph
     # in the next column joins the row - it spans several of them - and the row comes out one
@@ -559,10 +566,29 @@ def _grid_blocks(blocks: list[Block]) -> set[str]:
             rows.append([block])
 
     candidates = [sorted(row, key=lambda b: b.bbox.x0) for row in rows if len(row) >= 2]
-    grid: set[str] = set()
+    if not candidates:
+        return {}
+
+    parent = list(range(len(candidates)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i: int, j: int) -> None:
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            parent[ri] = rj
+
+    # Which cell ids each row actually matched - a row can have a cell that lines up with
+    # nothing in any other row (a caption sharing the row's band, say), and that one cell stays
+    # out of the table while its row-mates go in.
+    row_matches: dict[int, set[str]] = {i: set() for i in range(len(candidates))}
     for index, row in enumerate(candidates):
         height = max(b.bbox.height for b in row) or 1.0
-        for other in candidates[index + 1 :]:
+        for j, other in enumerate(candidates[index + 1 :], start=index + 1):
             # Matched column by column rather than row against row. A page can hold two tables
             # whose rows interleave - the left column's table starting a few points below the
             # right column's - and then no two rows have the same number of cells, which is how
@@ -575,9 +601,42 @@ def _grid_blocks(blocks: list[Block]) -> set[str]:
                 and _similar_height(a, b)
             ]
             if len(matched) >= 2:
-                grid.update(a.id for a, _ in matched)
-                grid.update(b.id for _, b in matched)
-    return grid
+                union(index, j)
+                row_matches[index].update(a.id for a, _ in matched)
+                row_matches[j].update(b.id for _, b in matched)
+
+    components: dict[int, list[int]] = {}
+    for i in range(len(candidates)):
+        if row_matches[i]:
+            components.setdefault(find(i), []).append(i)
+
+    result: dict[str, tuple[int, int, int]] = {}
+    for table_id, row_indices in enumerate(components.values()):
+        row_indices.sort(key=lambda i: candidates[i][0].bbox.y0)
+        cell_ids = {cid for i in row_indices for cid in row_matches[i]}
+        table_cells = [b for i in row_indices for b in candidates[i] if b.id in cell_ids]
+        height = max(b.bbox.height for b in table_cells) or 1.0
+
+        # Columns: cluster every matched cell's x0 across the whole table into buckets, in
+        # left-to-right order, so a cell's column index is consistent across every row even when
+        # a row is missing a cell (a merged header, a short last row).
+        columns: list[float] = []
+        col_of: dict[str, int] = {}
+        for cell in sorted(table_cells, key=lambda b: b.bbox.x0):
+            for col_index, x0 in enumerate(columns):
+                if abs(cell.bbox.x0 - x0) <= height * tunables.get(_COLUMN_ALIGN_KEY):
+                    col_of[cell.id] = col_index
+                    break
+            else:
+                col_of[cell.id] = len(columns)
+                columns.append(cell.bbox.x0)
+
+        for row_position, i in enumerate(row_indices):
+            for cell in candidates[i]:
+                if cell.id in cell_ids:
+                    result[cell.id] = (table_id, row_position, col_of[cell.id])
+
+    return result
 
 
 def _text_axes(bbox: BBox, rotation: float) -> tuple[float, float]:
@@ -629,13 +688,19 @@ def _merge_wrapped_lines(blocks: list[Block]) -> list[Block]:
     # Cells that line up into columns across rows are a table. Merging one row into the next
     # turns the whole thing into a single block whose translation is written into the first
     # cell, which is what the README's own comparison image was showing.
-    in_grid = _grid_blocks(blocks)
+    grid_positions = _table_grid(blocks)
+    in_grid = set(grid_positions)
 
     remaining = sorted(blocks, key=lambda b: b.bbox.y0)
     merged: list[Block] = []
     while remaining:
         current = remaining.pop(0)
         if current.id in in_grid:
+            table_id, row, col = grid_positions[current.id]
+            current.role = BlockRole.TABLE
+            current.table_id = table_id
+            current.table_row = row
+            current.table_col = col
             merged.append(current)
             continue
         while True:

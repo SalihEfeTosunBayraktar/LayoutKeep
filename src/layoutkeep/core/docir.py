@@ -196,6 +196,14 @@ class Block:
     #: file. Carries the same inline markers as `Segment.source`, so the editor can render the
     #: original's bold and italic runs rather than showing flattened text.
     source_text: str = ""
+    #: Grid position for a `role == TABLE` block; -1 on every other block. A reader that finds
+    #: a table already knows which cell sits where - the alternative was throwing that away and
+    #: asking a writer to guess it back from reading order, which is how a rebuilt table became
+    #: one paragraph per cell with no row or column left (docs/ENGINE-ARCHITECTURE.md). `table_id`
+    #: is unique per page, not per document, so two tables on the same page do not merge into one.
+    table_id: int = -1
+    table_row: int = -1
+    table_col: int = -1
 
     @property
     def text(self) -> str:
