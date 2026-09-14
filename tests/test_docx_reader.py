@@ -58,6 +58,22 @@ def test_roles(tmp_path: Path) -> None:
     assert header.source_ref == "word/header1.xml"
     assert all(b.role == BlockRole.HEADER for b in header.blocks)
 
+
+def test_table_cells_get_grid_position(tmp_path: Path) -> None:
+    """OOXML already carries a table's grid explicitly (`<w:tbl>`/`<w:tr>`/`<w:tc>`), unlike a
+    PDF's cells, which have to be inferred from position - html_writer.py's `_render_table`
+    needs `table_row`/`table_col` filled in to rebuild a real `<table>` instead of one paragraph
+    per cell (docs/ENGINE-ARCHITECTURE.md)."""
+    doc = _read(tmp_path)
+    by_text = {b.text: b for b in doc.pages[0].blocks}
+
+    one = by_text["Row one, cell one"]
+    two = by_text["Row one, cell two"]
+    assert (one.table_row, one.table_col) == (0, 0)
+    assert (two.table_row, two.table_col) == (0, 1)
+    assert one.table_id == two.table_id
+    assert one.table_id >= 0
+
     footer = doc.pages[1]
     assert footer.source_ref == "word/footer1.xml"
     assert all(b.role == BlockRole.FOOTER for b in footer.blocks)

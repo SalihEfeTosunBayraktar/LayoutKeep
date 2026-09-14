@@ -71,6 +71,30 @@ def _image_html(image: ImageRef) -> str:
     return f'<img src="{image.data_uri}" style="max-width: 100%;"/>'
 
 
+def _table_html(cells: list[Block]) -> str:
+    """Cells sharing a `table_id`, as one real `<table>` instead of one flowing box per cell.
+
+    Same technique as `html_writer.py`'s `_render_table`, using this module's own span renderer
+    so a translated cell keeps its bold/italic runs. `insert_htmlbox` (MuPDF's Story engine)
+    renders `<table>` markup directly, so this needs no manual row-height layout - it goes
+    through the same insertion path as every other block.
+    """
+    rows: dict[int, dict[int, Block]] = {}
+    for cell in cells:
+        rows.setdefault(cell.table_row, {})[cell.table_col] = cell
+
+    rows_html: list[str] = []
+    for row_index in sorted(rows):
+        cells_html: list[str] = []
+        for col_index in sorted(rows[row_index]):
+            cell = rows[row_index][col_index]
+            lines_html = ["".join(_span_to_html(s) for s in line.spans) for line in cell.lines]
+            content = "<br/>".join(s for s in lines_html if s) or html.escape(cell.text.strip())
+            cells_html.append(f'<td style="border: 1px solid #cbd5e1; padding: 4pt 6pt;">{content}</td>')
+        rows_html.append(f"<tr>{''.join(cells_html)}</tr>")
+    return f'<table style="border-collapse: collapse; width: 100%;">{"".join(rows_html)}</table>'
+
+
 def _draw_flowing_page(pdf: pymupdf.Document, page_data: Page) -> None:
     # Akışkan metinli sayfayı PDF'e çizer / Draws text-flow page into PDF safely
     #
@@ -83,12 +107,13 @@ def _draw_flowing_page(pdf: pymupdf.Document, page_data: Page) -> None:
     max_y = _A4_HEIGHT - _MARGIN
     page = pdf.new_page(width=_A4_WIDTH, height=_A4_HEIGHT)
     curr_y = _MARGIN
+    table_buffer: list[Block] = []
+    open_table_id: int | None = None
 
-    for item in page_data.content_in_reading_order():
-        b_html = _image_html(item) if isinstance(item, ImageRef) else _block_html(item)
+    def insert(b_html: str, item: Block | ImageRef | None) -> None:
+        nonlocal page, curr_y
         if not b_html:
-            continue
-
+            return
         if curr_y >= max_y - 36.0:
             page = pdf.new_page(width=_A4_WIDTH, height=_A4_HEIGHT)
             curr_y = _MARGIN
@@ -107,9 +132,36 @@ def _draw_flowing_page(pdf: pymupdf.Document, page_data: Page) -> None:
                 curr_y += 26.0
         except (RuntimeError, ValueError, OverflowError):
             # MuPDF çizim hatasında güvenli düz metin bas / Safe fallback
-            if not isinstance(item, ImageRef):
+            if item is not None and not isinstance(item, ImageRef):
                 page.insert_text(pymupdf.Point(_MARGIN, curr_y + 12), item.text[:120])
             curr_y += 20.0
+
+    def flush_table() -> None:
+        nonlocal open_table_id
+        if table_buffer:
+            insert(_table_html(table_buffer), None)
+            table_buffer.clear()
+        open_table_id = None
+
+    # table_row/table_col are only populated by pdf_reader.py and docx_reader.py so far - a
+    # TABLE block without a real grid position (epub_reader.py does not fill these in yet) falls
+    # back to being drawn as its own box, same as before, rather than being grouped at the wrong
+    # position (see html_writer.py's identical guard and the regression it caught).
+    for item in page_data.content_in_reading_order():
+        if isinstance(item, ImageRef):
+            flush_table()
+            insert(_image_html(item), item)
+            continue
+        if item.role == BlockRole.TABLE and item.table_row >= 0 and item.table_col >= 0:
+            if open_table_id is not None and item.table_id != open_table_id:
+                flush_table()
+            table_buffer.append(item)
+            open_table_id = item.table_id
+            continue
+        flush_table()
+        insert(_block_html(item), item)
+
+    flush_table()
 
 
 def _draw_positioned_page(pdf: pymupdf.Document, page_data: Page) -> None:
