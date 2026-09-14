@@ -19,12 +19,13 @@ text direction and structure stay as close to the original as the target languag
 Runs locally. Bring your own model: a local LLM through LM Studio, Ollama or llama.cpp, or any
 OpenAI-compatible cloud endpoint. Your documents never have to leave your machine.
 
-> **Status: PDF to PDF is open. Everything else is locked.** Readers and writers exist for
-> EPUB, DOCX, HTML and images, and every one of those conversions was measured: none of them
-> fail, and several quietly hand back a document missing its images, its emphasis, or a third of
-> its words. They are shown in the interface with a lock and the reason, rather than removed or
-> offered. [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) has the measurement and
-> what has to be true before each one opens.
+> **Status: 14 of 20 format pairs are open.** PDF, EPUB and DOCX all convert to each other and to
+> HTML; EPUB and DOCX also convert to PNG, and DOCX converts to PDF. Every open pair was checked
+> word-for-word against a realistic fixture with nothing missing, not just a ratio close to 100%.
+> The rest stay locked — shown in the interface with a lock and the reason, rather than removed
+> or offered — until the same check passes for them.
+> [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) has the measurement and what has
+> to be true before each one opens.
 
 ---
 
@@ -103,13 +104,18 @@ scales badly: a 100-page run costs 7 seconds a page against this one's 1.3.
 
 | Input → Output | State | Measured |
 |---|---|---|
-| **PDF → PDF** | **open** | all text, all styling, figures and vector art untouched — the original file is edited in place |
-| anything → PNG/JPG | locked | an image has no text layer; the result cannot be searched |
+| **PDF → PDF / DOCX / EPUB / HTML** | **open** | zero words missing against the rich fixture on every one |
+| **EPUB → EPUB / DOCX / HTML / PNG** | **open** | same check, same result |
+| **DOCX → DOCX / EPUB / HTML / PNG / PDF** | **open** | same check; the PDF generator's image-drawing gap was fixed to get here |
+| **PNG → DOCX** | **open** | OCR recall verified on a realistic scanned page, not just the tiny fixture that first found the regression |
+| anything else → PNG/JPG | locked | not yet checked against a rich fixture |
 | everything else | locked | measures well now (100% or explained); opens one pair at a time as a product decision, not a fidelity one |
 
-Every row is [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py), which you can run
-yourself. The lock is one module — [`core/capabilities.py`](src/layoutkeep/core/capabilities.py) —
-read by both the application and the command line, so they cannot disagree about what is ready.
+Every row is [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py) (small synthetic
+fixtures) and [`tools/audit/faz2_candidates.py`](tools/audit/faz2_candidates.py) (the rich
+fixtures a pair actually has to pass before it opens), both of which you can run yourself. The
+lock is one module — [`core/capabilities.py`](src/layoutkeep/core/capabilities.py) — read by
+both the application and the command line, so they cannot disagree about what is ready.
 
 Latin scripts (Turkish, English, German, French, Spanish, …). The data model carries a `direction`
 field so right-to-left support can be added without a rewrite, but it is not implemented.

@@ -16,12 +16,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from layoutkeep.core import capabilities
 
-#: The five pairs measured at 100% across every metric in format_matrix.json.
+#: The pairs verified against the rich fixtures with zero missing words
+#: (tools/audit/faz2_candidates.py).
 MEASURED_PAIRS = [
     (".pdf", ".pdf"),
     (".pdf", ".docx"),
+    (".pdf", ".epub"),
+    (".pdf", ".html"),
     (".epub", ".epub"),
+    (".epub", ".docx"),
+    (".epub", ".html"),
+    (".epub", ".png"),
     (".docx", ".docx"),
+    (".docx", ".epub"),
+    (".docx", ".html"),
+    (".docx", ".png"),
+    (".docx", ".pdf"),
     (".png", ".docx"),
 ]
 
@@ -82,16 +92,17 @@ def test_the_command_line_refuses_a_locked_pair(tmp_path: Path):
     with pytest.raises(SystemExit) as caught:
         main([
             "translate", str(src), "--to", "tr",
-            "-o", str(tmp_path / "out.epub"), "--provider", "fake",
+            "-o", str(tmp_path / "out.png"), "--provider", "fake",
         ])
     message = str(caught.value)
-    assert ".epub" in message
+    assert ".png" in message
     assert "ENGINE-ARCHITECTURE" in message, "the refusal must point at the evidence"
 
 
 def test_open_targets_lists_what_can_be_picked():
-    assert capabilities.open_targets(".pdf") == ("auto", ".pdf", ".docx")
-    assert capabilities.open_targets(".epub") == ("auto", ".epub")
-    assert capabilities.open_targets(".docx") == ("auto", ".docx")
+    # Order follows ALL_TARGETS: auto, .pdf, .html, .epub, .docx, .png, .jpg.
+    assert capabilities.open_targets(".pdf") == ("auto", ".pdf", ".html", ".epub", ".docx")
+    assert capabilities.open_targets(".epub") == ("auto", ".html", ".epub", ".docx", ".png")
+    assert capabilities.open_targets(".docx") == ("auto", ".pdf", ".html", ".epub", ".docx", ".png")
     assert capabilities.open_targets(".png") == (".docx",)
     assert capabilities.open_targets(".html") == ()

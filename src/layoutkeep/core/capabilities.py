@@ -2,16 +2,17 @@
 
 One place decides this, because the interface, the command line and the documentation drifting
 apart on the question is worse than any answer they could give. `docs/ENGINE-ARCHITECTURE.md`
-holds the measurements this is based on and `tools/audit/format_matrix.py` reproduces them.
+holds the measurements this is based on, `tools/audit/format_matrix.py` reproduces them against
+small synthetic fixtures, and `tools/audit/faz2_candidates.py` reproduces them against the richer
+fixtures (`tests/fixtures/rich_report.*`, `rich_book.epub`) that phase 1 built specifically
+because the synthetic ones had already hidden two silent styling losses and an OCR regression.
 
-The short version of those measurements: every conversion that keeps a document in its own
-format edits the original file and keeps everything. Every conversion that changes format builds
-a new file from DocIR, and the builders are thin - the EPUB one writes no bold or italic at all,
-the PDF one drops images that DocIR is holding. None of them fail; they return a document that is
-quietly missing things, which is worse.
-
-So the cross-format conversions are locked rather than removed. Removing them would say the
-project does not do this; leaving them open says it does it well. Neither is true yet.
+A pair is opened only once a run against the rich fixtures shows zero missing words against the
+source - not a ratio close to 100%, an actual word-for-word diff with nothing on the "missing"
+side. `->epub` targets add a small, correctly-localized chapter heading per page, and `docx`'s
+image-bearing targets can add a page once the image is actually drawn instead of silently
+dropped - both are why some word and page counts run slightly ahead of the source rather than
+behind it. Additions, not losses.
 
 Qt-free on purpose: the CLI applies the same policy.
 """
@@ -29,8 +30,17 @@ ALL_SOURCES = (".pdf", ".epub", ".docx", ".html", ".htm", ".png", ".jpg", ".jpeg
 OPEN_PAIRS: frozenset[tuple[str, str]] = frozenset({
     (".pdf", ".pdf"),
     (".pdf", ".docx"),
+    (".pdf", ".epub"),
+    (".pdf", ".html"),
     (".epub", ".epub"),
+    (".epub", ".docx"),
+    (".epub", ".html"),
+    (".epub", ".png"),
     (".docx", ".docx"),
+    (".docx", ".epub"),
+    (".docx", ".html"),
+    (".docx", ".png"),
+    (".docx", ".pdf"),
     (".png", ".docx"),
 })
 

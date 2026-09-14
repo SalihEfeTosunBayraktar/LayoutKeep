@@ -91,3 +91,26 @@ def test_the_text_is_escaped_not_injected(tmp_path: Path) -> None:
 
     body = _xhtml_of(out)
     assert "a &lt; b &amp; c" in body
+
+
+def test_chapter_label_follows_target_language(tmp_path: Path) -> None:
+    """The generated chapter heading was hardcoded to Turkish ("Bölüm N") regardless of
+    doc.target_lang - a book translated into English or German still got Turkish chapter
+    headings. Measured against the rich fixtures (tools/audit/faz2_candidates.py) while
+    evaluating pdf->epub and docx->epub as phase-2 candidates."""
+    doc = _document([_span("plain")])
+
+    doc.target_lang = "en"
+    out_en = tmp_path / "en.epub"
+    generate_epub_from_docir(doc, out_en)
+    assert "Chapter 1" in _xhtml_of(out_en)
+
+    doc.target_lang = "de"
+    out_de = tmp_path / "de.epub"
+    generate_epub_from_docir(doc, out_de)
+    assert "Kapitel 1" in _xhtml_of(out_de)
+
+    doc.target_lang = "tr"
+    out_tr = tmp_path / "tr.epub"
+    generate_epub_from_docir(doc, out_tr)
+    assert "Bölüm 1" in _xhtml_of(out_tr)
