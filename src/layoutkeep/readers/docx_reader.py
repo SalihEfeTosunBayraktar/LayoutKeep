@@ -144,6 +144,43 @@ def _in_table_cell(p_el: etree._Element) -> bool:
     return False
 
 
+#: Non-namespaced, thrown away before this parse ever leaves this function - see
+#: `_tag_table_positions`'s docstring for why it exists.
+_GRID_ATTR = "_lk_table_pos"
+
+
+def _tag_table_positions(root: etree._Element) -> None:
+    """Mark every `<w:p>` that is the only paragraph in its table cell with `_GRID_ATTR`,
+    "table_id,row,col", read back by `_walk_paragraphs`.
+
+    OOXML already carries a table's grid explicitly (`<w:tbl>` > `<w:tr>` > `<w:tc>`), unlike a
+    PDF's cells, which have to be inferred from position (pdf_reader.py's `_table_grid`) - this
+    only has to walk the structure once and write down what it finds.
+
+    Tried keying a `dict` by `id(paragraph_element)` first: lxml elements are proxy objects over
+    the underlying libxml2 node, not the node itself, and two separate traversals of the same
+    tree - this pass and `_walk_paragraphs`'s recursion - do not hand back the same Python
+    objects for the same node. Worse, a proxy that nothing still references gets garbage
+    collected and its `id()` (a memory address) reused by the next one created, so two entirely
+    different paragraphs measured a matching `id()` and the position of one silently applied to
+    the other. Writing the data onto the node itself, via a throwaway XML attribute the node
+    already owns, sidesteps proxy identity - `.get()` returns the same value no matter which
+    Python wrapper reads it.
+
+    A cell holding more than one paragraph is left untagged on purpose: `html_writer.py`'s
+    `_render_table` keys one Block per (row, col), so two blocks sharing a position would not
+    merge - the second would silently overwrite the first. Leaving both without a grid position
+    instead falls back to the one-paragraph-per-block rendering every block already has, which
+    drops nothing.
+    """
+    for table_id, tbl in enumerate(root.iter(f"{W}tbl")):
+        for row, tr in enumerate(tbl.findall(f"{W}tr")):
+            for col, tc in enumerate(tr.findall(f"{W}tc")):
+                cell_paragraphs = tc.findall(f"{W}p")
+                if len(cell_paragraphs) == 1:
+                    cell_paragraphs[0].set(_GRID_ATTR, f"{table_id},{row},{col}")
+
+
 def _role_for_paragraph(p_el: etree._Element, forced_role: BlockRole | None) -> BlockRole:
     if forced_role is not None:
         return forced_role
@@ -182,6 +219,10 @@ def _walk_paragraphs(
         lines = _paragraph_lines(el)
         text = "\n".join(line.text for line in lines)
         if lines and text.strip():
+            tagged = el.get(_GRID_ATTR)
+            table_id, table_row, table_col = (
+                tuple(int(component) for component in tagged.split(",")) if tagged else (-1, -1, -1)
+            )
             out.append(
                 Block(
                     id=f"{part}::p#{idx}",
@@ -189,6 +230,9 @@ def _walk_paragraphs(
                     bbox=_DUMMY_BBOX,
                     lines=lines,
                     order=order[0],
+                    table_id=table_id,
+                    table_row=table_row,
+                    table_col=table_col,
                 )
             )
             order[0] += 1
@@ -209,6 +253,7 @@ def _extract_paragraphs(raw: bytes, part: str, forced_role: BlockRole | None) ->
     is what lets docx_writer relocate the elements it needs to edit without persisted offsets.
     """
     root = _parse(raw)
+    _tag_table_positions(root)
     order = [0]
     idx_box = [0]
     blocks: list[Block] = []
@@ -258,35 +303,51 @@ def _extract_images(
     The picture's bytes are carried rather than its relationship id: a `.lkproj` has to stay
     readable on a machine that no longer has the source document (CONTRACT.md D5), and a writer
     rebuilding into another format has nothing to resolve an id against.
+
+    `order` has to land in the same numbering space `Block.order` uses - a count of blocks, not
+    a separate count of drawings - or `Page.content_in_reading_order()` places it by comparing
+    the wrong scale (`core/docir.py`). Counting drawings on their own put every image in a
+    single-picture document at order=0, ahead of every paragraph including the title, regardless
+    of where its own (image-only, so block-less) paragraph actually sat: a chart meant to follow
+    the third paragraph rendered above the document's title instead. This walks paragraphs in
+    document order and mirrors `_walk_paragraphs`'s own rule for when a paragraph becomes a block
+    - exactly the count `content_in_reading_order` expects to compare against.
     """
     root = _parse(raw)
     images: list[ImageRef] = []
-    for order, drawing in enumerate(root.iter(f"{W}drawing")):
-        blip = next(drawing.iter(f"{A_NS}blip"), None)
-        if blip is None:
-            continue
-        target = rels.get(blip.get(f"{R_NS}embed", ""), "")
-        if not target:
-            continue
-        payload = contents.get(f"word/{target.lstrip('/')}") or contents.get(target.lstrip("/"))
-        if not payload:
-            continue
+    block_order = 0
+    for p_el in root.iter(f"{W}p"):
+        for drawing in p_el.iter(f"{W}drawing"):
+            blip = next(drawing.iter(f"{A_NS}blip"), None)
+            if blip is None:
+                continue
+            target = rels.get(blip.get(f"{R_NS}embed", ""), "")
+            if not target:
+                continue
+            payload = contents.get(f"word/{target.lstrip('/')}") or contents.get(target.lstrip("/"))
+            if not payload:
+                continue
 
-        width = height = 0.0
-        extent = next(drawing.iter(f"{WP}extent"), None)
-        if extent is not None:
-            with contextlib.suppress(TypeError, ValueError):
-                width = int(extent.get("cx", "0")) / _EMU_PER_POINT
-                height = int(extent.get("cy", "0")) / _EMU_PER_POINT
+            width = height = 0.0
+            extent = next(drawing.iter(f"{WP}extent"), None)
+            if extent is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    width = int(extent.get("cx", "0")) / _EMU_PER_POINT
+                    height = int(extent.get("cy", "0")) / _EMU_PER_POINT
 
-        images.append(
-            ImageRef(
-                bbox=BBox(0.0, 0.0, width, height),
-                data=base64.b64encode(payload).decode("ascii"),
-                fmt=(Path(target).suffix.lstrip(".").lower() or "png"),
-                order=order,
+            images.append(
+                ImageRef(
+                    bbox=BBox(0.0, 0.0, width, height),
+                    data=base64.b64encode(payload).decode("ascii"),
+                    fmt=(Path(target).suffix.lstrip(".").lower() or "png"),
+                    order=block_order,
+                )
             )
-        )
+
+        lines = _paragraph_lines(p_el)
+        text = "\n".join(line.text for line in lines)
+        if lines and text.strip():
+            block_order += 1
     return images
 
 

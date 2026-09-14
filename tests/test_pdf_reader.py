@@ -309,3 +309,23 @@ def test_rotated_lines_do_not_merge_with_differently_angled_neighbours(tmp_path:
     noob = next(b for b in doc.pages[0].blocks if b.text == "Noob")
     assert "Ordinary" not in noob.text
     assert "Sideways" not in noob.text
+
+
+def test_table_cells_get_role_and_grid_position() -> None:
+    """`rich_report.pdf` carries a real 4-column, 4-row table (a header row plus three data
+    rows). Before this, a cell that survived `_merge_wrapped_lines` without being merged into
+    its neighbour stayed BlockRole.BODY - pdf_reader never assigned BlockRole.TABLE at all - so
+    a writer rebuilding the document had sixteen ordinary paragraphs with no row or column left
+    to tell it they used to be a table (docs/ENGINE-ARCHITECTURE.md)."""
+    doc = read_pdf(Path(__file__).parent / "fixtures" / "rich_report.pdf")
+    cells = [b for b in doc.pages[0].blocks if b.role == BlockRole.TABLE]
+    assert len(cells) == 16, [b.text for b in cells]
+    assert all(b.table_id == cells[0].table_id for b in cells)
+
+    by_position = {(b.table_row, b.table_col): b.text for b in cells}
+    assert by_position[(0, 0)] == "Cell"
+    assert by_position[(0, 3)] == "Status"
+    assert by_position[(3, 0)] == "A-103"
+    assert by_position[(3, 3)] == "Review"
+    assert len({b.table_row for b in cells}) == 4
+    assert len({b.table_col for b in cells}) == 4

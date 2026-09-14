@@ -96,3 +96,24 @@ def test_a_document_with_no_pictures_gains_none(tmp_path: Path) -> None:
     build_sample_docx(src)
 
     assert sum(len(page.images) for page in read_docx(src).pages) == 0
+
+
+def test_image_order_matches_its_paragraph_position() -> None:
+    """`tests/fixtures/rich_report.docx` places its chart after the paragraph "The chart below
+    summarises..." and before the caption "Figure 1: capacity retained...". `_extract_images`
+    used to count drawings on their own (`enumerate(root.iter(w:drawing))`), so a single-picture
+    document always got `order=0` - ahead of every paragraph, including the title, regardless of
+    where the image-only (and therefore block-less) paragraph actually sat. Rendered for real
+    (not measured by a count) via docx->pdf, the chart appeared above the document's own title.
+    """
+    from layoutkeep.core.docir import ImageRef
+
+    doc = read_docx(Path(__file__).parent / "fixtures" / "rich_report.docx")
+    flow = doc.pages[0].content_in_reading_order()
+    texts = [item.text if not isinstance(item, ImageRef) else "[IMAGE]" for item in flow]
+
+    image_index = texts.index("[IMAGE]")
+    before = texts[image_index - 1]
+    after = texts[image_index + 1]
+    assert "chart below summarises" in before
+    assert "Figure 1" in after
