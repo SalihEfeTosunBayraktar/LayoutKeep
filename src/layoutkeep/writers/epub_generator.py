@@ -11,6 +11,12 @@ from pathlib import Path
 
 from layoutkeep.core.docir import BlockRole, Document, ImageRef, Page
 
+#: The generated chapter label, by target language. Was hardcoded to Turkish regardless of
+#: `doc.target_lang` - every EPUB this writes carried "Bölüm" even when translating into English
+#: or German. Falls back to English for a language this project's interface doesn't otherwise
+#: support.
+_CHAPTER_LABEL = {"tr": "Bölüm", "en": "Chapter", "de": "Kapitel"}
+
 
 def _inline_html(block) -> str:
     """A block's text as XHTML, keeping the emphasis its spans carry.
@@ -93,6 +99,7 @@ def generate_epub_from_docir(doc: Document, out_path: str | Path) -> None:
     book.set_title(title)
     book.set_language(doc.target_lang or "en")
 
+    chapter_label = _CHAPTER_LABEL.get((doc.target_lang or "en").split("-")[0], "Chapter")
     chapters = []
     image_names: dict[int, str] = {}
     for page_number, page in enumerate(doc.pages, 1):
@@ -111,9 +118,9 @@ def generate_epub_from_docir(doc: Document, out_path: str | Path) -> None:
             )
 
     for idx, page in enumerate(doc.pages, 1):
-        xhtml_content = _render_page_xhtml(page, f"{title} - Bölüm {idx}", image_names)
+        xhtml_content = _render_page_xhtml(page, f"{title} - {chapter_label} {idx}", image_names)
         chapter = epub.EpubHtml(
-            title=f"Bölüm {idx}",
+            title=f"{chapter_label} {idx}",
             file_name=f"chap_{idx:03d}.xhtml",
             lang=doc.target_lang or "en",
         )

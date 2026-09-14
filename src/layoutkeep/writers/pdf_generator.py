@@ -5,6 +5,7 @@ DocIR dokümanından sıfırdan PDF üreten çapraz format dışa aktarım modü
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import html
 from pathlib import Path
@@ -63,15 +64,28 @@ def _block_html(block: Block) -> str:
     return f"<p style='font-size: 10pt; line-height: 1.4; margin-bottom: 6pt; color: #0f172a; {align_style}'>{content}</p>"
 
 
+def _image_html(image: ImageRef) -> str:
+    # Görseli veri URI'si olarak HTML'e gömer / Embeds the image as a data URI
+    if not image.data:
+        return ""
+    return f'<img src="{image.data_uri}" style="max-width: 100%;"/>'
+
+
 def _draw_flowing_page(pdf: pymupdf.Document, page_data: Page) -> None:
     # Akışkan metinli sayfayı PDF'e çizer / Draws text-flow page into PDF safely
+    #
+    # Iterates content_in_reading_order() rather than blocks_in_reading_order(): the latter
+    # skips page_data.images entirely, which is how a DOCX-sourced PDF (this is the path a
+    # geometry-less page takes - see has_layout in generate_pdf_from_docir) silently dropped
+    # every embedded image. Measured in tools/audit/faz2_candidates.py: docx->pdf carried 100%
+    # of the words and 0 of 1 images.
     usable_width = _A4_WIDTH - (2 * _MARGIN)
     max_y = _A4_HEIGHT - _MARGIN
     page = pdf.new_page(width=_A4_WIDTH, height=_A4_HEIGHT)
     curr_y = _MARGIN
 
-    for block in page_data.blocks_in_reading_order():
-        b_html = _block_html(block)
+    for item in page_data.content_in_reading_order():
+        b_html = _image_html(item) if isinstance(item, ImageRef) else _block_html(item)
         if not b_html:
             continue
 
@@ -93,7 +107,8 @@ def _draw_flowing_page(pdf: pymupdf.Document, page_data: Page) -> None:
                 curr_y += 26.0
         except (RuntimeError, ValueError, OverflowError):
             # MuPDF çizim hatasında güvenli düz metin bas / Safe fallback
-            page.insert_text(pymupdf.Point(_MARGIN, curr_y + 12), block.text[:120])
+            if not isinstance(item, ImageRef):
+                page.insert_text(pymupdf.Point(_MARGIN, curr_y + 12), item.text[:120])
             curr_y += 20.0
 
 
@@ -111,6 +126,15 @@ def _draw_positioned_page(pdf: pymupdf.Document, page_data: Page) -> None:
             rect = pymupdf.Rect(block.bbox.x0, block.bbox.y0, block.bbox.x1, block.bbox.y1)
             with contextlib.suppress(RuntimeError, ValueError, OverflowError):
                 page.insert_htmlbox(rect, b_html)
+
+    # Same gap as _draw_flowing_page's, for the positioned case: without this, any source that
+    # reaches this path with images (a real bbox per picture) loses every one of them.
+    for image in page_data.images:
+        if not image.data or image.bbox.width <= 0 or image.bbox.height <= 0:
+            continue
+        rect = pymupdf.Rect(image.bbox.x0, image.bbox.y0, image.bbox.x1, image.bbox.y1)
+        with contextlib.suppress(RuntimeError, ValueError):
+            page.insert_image(rect, stream=base64.b64decode(image.data))
 
 
 def generate_pdf_from_docir(doc: Document, out_path: str | Path) -> None:

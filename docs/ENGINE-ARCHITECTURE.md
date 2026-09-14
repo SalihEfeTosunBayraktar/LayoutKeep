@@ -209,21 +209,47 @@ build:
 
 ## What is being done now
 
-Only **PDF → PDF** is enabled. The other targets stay visible, with a lock and a plain sentence
-saying what is not ready, because hiding them would misrepresent the project's scope while
-offering them misrepresents their quality.
+**Most of the original lock was earned by this document's own mistakes, not by the code.** It
+went into its first draft claiming widespread content loss across cross-format conversions; four
+of five defects it reported were the measuring tool - a broken test fixture, two missing readers,
+a hardcoded page count - and the fifth, a real OCR detector limitation, is fixed. What this
+document still stands behind is the *architecture* finding: the generators were thinner than the
+writers, and the format matrix is what to run before trusting the next one.
 
-**Most of that lock was earned by this document's own mistakes, not by the code.** It went into
-its first draft claiming widespread content loss across cross-format conversions; four of five
-defects it reported were the measuring tool - a broken test fixture, two missing readers, a
-hardcoded page count - and the fifth, a real OCR detector limitation, is fixed. What remains
-below 100% is pdf→png's 91%, which is a whitespace-counting quirk with the character count intact,
-not lost content. Whether that is enough evidence to open any of these pairs is a product
-decision, not a measurement one, and is left to whoever owns that call rather than decided here.
-What this document still stands behind is the *architecture* finding: the generators were thinner
-than the writers, two of them have since been made as serious, and the format matrix is what to
-run before trusting the next one.
+The matrix above is small and synthetic on purpose - fast to run, easy to reason about - but it
+is exactly the scale [`isolating-residual-gaps`](../../.claude/skills) warns about: a fixture
+small enough to never be "dense" hides regressions a real document exposes. So before a pair
+opens, it also has to pass [`tools/audit/faz2_candidates.py`](../tools/audit/faz2_candidates.py)
+against `tests/fixtures/rich_report.*` and `rich_book.epub` - documents built with headers,
+footers, footnotes, tables and photos - with a word-for-word diff against the source, not a
+ratio. "102% of the words" is not evidence by itself; "zero words missing, the extra 3 are a
+title and two page numbers the writer added" is.
 
-The matrix is a tool, not a document: rerun it after any change to a reader or a writer.
+**Open now (14 of 20), each cleared that way:** PDF → PDF/DOCX/EPUB/HTML, EPUB →
+EPUB/DOCX/HTML/PNG, DOCX → DOCX/EPUB/HTML/PNG/PDF, PNG → DOCX. The `->epub` targets run slightly
+*over* 100% rather than under - `epub_generator.py` adds one chapter heading per DocIR page -
+which is why a word-diff mattered more than a ratio: a naive percentage-based gate would have
+left them locked forever on a number that was never a loss to begin with. That gate found one
+real, unrelated bug in the process: the chapter heading was hardcoded to Turkish regardless of
+`doc.target_lang`, so an English or German translation still carried "Bölüm" headings - fixed
+alongside opening the pair (`epub_generator.py`, `_CHAPTER_LABEL`).
+
+`docx → pdf` measured 100% of the words but 0 of 1 images: a DOCX-sourced page has no real
+geometry, so it renders through `_draw_flowing_page`, which iterated blocks only and never
+touched `page_data.images`. `_draw_positioned_page` had the identical gap for any source that
+does carry per-image coordinates. Both now walk `content_in_reading_order()` - blocks and images
+together - instead; re-measured at img 1/1, and the pair opened alongside the fix rather than
+after a second round of "measure, then maybe fix later." One side effect worth naming, not
+hiding: drawing the image the DOCX writer used to silently drop can push a short document from
+one rendered page to two. That is the previously-missing content taking up its own space, not a
+new loss - word and image counts stayed exact - but it is a real, visible change to page count
+for anyone who compares before/after on a short file.
+
+**Still locked, with a real reason:** every source → PNG/JPG pair other than EPUB and DOCX, and
+every pair through PNG as a source other than PNG → DOCX, has not been run against a rich
+fixture yet and stays locked on that basis alone, not because it is known to fail.
+
+Rerun both after any change to a reader, a writer or a generator:
 
     .venv/Scripts/python.exe tools/audit/format_matrix.py docs/samples/format_matrix.json
+    .venv/Scripts/python.exe tools/audit/faz2_candidates.py

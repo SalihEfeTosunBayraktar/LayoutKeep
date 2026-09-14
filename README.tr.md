@@ -19,12 +19,12 @@ biçimlendirme, metin yönü ve yapı, hedef dilin izin verdiği ölçüde özg�
 Yerel çalışır. Modelini kendin getirirsin: LM Studio, Ollama veya llama.cpp üzerinden yerel bir
 LLM, ya da OpenAI-uyumlu herhangi bir bulut uç noktası. Belgelerinin makineden çıkması gerekmez.
 
-> **Durum: PDF'ten PDF'e açık. Diğer her şey kilitli.** EPUB, DOCX, HTML ve görseller için
-> okuyucu ve yazıcılar var, ve bu dönüşümlerin hepsi ölçüldü: hiçbiri hata vermiyor, birkaçı ise
-> belgenin görsellerini, kalın/italik biçimlendirmesini veya kelimelerinin üçte birini sessizce
-> kaybediyor. Arayüzde kaldırılmadan ya da sunulmadan, kilitle ve gerekçesiyle gösteriliyorlar.
-> Ölçüm ve her birinin açılması için ne gerektiği:
-> [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md).
+> **Durum: 20 format çiftinden 14'ü açık.** PDF, EPUB ve DOCX birbirine ve HTML'e dönüşüyor;
+> EPUB ve DOCX ayrıca PNG'ye, DOCX ayrıca PDF'e de dönüşüyor. Açılan her çift, gerçekçi bir
+> fikstürle kelime kelime karşılaştırıldı ve hiçbir şey eksik çıkmadı — sadece %100'e yakın bir
+> oran değil. Geri kalanlar, aynı kontrolü geçene kadar kilitli kalıyor — arayüzde kaldırılmadan
+> ya da sunulmadan, kilitle ve gerekçesiyle gösteriliyorlar. Ölçüm ve her birinin açılması için ne
+> gerektiği: [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md).
 
 ---
 
@@ -102,11 +102,16 @@ koşu sayfa başına 7 saniye, buradaki 1,3 saniyeye karşılık.
 
 | Girdi → Çıktı | Durum | Ölçüm |
 |---|---|---|
-| **PDF → PDF** | **açık** | tüm metin, tüm biçimlendirme, şekiller ve vektör çizimler dokunulmadan — özgün dosya yerinde düzenlenir |
-| herhangi bir şey → PNG/JPG | kilitli | görselin metin katmanı olmaz; sonuç aranamaz |
+| **PDF → PDF / DOCX / EPUB / HTML** | **açık** | zengin fikstürde her birinde sıfır kayıp kelime |
+| **EPUB → EPUB / DOCX / HTML / PNG** | **açık** | aynı kontrol, aynı sonuç |
+| **DOCX → DOCX / EPUB / HTML / PNG / PDF** | **açık** | aynı kontrol; PDF üreticisindeki görsel çizme boşluğu buraya ulaşmak için düzeltildi |
+| **PNG → DOCX** | **açık** | gerçekçi taranmış sayfada OCR geri kazanımı doğrulandı, sadece küçük fikstürle değil |
+| diğer her şey → PNG/JPG | kilitli | henüz zengin fikstürle kontrol edilmedi |
 | diğer her şey | kilitli | artık ölçümleri iyi (%100 veya açıklanmış); bir sadakat kararı değil, ürün kararı olarak teker teker açılacak |
 
-Her satır [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py) çıktısıdır, kendiniz
+Her satır [`tools/audit/format_matrix.py`](tools/audit/format_matrix.py) (küçük sentetik
+fikstürler) ve [`tools/audit/faz2_candidates.py`](tools/audit/faz2_candidates.py) (bir çiftin
+açılmadan önce gerçekten geçmesi gereken zengin fikstürler) çıktısıdır, ikisini de kendiniz
 çalıştırabilirsiniz. Kilit tek bir modülde —
 [`core/capabilities.py`](src/layoutkeep/core/capabilities.py) — ve hem uygulama hem komut satırı
 onu okur, dolayısıyla neyin hazır olduğu konusunda ayrı düşemezler.
