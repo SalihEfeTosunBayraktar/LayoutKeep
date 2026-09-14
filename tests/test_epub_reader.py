@@ -80,6 +80,16 @@ def test_image_alt_and_title_become_caption_blocks(tmp_path: Path) -> None:
     assert title_block.id.endswith(":title")
 
 
+def test_identical_alt_and_title_collapse_to_one_caption() -> None:
+    """`tests/fixtures/rich_book.epub` carries `<img alt="Capacity chart"
+    title="Capacity chart">` - found rendering a real EPUB->DOCX output, which showed
+    "Capacity chart" as two separate paragraphs. Differing alt/title (the other fixture,
+    "A cover picture" vs "Cover") still produce two blocks - only an exact match collapses."""
+    doc = read_epub(Path(__file__).parent / "fixtures" / "rich_book.epub")
+    captions = [b for b in doc.pages[0].blocks if b.text == "Capacity chart"]
+    assert len(captions) == 1, captions
+
+
 def test_non_translatable_roles_excluded_from_segments(tmp_path: Path) -> None:
     from layoutkeep.core.docir import segments_from_document
 
