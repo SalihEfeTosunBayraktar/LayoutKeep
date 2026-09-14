@@ -33,3 +33,4 @@ training/live_metrics.json
 # are built from it; the measurements taken at 100 pages live in docs/samples/bench_*.json.
 docs/samples/academic_paper.pdf
 docs/samples/academic_paper.tr.pdf
+test_out/

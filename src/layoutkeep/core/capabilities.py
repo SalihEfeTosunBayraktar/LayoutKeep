@@ -26,13 +26,18 @@ ALL_SOURCES = (".pdf", ".epub", ".docx", ".html", ".htm", ".png", ".jpg", ".jpeg
                ".bmp", ".tiff", ".lkproj")
 
 #: The conversions that hold up. Measured, not assumed - see the module docstring.
-OPEN_PAIRS: frozenset[tuple[str, str]] = frozenset({(".pdf", ".pdf")})
+OPEN_PAIRS: frozenset[tuple[str, str]] = frozenset({
+    (".pdf", ".pdf"),
+    (".pdf", ".docx"),
+    (".epub", ".epub"),
+    (".docx", ".docx"),
+    (".png", ".docx"),
+})
 
 #: Why each locked target is locked, in one sentence a person can act on. Keyed by target
 #: extension; the interface shows it on the locked row and nowhere else.
 LOCK_REASONS: dict[str, str] = {
     ".epub": "EPUB_LOCK_REASON",
-    ".docx": "DOCX_LOCK_REASON",
     ".html": "HTML_LOCK_REASON",
     ".png": "IMAGE_LOCK_REASON",
     ".jpg": "IMAGE_LOCK_REASON",

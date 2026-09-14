@@ -33,27 +33,59 @@ _ROOT_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 """
 
 
+def _run_xml(text: str, bold: bool, italic: bool, size: int) -> str:
+    # Tek bir span'ı biçimiyle yazan run / One span written as a styled run
+    bold_tag = "<w:b/>" if bold else ""
+    italic_tag = "<w:i/>" if italic else ""
+    return (
+        f"<w:r><w:rPr>{bold_tag}{italic_tag}<w:sz w:val=\"{size}\"/></w:rPr>"
+        f"<w:t xml:space=\"preserve\">{text}</w:t></w:r>"
+    )
+
+
 def _paragraph_xml(block: Block) -> str:
     # Bloktan Word paragraf XML'i üretir / Builds Word paragraph XML from block
     text = html.escape(block.text.strip())
     if not text:
         return ""
-    bold_tag = "<w:b/>" if block.dominant_style().bold else ""
-    italic_tag = "<w:i/>" if block.dominant_style().italic else ""
-    size = round(block.dominant_style().size * 2) if block.dominant_style().size > 0 else 22
-    if block.role in (BlockRole.TITLE, BlockRole.HEADING):
-        bold_tag = "<w:b/>"
+    dominant = block.dominant_style()
+    size = round(dominant.size * 2) if dominant.size > 0 else 22
+    force_bold = block.role in (BlockRole.TITLE, BlockRole.HEADING)
+    if force_bold:
         size = 32 if block.role == BlockRole.TITLE else 28
     # DocIR carries alignment now (left/center/right/justify); Word maps it to <w:jc>.
     jc = "" if block.align in ("", "left") else f'<w:jc w:val="{block.align}"/>'
 
-    return (
-        "<w:p>"
-        f"<w:pPr>{jc}<w:rPr>{bold_tag}{italic_tag}<w:sz w:val=\"{size}\"/></w:rPr></w:pPr>"
-        f"<w:r><w:rPr>{bold_tag}{italic_tag}<w:sz w:val=\"{size}\"/></w:rPr>"
-        f"<w:t xml:space=\"preserve\">{text}</w:t></w:r>"
-        "</w:p>"
+    # Inline styling: a translated block can hold several differently-styled spans (bold and
+    # italic runs the provider carried through as <0>...</0> markers - see docir). Flattening
+    # them to the dominant style wrote a paragraph that was all-plain whenever the dominant
+    # style was plain, silently losing every inline run. Each span becomes its own <w:r>,
+    # carrying its own bold/italic - the whole block keeps the dominant style as paragraph
+    # default (rPr in pPr), which is what a run without explicit style inherits.
+    spans = [s for line in block.lines for s in line.spans if s.text]
+    runs: list[str] = []
+    if spans:
+        for i, span in enumerate(spans):
+            piece = html.escape(span.text)
+            if not piece:
+                continue
+            # Newlines between lines are Word's <w:br/>, not text characters.
+            if i and span.text == "\n":
+                runs.append("<w:r><w:br/></w:r>")
+                continue
+            bold = span.style.bold or (force_bold and not span.style.italic)
+            runs.append(_run_xml(piece, bold, span.style.italic, size))
+    else:
+        runs = [_run_xml(text, force_bold, dominant.italic, size)]
+
+    if not runs:
+        return ""
+
+    ppr_rpr = (
+        f"<w:rPr>{'<w:b/>' if force_bold or dominant.bold else ''}"
+        f"{'<w:i/>' if dominant.italic else ''}<w:sz w:val=\"{size}\"/></w:rPr>"
     )
+    return f"<w:p><w:pPr>{jc}{ppr_rpr}</w:pPr>{''.join(runs)}</w:p>"
 
 
 @dataclass(slots=True)
