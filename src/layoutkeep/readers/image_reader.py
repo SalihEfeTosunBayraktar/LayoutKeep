@@ -18,6 +18,7 @@ This module must not `import pymupdf` (CONTRACT.md S4 reserves that to the two P
 
 from __future__ import annotations
 
+import math
 from itertools import pairwise
 from pathlib import Path
 
@@ -56,7 +57,14 @@ _SCANNED_TEXT_CHAR_THRESHOLD = 10
 #: size made every redrawn line ~1.2x taller than the one it replaced and paragraphs no longer
 #: fitted the boxes they came from: 120 of 210 blocks on a six-page scan were flagged
 #: overflowing. 0.957 / 1.2 is the factor that puts the redrawn pitch back on the scanned one.
-_BOX_HEIGHT_TO_FONT_SIZE = 0.957 / 1.2
+#:
+#: Named in two parts so the relationship stays visible: the measured ratio, and the line-height
+#: the writers actually stack lines at (`pdf_writer._LINE_HEIGHT_RATIO` / `image_writer`). The
+#: same line height decides how much blank paper one more line needs (`_grant_blank_paper`), so
+#: it must be the one number, not two that drift apart.
+_LINE_HEIGHT_RATIO = 1.2
+_PITCH_TO_BOX_HEIGHT = 0.957
+_BOX_HEIGHT_TO_FONT_SIZE = _PITCH_TO_BOX_HEIGHT / _LINE_HEIGHT_RATIO
 
 
 def is_scanned_page(extracted_text: str) -> bool:
@@ -98,6 +106,7 @@ def page_from_rendered_page(
     """
     image.info["dpi"] = (dpi, dpi)
     page = _page_from_image(image, number=number, source_ref=source_ref, engine=engine)
+    _grant_blank_paper(page, np.array(image.convert("L")), dpi=dpi)
 
     scale = 72.0 / dpi
     for block in page.blocks:
@@ -114,6 +123,83 @@ def page_from_rendered_page(
 
 def _scaled(bbox: BBox, scale: float) -> BBox:
     return BBox(bbox.x0 * scale, bbox.y0 * scale, bbox.x1 * scale, bbox.y1 * scale)
+
+
+#: How many extra rendered lines of blank paper a block may take below itself.
+#:
+#: Turkish runs longer than English, so a paragraph that filled its box in the source needs
+#: another line once translated. `fitting/` can only shrink the type to a readability floor or
+#: ask for a shorter rendering; when neither is enough the block is reported as overflowing - 17
+#: of 193 blocks on six pages of `computer-systems-Architecture.pdf`. One extra line is what
+#: those 17 were short of, and on a scanned page the space between paragraphs is usually blank
+#: paper: measured over 38 prose blocks there, the median gap below a block is 13.2pt and 26 of
+#: the 38 have room for a line.
+#:
+#: One line, and no more - taking the whole gap would close up the paragraph spacing and change
+#: the page.
+_BLANK_PAPER_LINES = 1
+
+#: How much darker than the paper a pixel has to be to count as ink. Generous, because the point
+#: is to notice a figure's edge or a rule, not to resolve faint scanner speckle.
+_INK_MARGIN = 40
+
+
+def _grant_blank_paper(page: Page, grey: np.ndarray, *, dpi: float) -> None:
+    """Extend each block downward over paper that is provably blank, up to one line pitch.
+
+    Bounded by the pixels rather than by the next block on purpose. A figure that OCR found no
+    text in is not a block, so a "grow until the next block" rule would let a paragraph above it
+    grow across the figure - and `pdf_writer._cover_scanned_blocks` would then paint the figure
+    out while clearing the source text under that box. That is the same class of damage
+    `_LINE_JOIN_GAP_RATIO` exists to prevent, so the growth stops at the first row with ink in
+    it.
+
+    Runs before the geometry is converted, so boxes are still in image pixels while `Style.size`
+    is already in points - hence `dpi`, to bring the line height into the same space as the box
+    it is compared against.
+    """
+    if grey.size == 0:
+        return
+    height, width = grey.shape
+    paper = float(np.median(grey))
+    ink_below = paper - _INK_MARGIN
+    px_per_point = dpi / 72.0
+
+    for block in page.blocks:
+        # The height one rendered line occupies, by the same rule the writer will use. Measuring
+        # the scan's own pitch instead looks more faithful but leaves the block a fraction short
+        # of the line it is being grown for, because the two differ slightly.
+        line_height = block.dominant_style().size * _LINE_HEIGHT_RATIO * px_per_point
+        if line_height <= 0:
+            continue
+        x0 = max(0, int(block.bbox.x0))
+        x1 = min(width, int(block.bbox.x1) + 1)
+        if x1 <= x0:
+            continue
+        # A detector box ends at the last line's glyphs, so a block holding N lines is
+        # (N-1) pitches plus one box height - short of the N pitches the writer stacks them at.
+        # Asking for "one more pitch" therefore lands a line short; ask for the height that
+        # actually holds one more rendered line.
+        wanted = (len(block.lines) + _BLANK_PAPER_LINES) * line_height - block.bbox.height
+        if wanted <= 0:
+            continue
+        # Row indices are integers and the box edge is not, so the bounds are taken outward and
+        # the *result* is the float the caller asked for. Truncating instead loses up to a pixel
+        # at each end, which was enough to land the block a fraction under the line it needed.
+        first_row = min(height, max(0, math.floor(block.bbox.y1) + 1))
+        last_row = min(height, math.ceil(block.bbox.y1 + wanted))
+        if last_row <= first_row:
+            continue
+
+        strip = grey[first_row:last_row, x0:x1]
+        dark = np.where((strip < ink_below).any(axis=1))[0]
+        if len(dark):
+            # Stop one row above the ink, so nothing that is drawn on the page is claimed.
+            bottom = max(block.bbox.y1, float(first_row + int(dark[0]) - 1))
+        else:
+            bottom = block.bbox.y1 + wanted
+        if bottom > block.bbox.y1:
+            block.bbox = BBox(block.bbox.x0, block.bbox.y0, block.bbox.x1, bottom)
 
 
 def _page_from_image(
