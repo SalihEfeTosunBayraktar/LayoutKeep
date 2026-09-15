@@ -25,6 +25,17 @@ import urllib.request
 
 from layoutkeep.core import tunables
 
+#: What to ask a reasoning model to spend on thinking before it answers. Translation is a
+#: transformation, not a puzzle, and the thinking is pure cost: measured against gemma-4-e4b on
+#: LM Studio, translating one sentence took 487 completion tokens of which 465 were reasoning,
+#: against 15 tokens and no reasoning with this set to "none" - the same translation, at a
+#: thirty-second of the generated tokens. It was not only slow. The reasoning filled the context
+#: too, and a 524-page run spent its time failing batches with "Context size has been exceeded"
+#: and retrying them smaller.
+#:
+#: `None` sends no field at all, for a model that genuinely translates better when it reasons.
+DEFAULT_REASONING_EFFORT = "none"
+
 #: Longest we will sit on a Retry-After before giving up on it. A free tier occasionally
 #: answers with minutes, and a translation job should fail with a clear message rather than
 #: appear frozen for that long.
@@ -64,9 +75,15 @@ class OpenAIHTTPTransport:
     varying timeouts and never holds a mutable `self.timeout`.
     """
 
-    def __init__(self, base_url: str, api_key: str | None) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str | None,
+        reasoning_effort: str | None = DEFAULT_REASONING_EFFORT,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
+        self.reasoning_effort = reasoning_effort
 
     def headers(self) -> dict[str, str]:
         """Authorization + Content-Type. Sends a placeholder key when `api_key is None`
@@ -140,14 +157,22 @@ class OpenAIHTTPTransport:
         A `RuntimeError` raised after the last retry is what the batching layer translates
         into `needs_review` (or propagates, if it's the first batch).
         """
-        body = {"model": model, "messages": messages, "temperature": 0.0}
-        data = json.dumps(body).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base_url}/chat/completions",
-            data=data,
-            headers=self.headers(),
-            method="POST",
-        )
+        effort = self.reasoning_effort
+
+        def build() -> urllib.request.Request:
+            body: dict[str, object] = {
+                "model": model, "messages": messages, "temperature": 0.0
+            }
+            if effort is not None:
+                body["reasoning_effort"] = effort
+            return urllib.request.Request(
+                f"{self.base_url}/chat/completions",
+                data=json.dumps(body).encode("utf-8"),
+                headers=self.headers(),
+                method="POST",
+            )
+
+        req = build()
         max_retries = 3
         last_err: Exception | None = None
         for attempt in range(max_retries):
@@ -159,6 +184,14 @@ class OpenAIHTTPTransport:
                 err_body = err.read().decode("utf-8", errors="replace")
                 if err.code in (429, 503) and attempt < max_retries - 1:
                     time.sleep(_retry_delay(err, attempt))
+                    continue
+                if err.code == 400 and effort is not None:
+                    # `reasoning_effort` is standard but not universal, and a server that does
+                    # not know it answers 400 - the same status as a model that is not loaded.
+                    # Drop the field and ask once more before blaming the model, or the user is
+                    # sent to look for a model that was there all along.
+                    effort = None
+                    req = build()
                     continue
                 if err.code in (400, 404):
                     # K3: model bulunamadi/yuklenmedi - ham JSON yerine ne yapilacagini soyle.
