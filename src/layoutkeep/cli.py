@@ -255,11 +255,21 @@ def cmd_translate(args: argparse.Namespace) -> int:
             note += f", {stats['lost']} NOT returned - those segments flagged"
         print(note)
 
-    from layoutkeep.providers.passthrough import flag_passthrough
+    from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
 
     handed_back = flag_passthrough(translated)
     if handed_back:
         print(f"passthrough {handed_back} segments came back untranslated - flagged for review")
+
+    # A segment with no reply is not written as a blank - it keeps the block's source text, so
+    # the output document contains that paragraph in the wrong language. The `translated N/M`
+    # count above is the only other sign of it, and it reads like a rounding loss.
+    missing = flag_untranslated(translated)
+    if missing:
+        print(
+            f"untranslated {missing} segments got no reply - their SOURCE TEXT stays in the "
+            f"output document, flagged for review"
+        )
 
     if glossary:
         translated, report = glossary.verify(translated)

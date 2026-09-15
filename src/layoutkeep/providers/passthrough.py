@@ -48,3 +48,28 @@ def flag_passthrough(segments: list[Segment]) -> int:
             segment.review_reason = "model metni çevirmeden aynen geri verdi"
             found += 1
     return found
+
+
+def flag_untranslated(segments: list[Segment]) -> int:
+    """Mark every segment whose reply never arrived. Returns how many.
+
+    The other half of `flag_passthrough`, and the one that actually bit: a segment with no
+    `target` is not written as an empty box, it keeps the block's existing source text, so the
+    output document silently contains a paragraph in the wrong language. On six real pages of
+    `computer-systems-Architecture.pdf` seventeen segments came back this way and the only sign
+    was the count `193/210`.
+
+    Data-only segments are excluded for the same reason `is_passthrough` excludes them:
+    protection answers those without a request by design, so an unchanged target there is
+    correct and flagging it would bury the genuine losses.
+    """
+    found = 0
+    for segment in segments:
+        if segment.target or is_data_only(segment.source):
+            continue
+        found += 1
+        segment.needs_review = True
+        # Whatever flagged this first (low OCR confidence, a lost marker) knows more about why.
+        if not segment.review_reason:
+            segment.review_reason = "çeviri dönmedi, kaynak metin olduğu gibi kaldı"
+    return found
