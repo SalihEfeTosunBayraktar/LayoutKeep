@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pymupdf
+from PIL import Image
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
@@ -33,6 +34,7 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
+from layoutkeep.readers.image_reader import is_scanned_page, page_from_rendered_page
 
 _BOLD_FLAG = 1 << 4  # pymupdf span flag bit for bold
 _ITALIC_FLAG = 1 << 1  # pymupdf span flag bit for italic
@@ -99,6 +101,9 @@ def _read_page(page: pymupdf.Page, index: int) -> _RawPage:
     top_edge = height * _MARGIN_RATIO
     bottom_edge = height * (1 - _MARGIN_RATIO)
 
+    if is_scanned_page(page.get_text()):
+        return _read_scanned_page(page, index, top_edge=top_edge, bottom_edge=bottom_edge)
+
     text_dict = page.get_text("dict")
     blocks: list[Block] = []
     for block_index, raw in enumerate(text_dict.get("blocks", [])):
@@ -157,6 +162,50 @@ def _read_page(page: pymupdf.Page, index: int) -> _RawPage:
         blocks=raw_blocks,
         images=images,
     )
+
+
+#: Resolution the page is rasterised at before OCR. Measured on page 61 of
+#: `computer-systems-Architecture.pdf` (a 600-DPI scan): 200 DPI recovered all 47 text boxes at
+#: 0.96 mean confidence, while 300 DPI cost ~2x the pixels and garbled a line the lower
+#: resolution read cleanly. Higher is not automatically better - the recognition model has its
+#: own preferred glyph height.
+_SCAN_OCR_DPI = 200.0
+
+
+def _read_scanned_page(
+    page: pymupdf.Page, index: int, *, top_edge: float, bottom_edge: float
+) -> _RawPage:
+    """A page with no text layer: rasterise it and let OCR find the text.
+
+    Without this a scanned PDF reads as zero blocks and the app reports that there is nothing to
+    translate - which is what `computer-systems-Architecture.pdf` (524 pages, no text layer at
+    all) did. The OCR itself lives in `readers/image_reader.py`; this only supplies the pixels,
+    because CONTRACT.md keeps the pymupdf import on this side of the boundary.
+    """
+    pixmap = page.get_pixmap(dpi=int(_SCAN_OCR_DPI))
+    image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
+    ocr_page = page_from_rendered_page(
+        image,
+        number=index + 1,
+        source_ref=str(index),
+        dpi=_SCAN_OCR_DPI,
+        width_pt=page.rect.width,
+        height_pt=page.rect.height,
+    )
+    ocr_page.scanned = True
+    # The scan itself is the page's only picture; writers that rebuild the document need it, and
+    # the pdf writer needs it to paint over the burnt-in source text.
+    ocr_page.images = _extract_images(page)
+
+    raw_blocks = [
+        _RawBlock(
+            block=b,
+            top_margin=b.bbox.y0 <= top_edge,
+            bottom_margin=b.bbox.y1 >= bottom_edge,
+        )
+        for b in ocr_page.blocks
+    ]
+    return _RawPage(page=ocr_page, blocks=raw_blocks, images=[img.bbox for img in ocr_page.images])
 
 
 #: A glyph's offset from its own baseline origin, projected onto where "up" should be. Well

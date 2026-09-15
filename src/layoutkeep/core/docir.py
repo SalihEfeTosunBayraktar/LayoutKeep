@@ -270,6 +270,16 @@ class Page:
     images: list[ImageRef] = field(default_factory=list)
     #: Reader-specific handle back to the source (PDF page index, EPUB href, ...).
     source_ref: str = ""
+    #: True when this page had no text layer and its text came from OCR instead.
+    #:
+    #: The writers need to know, because removing the source text is a different operation in
+    #: each case. On an ordinary page the text is a set of text objects and PDF redaction deletes
+    #: them. On a scanned page the text is *painted into the page image*, so redaction - which is
+    #: deliberately told not to touch images, or every figure in every document would be
+    #: destroyed - removes nothing, and the translation lands on top of the original words. The
+    #: reader is the only part of the pipeline that knows which kind of page it saw, so it says
+    #: so here rather than making each writer re-derive it (D1).
+    scanned: bool = False
 
     def blocks_in_reading_order(self) -> list[Block]:
         return sorted(self.blocks, key=lambda b: b.order)

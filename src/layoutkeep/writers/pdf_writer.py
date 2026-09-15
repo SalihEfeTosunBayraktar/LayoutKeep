@@ -93,7 +93,7 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
     """Render `doc` (read from `src_path`, possibly with translations applied) to `out_path`."""
     with pymupdf.open(str(src_path)) as pdf:
         resolver = _FontResolver(doc.target_lang)
-        page_blocks: list[tuple[pymupdf.Page, list[Block]]] = []
+        page_blocks: list[tuple[pymupdf.Page, list[Block], bool]] = []
         for page_data in doc.pages:
             page = pdf[int(page_data.source_ref)]
             blocks = [b for b in page_data.blocks if b.translatable]
@@ -105,23 +105,26 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             # necessary.
             for block in blocks:
                 resolver.register(page, block)
-            page_blocks.append((page, blocks))
+            page_blocks.append((page, blocks, page_data.scanned))
         resolver.finalize()
 
-        for page, blocks in page_blocks:
-            for block in blocks:
-                if abs(block.rotation) > _ROTATION_EPS:
-                    # A rotated line's axis-aligned bbox is bigger than its glyphs (see
-                    # `Block.rotation`'s docstring); redacting that whole rectangle would eat
-                    # into whatever sits in its corners. Redact the actual glyph quads instead.
-                    for quad in _rotated_quads(page, block):
-                        page.add_redact_annot(quad, cross_out=False, fill=None)
-                else:
-                    page.add_redact_annot(_rect(block.bbox), cross_out=False, fill=None)
-            page.apply_redactions(
-                images=pymupdf.PDF_REDACT_IMAGE_NONE,
-                graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
-            )
+        for page, blocks, scanned in page_blocks:
+            if scanned:
+                _cover_scanned_blocks(page, blocks)
+            else:
+                for block in blocks:
+                    if abs(block.rotation) > _ROTATION_EPS:
+                        # A rotated line's axis-aligned bbox is bigger than its glyphs (see
+                        # `Block.rotation`'s docstring); redacting that whole rectangle would eat
+                        # into whatever sits in its corners. Redact the actual glyph quads instead.
+                        for quad in _rotated_quads(page, block):
+                            page.add_redact_annot(quad, cross_out=False, fill=None)
+                    else:
+                        page.add_redact_annot(_rect(block.bbox), cross_out=False, fill=None)
+                page.apply_redactions(
+                    images=pymupdf.PDF_REDACT_IMAGE_NONE,
+                    graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+                )
             for block in blocks:
                 if abs(block.rotation) > _ROTATION_EPS:
                     _write_rotated_block(page, block, resolver)
@@ -136,6 +139,46 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
         # `garbage=4` collapses those duplicates back into one object at save time instead of
         # leaving 17 bundled fonts' worth of repeated subsets in the output.
         pdf.save(str(out_path), garbage=4, deflate=True)
+
+
+#: How far outside its tight OCR box a block is painted over, in points. OCR reports the box of
+#: the glyphs it recognised; ascenders, descenders and anti-aliased edges sit a fraction outside
+#: it, and leaving that fringe behind puts a grey ghost of the source line under the
+#: translation. Kept small - this paint is opaque, so every extra point is page content
+#: destroyed for nothing.
+_SCAN_COVER_PAD = 1.5
+
+
+def _cover_scanned_blocks(page: pymupdf.Page, blocks: list[Block]) -> None:
+    """Paint out the source text of a scanned page so the translation is not drawn over it.
+
+    Redaction cannot do this: the words are pixels inside the page image, and `apply_redactions`
+    is deliberately called with `PDF_REDACT_IMAGE_NONE` so that ordinary documents do not lose
+    every figure that happens to touch a text block.
+
+    Only the boxes OCR actually found are painted, so the rest of the scan - figures, rules,
+    anything no block claimed - survives untouched. The fill is the block's own detected
+    background rather than a hard white, so this works on a tinted or off-white scan too.
+    """
+    pad = (-_SCAN_COVER_PAD, -_SCAN_COVER_PAD, _SCAN_COVER_PAD, _SCAN_COVER_PAD)
+    for block in blocks:
+        page.draw_rect(
+            _rect(block.bbox) + pad, color=None, fill=_fill_color(block), overlay=True
+        )
+
+
+def _fill_color(block: Block) -> tuple[float, float, float]:
+    """The block's detected background as a pymupdf colour, defaulting to white."""
+    background = block.dominant_style().background
+    if not background:
+        return (1.0, 1.0, 1.0)
+    hex_digits = background.lstrip("#")
+    if len(hex_digits) != 6:
+        return (1.0, 1.0, 1.0)
+    try:
+        return tuple(int(hex_digits[i : i + 2], 16) / 255.0 for i in (0, 2, 4))  # type: ignore[return-value]
+    except ValueError:
+        return (1.0, 1.0, 1.0)
 
 
 def measure_fit(
