@@ -407,9 +407,25 @@ class TranslationWorker(QThread):
         config: JobConfig,
         provider=None,
     ) -> None:
-        from layoutkeep.providers.passthrough import flag_passthrough
+        from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
+        from layoutkeep.providers.retry import retry_untranslated
+
+        # Same order as the CLI, and for the same reason: a segment with no reply is usually one
+        # the parser could not line up with its batch, so it is asked for again before anything
+        # is flagged. What is still missing afterwards keeps its SOURCE text in the output, so
+        # it has to reach the review queue rather than pass as translated.
+        if provider is not None:
+            recovered = retry_untranslated(
+                provider,
+                translated,
+                src_lang=config.source_lang,
+                tgt_lang=config.target_lang,
+            )
+            if recovered:
+                self.status.emit(f"recovered {recovered} untranslated segments")
 
         flag_passthrough(translated)
+        flag_untranslated(translated)
 
         # PDF: translated text must fit its original boxes, exactly like the CLI fits it
         # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).

@@ -256,6 +256,20 @@ def cmd_translate(args: argparse.Namespace) -> int:
         print(note)
 
     from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
+    from layoutkeep.providers.retry import retry_untranslated
+
+    # Before flagging anything: a segment with no reply is usually one the parser could not line
+    # up with its batch, not text the model refuses. Asking again - in the small batch the
+    # leftovers make - recovers most of them. Exactly one extra pass.
+    recovered = retry_untranslated(
+        provider,
+        translated,
+        src_lang=args.from_lang,
+        tgt_lang=args.to_lang,
+        glossary=glossary.terms if glossary else None,
+    )
+    if recovered:
+        print(f"retry     {recovered} segments recovered on a second attempt")
 
     handed_back = flag_passthrough(translated)
     if handed_back:
