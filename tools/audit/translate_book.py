@@ -122,11 +122,9 @@ def main() -> int:
             pool.submit(translate_chunk, path, work / "out" / f"t_{index:04d}.pdf", args): index
             for index, path in chunks
         }
-        done = 0
-        for future in concurrent.futures.as_completed(futures):
+        for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
             index = futures[future]
-            out, code, tail = future.result()
-            done += 1
+            _out, code, tail = future.result()
             if code != 0:
                 failures += 1
             status = "ok " if code == 0 else "FAIL"
