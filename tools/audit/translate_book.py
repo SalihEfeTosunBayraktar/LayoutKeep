@@ -130,8 +130,16 @@ def main() -> int:
             if code != 0:
                 failures += 1
             status = "ok " if code == 0 else "FAIL"
-            rate = (time.time() - started) / done
-            left = (len(chunks) - done) * rate / max(1, args.workers)
+            # Wall time per finished chunk ALREADY reflects the workers running at once, so
+            # dividing it by the worker count again double-counts the parallelism. The first
+            # version did, and reported "~92 min left" on a run with about six hours to go.
+            # What is left is the remaining rounds - ceil(remaining / workers) - at the observed
+            # wall time per round.
+            elapsed = time.time() - started
+            rounds_done = max(1, -(-done // args.workers))
+            per_round = elapsed / rounds_done
+            rounds_left = -(-(len(chunks) - done) // args.workers)
+            left = rounds_left * per_round
             print(
                 f"[{done}/{len(chunks)}] {status} chunk {index:04d} {tail}  "
                 f"(~{left / 60:.0f} min left)",
