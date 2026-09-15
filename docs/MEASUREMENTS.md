@@ -174,3 +174,72 @@ Tek dil çifti, tek kitap, iki model, iki pasaj. Edebi düzyazı - teknik belged
 farklı davranabilir. Ölçüt Türkçe'yi 5 karakterlik gövdelerle yaklaşıklıyor, çekim ekleri
 yüzünden doğru çeviriyi tutarsız sayabilir; bu yüzden kollar arası fark anlamlı, mutlak oran
 değil.
+
+## 7. Taranmış PDF — metin katmanı olmayan belge
+
+`C:\PhoneLink\computer-systems-Architecture.pdf`: 524 sayfa, **0 çıkarılabilir karakter**,
+sayfa başına bir tam sayfa görseli (600 DPI tarama, bazı sayfalar 150 DPI). Uygulama bu
+belgede "çevrilecek metin yok" diyordu — okuyucu hiç blok üretmiyordu.
+
+### OCR çözünürlüğü — **200 DPI**
+
+Sayfa 61 üzerinde ölçüldü:
+
+| DPI | kutu | karakter | ortalama güven |
+|---|---|---|---|
+| 200 | 47 | 1750 | **0.959** |
+| 300 | 47 | 1748 | 0.976 ama bir satır bozuldu |
+
+Yüksek çözünürlük kendiliğinden daha iyi değil: tanıma modelinin tercih ettiği bir glif
+yüksekliği var. 200 DPI iki katı piksel maliyeti olmadan tüm kutuları buldu.
+
+### Kutu yüksekliği punto değildir — **0.957**
+
+19 çok satırlı blokta ölçüldü: ardışık OCR kutuları birbirinden **0.957 kutu-yüksekliği**
+uzakta, yani kutular üst üste biniyor. Kutu yüksekliği **satır adımıdır**, punto değil.
+Punto sanılınca yeniden çizilen her satır ~1.2x uzuyor ve paragraf geldiği kutuya sığmıyor:
+altı sayfada 210 bloğun 120'si taşıyordu. `0.957 / 1.2` çarpanı yeniden çizilen adımı
+taranmış adımın üzerine oturtuyor.
+
+### Satır birleştirme yatay mesafesi — **1.5**
+
+Dikey örtüşme tek başına yetmiyor. Sayfa 61'de:
+
+| birleşme | oran | doğru mu |
+|---|---|---|
+| `46` + `CHAPTER TWO Digital Components` | 0.79 | ✅ gerçek koşan başlık |
+| `decoder` + `D0` | 2.79 | ❌ şeklin iki yakası |
+| `A0` + `2⁰` + `D1` | 5.88 / 4.84 | ❌ diyagram etiket sütunları |
+
+Tek meşru birleşme 0.79'da, sahte olanların hepsi ≥2.79'da. Kaynaşan satırın kutusu tüm
+şekli kapsıyordu; yazıcı da kaynak metni temizlemek için o kutuyu boyayınca **diyagramı
+siliyordu**.
+
+### Uçtan uca (6 gerçek sayfa, yerel model)
+
+| | önce | sonra |
+|---|---|---|
+| blok | 0 | 193 |
+| olduğu gibi sığan | — | 145 |
+| taşan | — | 17 |
+
+### Sessiz kayıp — **%26**
+
+CLI'ın `translated 193/210` satırı, cevabı hiç gelmeyen segmenti saymıyor kadar kötü değil
+ama ne olduğunu da söylemiyor. Çıktı PDF'i ölçüldüğünde **43 düzyazı segmentinin 11'i
+(%26) kelimesi kelimesine İngilizce** kalmıştı. `Segment.translated` yalnızca `bool(target)`
+olduğu için boş cevap "başarısız" görünmüyor, blok kaynak metnini koruyor ve belge yanlış
+dilde bir paragrafla çıkıyor. `providers/passthrough.py:flag_untranslated` bunu bildiriyor.
+
+### Tekrarlamak için
+
+```
+.venv/Scripts/python.exe tools/audit/translation_completeness.py KAYNAK.pdf CEVIRI.pdf
+```
+
+### Bu ölçümün sınırları
+
+Tek kitap, tek tarama kalitesi, tek sütunlu düzen. Çok sütunlu ya da daha gürültülü bir
+taramada hem OCR güveni hem satır birleştirme eşiği farklı davranabilir. 0.957 çarpanı bu
+belgenin dizgisinden türetildi; başka bir kitabın satır aralığı farklıysa çarpan da farklı
+olur — sabit, ölçülen bir orandır, evrensel bir tipografi kuralı değil.
