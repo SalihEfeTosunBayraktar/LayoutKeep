@@ -161,7 +161,10 @@ class OpenAIHTTPTransport:
 
         def build() -> urllib.request.Request:
             body: dict[str, object] = {
-                "model": model, "messages": messages, "temperature": 0.0
+                "model": model,
+                "messages": messages,
+                "temperature": 0.0,
+                "max_tokens": _generation_ceiling(messages),
             }
             if effort is not None:
                 body["reasoning_effort"] = effort
@@ -224,3 +227,20 @@ class OpenAIHTTPTransport:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         return [m["id"] for m in payload.get("data", [])]
+
+
+#: Floor for the generation ceiling: a short label still needs room for the JSON around it.
+_MIN_GENERATION_TOKENS = 512
+
+
+def _generation_ceiling(messages: list[dict[str, str]]) -> int:
+    """How many tokens the model may generate for this request.
+
+    Without a ceiling a reply that never stops holds its slot until the context is full: the
+    first campaign run returned nothing for 38 minutes while every slot generated without end.
+    A translation is bounded by its input. Counting what is sent in characters and allowing one
+    output token for every two - roughly twice the tokens the input itself takes - leaves room for
+    a target language that runs far longer than the source, and for the JSON around it.
+    """
+    sent = sum(len(m.get("content", "")) for m in messages if m.get("role") == "user")
+    return max(_MIN_GENERATION_TOKENS, sent // 2)

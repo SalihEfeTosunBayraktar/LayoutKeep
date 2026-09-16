@@ -194,3 +194,22 @@ markers - two definitions of the same thing, and the gap between them let the En
 and case normalised, plus the majority-word-overlap test), used by the retry pass, the passthrough
 report, fitting and the audit. Pure text in `core/`, so fitting does not import the provider
 layer. Test `test_the_source_is_recognised_even_when_its_style_markers_were_dropped` failed first.
+
+## 2026-09-17 - campaign run 1 stalled: replies that never end
+
+First book (NIST SP 800-12, 101 pages) started 00:09. After 38 minutes: zero pages out. All
+eight chunk processes idle, waiting on the server; the server "GENERATING"; its log's last
+completed reply at 00:09:58.
+
+Cause: no request set `max_tokens`. A reply that does not stop holds its slot until the 56,000-
+token context is full, and the client's protection is slow by design - an adaptive timeout of up
+to 900 s, retried 3 times, so one runaway reply can occupy a worker for up to 45 minutes. Eight
+of them and the server is taken.
+
+**Fix:** every request carries `max_tokens`, derived from the request (one output token per two
+characters sent in the user message, at least 512) - about twice what the input itself takes,
+room for a longer target language and the JSON. A reply cut there is malformed, which the
+provider already splits, retries and flags. Tests `tests/test_http_max_tokens.py` (failed first).
+
+Only the campaign's own processes were stopped (matched by their `_artifacts/campaign/runs`
+command line). The server returned to IDLE when the clients disconnected.
