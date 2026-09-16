@@ -227,6 +227,7 @@ def _cover_scanned_blocks(
         for line in block.lines
         if line.bbox is not None
     ]
+    cleared: list[tuple[pymupdf.Rect, Block]] = []
     for block in covered:
         rect = _rect(block.bbox) + pad
         for guard in protected:
@@ -241,7 +242,112 @@ def _cover_scanned_blocks(
             elif middle <= block.bbox.y0:
                 rect.y0 = max(rect.y0, guard.y1)
         if rect.y1 > rect.y0:
-            page.draw_rect(rect, color=None, fill=_fill_color(block), overlay=True)
+            cleared.append((rect, block))
+
+    if cleared and _erase_ink_from_scan(
+        page, [(rect, block.dominant_style().size) for rect, block in cleared]
+    ):
+        return
+    for rect, block in cleared:
+        page.draw_rect(rect, color=None, fill=_fill_color(block), overlay=True)
+
+
+#: Of the page's area, how much one image must cover to be taken as the scan itself.
+_SCAN_IMAGE_COVERAGE = 0.9
+
+
+def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, float]]) -> bool:
+    """Remove the ink inside `rects` from the page's scanned image itself. True if it did.
+
+    A flat rectangle of the block's average background leaves a visible edge on any paper that
+    is not one colour - a yellowed or unevenly lit scan, where the NASA report's cover runs from
+    174 to 206 on a single page, and every translated block sat on a patch. Only the ink is taken
+    out here, and the paper under it is continued from the paper around it, so the texture and
+    shading of the scan survive.
+
+    Ink is what is darker than its own box's paper, by Otsu's threshold over that box: a text box
+    is two populations by construction, so the split is measured per box rather than set. A rule
+    crossing the box is dark too, and clearing a table's header erased the table's lines (book
+    page 101); so a straight run longer than twice the box's type size, across or down, is kept -
+    no glyph stroke is that long.
+
+    The cleaned area is placed over the scan as a lossless patch on the scan's own pixel grid;
+    the scan image itself is never re-encoded, so every pixel outside the cleared boxes stays
+    bit-identical - re-encoding the whole page as JPEG changed a figure no block touched.
+
+    Declines - and the caller paints rectangles as before - when OpenCV is not installed, or the
+    page has no single axis-aligned image covering it.
+    """
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        return False
+
+    page_area = page.rect.width * page.rect.height
+    scan = None
+    for info in page.get_image_info(xrefs=True):
+        a, b, c, d, _e, _f = info["transform"]
+        x0, y0, x1, y1 = info["bbox"]
+        if (
+            info.get("xref")
+            and abs(b) < 1e-6 and abs(c) < 1e-6 and a > 0 and d > 0
+            and (x1 - x0) * (y1 - y0) >= page_area * _SCAN_IMAGE_COVERAGE
+        ):
+            scan = info
+            break
+    if scan is None:
+        return False
+
+    document = page.parent
+    pixmap = pymupdf.Pixmap(document, scan["xref"])
+    if pixmap.alpha or pixmap.n != 3:
+        pixmap = pymupdf.Pixmap(pymupdf.csRGB, pixmap) if pixmap.n != 3 else pymupdf.Pixmap(pixmap, 0)
+    pixels = np.frombuffer(pixmap.samples, np.uint8).reshape(pixmap.height, pixmap.width, 3).copy()
+
+    x0, y0, x1, y1 = scan["bbox"]
+    sx, sy = pixmap.width / (x1 - x0), pixmap.height / (y1 - y0)
+    # Anti-aliased glyph edges are lighter than the Otsu split; reach half a point past it.
+    reach = max(1, round(0.5 * min(sx, sy)))
+    kernel = np.ones((3, 3), np.uint8)
+    for rect, type_size in rects:
+        px0 = max(0, int((rect.x0 - x0) * sx))
+        py0 = max(0, int((rect.y0 - y0) * sy))
+        px1 = min(pixmap.width, math.ceil((rect.x1 - x0) * sx))
+        py1 = min(pixmap.height, math.ceil((rect.y1 - y0) * sy))
+        if px1 - px0 < 2 or py1 - py0 < 2:
+            continue
+        # Work on the box plus a margin, so the fill has paper around it to continue from; the
+        # mask itself never leaves the box.
+        mx0, my0 = max(0, px0 - 2 * reach), max(0, py0 - 2 * reach)
+        mx1, my1 = min(pixmap.width, px1 + 2 * reach), min(pixmap.height, py1 + 2 * reach)
+        crop = pixels[my0:my1, mx0:mx1]
+        grey = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
+        box = grey[py0 - my0 : py1 - my0, px0 - mx0 : px1 - mx0]
+        _threshold, ink = cv2.threshold(box, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        run = max(3, round(2 * max(type_size, 1.0) * min(sx, sy)))
+        rules = cv2.bitwise_or(
+            cv2.morphologyEx(ink, cv2.MORPH_OPEN, np.ones((1, run), np.uint8)),
+            cv2.morphologyEx(ink, cv2.MORPH_OPEN, np.ones((run, 1), np.uint8)),
+        )
+        keep = cv2.dilate(rules, kernel, iterations=reach + 1)
+        erase = cv2.bitwise_and(cv2.dilate(ink, kernel, iterations=reach), cv2.bitwise_not(keep))
+        mask = np.zeros(grey.shape, np.uint8)
+        mask[py0 - my0 : py1 - my0, px0 - mx0 : px1 - mx0] = erase
+        if not mask.any():
+            continue
+        cleaned = cv2.inpaint(crop, mask, 3, cv2.INPAINT_TELEA)
+        pixels[my0:my1, mx0:mx1] = cleaned  # later boxes continue from already-cleaned paper
+        ok, encoded = cv2.imencode(".png", cv2.cvtColor(cleaned, cv2.COLOR_RGB2BGR))
+        if not ok:
+            page.draw_rect(rect, color=None, fill=(1.0, 1.0, 1.0), overlay=True)
+            continue
+        page.insert_image(
+            pymupdf.Rect(x0 + mx0 / sx, y0 + my0 / sy, x0 + mx1 / sx, y0 + my1 / sy),
+            stream=encoded.tobytes(),
+            overlay=True,
+        )
+    return True
 
 
 def _fill_color(block: Block) -> tuple[float, float, float]:
@@ -563,8 +669,14 @@ def _css_for_block(block: Block, resolver: _FontResolver) -> str:
     return (
         f"{resolver.css_face_rules()} "
         f"p {{ font-family: {family}; font-size: {dominant.size:.2f}pt; color: {dominant.color}; "
-        f"direction: {block.direction.value}; margin: 0; }}"
+        f"direction: {block.direction.value}; margin: 0; text-align: {_css_align(block)}; }}"
     )
+
+
+def _css_align(block: Block) -> str:
+    """The block's alignment as CSS. The box is as wide as its longest line, so without this
+    every shorter line of a centred title started at the box's left edge (NASA report cover)."""
+    return block.align if block.align in ("left", "center", "right", "justify") else "left"
 
 
 # --------------------------------------------------------------------------------------

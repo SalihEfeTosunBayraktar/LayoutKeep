@@ -815,6 +815,10 @@ def _merge_wrapped_lines(blocks: list[Block]) -> list[Block]:
                 confidence=min(current.confidence, candidate.confidence),
                 needs_review=current.needs_review or candidate.needs_review,
                 rotation=current.rotation,
+                # Two lines that are each centred make a centred block. Leaving this out reset
+                # every merged block to "left" - a cover title of two centred lines was drawn
+                # flush left.
+                align=current.align if current.align == candidate.align else "left",
             )
         merged.append(current)
     return merged

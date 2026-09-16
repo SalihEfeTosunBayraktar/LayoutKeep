@@ -127,9 +127,35 @@ def test_an_echo_that_echoes_again_keeps_its_first_reply() -> None:
     assert segments[0].target == _PROSE
 
 
-def test_a_short_identical_reply_is_not_retried() -> None:
-    """A heading or a name legitimately translates to itself."""
-    segments = [_segment("b1", "Form W-4", target="Form W-4")]
-    provider = _Recorder()
-    assert retry_untranslated(provider, segments) == 0
-    assert provider.calls == []
+def test_a_short_echo_is_retried_once_and_kept_if_it_echoes_again() -> None:
+    """Book page 61: the heading "Decoder Expansion" came back in English. Two words is below the
+    passthrough FLAG's minimum, because names legitimately translate to themselves - but asking
+    once more costs one request, and a real name simply comes back the same and is kept."""
+    heading = _segment("h", "Decoder Expansion", target="Decoder Expansion")
+    name = _segment("n", "Form W-4", target="Form W-4")
+
+    class _Translates:
+        def translate(self, segments, **_kwargs):
+            answers = {"Decoder Expansion": "Kod Cozucu Genisletme", "Form W-4": "Form W-4"}
+            return [Segment(block_id=s.block_id, source=s.source, target=answers[s.source]) for s in segments]
+
+    assert retry_untranslated(_Translates(), [heading, name]) == 1
+    assert heading.target == "Kod Cozucu Genisletme"
+    assert name.target == "Form W-4"
+
+
+def test_a_reply_that_ran_on_into_the_next_paragraph_is_retried() -> None:
+    """Book page 61: a figure caption came back with sentences of the neighbouring paragraph
+    appended and was crushed into the caption box. Long relative to how this job's other replies
+    compare with their sources - not a fixed ratio, which would be wrong for another language."""
+    ordinary = [_segment(f"b{i}", _PROSE, target="T" * int(len(_PROSE) * 1.2)) for i in range(5)]
+    caption_src = "Figure 2-3 A 3 x 8 decoder constructed with two 2 x 4 decoders."
+    runaway = _segment("cap", caption_src, target="S" * (len(caption_src) * 6))
+
+    class _Good:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="G" * len(s.source)) for s in segments]
+
+    assert retry_untranslated(_Good(), [*ordinary, runaway]) == 1
+    assert runaway.target == "G" * len(caption_src)
+    assert all(seg.target.startswith("T") for seg in ordinary)

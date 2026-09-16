@@ -31,6 +31,15 @@ def _normalised(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().casefold()
 
 
+def is_identical(segment: Segment) -> bool:
+    """The reply is the source, whatever its length. `is_passthrough` adds the length floor that
+    decides what is worth FLAGGING; retrying needs no floor, because asking again is cheap and a
+    name that really translates to itself just comes back the same."""
+    if not segment.target or is_data_only(segment.source):
+        return False
+    return _normalised(segment.target) == _normalised(segment.source)
+
+
 def is_passthrough(segment: Segment) -> bool:
     if not segment.target or is_data_only(segment.source):
         return False

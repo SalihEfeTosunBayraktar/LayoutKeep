@@ -751,7 +751,8 @@ def _block_from_paragraph(
     for line_boxes in para:
         spans: list[Span] = []
         line_bbox: BBox | None = None
-        for box in line_boxes:
+        ordered = sorted(line_boxes, key=lambda box: box.bbox[0])
+        for position, box in enumerate(ordered):
             # numpy float32 -> Python float: DocIR'in numpy taşımaması gerekir / DocIR must not carry numpy types
             x0, y0, x1, y1 = (float(c) for c in box.bbox)
             bbox = BBox(x0, y0, x1, y1)
@@ -763,7 +764,12 @@ def _block_from_paragraph(
             # of "sans-serif", so that literal string misclassifies as serif. "Arial" names a
             # real sans family and resolves correctly through the substitution table instead.
             style = Style(font_family="Arial", size=round(size_pt, 2), color=fg, background=bg)
-            spans.append(Span(text=box.text, bbox=bbox, style=style, direction=Direction.LTR))
+            # Separate OCR boxes on one line are separated by a gap on the page, which is a space in
+            # the text. A line's text joins its spans with nothing (right for a PDF text layer,
+            # whose spans carry their own spaces), so without this every running header came out
+            # as "46BOLUM IKI ..." - folio and title are two boxes.
+            text = box.text if position == len(ordered) - 1 else f"{box.text.rstrip()} "
+            spans.append(Span(text=text, bbox=bbox, style=style, direction=Direction.LTR))
             confidences.append(float(box.confidence))
         doc_lines.append(Line(spans=spans, bbox=line_bbox))
 

@@ -209,3 +209,13 @@ def test_table_cells_are_still_translated() -> None:
     boxes = [_box("Output data from RAM", 600, 400, 150)]
     page = _read(boxes, [LayoutRegion("table", (90, 390, 800, 500), 0.9)])
     assert page.blocks[0].role not in NON_TRANSLATABLE_ROLES
+
+
+def test_separate_boxes_on_one_line_keep_a_space_between_them() -> None:
+    """Every translated running header came out as "46BOLUM IKI ...": OCR returns the folio and
+    the header as two boxes on one line, and a line's text is its spans joined with nothing - right
+    for a PDF text layer, whose spans carry their own spaces, wrong for OCR boxes, whose gap is
+    only visual."""
+    boxes = [_box("46", 20, 30, 20), _box("CHAPTER TWO Digital Components", 70, 30, 300)]
+    page = _read(boxes, [LayoutRegion("page_header", (15, 25, 380, 55), 0.94)])
+    assert page.blocks[0].text == "46 CHAPTER TWO Digital Components"
