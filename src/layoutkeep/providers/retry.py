@@ -17,13 +17,14 @@ whatever is still missing afterwards.
 
 from __future__ import annotations
 
+import dataclasses
 import statistics
 from typing import Protocol
 
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
-from layoutkeep.providers.passthrough import is_identical
+from layoutkeep.providers.passthrough import is_copy_of_source, is_identical
 
 #: What a provider can fail with here that this pass should absorb rather than propagate: the
 #: transport (`OSError`, and `TimeoutError` which is one), a reply that would not parse
@@ -81,14 +82,21 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
     pending = [
         s for s in segments
         if (not s.target and not is_data_only(s.source))
-        or is_identical(s)
+        or is_copy_of_source(s)
         or _is_runaway(s, typical)
     ]
     if not pending:
         return 0
 
     try:
-        answered = provider.translate(pending, **kwargs)
+        # Sent WITHOUT the neighbouring-paragraph context. Measured on gemma-4-e4b: four
+        # exercise items came back in English 3 times out of 3 with their context and translated
+        # 3 times out of 3 without it (docs/campaign/JOURNAL.md, echo experiment) - resending the
+        # identical request cannot recover them. The caller's segments keep their context.
+        answered = provider.translate(
+            [dataclasses.replace(s, context_before="", context_after="") for s in pending],
+            **kwargs,
+        )
     except _RECOVERABLE:
         # This pass runs over a document that is already translated as well as it is going to
         # be; a server that dies now must not cost the work that succeeded before it.
@@ -97,7 +105,7 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
     filled = {
         seg.block_id: seg
         for seg in answered
-        if seg.target and not is_identical(seg) and not _is_runaway(seg, typical)
+        if seg.target and not is_copy_of_source(seg) and not _is_runaway(seg, typical)
     }
     recovered = 0
     by_id = {seg.block_id: seg for seg in pending}

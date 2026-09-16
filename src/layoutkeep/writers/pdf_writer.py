@@ -123,6 +123,17 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
 
         for page, blocks, kept, scanned in page_blocks:
             if scanned:
+                # A searchable scan also carries an invisible OCR text layer over the image. Left
+                # in place, the output looks translated and searches, copies and reads aloud in
+                # the source language. Text only - the image is the page and is not redacted.
+                for block in blocks:
+                    if not is_wordless(block):
+                        page.add_redact_annot(_rect(block.bbox), cross_out=False, fill=None)
+                page.apply_redactions(
+                    images=pymupdf.PDF_REDACT_IMAGE_NONE,
+                    graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+                    text=pymupdf.PDF_REDACT_TEXT_REMOVE,
+                )
                 _cover_scanned_blocks(page, blocks, keep=kept)
             else:
                 for block in blocks:

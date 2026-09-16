@@ -442,5 +442,11 @@ def _parse_reply(reply: str) -> dict[str, str] | None:
     for item in data:
         if not isinstance(item, dict) or "id" not in item or "text" not in item:
             return None
-        result[str(item["id"])] = str(item["text"])
+        result[str(item["id"])] = _FIELD_TAG.sub("", str(item["text"])).strip()
     return result
+
+
+#: A tag named after a field of the reply format, which the model sometimes wraps or closes a
+#: value with ("...sunmaktadir.</text" on book page 251). No document text is written this way,
+#: and the inline style markers are numeric (<0>...</0>), so these are never content.
+_FIELD_TAG = re.compile(r"</?\s*(?:text|id)\s*/?(?:>|$)", re.IGNORECASE)

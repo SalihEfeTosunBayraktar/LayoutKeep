@@ -438,3 +438,18 @@ def test_parse_chat_response_handles_missing_choices():
     with pytest.raises(RuntimeError, match="Yapay zeka yanıtı 'choices' içermiyor"):
         provider._parse_chat_response({"detail": "service unavailable"})
 
+
+
+def test_a_field_name_tag_the_model_appended_is_removed() -> None:
+    """Book page 251, round 5: a paragraph ended in "...sunmaktadir.</text" on the page. The
+    reply format is a JSON array of {"id", "text"}, and the model sometimes closes the text value
+    with a tag named after the field. No source contains it; the inline markers <0>...</0> are
+    digits and are not touched."""
+    from layoutkeep.providers.openai_compat import _parse_reply
+
+    reply = (
+        '[{"id": "a", "text": "Son bolum RISC kavramini sunmaktadir.</text"},'
+        ' {"id": "b", "text": "<text>Bir <0>kalin</0> kelime</text>"}]'
+    )
+    parsed = _parse_reply(reply)
+    assert parsed == {"a": "Son bolum RISC kavramini sunmaktadir.", "b": "Bir <0>kalin</0> kelime"}

@@ -11,6 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
+from layoutkeep.core.copies import is_copy
 from layoutkeep.core.docir import BBox, Segment, Style
 from layoutkeep.fitting.measure import MeasureFn
 
@@ -144,7 +145,7 @@ def fit_segment(
         budget = char_budget(style, bbox, min_scale) if char_budget else int(len(text) * min_scale)
         for _round_no in range(max_rounds):
             shorter = retranslate(segment, budget)
-            if not shorter or shorter == text:
+            if not shorter or shorter == text or _is_source(segment, shorter):
                 break
             fits, scale = measure(shorter, style, bbox, scale_low=min_scale, rotation=rotation)
             if fits:
@@ -162,6 +163,17 @@ def fit_segment(
         return FitResult(layer=FitLayer.OVERFLOW, scale=min_scale, text=text, needs_review=True)
 
     return FitResult(layer=FitLayer.OVERFLOW, scale=min_scale, text=text, reflow=True)
+
+
+def _is_source(segment: Segment, reply: str) -> bool:
+    """True when a re-rendering is the source handed back rather than a translation.
+
+    A model asked for a shorter version sometimes returns the source, and for a language that
+    runs longer than English the source is exactly the shorter text that fits - so it was
+    accepted as a successful retranslation and replaced a correct translation (book page 61).
+    Judged by `core.copies.is_copy`, which ignores inline markers the reply may have dropped.
+    """
+    return bool(segment.source) and is_copy(segment.source, reply)
 
 
 def _try_expand(
@@ -215,7 +227,7 @@ def _try_expand(
         # tightened toward the observed response when the model undershoots.
         want = full_budget if round_no == 0 else min(full_budget, int(len(text) * 1.5) + 8)
         longer = retranslate(segment, want)
-        if not longer or longer == text:
+        if not longer or longer == text or _is_source(segment, longer):
             # The model has nothing longer to offer. If an earlier round already improved
             # on the original, keep that improvement instead of throwing it away.
             return (

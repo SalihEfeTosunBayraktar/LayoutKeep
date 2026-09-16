@@ -29,7 +29,7 @@ class _Recorder:
         self.calls.append([s.block_id for s in segments])
         out = []
         for seg in segments:
-            target = "" if seg.block_id in self.fails else f"TR:{seg.source}"
+            target = "" if seg.block_id in self.fails else _fake_translation(seg.source)
             out.append(
                 Segment(
                     block_id=seg.block_id,
@@ -40,6 +40,12 @@ class _Recorder:
                 )
             )
         return out
+
+
+def _fake_translation(source: str) -> str:
+    """A stand-in translation that shares no words with its source. Prefixing the source ("TR:"
+    + source) would itself be an untranslated copy, and the retry now rightly rejects those."""
+    return "TR:" + source[::-1]
 
 
 def _segment(block_id: str, source: str, target: str = "") -> Segment:
@@ -62,8 +68,8 @@ def test_empty_segments_are_retried_and_filled() -> None:
     assert recovered == 2
     assert provider.calls == [["b2", "b3"]], "only the empty ones should be resent"
     assert segments[0].target == "TR:done", "an already-translated segment must not be touched"
-    assert segments[1].target == f"TR:{_PROSE}"
-    assert segments[2].target == f"TR:{_PROSE}"
+    assert segments[1].target == _fake_translation(_PROSE)
+    assert segments[2].target == _fake_translation(_PROSE)
 
 
 def test_nothing_to_retry_makes_no_request() -> None:
@@ -114,7 +120,7 @@ def test_a_reply_that_echoed_the_source_is_retried() -> None:
 
     assert retry_untranslated(provider, segments) == 1
     assert provider.calls == [["b1"]]
-    assert segments[0].target == f"TR:{_PROSE}"
+    assert segments[0].target == _fake_translation(_PROSE)
 
 
 def test_an_echo_that_echoes_again_keeps_its_first_reply() -> None:
@@ -159,3 +165,64 @@ def test_a_reply_that_ran_on_into_the_next_paragraph_is_retried() -> None:
     assert retry_untranslated(_Good(), [*ordinary, runaway]) == 1
     assert runaway.target == "G" * len(caption_src)
     assert all(seg.target.startswith("T") for seg in ordinary)
+
+
+def test_a_reply_that_only_cleaned_up_the_source_is_retried() -> None:
+    """Book page 251, pilot run: the model returned the paragraph still in English with its OCR
+    noise corrected ("co s n thn" -> "communicate with"). Not identical, so nothing caught it.
+    Most of a real translation's words are not the source's; most of this reply's words are."""
+    source = "Simple CPU design examples are carried out in Chaps. 5 and 7. This chapter co s n thn memory stack."
+    cleaned = "Simple CPU design examples are carried out in Chaps. 5 and 7. This chapter describes the memory stack."
+    segment = _segment("p", source, target=cleaned)
+
+    class _Translates:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="Basit CPU tasarim ornekleri Bolum 5 ve 7'de verilmistir.") for s in segments]
+
+    assert retry_untranslated(_Translates(), [segment]) == 1
+    assert segment.target.startswith("Basit")
+
+
+def test_a_translation_sharing_names_and_terms_is_not_taken_for_a_copy() -> None:
+    source = "The CPU communicates with the ALU through buses and the register set."
+    target = "CPU, ALU ile veri yollari ve register kumesi araciligiyla iletisim kurar."
+    segment = _segment("t", source, target=target)
+    provider = _Recorder()
+    assert retry_untranslated(provider, [segment]) == 0
+    assert provider.calls == []
+
+
+def test_the_retry_is_sent_without_the_context_that_caused_the_echo() -> None:
+    """Measured on gemma-4-e4b (`docs/campaign/JOURNAL.md`, echo experiment): four exercise items
+    came back in English 3 times out of 3 when sent with their neighbouring paragraphs as context,
+    and translated 3 times out of 3 without it. Retrying the same request cannot recover them."""
+
+    class _EchoesWithContext:
+        def __init__(self):
+            self.saw_context = []
+
+        def translate(self, segments, **_kwargs):
+            out = []
+            for s in segments:
+                has_context = bool(s.context_before or s.context_after)
+                self.saw_context.append(has_context)
+                target = s.source if has_context else _fake_translation(s.source)
+                out.append(Segment(block_id=s.block_id, source=s.source, target=target))
+            return out
+
+    segment = Segment(
+        block_id="ex", source=_PROSE, target=_PROSE,
+        context_before="1-13. Simplify the Boolean function", context_after="1-15. A majority function",
+    )
+    provider = _EchoesWithContext()
+    assert retry_untranslated(provider, [segment]) == 1
+    assert provider.saw_context == [False]
+    assert segment.target == _fake_translation(_PROSE)
+    assert segment.context_before, "the caller's segment keeps its context"
+
+
+def test_an_echo_without_the_sources_markers_is_still_an_echo() -> None:
+    source = "When the circuit is <0>disabled</0>, none of the outputs are <1>selected</1> at all."
+    segment = _segment("m", source, target="When the circuit is disabled, none of the outputs are selected at all.")
+    provider = _Recorder()
+    assert retry_untranslated(provider, [segment]) == 1

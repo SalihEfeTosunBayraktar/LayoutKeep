@@ -316,3 +316,42 @@ def test_retranslation_iterates_with_a_tightening_budget():
     assert result.layer is FitLayer.OVERFLOW  # 3 rounds were not enough to reach <= 15
     assert budgets == [30, 27, 24]  # each round strictly below the failed length
     assert len(result.text) <= 26  # kept the best (shortest) attempt
+
+
+def test_a_shorter_rendering_that_is_the_source_is_not_accepted():
+    """Book page 61 stayed in English through every retry: its Turkish translation overflowed,
+    fitting asked for a shorter one, and the model handed back the ENGLISH source - which is
+    shorter than the Turkish, so it fitted and was written as the "retranslated" result. The
+    pass that runs after every other safeguard was replacing a translation with the source."""
+    source = "When the circuit is disabled, none of the outputs are selected"
+    turkish = "Devre devre disi birakildiginda, ciktilarin hicbiri secilmez ve tum ciktilar"
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return len(text) <= len(source), scale_low
+
+    result = fit_segment(
+        Segment(block_id="b1", source=source, target=turkish),
+        STYLE,
+        BOX,
+        measure,
+        retranslate=lambda segment, max_len: source,
+    )
+    assert result.text == turkish
+    assert result.layer is FitLayer.OVERFLOW
+
+
+def test_the_source_is_recognised_even_when_its_style_markers_were_dropped():
+    """Pilot run, book page 61: the source carried inline markers (<0>...</0>) and the model's
+    English reply did not, so "reply == source" was false and fitting accepted the English."""
+    source = "When the circuit is <0>disabled</0>, none of the outputs are <1>selected</1>"
+    echoed = "When the circuit is disabled, none of the outputs are selected"
+    turkish = "Devre devre disi birakildiginda, ciktilarin hicbiri secilmez ve tum ciktilar bire esittir"
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return len(text) <= len(echoed), scale_low
+
+    result = fit_segment(
+        Segment(block_id="b1", source=source, target=turkish), STYLE, BOX, measure,
+        retranslate=lambda segment, max_len: echoed,
+    )
+    assert result.text == turkish

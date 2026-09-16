@@ -15,9 +15,8 @@ identical translation is implausible is flagged.
 
 from __future__ import annotations
 
-import re
-
-from layoutkeep.core import tunables
+from layoutkeep.core import copies, tunables
+from layoutkeep.core.copies import is_copy
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 
@@ -27,17 +26,20 @@ from layoutkeep.core.protect import is_data_only
 MIN_WORDS = 4
 
 
-def _normalised(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().casefold()
-
-
 def is_identical(segment: Segment) -> bool:
-    """The reply is the source, whatever its length. `is_passthrough` adds the length floor that
-    decides what is worth FLAGGING; retrying needs no floor, because asking again is cheap and a
-    name that really translates to itself just comes back the same."""
+    """The reply is the source, whatever its length (markers ignored). `is_passthrough` adds the
+    length floor that decides what is worth FLAGGING; retrying needs no floor, because asking
+    again is cheap and a name that really translates to itself just comes back the same."""
     if not segment.target or is_data_only(segment.source):
         return False
-    return _normalised(segment.target) == _normalised(segment.source)
+    return copies.is_identical(segment.source, segment.target)
+
+
+def is_copy_of_source(segment: Segment) -> bool:
+    """The reply is the source, verbatim or lightly edited (see `core.copies.is_copy`)."""
+    if not segment.target or is_data_only(segment.source):
+        return False
+    return is_copy(segment.source, segment.target)
 
 
 def is_passthrough(segment: Segment) -> bool:
@@ -45,7 +47,7 @@ def is_passthrough(segment: Segment) -> bool:
         return False
     if len(segment.source.split()) < tunables.get("passthrough.min_words"):
         return False
-    return _normalised(segment.target) == _normalised(segment.source)
+    return copies.is_identical(segment.source, segment.target)
 
 
 def flag_passthrough(segments: list[Segment]) -> int:

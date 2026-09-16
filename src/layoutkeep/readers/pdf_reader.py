@@ -135,7 +135,7 @@ def _read_page(
         for info in page.get_image_info()
     )
     coverage = covered / page_area if page_area > 0 else 0.0
-    if is_scanned_page(page.get_text(), page_area, coverage):
+    if is_scanned_page(page.get_text(), page_area, coverage) or _is_searchable_scan(page, coverage):
         return _read_scanned_page(
             page,
             index,
@@ -240,6 +240,38 @@ def _ocr_at(
         classifier=classifier,
         layout=layout,
     )
+
+
+#: Text render mode 3: glyphs that are laid out but not painted - the searchable layer a scanner
+#: or archive.org puts over a page image.
+_INVISIBLE_TEXT = 3
+
+
+def _is_searchable_scan(page: pymupdf.Page, coverage: float) -> bool:
+    """True when an image covers the page and most of its text is invisible.
+
+    A searchable scan carries a full OCR text layer, so by text density it looks born digital;
+    read that way, the writer removed the invisible layer and drew the translation over the
+    scanned English, which is pixels and stays. What a reader actually sees is decided by
+    visibility: when most characters are not painted, the page is its image. Two of the
+    campaign's five books are built this way (archive.org "Text PDF"), and so were pages 4-10 of
+    the NASA report.
+    """
+    if coverage < _SCANNED_IMAGE_COVERAGE_FOR_LAYER:
+        return False
+    visible = invisible = 0
+    for trace in page.get_texttrace():
+        count = len(trace.get("chars", ()))
+        if trace.get("type") == _INVISIBLE_TEXT:
+            invisible += count
+        else:
+            visible += count
+    return invisible > visible
+
+
+#: A searchable scan's image is the page. Majority coverage is the lowest that can mean that; a
+#: page with a picture beside invisible text is not a scan of the whole page.
+_SCANNED_IMAGE_COVERAGE_FOR_LAYER = 0.5
 
 
 def _read_scanned_page(

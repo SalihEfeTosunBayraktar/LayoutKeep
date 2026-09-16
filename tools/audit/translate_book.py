@@ -60,6 +60,9 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
         "--to", args.to, "--from", getattr(args, "from"),
         "--provider", "openai", "--base-url", args.base_url, "--model", args.model,
         "-o", str(out),
+        # The project is the record of what was sent, what came back and what was flagged; the
+        # lossless audit reads it instead of re-reading (and re-OCRing) the source.
+        "--save-project", str(out.with_suffix(".lkproj")),
     ]
     if args.timeout:
         command += ["--timeout", str(args.timeout)]
@@ -68,6 +71,9 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
     started = time.time()
     proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     elapsed = time.time() - started
+    # The whole log is kept: the summary below drops retries and passthrough reports, which is
+    # exactly what explains a paragraph left in English.
+    out.with_suffix(".log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
     lines = [
         line for line in (proc.stdout + proc.stderr).splitlines()
         if any(token in line for token in _INTERESTING)
