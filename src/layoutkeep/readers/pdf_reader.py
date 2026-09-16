@@ -34,6 +34,7 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
+from layoutkeep.readers._layout import infer_alignment
 from layoutkeep.readers.image_reader import is_scanned_page, page_from_rendered_page
 
 _BOLD_FLAG = 1 << 4  # pymupdf span flag bit for bold
@@ -121,7 +122,7 @@ def _read_page(page: pymupdf.Page, index: int) -> _RawPage:
                 bbox=bbox,
                 lines=lines,
                 rotation=_block_rotation(raw.get("lines", [])),
-                align=_infer_alignment(bbox, width),
+                align=infer_alignment(bbox, width),
             )
         )
 
@@ -353,36 +354,6 @@ _PROSE_FONT_MARKERS = (
 #: Displayed equations built by TeX sit on their own, one to a few lines. A CMR10-bearing
 #: block longer than this is body prose (LaTeX paragraph), not an equation.
 _MAX_EQUATION_CHARS = 200
-
-
-def _infer_alignment(bbox: BBox, page_width: float) -> str:
-    """Infer a block's horizontal alignment from its x-position relative to the page.
-
-    A centred block sits roughly symmetric around the page midline; a right-aligned block sits
-    close to the right margin while a left-aligned one hugs the left. Thresholds are generous so
-    full-width justified paragraphs (which span most of the page) are not misread as centred.
-    Only applies to blocks that leave a real margin on at least one side, so a block that already
-    fills the page stays "left"/justify rather than being guessed at.
-    """
-    if page_width <= 0:
-        return "left"
-    left_margin = bbox.x0
-    right_margin = page_width - bbox.x1
-    block_center = (bbox.x0 + bbox.x1) / 2.0
-    page_center = page_width / 2.0
-
-    # A block that spans nearly the whole page is justified/full-width, not centred.
-    span = bbox.x1 - bbox.x0
-    if span >= page_width * 0.8:
-        return "left"
-
-    # Centred: the block's middle sits near the page's middle, with balanced margins.
-    if abs(block_center - page_center) <= page_width * 0.05 and min(left_margin, right_margin) > 0:
-        return "center"
-    # Right-aligned: hugged to the right edge, with a large left margin and small right one.
-    if right_margin <= page_width * 0.05 and left_margin > page_width * 0.15:
-        return "right"
-    return "left"
 
 
 def _looks_like_math(lines: list[Line]) -> bool:

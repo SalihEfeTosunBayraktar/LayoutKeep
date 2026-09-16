@@ -38,6 +38,7 @@ from layoutkeep.core.docir import (
     Style,
 )
 from layoutkeep.ocr.engine import OcrEngine, RapidOcrEngine, TextBox
+from layoutkeep.readers._layout import infer_alignment
 
 #: Below this OCR confidence, the containing block is flagged for human review.
 NEEDS_REVIEW_THRESHOLD = 0.80
@@ -118,6 +119,15 @@ def page_from_rendered_page(
                 span.bbox = _scaled(span.bbox, scale)
 
     page.width, page.height = width_pt, height_pt
+
+    # Alignment, inferred the same way `pdf_reader` infers it for a page that has a text layer.
+    # Nothing set it here before, so every block OCR produced defaulted to "left" and each
+    # centred line on a scan - a chapter title, a figure caption - was redrawn hard against the
+    # left margin. Computed after the conversion above so the box and the page width are both
+    # in points.
+    for block in page.blocks:
+        block.align = infer_alignment(block.bbox, page.width)
+
     return page
 
 
