@@ -34,7 +34,7 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
-from layoutkeep.readers._layout import infer_alignment
+from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 from layoutkeep.readers.image_reader import is_scanned_page, page_from_rendered_page
 
 _BOLD_FLAG = 1 << 4  # pymupdf span flag bit for bold
@@ -49,7 +49,6 @@ _MARGIN_RATIO = 0.12
 #: A short, mostly-digit block in the margin: "3", "- 3 -", "Page 3", "3/10".
 _PAGE_NUMBER_RE = re.compile(r"^[\s\-–—.:|/\[\]()]*\d{1,4}[\s\-–—.:|/\[\]()]*$")
 _TERMINAL_PUNCTUATION = ".!?…\"')"
-_HYPHENS = "-­‐‑"
 #: A body block whose font is at least this much larger than the document's body size reads as
 #: a heading rather than a paragraph.
 _HEADING_SIZE_RATIO = 1.15
@@ -113,7 +112,7 @@ def _read_page(page: pymupdf.Page, index: int) -> _RawPage:
         lines = _lines_from_raw(raw)
         if not lines or not any(line.text.strip() for line in lines):
             continue
-        _join_hyphenation(lines)
+        join_hyphenation(lines)
         bbox = BBox(*raw["bbox"])
         blocks.append(
             Block(
@@ -421,36 +420,6 @@ def _span_from_raw(raw: dict) -> Span:
         serif=bool(flags & _SERIF_FLAG),
     )
     return Span(text=raw.get("text", ""), bbox=BBox(*raw["bbox"]), style=style)
-
-
-def _join_hyphenation(lines: list[Line]) -> None:
-    """Merge `hyphen-` + `ation` at a line break into `hyphenation`, in place.
-
-    Only applies when the break looks like a genuine word split: the line ends in a hyphen
-    directly after a letter, and the next line starts with a lowercase letter.
-    """
-    i = 0
-    while i < len(lines) - 1:
-        spans = lines[i].spans
-        if not spans or not spans[-1].text:
-            i += 1
-            continue
-        last_span = spans[-1]
-        tail = last_span.text
-        if len(tail) < 2 or tail[-1] not in _HYPHENS or not tail[-2].isalpha():
-            i += 1
-            continue
-        next_spans = lines[i + 1].spans
-        if not next_spans or not next_spans[0].text or not next_spans[0].text[0].islower():
-            i += 1
-            continue
-        joined_text = tail[:-1] + next_spans[0].text
-        joined_span = Span(text=joined_text, bbox=last_span.bbox, style=last_span.style)
-        # Keep everything on one Line so it reads as one word run; drop the now-empty next line
-        # by folding its spans onto this one.
-        lines[i].spans = [*spans[:-1], joined_span, *next_spans[1:]]
-        del lines[i + 1]
-        # Don't advance: the freshly merged line might itself end in a hyphen (rare but cheap to handle).
 
 
 #: A vertical gap up to this many times the font size still reads as consecutive lines of the

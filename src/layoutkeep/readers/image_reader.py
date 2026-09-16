@@ -38,7 +38,7 @@ from layoutkeep.core.docir import (
     Style,
 )
 from layoutkeep.ocr.engine import OcrEngine, RapidOcrEngine, TextBox
-from layoutkeep.readers._layout import infer_alignment
+from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 
 #: Below this OCR confidence, the containing block is flagged for human review.
 NEEDS_REVIEW_THRESHOLD = 0.80
@@ -341,6 +341,12 @@ def _block_from_paragraph(
             spans.append(Span(text=box.text, bbox=bbox, style=style, direction=Direction.LTR))
             confidences.append(float(box.confidence))
         doc_lines.append(Line(spans=spans, bbox=line_bbox))
+
+    # A word broken across a line break is put back together before anything downstream sees
+    # it. Without this the second half becomes a segment of its own starting mid-word -
+    # "tities in the table can be proven by..." - which no model can translate, so it came back
+    # untranslated and the paragraph changed language at the hyphen.
+    join_hyphenation(doc_lines)
 
     block_bbox = doc_lines[0].bbox
     for line in doc_lines[1:]:
