@@ -147,16 +147,21 @@ def read_image(path: str | Path, *, engine: OcrEngine | None = None) -> Document
 _RETRY_LOWCONF_SHARE = 0.08
 
 
-def mean_confidence(page: Page) -> float:
-    """Mean OCR confidence over a page's blocks; 0.0 for a page with none.
+def expected_characters(page: Page) -> float:
+    """How much text a pass recovered that we believe: characters weighted by confidence.
 
-    Used to pick between two passes rather than to assume the higher resolution won - page 61
-    of the same book reads one line correctly at 200 DPI and garbles it at 300, so more pixels
-    is not automatically better and the reader measures instead.
+    Used to pick between two OCR passes rather than to assume the higher resolution won - page
+    61 of this book reads a line correctly at 200 DPI and garbles it at 300, so more pixels is
+    not automatically better and the reader measures instead.
+
+    Mean confidence was the wrong measure and the disagreement is real, not theoretical: a
+    recogniser that drops a hard line scores higher on what is left, so "surer" and "read more"
+    part company. On page 451 of the book, 200 DPI reads 1746 characters at 0.954 and 300 DPI
+    reads 1681 at 0.977 - confidence chooses the pass that lost 65 characters. Weighting the
+    characters by the confidence in them picks correctly there and on the four other pages
+    measured across both documents.
     """
-    if not page.blocks:
-        return 0.0
-    return sum(b.confidence for b in page.blocks) / len(page.blocks)
+    return sum(len(b.text) * b.confidence for b in page.blocks)
 
 
 def needs_higher_resolution(page: Page) -> bool:

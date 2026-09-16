@@ -20,7 +20,7 @@ better, so the reader measures instead of assuming.
 from __future__ import annotations
 
 from layoutkeep.core.docir import BBox, Block, BlockRole, Line, Page, Span, Style
-from layoutkeep.readers.image_reader import mean_confidence, needs_higher_resolution
+from layoutkeep.readers.image_reader import needs_higher_resolution
 
 
 def _page(*confidences: float) -> Page:
@@ -56,6 +56,5 @@ def test_an_empty_page_is_not_read_again() -> None:
     assert needs_higher_resolution(_page()) is False
 
 
-def test_mean_confidence_is_what_picks_the_winner() -> None:
-    assert mean_confidence(_page(1.0, 0.8)) == 0.9
-    assert mean_confidence(_page()) == 0.0
+# Which pass wins is no longer decided by mean confidence: a recogniser that drops a hard line
+# sounds surer about what is left. See tests/test_scanned_ocr_pass_choice.py.

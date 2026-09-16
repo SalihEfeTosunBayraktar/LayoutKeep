@@ -37,8 +37,8 @@ from layoutkeep.core.docir import (
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 from layoutkeep.readers.image_reader import (
+    expected_characters,
     is_scanned_page,
-    mean_confidence,
     needs_higher_resolution,
     page_from_rendered_page,
 )
@@ -240,10 +240,11 @@ def _read_scanned_page(
     ocr_page = _ocr_at(page, index, _SCAN_OCR_DPI, classifier)
     if needs_higher_resolution(ocr_page):
         # Enough of the page came back doubtful to be worth the extra pixels. Both passes are
-        # kept and the better one wins: page 61 of this same book reads a line correctly at 200
-        # and garbles it at 300, so the higher resolution has to earn its place.
+        # kept and the better one wins, judged on how much text each recovered rather than on
+        # how sure it sounds: page 61 of this book reads a line correctly at 200 and garbles it
+        # at 300, and on page 451 the surer pass is the one that read 65 characters fewer.
         retry = _ocr_at(page, index, _SCAN_OCR_RETRY_DPI, classifier)
-        if mean_confidence(retry) > mean_confidence(ocr_page):
+        if expected_characters(retry) > expected_characters(ocr_page):
             ocr_page = retry
     ocr_page.scanned = True
     # The scan itself is the page's only picture; writers that rebuild the document need it, and
