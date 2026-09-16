@@ -411,7 +411,12 @@ def _page_from_image(
         # the table's own column became the "body column", and its rows were merged into one
         # block - book page 451's function table came back as "Veri yolu durumu Yuksek
         # empedansli Yuksek empedansli ...".
-        groups.extend(([line], None) for line in labels)
+        for label, line in labels:
+            # Text inside a picture is part of the picture and stays as scanned: re-typesetting a
+            # circuit diagram's labels (book page 61) squeezed translations between its wires and
+            # redrew subscripts as "D{2}". A table's cells are text laid out in a grid, and are
+            # translated one cell at a time.
+            groups.append(([line], BlockRole.FIGURE if label == "picture" else BlockRole.TABLE))
         page_line_height = _median_line_height(lines)
         for label, region_lines in claimed:
             role = LABEL_TO_ROLE.get(label, BlockRole.BODY)
@@ -466,14 +471,18 @@ _REGION_MEMBERSHIP = 0.5
 
 def _lines_by_region(
     lines: list[list[TextBox]], regions: list[LayoutRegion]
-) -> tuple[list[tuple[str, list[list[TextBox]]]], list[list[TextBox]], list[list[TextBox]]]:
+) -> tuple[
+    list[tuple[str, list[list[TextBox]]]],
+    list[tuple[str, list[TextBox]]],
+    list[list[TextBox]],
+]:
     """Put each line in the detected region holding most of it.
 
     Returns the text regions with their lines, top to bottom; the lines inside regions that are
     not prose (`NOT_A_PARAGRAPH` - figure labels, table cells); and the lines in no region.
     """
     members: dict[int, list[list[TextBox]]] = {}
-    labels: list[list[TextBox]] = []
+    labels: list[tuple[str, list[TextBox]]] = []
     rest: list[list[TextBox]] = []
     for line in lines:
         x0 = min(b.bbox[0] for b in line)
@@ -493,7 +502,7 @@ def _lines_by_region(
         if best < 0:
             rest.append(line)
         elif regions[best].label in NOT_A_PARAGRAPH:
-            labels.append(line)
+            labels.append((regions[best].label, line))
         else:
             members.setdefault(best, []).append(line)
 

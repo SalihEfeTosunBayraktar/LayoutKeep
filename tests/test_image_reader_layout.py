@@ -185,3 +185,27 @@ def test_table_cells_do_not_pull_the_body_size_down() -> None:
     body = next(b for b in page.blocks if b.text.startswith("p0"))
     reference = _read(paragraph, regions[:1]).blocks[0]
     assert body.dominant_style().size == reference.dominant_style().size
+
+
+def test_text_inside_a_picture_stays_as_scanned() -> None:
+    """Book page 61, round 3: labels inside a circuit diagram ("2 x 4 decoder", "D2") were each
+    made a block, translated and re-typeset over the drawing - "kod cozucu" squeezed between the
+    wires, subscripts redrawn as "D{2}". A picture's text is part of the picture."""
+    from layoutkeep.core.docir import NON_TRANSLATABLE_ROLES
+
+    boxes = [*_paragraph(100, 100, 2), _box("2 x 4 decoder", 300, 400, 90), _box("D2", 500, 420, 20)]
+    regions = [
+        LayoutRegion("text", (95, 95, 705, 155), 0.97),
+        LayoutRegion("picture", (250, 380, 600, 600), 0.97),
+    ]
+    page = _read(boxes, regions)
+    labels = [b for b in page.blocks if b.bbox.y0 >= 380]
+    assert labels and all(b.role in NON_TRANSLATABLE_ROLES for b in labels), [b.role for b in labels]
+
+
+def test_table_cells_are_still_translated() -> None:
+    from layoutkeep.core.docir import NON_TRANSLATABLE_ROLES
+
+    boxes = [_box("Output data from RAM", 600, 400, 150)]
+    page = _read(boxes, [LayoutRegion("table", (90, 390, 800, 500), 0.9)])
+    assert page.blocks[0].role not in NON_TRANSLATABLE_ROLES

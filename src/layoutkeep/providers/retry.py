@@ -22,6 +22,7 @@ from typing import Protocol
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
+from layoutkeep.providers.passthrough import is_passthrough
 
 #: What a provider can fail with here that this pass should absorb rather than propagate: the
 #: transport (`OSError`, and `TimeoutError` which is one), a reply that would not parse
@@ -35,13 +36,20 @@ class _Provider(Protocol):
 
 
 def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: object) -> int:
-    """Resend the segments with no target, filling in the ones that come back. Returns how many
-    were recovered.
+    """Resend the segments with no target, or whose target is the source handed straight back,
+    filling in the ones that come back translated. Returns how many were recovered.
+
+    An echo is retried because it is intermittent: three translations of the same ten book pages
+    each left a different paragraph in English. A retry that echoes again keeps the first reply,
+    and `flag_passthrough` still reports it.
 
     `segments` is updated in place, so the caller's list (and the document written from it) sees
     the recovered text without any re-merging.
     """
-    pending = [s for s in segments if not s.target and not is_data_only(s.source)]
+    pending = [
+        s for s in segments
+        if (not s.target and not is_data_only(s.source)) or is_passthrough(s)
+    ]
     if not pending:
         return 0
 
@@ -52,13 +60,13 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
         # be; a server that dies now must not cost the work that succeeded before it.
         return 0
 
-    filled = {seg.block_id: seg.target for seg in answered if seg.target}
+    filled = {seg.block_id: seg for seg in answered if seg.target and not is_passthrough(seg)}
     recovered = 0
     by_id = {seg.block_id: seg for seg in pending}
-    for block_id, target in filled.items():
+    for block_id, reply in filled.items():
         segment = by_id.get(block_id)
-        if segment is None or segment.target:
+        if segment is None:
             continue
-        segment.target = target
+        segment.target = reply.target
         recovered += 1
     return recovered

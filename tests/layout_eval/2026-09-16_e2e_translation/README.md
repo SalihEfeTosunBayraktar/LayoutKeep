@@ -69,3 +69,31 @@ Blocks reported still overflowing after fitting: no_model 60, with_model 48.
 - p121 table 4-6: column headers merged ("Boolean fonksiyonMikro Islem") in every version.
 
 Round 2 (after the fixes) is in `round2/`.
+
+## Rounds 3 and 4 (model path only from here)
+
+`no_model_final` in `round3_milestone/` and `round4/` is the last no-model output (round 2's),
+kept as the milestone; the no-model path is not developed further.
+
+| | prose still English | blocks overflowing after fitting |
+|---|---|---|
+| round 1, model | 1 of 82 | 48 |
+| round 3, model | 2 of 82 | 46 |
+| round 4, model | **0 of 82** | **34** |
+
+Round 3 found: labels inside a circuit diagram (p61) translated and re-typeset over its wires
+("kod cozucu" between the lines, "D{2}"). Fixed: text inside a `picture` region keeps role
+FIGURE and stays as scanned; table cells are still translated. Round 1 had looked right only by
+accident (the labels happened to group into a wordless block).
+
+Also found across rounds: a DIFFERENT paragraph left in English each run (p61, then p121) - the
+model handing the source back intermittently. Fixed: `retry_untranslated` also resends echoed
+replies once; an echo that echoes again keeps its first reply and stays flagged.
+
+Round 4, still seen:
+
+- p61 caption: the translation of "Figure 2-3 A 3 x 8 decoder ..." came back with sentences of
+  the neighbouring paragraph appended (context bleeding into the reply), and was shrunk into the
+  caption box. Round 3's caption was correct - model behaviour, intermittent.
+- p61 heading "Decoder Expansion" left in English: two words, below the echo check's minimum,
+  which exists because names and codes legitimately translate to themselves.

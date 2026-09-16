@@ -103,3 +103,33 @@ def test_a_failing_retry_does_not_lose_what_already_worked() -> None:
     segments = [_segment("b1", _PROSE, target="TR:done"), _segment("b2", _PROSE)]
     assert retry_untranslated(_Dead(), segments) == 0
     assert segments[0].target == "TR:done"
+
+
+def test_a_reply_that_echoed_the_source_is_retried() -> None:
+    """Three translations of the same ten book pages each left a DIFFERENT paragraph in English
+    (page 61 once, page 121 the next time): the model handed the source back unchanged, which is
+    intermittent, not a paragraph it cannot translate. Asking again recovers it."""
+    segments = [_segment("b1", _PROSE, target=_PROSE), _segment("b2", _PROSE, target="TR:done")]
+    provider = _Recorder()
+
+    assert retry_untranslated(provider, segments) == 1
+    assert provider.calls == [["b1"]]
+    assert segments[0].target == f"TR:{_PROSE}"
+
+
+def test_an_echo_that_echoes_again_keeps_its_first_reply() -> None:
+    class _Echo:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target=s.source) for s in segments]
+
+    segments = [_segment("b1", _PROSE, target=_PROSE)]
+    assert retry_untranslated(_Echo(), segments) == 0
+    assert segments[0].target == _PROSE
+
+
+def test_a_short_identical_reply_is_not_retried() -> None:
+    """A heading or a name legitimately translates to itself."""
+    segments = [_segment("b1", "Form W-4", target="Form W-4")]
+    provider = _Recorder()
+    assert retry_untranslated(provider, segments) == 0
+    assert provider.calls == []
