@@ -63,6 +63,8 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
     ]
     if args.timeout:
         command += ["--timeout", str(args.timeout)]
+    if args.layout_detector:
+        command.append("--layout-detector")
     started = time.time()
     proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     elapsed = time.time() - started
@@ -98,6 +100,7 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--pages-per-chunk", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=0.0)
+    parser.add_argument("--layout-detector", action="store_true")
     parser.add_argument("--limit-chunks", type=int, default=0, help="stop after N chunks (smoke test)")
     parser.add_argument(
         "--resume", action="store_true",

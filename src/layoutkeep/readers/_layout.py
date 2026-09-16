@@ -77,10 +77,21 @@ def join_hyphenation(lines: list[Line]) -> None:
         if not next_spans or not next_spans[0].text or not next_spans[0].text[0].islower():
             i += 1
             continue
-        joined_text = tail[:-1] + next_spans[0].text
-        joined_span = Span(text=joined_text, bbox=last_span.bbox, style=last_span.style)
-        # Keep everything on one Line so it reads as one word run; drop the now-empty next line
-        # by folding its spans onto this one.
-        lines[i].spans = [*spans[:-1], joined_span, *next_spans[1:]]
-        del lines[i + 1]
-        # Don't advance: the freshly merged line might itself end in a hyphen (rare but cheap to handle).
+        # Only the word fragment moves up. Folding the whole next line into this one - which
+        # this did - left the merged line with its one-line box, so the block's box stopped a
+        # line short and the writer never painted out the source line under it (book pages 28
+        # and 451: "ing term it represents is A'BC'D." visible under the translation).
+        head = next_spans[0]
+        fragment, _, remainder = head.text.partition(" ")
+        spans[-1] = Span(text=tail[:-1] + fragment, bbox=last_span.bbox, style=last_span.style)
+        if remainder.strip():
+            next_spans[0] = Span(text=remainder.lstrip(), bbox=head.bbox, style=head.style)
+        else:
+            del next_spans[0]
+        if not next_spans:
+            # The next line was nothing but the fragment: its box now belongs to this line.
+            below = lines[i + 1].bbox
+            if below is not None:
+                lines[i].bbox = below if lines[i].bbox is None else lines[i].bbox.union(below)
+            del lines[i + 1]
+        i += 1

@@ -105,7 +105,7 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
     """Render `doc` (read from `src_path`, possibly with translations applied) to `out_path`."""
     with pymupdf.open(str(src_path)) as pdf:
         resolver = _FontResolver(doc.target_lang)
-        page_blocks: list[tuple[pymupdf.Page, list[Block], bool]] = []
+        page_blocks: list[tuple[pymupdf.Page, list[Block], list[Block], bool]] = []
         for page_data in doc.pages:
             page = pdf[int(page_data.source_ref)]
             blocks = [b for b in page_data.blocks if b.translatable]
@@ -117,12 +117,13 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             # necessary.
             for block in blocks:
                 resolver.register(page, block)
-            page_blocks.append((page, blocks, page_data.scanned))
+            kept = [b for b in page_data.blocks if not b.translatable]
+            page_blocks.append((page, blocks, kept, page_data.scanned))
         resolver.finalize()
 
-        for page, blocks, scanned in page_blocks:
+        for page, blocks, kept, scanned in page_blocks:
             if scanned:
-                _cover_scanned_blocks(page, blocks)
+                _cover_scanned_blocks(page, blocks, keep=kept)
             else:
                 for block in blocks:
                     if abs(block.rotation) > _ROTATION_EPS:
@@ -200,7 +201,9 @@ def is_wordless(block: Block) -> bool:
     return len(_LETTER_RE.findall(text)) / len(text) < _MIN_WORDINESS
 
 
-def _cover_scanned_blocks(page: pymupdf.Page, blocks: list[Block]) -> None:
+def _cover_scanned_blocks(
+    page: pymupdf.Page, blocks: list[Block], *, keep: list[Block] = ()
+) -> None:
     """Paint out the source text of a scanned page so the translation is not drawn over it.
 
     Redaction cannot do this: the words are pixels inside the page image, and `apply_redactions`
@@ -210,14 +213,35 @@ def _cover_scanned_blocks(page: pymupdf.Page, blocks: list[Block]) -> None:
     Only the boxes OCR actually found are painted, so the rest of the scan - figures, rules,
     anything no block claimed - survives untouched. The fill is the block's own detected
     background rather than a hard white, so this works on a tinted or off-white scan too.
+
+    Nothing that stays as scanned is painted into: a block in `keep` (not translated) or a
+    wordless one keeps every pixel of its lines. Adjacent OCR lines overlap by about a point and
+    the cover is padded, so without this the paint reached into the next line - book page 54's
+    formula `b. AC' + B'D + ...` lost the top half of its glyphs to the line above it.
     """
     pad = (-_SCAN_COVER_PAD, -_SCAN_COVER_PAD, _SCAN_COVER_PAD, _SCAN_COVER_PAD)
-    for block in blocks:
-        if is_wordless(block):
-            continue
-        page.draw_rect(
-            _rect(block.bbox) + pad, color=None, fill=_fill_color(block), overlay=True
-        )
+    covered = [b for b in blocks if not is_wordless(b)]
+    protected = [
+        _rect(line.bbox)
+        for block in [*keep, *(b for b in blocks if is_wordless(b))]
+        for line in block.lines
+        if line.bbox is not None
+    ]
+    for block in covered:
+        rect = _rect(block.bbox) + pad
+        for guard in protected:
+            if not rect.intersects(guard):
+                continue
+            # Give way only to a neighbour: a protected line whose middle is below or above the
+            # block's own box. One whose middle is inside it cannot be avoided by shrinking, and
+            # shrinking would leave part of the source paragraph showing under its translation.
+            middle = (guard.y0 + guard.y1) / 2
+            if middle >= block.bbox.y1:
+                rect.y1 = min(rect.y1, guard.y0)
+            elif middle <= block.bbox.y0:
+                rect.y0 = max(rect.y0, guard.y1)
+        if rect.y1 > rect.y0:
+            page.draw_rect(rect, color=None, fill=_fill_color(block), overlay=True)
 
 
 def _fill_color(block: Block) -> tuple[float, float, float]:

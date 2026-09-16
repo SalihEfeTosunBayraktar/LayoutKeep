@@ -133,3 +133,37 @@ def test_the_same_line_under_two_labels_takes_the_surer_label() -> None:
         LayoutRegion("list_item", (96, 96, 304, 124), 0.71),
     ]
     assert [b.role for b in _read(boxes, regions).blocks] == [BlockRole.LIST]
+
+
+def test_table_cells_stay_separate_blocks() -> None:
+    """Book page 451: a function table's column came back merged into one block."""
+    boxes = [*_paragraph(100, 100, 3)]
+    boxes += [_box(text, 600, 400 + i * 22, 150) for i, text in enumerate(
+        ["High-impedance", "High-impedance", "Input data to RAM", "Output data from RAM"])]
+    regions = [
+        LayoutRegion("text", (95, 95, 705, 185), 0.97),
+        LayoutRegion("table", (90, 390, 800, 500), 0.9),
+    ]
+    page = _read(boxes, regions)
+    cells = [b.text for b in page.blocks if b.bbox.y0 >= 390]
+    assert cells == ["High-impedance", "High-impedance", "Input data to RAM", "Output data from RAM"]
+
+
+def test_the_ceiling_does_not_shrink_ordinary_body_text() -> None:
+    """Book page 451: capping at the median WORD box cut ordinary paragraphs down.
+
+    One paragraph of many short word boxes in a smaller size outnumbers the boxes of two
+    ordinary paragraphs, so the median over word boxes is the small size. Measured per block,
+    two of three paragraphs are the ordinary size, and that is the body.
+    """
+    dense = [_box(f"s{i}", 100 + i * 60, 100 + (i // 9) * 30, 50, height=18) for i in range(9)]
+    first = [_box(f"a{i}", 100 + i * 200, 300, 180, height=22) for i in range(3)]
+    second = [_box(f"b{i}", 100 + i * 200, 500, 180, height=22) for i in range(3)]
+    regions = [
+        LayoutRegion("text", (95, 95, 705, 125), 0.97),
+        LayoutRegion("text", (95, 295, 705, 325), 0.97),
+        LayoutRegion("text", (95, 495, 705, 525), 0.97),
+    ]
+    page = _read([*dense, *first, *second], regions)
+    sizes = [b.dominant_style().size for b in page.blocks]
+    assert sizes[1] == sizes[2] > sizes[0], sizes

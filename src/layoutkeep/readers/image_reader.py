@@ -398,14 +398,20 @@ def _page_from_image(
     lines = _merge_boxes_into_lines(boxes)
 
     # A layout model, when installed, says where each paragraph, heading and caption is; its
-    # text regions become blocks directly, with the role it assigned. Lines it does not place in
-    # a text region - figure labels, table cells, anything it missed - fall through to the
-    # geometric grouping below, so a page is never read worse for having the model.
+    # text regions become blocks directly, with the role it assigned. Lines it places in a
+    # picture or a table are labels and cells, one block each. Lines it places nowhere fall
+    # through to the geometric grouping below, so a page is never read worse for having it.
     groups: list[tuple[list[list[TextBox]], BlockRole | None]] = []
     rest = lines
     if layout is not None:
         regions = resolve_duplicates(layout.detect(image))
-        claimed, rest = _lines_by_region(lines, regions)
+        claimed, labels, rest = _lines_by_region(lines, regions)
+        # A table cell or a figure label is never a paragraph. Grouping them geometrically, as
+        # they were, took them away from the page they belong to: among a table's lines alone
+        # the table's own column became the "body column", and its rows were merged into one
+        # block - book page 451's function table came back as "Veri yolu durumu Yuksek
+        # empedansli Yuksek empedansli ...".
+        groups.extend(([line], None) for line in labels)
         page_line_height = _median_line_height(lines)
         for label, region_lines in claimed:
             role = LABEL_TO_ROLE.get(label, BlockRole.BODY)
@@ -458,15 +464,14 @@ _REGION_MEMBERSHIP = 0.5
 
 def _lines_by_region(
     lines: list[list[TextBox]], regions: list[LayoutRegion]
-) -> tuple[list[tuple[str, list[list[TextBox]]]], list[list[TextBox]]]:
+) -> tuple[list[tuple[str, list[list[TextBox]]]], list[list[TextBox]], list[list[TextBox]]]:
     """Put each line in the detected region holding most of it.
 
-    Returns the text regions with their lines, top to bottom, and every line in no text region.
-    Regions that are not prose (`NOT_A_PARAGRAPH`) still claim their lines, so a figure's labels
-    are not pulled into a paragraph beside it - but hand them back for geometric grouping,
-    because a figure's labels are many small pieces, not one block.
+    Returns the text regions with their lines, top to bottom; the lines inside regions that are
+    not prose (`NOT_A_PARAGRAPH` - figure labels, table cells); and the lines in no region.
     """
     members: dict[int, list[list[TextBox]]] = {}
+    labels: list[list[TextBox]] = []
     rest: list[list[TextBox]] = []
     for line in lines:
         x0 = min(b.bbox[0] for b in line)
@@ -483,8 +488,10 @@ def _lines_by_region(
             region_area = (rx1 - rx0) * (ry1 - ry0)
             if overlap / area >= _REGION_MEMBERSHIP and region_area < best_area:
                 best, best_area = index, region_area
-        if best < 0 or regions[best].label in NOT_A_PARAGRAPH:
+        if best < 0:
             rest.append(line)
+        elif regions[best].label in NOT_A_PARAGRAPH:
+            labels.append(line)
         else:
             members.setdefault(best, []).append(line)
 
@@ -492,7 +499,7 @@ def _lines_by_region(
         (regions[index].label, sorted(found, key=lambda line: min(b.bbox[1] for b in line)))
         for index, found in members.items()
     ]
-    return claimed, rest
+    return claimed, labels, rest
 
 
 #: Roles allowed to be set larger than the page's body text.
@@ -513,13 +520,16 @@ def _cap_sizes_by_role(blocks: list[Block]) -> None:
     That was the "text that grew for no reason" of the one-to-one comparison. The model now says
     which blocks are headings, so only those may exceed the body size.
     """
+    # The ceiling is the median of each running-text BLOCK's own median size, not the median over
+    # every word box. Half of all word boxes sit above their median by definition, so capping
+    # there shrank ordinary body text - page 451's paragraphs from 6.60pt to 6.32pt, visibly
+    # smaller than the source once translated. A block's median is its type size; the page's
+    # median of those is the body size, and only what exceeds it is an outlier.
     body = [
-        span.style.size
+        statistics.median(sizes)
         for block in blocks
         if block.role in _RUNNING_TEXT
-        for line in block.lines
-        for span in line.spans
-        if span.style.size > 0
+        and (sizes := [s.style.size for line in block.lines for s in line.spans if s.style.size > 0])
     ]
     if not body:
         return

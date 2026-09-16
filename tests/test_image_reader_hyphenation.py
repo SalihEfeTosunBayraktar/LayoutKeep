@@ -36,7 +36,7 @@ def _texts(lines: list[Line]) -> list[str]:
 def test_a_split_word_is_rejoined() -> None:
     lines = [_line("Table 1-1 lists the most basic iden-"), _line("tities of Boolean algebra.")]
     join_hyphenation(lines)
-    assert _texts(lines) == ["Table 1-1 lists the most basic identities of Boolean algebra."]
+    assert " ".join(_texts(lines)) == "Table 1-1 lists the most basic identities of Boolean algebra."
 
 
 def test_a_real_hyphenated_word_is_left_alone() -> None:
@@ -51,3 +51,40 @@ def test_a_dash_after_a_space_is_not_a_word_break() -> None:
     lines = [_line("the operands -"), _line("and the result")]
     join_hyphenation(lines)
     assert len(lines) == 2
+
+
+def _placed(text: str, top: float) -> Line:
+    style = Style()
+    return Line(
+        spans=[Span(text=text, bbox=BBox(74, top, 308, top + 8), style=style)],
+        bbox=BBox(74, top, 308, top + 8),
+    )
+
+
+def test_rejoining_keeps_the_second_lines_place_on_the_page() -> None:
+    """Book pages 28 and 451, translated: the line after a break stayed visible in English.
+
+    The whole of the next line used to be folded into the hyphenated one and the next line
+    deleted, while the surviving line kept its own one-line box. The block's box is the union of
+    its lines, so it stopped a line short, the writer painted out only that box, and the source
+    line `ing term it represents is A'BC'D.` stayed on the page under the translation.
+
+    Only the word fragment moves; the rest of the second line keeps its line and its box.
+    """
+    lines = [
+        _placed("variables. The binary number contains the four bits 0101, and the correspond-", 335),
+        _placed("ing term it represents is A'BC'D.", 343),
+    ]
+    join_hyphenation(lines)
+    assert " ".join(_texts(lines)) == (
+        "variables. The binary number contains the four bits 0101, and the corresponding "
+        "term it represents is A'BC'D."
+    )
+    assert max(line.bbox.y1 for line in lines) == 351
+
+
+def test_a_second_line_that_was_only_the_fragment_leaves_its_box_behind() -> None:
+    lines = [_placed("the correspond-", 335), _placed("ing", 343)]
+    join_hyphenation(lines)
+    assert _texts(lines) == ["the corresponding"]
+    assert lines[0].bbox.y1 == 351
