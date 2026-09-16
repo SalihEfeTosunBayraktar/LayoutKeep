@@ -35,7 +35,12 @@ from layoutkeep.core.docir import (
     Style,
 )
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
-from layoutkeep.readers.image_reader import is_scanned_page, page_from_rendered_page
+from layoutkeep.readers.image_reader import (
+    is_scanned_page,
+    mean_confidence,
+    needs_higher_resolution,
+    page_from_rendered_page,
+)
 
 _BOLD_FLAG = 1 << 4  # pymupdf span flag bit for bold
 _ITALIC_FLAG = 1 << 1  # pymupdf span flag bit for italic
@@ -171,6 +176,27 @@ def _read_page(page: pymupdf.Page, index: int) -> _RawPage:
 #: own preferred glyph height.
 _SCAN_OCR_DPI = 200.0
 
+#: Resolution a badly-read page is rendered at for its second pass (see
+#: `image_reader.needs_higher_resolution`). Page 54 of the same book is why: at 200 DPI a clean
+#: line of type came out as "Sin os -ns ( s ms o ong", and at 300 it reads correctly, recovering
+#: 9.4% more characters on that page. Across six pages the same change is worth only +1.5%, so
+#: it is not the default - it is what a page gets when the cheap pass reports too much doubt.
+_SCAN_OCR_RETRY_DPI = 300.0
+
+
+def _ocr_at(page: pymupdf.Page, index: int, dpi: float):
+    """Rasterise `page` at `dpi` and hand the pixels to OCR."""
+    pixmap = page.get_pixmap(dpi=int(dpi))
+    image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
+    return page_from_rendered_page(
+        image,
+        number=index + 1,
+        source_ref=str(index),
+        dpi=dpi,
+        width_pt=page.rect.width,
+        height_pt=page.rect.height,
+    )
+
 
 def _read_scanned_page(
     page: pymupdf.Page, index: int, *, top_edge: float, bottom_edge: float
@@ -182,16 +208,14 @@ def _read_scanned_page(
     all) did. The OCR itself lives in `readers/image_reader.py`; this only supplies the pixels,
     because CONTRACT.md keeps the pymupdf import on this side of the boundary.
     """
-    pixmap = page.get_pixmap(dpi=int(_SCAN_OCR_DPI))
-    image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
-    ocr_page = page_from_rendered_page(
-        image,
-        number=index + 1,
-        source_ref=str(index),
-        dpi=_SCAN_OCR_DPI,
-        width_pt=page.rect.width,
-        height_pt=page.rect.height,
-    )
+    ocr_page = _ocr_at(page, index, _SCAN_OCR_DPI)
+    if needs_higher_resolution(ocr_page):
+        # Enough of the page came back doubtful to be worth the extra pixels. Both passes are
+        # kept and the better one wins: page 61 of this same book reads a line correctly at 200
+        # and garbles it at 300, so the higher resolution has to earn its place.
+        retry = _ocr_at(page, index, _SCAN_OCR_RETRY_DPI)
+        if mean_confidence(retry) > mean_confidence(ocr_page):
+            ocr_page = retry
     ocr_page.scanned = True
     # The scan itself is the page's only picture; writers that rebuild the document need it, and
     # the pdf writer needs it to paint over the burnt-in source text.

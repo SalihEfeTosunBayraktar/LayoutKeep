@@ -83,6 +83,45 @@ def read_image(path: str | Path, *, engine: OcrEngine | None = None) -> Document
     return doc
 
 
+#: Share of a page's blocks that may sit below the review threshold before the page is treated
+#: as badly read and worth a second, higher-resolution pass.
+#:
+#: Measured over nine pages of `computer-systems-Architecture.pdf` at 200 DPI: the share runs
+#: 0.0-4.7% on the seven that read cleanly, and 12.0% and 11.2% on the two that did not. The
+#: threshold sits in that gap. Page 54 is the case it exists for - a pristine 600-DPI scan of
+#: "Simplify the following expressions in (1) sum-of-products" that came out as
+#: "Sin os -ns ( s ms o ong", and reads correctly at 300.
+#:
+#: Raising the resolution for every page instead would pay 2.25x the pixels for +1.5%
+#: characters and +0.006 mean confidence across those nine, and OCR is the CPU-bound half of a
+#: run - so the cost goes where the cheap pass actually failed.
+_RETRY_LOWCONF_SHARE = 0.08
+
+
+def mean_confidence(page: Page) -> float:
+    """Mean OCR confidence over a page's blocks; 0.0 for a page with none.
+
+    Used to pick between two passes rather than to assume the higher resolution won - page 61
+    of the same book reads one line correctly at 200 DPI and garbles it at 300, so more pixels
+    is not automatically better and the reader measures instead.
+    """
+    if not page.blocks:
+        return 0.0
+    return sum(b.confidence for b in page.blocks) / len(page.blocks)
+
+
+def needs_higher_resolution(page: Page) -> bool:
+    """True when enough of the page's blocks are doubtful that it is worth rendering again.
+
+    An empty page is not a failed read - it is a plate or a blank leaf, and re-rendering it
+    would find nothing twice.
+    """
+    if not page.blocks:
+        return False
+    doubtful = sum(1 for b in page.blocks if b.confidence < NEEDS_REVIEW_THRESHOLD)
+    return doubtful / len(page.blocks) > _RETRY_LOWCONF_SHARE
+
+
 def page_from_rendered_page(
     image: Image.Image,
     *,
