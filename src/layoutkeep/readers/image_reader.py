@@ -395,6 +395,38 @@ _DEINDENT_LIMIT = 3.0
 _LINE_GAP_RATIO = 0.6
 
 
+#: How wide a line must be, against the page's widest, to count as body text when locating the
+#: body column.
+#:
+#: The column used to be the median left edge over every line, which works on a page of prose
+#: and fails on anything else: figure labels, grid cells and table entries sit scattered to the
+#: right and drag the median with them. Measured at 200 DPI against a body column at 205px, the
+#: median landed at 308 on page 28 and 377 on page 121, so real body lines were each mistaken
+#: for a margin note and every line of every paragraph came back as its own block - 17 and 14
+#: blocks beginning mid-sentence on those two pages alone.
+#:
+#: Body lines are long and labels are short. Half of the page's own widest line separates them
+#: on every page type measured - figure-heavy, table-heavy, prose, and hanging-indent exercise
+#: lists - without needing to know anything about the book.
+_BODY_LINE_SHARE = 0.5
+
+
+def _body_column(lines: list[list[TextBox]]) -> float:
+    """Where this page's body text starts: the median left edge among its long lines."""
+    spans = [
+        (
+            min(b.bbox[0] for b in line),
+            max(b.bbox[2] for b in line) - min(b.bbox[0] for b in line),
+        )
+        for line in lines
+    ]
+    widest = max(width for _x0, width in spans)
+    long_lefts = [x0 for x0, width in spans if width >= widest * _BODY_LINE_SHARE]
+    # A page with no long lines at all - a table of contents, an index - has its widest line as
+    # the reference, so this cannot come back empty.
+    return statistics.median(long_lefts or [x0 for x0, _w in spans])
+
+
 def _merge_lines_into_paragraphs(lines: list[list[TextBox]]) -> list[list[list[TextBox]]]:
     """Group consecutive lines into paragraphs by vertical gap and left-alignment.
 
@@ -420,8 +452,7 @@ def _merge_lines_into_paragraphs(lines: list[list[TextBox]]) -> list[list[list[T
     if not lines:
         return []
 
-    left_edges = sorted(min(b.bbox[0] for b in line) for line in lines)
-    body_x0 = left_edges[len(left_edges) // 2]
+    body_x0 = _body_column(lines)
 
     paragraphs: list[list[list[TextBox]]] = [[lines[0]]]
     open_index = 0
