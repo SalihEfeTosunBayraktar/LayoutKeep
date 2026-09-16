@@ -32,13 +32,13 @@ EXIT_FAILED = 1
 # --------------------------------------------------------------------------------------
 
 
-def _read_document(path: Path) -> Document:
+def _read_document(path: Path, classifier=None) -> Document:
     # Dokümanı veya görseli DocIR'e okur / Reads document or image into DocIR
     from layoutkeep.writers.converter import read_any_document
 
     suffix = path.suffix.lower()
     try:
-        return read_any_document(path)
+        return read_any_document(path, classifier=classifier)
     except ImportError as exc:
         raise SystemExit(
             f"Required library is not available ({exc}). Please install appropriate extras."
@@ -117,6 +117,22 @@ def _build_provider(args: argparse.Namespace):
 # --------------------------------------------------------------------------------------
 
 
+def _layout_classifier(args: argparse.Namespace):
+    """The vision model that says what each region of a scanned page is, or None.
+
+    Off by default: it is one request per page, and a document with a text layer does not need
+    it - the fonts already say what is a heading and what is an equation. On a scan they are the
+    only thing that does. Measured over ten pages of a 524-page scan, it took the font-size
+    spread from 1.16 to 1.00 and left every other reading unchanged (see ocr/layout_vlm.py).
+    """
+    model = getattr(args, "classify_layout", None)
+    if not model:
+        return None
+    from layoutkeep.ocr.layout_vlm import openai_vision_chat
+
+    return openai_vision_chat(args.base_url, model)
+
+
 def cmd_inspect(args: argparse.Namespace) -> int:
     """Show what the reader actually understood. This is the phase-0 debugging workhorse.
 
@@ -125,7 +141,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     until you look at the counts.
     """
     src = Path(args.input)
-    doc = _read_document(src)
+    doc = _read_document(src, _layout_classifier(args))
     segments = segments_from_document(doc)
 
     roles = Counter(block.role.value for _, block in doc.iter_blocks())
@@ -191,7 +207,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
         )
 
     print(f"reading   {src}")
-    doc = _read_document(src)
+    doc = _read_document(src, _layout_classifier(args))
     doc.source_lang = args.from_lang
     doc.target_lang = args.to_lang
 
@@ -440,6 +456,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="pin the per-request timeout. Omit it and the timeout adapts: a large "
                          "allowance while a cold model loads, then the throughput measured from "
                          "the first batch")
+    tr.add_argument(
+        "--classify-layout",
+        metavar="MODEL",
+        help="a vision model that labels each region of a SCANNED page (heading, formula, "
+             "running header, ...). One request per page; needs a server that accepts images",
+    )
     tr.add_argument("--fit-mode", choices=["strict", "reflow"], default="strict",
                     help="strict keeps the original boxes; reflow lets blocks grow (PDF only)")
     tr.add_argument("--memory", default=None, metavar="PATH",

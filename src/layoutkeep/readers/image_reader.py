@@ -19,6 +19,7 @@ This module must not `import pymupdf` (CONTRACT.md S4 reserves that to the two P
 from __future__ import annotations
 
 import math
+import statistics
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +38,7 @@ from layoutkeep.core.docir import (
     Style,
 )
 from layoutkeep.ocr.engine import OcrEngine, RapidOcrEngine, TextBox
+from layoutkeep.ocr.layout_vlm import ChatFn, classify
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 
 #: Below this OCR confidence, the containing block is flagged for human review.
@@ -122,6 +124,44 @@ def needs_higher_resolution(page: Page) -> bool:
     return doubtful / len(page.blocks) > _RETRY_LOWCONF_SHARE
 
 
+def _apply_region_verdicts(page: Page, image: Image.Image, classifier: ChatFn) -> None:
+    """Let a vision model say what each block is, and stop a tall box dictating a large font.
+
+    Role first: telling a heading from a displayed formula from a running header is the one
+    judgement that has no signal in the geometry. Everything here used to be decided from the
+    height of the detected box, so an equation with a sigma in it was promoted to a heading and
+    redrawn half again as large - text that grew for no reason.
+
+    Then size. A block the model calls `same` or `smaller` than the page's body text keeps the
+    page's median size however tall its own box happens to be, which is what a folio sharing a
+    line with the running header did to it (9.57pt against a 6.3pt page).
+
+    Blocks are the unit asked about rather than detected lines: a block is what carries a role
+    and a size, so the answers map onto them one for one, and there are fewer of them to list.
+    """
+    blocks = page.blocks
+    if not blocks:
+        return
+    boxes = [(b.bbox.x0, b.bbox.y0, b.bbox.x1, b.bbox.y1) for b in blocks]
+    verdicts = classify(image, boxes, [b.text for b in blocks], classifier)
+    if not verdicts:
+        return
+
+    sizes = [b.dominant_style().size for b in blocks if b.dominant_style().size > 0]
+    body_size = statistics.median(sizes) if sizes else 0.0
+
+    for index, block in enumerate(blocks, start=1):
+        verdict = verdicts.get(index)
+        if verdict is None:
+            continue
+        block.role = verdict.role
+        if verdict.size != "larger" and body_size > 0:
+            for line in block.lines:
+                for span in line.spans:
+                    if span.style.size > body_size:
+                        span.style.size = body_size
+
+
 def page_from_rendered_page(
     image: Image.Image,
     *,
@@ -131,6 +171,7 @@ def page_from_rendered_page(
     width_pt: float,
     height_pt: float,
     engine: OcrEngine | None = None,
+    classifier: ChatFn | None = None,
 ) -> Page:
     """OCR one rendered page of a scanned document and return it in PDF points.
 
@@ -146,6 +187,9 @@ def page_from_rendered_page(
     image.info["dpi"] = (dpi, dpi)
     page = _page_from_image(image, number=number, source_ref=source_ref, engine=engine)
     _grant_blank_paper(page, np.array(image.convert("L")), dpi=dpi)
+
+    if classifier is not None:
+        _apply_region_verdicts(page, image, classifier)
 
     scale = 72.0 / dpi
     for block in page.blocks:

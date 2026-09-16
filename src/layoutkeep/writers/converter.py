@@ -15,7 +15,7 @@ DOCUMENT_EXTENSIONS = frozenset({".pdf", ".epub", ".docx", ".html", ".htm", ".lk
 SUPPORTED_INPUT_EXTENSIONS = DOCUMENT_EXTENSIONS | IMAGE_EXTENSIONS
 
 
-def read_any_document(path: Path) -> Document:
+def read_any_document(path: Path, *, classifier=None) -> Document:
     # Desteklenen herhangi bir formattaki dosyayı DocIR'e okur / Reads any supported file into DocIR
     path = Path(path)
     if not path.exists():
@@ -34,7 +34,9 @@ def read_any_document(path: Path) -> Document:
         return read_epub(path)
     if suffix == ".pdf":
         from layoutkeep.readers.pdf_reader import read_pdf
-        return read_pdf(path)
+        # `classifier` only reaches a SCANNED page; a PDF with a text layer needs no model
+        # to tell a heading from a formula, it has the fonts (see ocr/layout_vlm.py).
+        return read_pdf(path, classifier=classifier)
     if suffix == ".docx":
         from layoutkeep.readers.docx_reader import read_docx
         return read_docx(path)

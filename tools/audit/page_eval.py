@@ -46,8 +46,8 @@ def _say(line: str) -> None:
     sys.stdout.write(line.encode(encoding, errors="replace").decode(encoding) + chr(10))
 
 
-def measure_page(path: Path) -> dict[str, float]:
-    page = read_pdf(path).pages[0]
+def measure_page(path: Path, classifier=None) -> dict[str, float]:
+    page = read_pdf(path, classifier=classifier).pages[0]
     blocks = page.blocks
     if not blocks:
         return {"blocks": 0, "frag": 0, "size_spread": 0.0, "tall": 0, "lowconf": 0, "chars": 0}
@@ -76,10 +76,22 @@ def main() -> int:
     parser.add_argument("--source", type=Path, default=Path(r"C:\PhoneLink\computer-systems-Architecture.pdf"))
     parser.add_argument("--pages", default=",".join(str(p) for p in DEFAULT_PAGES))
     parser.add_argument("--work", type=Path, default=Path("_artifacts/eval"))
+    parser.add_argument(
+        "--classify",
+        metavar="MODEL",
+        help="ask this vision model what each region is (see ocr/layout_vlm.py)",
+    )
+    parser.add_argument("--base-url", default="http://localhost:1234/v1")
     args = parser.parse_args()
 
     pages = [int(p) for p in args.pages.split(",") if p.strip()]
     args.work.mkdir(parents=True, exist_ok=True)
+
+    classifier = None
+    if args.classify:
+        from layoutkeep.ocr.layout_vlm import openai_vision_chat
+
+        classifier = openai_vision_chat(args.base_url, args.classify)
 
     rows: list[tuple[int, dict[str, float]]] = []
     with pymupdf.open(str(args.source)) as src:
@@ -90,7 +102,7 @@ def main() -> int:
                 part.insert_pdf(src, from_page=human - 1, to_page=human - 1)
                 part.save(str(one))
                 part.close()
-            rows.append((human, measure_page(one)))
+            rows.append((human, measure_page(one, classifier)))
 
     _say(f"{'page':>5} {'blocks':>6} {'frag':>4} {'spread':>6} {'tall':>4} {'lowconf':>7} {'chars':>6}")
     for human, m in rows:
