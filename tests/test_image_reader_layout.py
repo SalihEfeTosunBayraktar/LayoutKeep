@@ -167,3 +167,21 @@ def test_the_ceiling_does_not_shrink_ordinary_body_text() -> None:
     page = _read([*dense, *first, *second], regions)
     sizes = [b.dominant_style().size for b in page.blocks]
     assert sizes[1] == sizes[2] > sizes[0], sizes
+
+
+def test_table_cells_do_not_pull_the_body_size_down() -> None:
+    """Book page 451 after the first ceiling fix: still 6.03pt against a 6.60pt body.
+
+    Table cells and figure labels are blocks too, in small type, and there are many of them.
+    Counted as running text they outvote the paragraphs; only text regions measure the body.
+    """
+    paragraph = [_box(f"p{i}", 100, 100 + i * 30, 600, height=22) for i in range(2)]
+    cells = [_box(f"c{i}", 100 + (i % 3) * 200, 400 + (i // 3) * 22, 150, height=16) for i in range(9)]
+    regions = [
+        LayoutRegion("text", (95, 95, 705, 155), 0.97),
+        LayoutRegion("table", (90, 390, 800, 480), 0.9),
+    ]
+    page = _read([*paragraph, *cells], regions)
+    body = next(b for b in page.blocks if b.text.startswith("p0"))
+    reference = _read(paragraph, regions[:1]).blocks[0]
+    assert body.dominant_style().size == reference.dominant_style().size

@@ -432,14 +432,16 @@ def _page_from_image(
         groups.extend((para, None) for para in _merge_lines_into_paragraphs(region.lines))
 
     blocks: list[Block] = []
+    from_text_regions: list[Block] = []
     for i, (para, role) in enumerate(groups):
         block = _block_from_paragraph(para, pixels, dpi, index=i, page_index=number - 1)
         if role is not None:
             block.role = role
+            from_text_regions.append(block)
         blocks.append(block)
 
     if layout is not None:
-        _cap_sizes_by_role(blocks)
+        _cap_sizes_by_role(blocks, measured_from=from_text_regions)
         blocks = _in_reading_order(blocks, lines)
     for i, block in enumerate(blocks):
         block.order = i
@@ -512,7 +514,7 @@ _MAY_BE_LARGER = frozenset({BlockRole.TITLE, BlockRole.HEADING})
 _RUNNING_TEXT = frozenset({BlockRole.BODY, BlockRole.LIST})
 
 
-def _cap_sizes_by_role(blocks: list[Block]) -> None:
+def _cap_sizes_by_role(blocks: list[Block], *, measured_from: list[Block]) -> None:
     """Stop a tall box making text that is not a heading larger than the body.
 
     The size of an OCR'd span comes from its box height, and a box grows for reasons that have
@@ -525,9 +527,13 @@ def _cap_sizes_by_role(blocks: list[Block]) -> None:
     # there shrank ordinary body text - page 451's paragraphs from 6.60pt to 6.32pt, visibly
     # smaller than the source once translated. A block's median is its type size; the page's
     # median of those is the body size, and only what exceeds it is an outlier.
+    #
+    # Measured only over blocks the model placed in a text region. Table cells and figure labels
+    # are blocks too, in small type and in numbers: counted as body they outvoted the paragraphs
+    # and page 451 still came out at 6.03pt against 6.60pt after the median was fixed.
     body = [
         statistics.median(sizes)
-        for block in blocks
+        for block in measured_from
         if block.role in _RUNNING_TEXT
         and (sizes := [s.style.size for line in block.lines for s in line.spans if s.style.size > 0])
     ]
