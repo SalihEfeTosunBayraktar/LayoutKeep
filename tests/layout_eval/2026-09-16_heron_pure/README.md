@@ -53,3 +53,39 @@ The model alone solves region finding and labelling far better than any rule thi
 on real documents. What it does not do by itself: resolve its duplicate boxes, guarantee a
 region holds one column, give reading order, or give type sizes. Those are the only things worth
 building on top - each to be measured against this baseline.
+
+## Layers added on top, each measured
+
+**1. Duplicate boxes** (`layout_detector.resolve_duplicates`): a box holding two or more other
+prose boxes is dropped as their union; of two boxes over the same text, the higher score stays.
+Across all 50 pages: dup 190 -> 3, orphan lines 28 -> 29.
+
+**2. Reader integration** (`image_reader._page_from_image(layout=...)`): each text region
+becomes blocks with the model's role; inside a region the page's whitespace (XY-cut) still
+separates what the box merged; lines in no region, or in a picture/table, take the old path;
+blocks are ordered by XY-cut; nothing but a title or heading may be larger than body/list text.
+
+`tools/audit/page_eval.py`, 10 book pages:
+
+| | blocks | frag | tall | lowconf | chars | size spread median / max |
+|---|---|---|---|---|---|---|
+| before this branch | 279 | 17 | 24 | 20 | 18612 | - |
+| XY-cut only (no model) | 271 | 17 | 28* | 20 | 18620 | 1.15 / 1.39 |
+| XY-cut + model | 274 | **8** | **21** | 19 | 18615 | **1.00 / 1.09** |
+
+\* not a regression: the same 13.8pt boxes exist in both; three fewer single-line blocks moved
+the metric's median from 8.6 to 8.3, and 13.8/8.3 crosses its 1.6 threshold where 13.8/8.6 did
+not (page 451).
+
+Synthetic styles, 18 pages: 0 fragments with and without the model.
+
+Notes document: spread median 1.32 -> 1.28, max 1.63 -> 1.67 - **a correction, not a
+regression**: the notebook's printed "my notes" label is now a heading and keeps its 30pt,
+where an earlier attempt (before duplicates were resolved) wrongly capped it to body size and
+the metric looked better for it.
+
+**Known limit, measured and left:** paragraphs separated only by a first-line indent, with no
+blank space between them, come out as one block when the model boxes them together (synthetic
+`turkish` 3 -> 1, `small_trim` body 3 -> 1). Adding the indent rule back inside regions fixes
+those and costs the book frag 8 -> 15, so it is not added. On the book itself the model splits
+such paragraphs correctly (`first_probe_book_p61.jpg`).

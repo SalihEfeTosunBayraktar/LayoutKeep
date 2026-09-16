@@ -46,8 +46,8 @@ def _say(line: str) -> None:
     sys.stdout.write(line.encode(encoding, errors="replace").decode(encoding) + chr(10))
 
 
-def measure_page(path: Path, classifier=None) -> dict[str, float]:
-    page = read_pdf(path, classifier=classifier).pages[0]
+def measure_page(path: Path, classifier=None, layout=None) -> dict[str, float]:
+    page = read_pdf(path, classifier=classifier, layout=layout).pages[0]
     blocks = page.blocks
     if not blocks:
         return {"blocks": 0, "frag": 0, "size_spread": 0.0, "tall": 0, "lowconf": 0, "chars": 0}
@@ -82,6 +82,11 @@ def main() -> int:
         help="ask this vision model what each region is (see ocr/layout_vlm.py)",
     )
     parser.add_argument("--base-url", default="http://localhost:1234/v1")
+    parser.add_argument(
+        "--layout",
+        action="store_true",
+        help="use the layout detector (see ocr/layout_detector.py)",
+    )
     args = parser.parse_args()
 
     pages = [int(p) for p in args.pages.split(",") if p.strip()]
@@ -93,6 +98,15 @@ def main() -> int:
 
         classifier = openai_vision_chat(args.base_url, args.classify)
 
+    layout = None
+    if args.layout:
+        from layoutkeep.ocr.layout_detector import load_detector
+
+        layout = load_detector()
+        if layout is None:
+            _say("layout model not installed")
+            return 1
+
     rows: list[tuple[int, dict[str, float]]] = []
     with pymupdf.open(str(args.source)) as src:
         for human in pages:
@@ -102,7 +116,7 @@ def main() -> int:
                 part.insert_pdf(src, from_page=human - 1, to_page=human - 1)
                 part.save(str(one))
                 part.close()
-            rows.append((human, measure_page(one, classifier)))
+            rows.append((human, measure_page(one, classifier, layout)))
 
     _say(f"{'page':>5} {'blocks':>6} {'frag':>4} {'spread':>6} {'tall':>4} {'lowconf':>7} {'chars':>6}")
     for human, m in rows:

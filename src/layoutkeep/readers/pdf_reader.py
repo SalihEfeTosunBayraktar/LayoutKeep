@@ -34,6 +34,7 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
+from layoutkeep.ocr.layout_detector import LayoutDetector
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 from layoutkeep.readers.image_reader import (
@@ -82,7 +83,12 @@ class _RawPage:
     images: list[BBox] = field(default_factory=list)
 
 
-def read_pdf(path: str | Path, *, classifier: ChatFn | None = None) -> Document:
+def read_pdf(
+    path: str | Path,
+    *,
+    classifier: ChatFn | None = None,
+    layout: LayoutDetector | None = None,
+) -> Document:
     """Read a PDF file into a DocIR Document.
 
     `classifier`, when given, is a vision model asked what each region of a SCANNED page is
@@ -95,7 +101,7 @@ def read_pdf(path: str | Path, *, classifier: ChatFn | None = None) -> Document:
     raw_pages: list[_RawPage] = []
     with pymupdf.open(str(path)) as src:
         for index in range(src.page_count):
-            raw_pages.append(_read_page(src[index], index, classifier=classifier))
+            raw_pages.append(_read_page(src[index], index, classifier=classifier, layout=layout))
 
     doc = Document(source_path=str(path), source_format="pdf")
     _classify_roles(raw_pages)
@@ -111,7 +117,11 @@ def read_pdf(path: str | Path, *, classifier: ChatFn | None = None) -> Document:
 
 
 def _read_page(
-    page: pymupdf.Page, index: int, *, classifier: ChatFn | None = None
+    page: pymupdf.Page,
+    index: int,
+    *,
+    classifier: ChatFn | None = None,
+    layout: LayoutDetector | None = None,
 ) -> _RawPage:
     width, height = page.rect.width, page.rect.height
     top_edge = height * _MARGIN_RATIO
@@ -127,7 +137,12 @@ def _read_page(
     coverage = covered / page_area if page_area > 0 else 0.0
     if is_scanned_page(page.get_text(), page_area, coverage):
         return _read_scanned_page(
-            page, index, top_edge=top_edge, bottom_edge=bottom_edge, classifier=classifier
+            page,
+            index,
+            top_edge=top_edge,
+            bottom_edge=bottom_edge,
+            classifier=classifier,
+            layout=layout,
         )
 
     text_dict = page.get_text("dict")
@@ -206,7 +221,11 @@ _SCAN_OCR_RETRY_DPI = 300.0
 
 
 def _ocr_at(
-    page: pymupdf.Page, index: int, dpi: float, classifier: ChatFn | None = None
+    page: pymupdf.Page,
+    index: int,
+    dpi: float,
+    classifier: ChatFn | None = None,
+    layout: LayoutDetector | None = None,
 ):
     """Rasterise `page` at `dpi` and hand the pixels to OCR."""
     pixmap = page.get_pixmap(dpi=int(dpi))
@@ -219,6 +238,7 @@ def _ocr_at(
         width_pt=page.rect.width,
         height_pt=page.rect.height,
         classifier=classifier,
+        layout=layout,
     )
 
 
@@ -229,6 +249,7 @@ def _read_scanned_page(
     top_edge: float,
     bottom_edge: float,
     classifier: ChatFn | None = None,
+    layout: LayoutDetector | None = None,
 ) -> _RawPage:
     """A page with no text layer: rasterise it and let OCR find the text.
 
@@ -237,13 +258,13 @@ def _read_scanned_page(
     all) did. The OCR itself lives in `readers/image_reader.py`; this only supplies the pixels,
     because CONTRACT.md keeps the pymupdf import on this side of the boundary.
     """
-    ocr_page = _ocr_at(page, index, _SCAN_OCR_DPI, classifier)
+    ocr_page = _ocr_at(page, index, _SCAN_OCR_DPI, classifier, layout)
     if needs_higher_resolution(ocr_page):
         # Enough of the page came back doubtful to be worth the extra pixels. Both passes are
         # kept and the better one wins, judged on how much text each recovered rather than on
         # how sure it sounds: page 61 of this book reads a line correctly at 200 and garbles it
         # at 300, and on page 451 the surer pass is the one that read 65 characters fewer.
-        retry = _ocr_at(page, index, _SCAN_OCR_RETRY_DPI, classifier)
+        retry = _ocr_at(page, index, _SCAN_OCR_RETRY_DPI, classifier, layout)
         if expected_characters(retry) > expected_characters(ocr_page):
             ocr_page = retry
     ocr_page.scanned = True

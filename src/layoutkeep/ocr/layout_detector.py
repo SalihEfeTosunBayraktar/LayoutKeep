@@ -142,3 +142,57 @@ def load_detector(model_path: Path | None = None) -> LayoutDetector | None:
         return HeronDetector(path)
     except Exception:  # noqa: BLE001 - an unloadable model means "no detector", never a crash
         return None
+
+
+#: Labels that box a stretch of running text. Duplicates are resolved among these only; a text
+#: region inside a picture, a table or a form is hierarchy, not duplication.
+PROSE: frozenset[str] = frozenset(
+    {"caption", "footnote", "list_item", "page_footer", "page_header", "section_header", "text",
+     "title", "document_index", "code", "formula"}
+)
+
+#: Two boxes overlapping this much (intersection over the smaller box) are the same text boxed
+#: twice. High on purpose: a heading directly above a paragraph touches it but barely overlaps.
+_SAME_TEXT = 0.8
+
+
+def _area(box: tuple[float, float, float, float]) -> float:
+    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
+
+
+def _share_of_smaller(a: LayoutRegion, b: LayoutRegion) -> float:
+    ix = max(0.0, min(a.bbox[2], b.bbox[2]) - max(a.bbox[0], b.bbox[0]))
+    iy = max(0.0, min(a.bbox[3], b.bbox[3]) - max(a.bbox[1], b.bbox[1]))
+    smaller = min(_area(a.bbox), _area(b.bbox))
+    return ix * iy / smaller if smaller > 0 else 0.0
+
+
+def resolve_duplicates(regions: list[LayoutRegion]) -> list[LayoutRegion]:
+    """Keep one box per stretch of text.
+
+    The model boxes the same text twice in two ways, both seen in
+    `tests/layout_eval/2026-09-16_heron_pure/`:
+
+      * a loose box around several paragraphs beside a tight box for each (A4 fixture: 0.66
+        over all three, 0.76-0.80 for each). The loose one is dropped: a box that holds two or
+        more other prose boxes is a union of them, not a block of its own.
+      * two near-identical boxes with different labels - a symbol-list entry as both `text` and
+        `list_item` (NASA report, 107 duplicates on five pages). The higher-scoring one is kept,
+        because the choice between them is exactly what the score expresses.
+    """
+    prose = [r for r in regions if r.label in PROSE]
+    others = [r for r in regions if r.label not in PROSE]
+
+    unions = {
+        id(outer) for outer in prose
+        if sum(
+            1 for inner in prose
+            if inner is not outer and _area(inner.bbox) < _area(outer.bbox)
+            and _share_of_smaller(inner, outer) >= _SAME_TEXT
+        ) >= 2
+    }
+    kept: list[LayoutRegion] = []
+    for region in sorted((r for r in prose if id(r) not in unions), key=lambda r: -r.score):
+        if all(_share_of_smaller(region, k) < _SAME_TEXT for k in kept):
+            kept.append(region)
+    return kept + others

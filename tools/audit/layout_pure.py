@@ -36,7 +36,7 @@ import pymupdf
 from PIL import Image, ImageDraw
 
 from layoutkeep.ocr.engine import RapidOcrEngine
-from layoutkeep.ocr.layout_detector import load_detector
+from layoutkeep.ocr.layout_detector import load_detector, resolve_duplicates
 from layoutkeep.readers.image_reader import _merge_boxes_into_lines
 
 _COLORS = {"text": "red", "section_header": "blue", "title": "blue", "caption": "green",
@@ -56,8 +56,10 @@ def _inside(inner, outer, share: float = 0.5) -> bool:
     return ix * iy / area >= share
 
 
-def measure(image: Image.Image, detector, engine, out_png: Path) -> dict:
+def measure(image: Image.Image, detector, engine, out_png: Path, *, resolve: bool = False) -> dict:
     regions = detector.detect(image)
+    if resolve:
+        regions = resolve_duplicates(regions)
     lines = _merge_boxes_into_lines(engine.recognize(image))
     line_boxes = [
         (min(b.bbox[0] for b in ln), min(b.bbox[1] for b in ln),
@@ -130,6 +132,7 @@ def main() -> int:
     parser.add_argument("--pages", default="1", help="1-based, applied to every source")
     parser.add_argument("--dpi", type=float, default=200.0)
     parser.add_argument("--work", type=Path, default=Path("_artifacts/pure"))
+    parser.add_argument("--resolve", action="store_true", help="apply resolve_duplicates first")
     args = parser.parse_args()
     args.work.mkdir(parents=True, exist_ok=True)
 
@@ -150,7 +153,7 @@ def main() -> int:
                 pix = doc[number - 1].get_pixmap(dpi=int(args.dpi))
                 image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
                 name = f"{source.stem[:24]}_p{number}"
-                m = measure(image, detector, engine, args.work / f"pure_{name}.png")
+                m = measure(image, detector, engine, args.work / f"pure_{name}.png", resolve=args.resolve)
                 for key in ("regions", "dup", "orphan", "lines", "shared", "frag", "mixed_col"):
                     totals[key] += m[key]
                 _say(f"{name:<34} {m['regions']:3d} {m['dup']:4d} {m['orphan']:4d}/{m['lines']:<5d} "

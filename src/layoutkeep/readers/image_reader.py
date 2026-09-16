@@ -38,8 +38,16 @@ from layoutkeep.core.docir import (
     Style,
 )
 from layoutkeep.ocr.engine import OcrEngine, RapidOcrEngine, TextBox
+from layoutkeep.ocr.layout_detector import (
+    LABEL_TO_ROLE,
+    NOT_A_PARAGRAPH,
+    LayoutDetector,
+    LayoutRegion,
+    resolve_duplicates,
+)
 from layoutkeep.ocr.layout_vlm import ChatFn, classify
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
+from layoutkeep.readers._segment import segment
 
 #: Below this OCR confidence, the containing block is flagged for human review.
 NEEDS_REVIEW_THRESHOLD = 0.80
@@ -249,6 +257,7 @@ def page_from_rendered_page(
     height_pt: float,
     engine: OcrEngine | None = None,
     classifier: ChatFn | None = None,
+    layout: LayoutDetector | None = None,
 ) -> Page:
     """OCR one rendered page of a scanned document and return it in PDF points.
 
@@ -262,7 +271,9 @@ def page_from_rendered_page(
     every size and overflow the refitted boxes.
     """
     image.info["dpi"] = (dpi, dpi)
-    page = _page_from_image(image, number=number, source_ref=source_ref, engine=engine)
+    page = _page_from_image(
+        image, number=number, source_ref=source_ref, engine=engine, layout=layout
+    )
     _grant_blank_paper(page, np.array(image.convert("L")), dpi=dpi)
 
     if classifier is not None:
@@ -372,7 +383,12 @@ def _grant_blank_paper(page: Page, grey: np.ndarray, *, dpi: float) -> None:
 
 
 def _page_from_image(
-    image: Image.Image, *, number: int, source_ref: str, engine: OcrEngine | None = None
+    image: Image.Image,
+    *,
+    number: int,
+    source_ref: str,
+    engine: OcrEngine | None = None,
+    layout: LayoutDetector | None = None,
 ) -> Page:
     engine_ = engine if engine is not None else RapidOcrEngine()
     boxes = engine_.recognize(image)
@@ -380,13 +396,47 @@ def _page_from_image(
 
     pixels = np.array(image)
     lines = _merge_boxes_into_lines(boxes)
-    paragraphs = _merge_lines_into_paragraphs(lines)
+
+    # A layout model, when installed, says where each paragraph, heading and caption is; its
+    # text regions become blocks directly, with the role it assigned. Lines it does not place in
+    # a text region - figure labels, table cells, anything it missed - fall through to the
+    # geometric grouping below, so a page is never read worse for having the model.
+    groups: list[tuple[list[list[TextBox]], BlockRole | None]] = []
+    rest = lines
+    if layout is not None:
+        regions = resolve_duplicates(layout.detect(image))
+        claimed, rest = _lines_by_region(lines, regions)
+        page_line_height = _median_line_height(lines)
+        for label, region_lines in claimed:
+            role = LABEL_TO_ROLE.get(label, BlockRole.BODY)
+            # The model's box is an upper bound, not the answer: on one fixture it boxed margin
+            # keywords together with the paragraph beside them. The page's own whitespace still
+            # separates those, and a region that is really one paragraph has no gap to cut.
+            groups.extend(
+                (part.lines, role)
+                for part in segment(region_lines, line_height=page_line_height)
+            )
+
+    # The rest is cut into regions by the page's own whitespace first, and paragraphs are
+    # grouped inside each one. Grouping across the whole page at once means the body column, the
+    # line pitch and the indent are single numbers, and a page with two columns has two of each
+    # - which is how a two-column scan came back with eight of sixteen blocks starting
+    # mid-sentence. See `readers/_segment.py` for what that cost in per-line rules first.
+    for region in segment(rest):
+        groups.extend((para, None) for para in _merge_lines_into_paragraphs(region.lines))
 
     blocks: list[Block] = []
-    for i, para in enumerate(paragraphs):
+    for i, (para, role) in enumerate(groups):
         block = _block_from_paragraph(para, pixels, dpi, index=i, page_index=number - 1)
-        block.order = i
+        if role is not None:
+            block.role = role
         blocks.append(block)
+
+    if layout is not None:
+        _cap_sizes_by_role(blocks)
+        blocks = _in_reading_order(blocks, lines)
+    for i, block in enumerate(blocks):
+        block.order = i
 
     return Page(
         number=number,
@@ -395,6 +445,109 @@ def _page_from_image(
         blocks=blocks,
         source_ref=source_ref,
     )
+
+
+def _median_line_height(lines: list[list[TextBox]]) -> float:
+    heights = [max(b.bbox[3] for b in line) - min(b.bbox[1] for b in line) for line in lines]
+    return statistics.median(heights) if heights else 1.0
+
+
+#: How much of a line has to lie inside a detected region to belong to it.
+_REGION_MEMBERSHIP = 0.5
+
+
+def _lines_by_region(
+    lines: list[list[TextBox]], regions: list[LayoutRegion]
+) -> tuple[list[tuple[str, list[list[TextBox]]]], list[list[TextBox]]]:
+    """Put each line in the detected region holding most of it.
+
+    Returns the text regions with their lines, top to bottom, and every line in no text region.
+    Regions that are not prose (`NOT_A_PARAGRAPH`) still claim their lines, so a figure's labels
+    are not pulled into a paragraph beside it - but hand them back for geometric grouping,
+    because a figure's labels are many small pieces, not one block.
+    """
+    members: dict[int, list[list[TextBox]]] = {}
+    rest: list[list[TextBox]] = []
+    for line in lines:
+        x0 = min(b.bbox[0] for b in line)
+        y0 = min(b.bbox[1] for b in line)
+        x1 = max(b.bbox[2] for b in line)
+        y1 = max(b.bbox[3] for b in line)
+        area = max((x1 - x0) * (y1 - y0), 1e-6)
+        # Of the regions holding enough of the line, the smallest wins: a heading or a caption
+        # can sit inside a figure's box, and the tighter box is the one that describes the line.
+        best, best_area = -1, float("inf")
+        for index, region in enumerate(regions):
+            rx0, ry0, rx1, ry1 = region.bbox
+            overlap = max(0.0, min(x1, rx1) - max(x0, rx0)) * max(0.0, min(y1, ry1) - max(y0, ry0))
+            region_area = (rx1 - rx0) * (ry1 - ry0)
+            if overlap / area >= _REGION_MEMBERSHIP and region_area < best_area:
+                best, best_area = index, region_area
+        if best < 0 or regions[best].label in NOT_A_PARAGRAPH:
+            rest.append(line)
+        else:
+            members.setdefault(best, []).append(line)
+
+    claimed = [
+        (regions[index].label, sorted(found, key=lambda line: min(b.bbox[1] for b in line)))
+        for index, found in members.items()
+    ]
+    return claimed, rest
+
+
+#: Roles allowed to be set larger than the page's body text.
+_MAY_BE_LARGER = frozenset({BlockRole.TITLE, BlockRole.HEADING})
+
+#: Roles set in the page's running text size, which is what the ceiling is measured from. List
+#: items are included because an exercise page is nothing but list items: page 54 of the book
+#: has no `text` region at all, so a ceiling measured off BODY alone left its running header at
+#: 9.57pt against 6.5pt type.
+_RUNNING_TEXT = frozenset({BlockRole.BODY, BlockRole.LIST})
+
+
+def _cap_sizes_by_role(blocks: list[Block]) -> None:
+    """Stop a tall box making text that is not a heading larger than the body.
+
+    The size of an OCR'd span comes from its box height, and a box grows for reasons that have
+    nothing to do with type size: a sigma in an equation, a large folio beside a running header.
+    That was the "text that grew for no reason" of the one-to-one comparison. The model now says
+    which blocks are headings, so only those may exceed the body size.
+    """
+    body = [
+        span.style.size
+        for block in blocks
+        if block.role in _RUNNING_TEXT
+        for line in block.lines
+        for span in line.spans
+        if span.style.size > 0
+    ]
+    if not body:
+        return
+    ceiling = statistics.median(body)
+    for block in blocks:
+        if block.role in _MAY_BE_LARGER:
+            continue
+        for line in block.lines:
+            for span in line.spans:
+                span.style.size = min(span.style.size, ceiling)
+
+
+def _in_reading_order(blocks: list[Block], lines: list[list[TextBox]]) -> list[Block]:
+    """Order blocks by the same whitespace cuts that order lines.
+
+    The model gives regions but no order - Docling itself orders them with rules - and the blocks
+    here come from two sources, so they are cut as one set. Each block stands in as one box, and
+    the gap threshold stays the page's own line height rather than one measured off whole blocks.
+    """
+    if len(blocks) < 2:
+        return blocks
+    line_height = _median_line_height(lines)
+    stand_ins = [
+        [TextBox(text=str(i), bbox=(b.bbox.x0, b.bbox.y0, b.bbox.x1, b.bbox.y1), confidence=1.0)]
+        for i, b in enumerate(blocks)
+    ]
+    regions = segment(stand_ins, line_height=line_height)
+    return [blocks[int(line[0].text)] for region in regions for line in region.lines]
 
 
 # --------------------------------------------------------------------------------------
