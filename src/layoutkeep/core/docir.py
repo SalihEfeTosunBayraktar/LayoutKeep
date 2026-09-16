@@ -576,7 +576,11 @@ def _replace_block_text(block: Block, text: str) -> bool:
         # zaten `faithful=False` ile raporlaniyor (apply_segments -> needs_review), ama
         # `<0>BOLUM I.</0>` gibi marker karakterleri okura sizmemeli.
         # Strip unusable markers instead of leaking them raw into the output.
-        clean = _MARKER_RE.sub("", text) if styles else text
+        # Unconditionally, not `if styles`. A block with no styled runs was never given
+        # markers, so any that come back are the model's invention - and that was exactly
+        # the branch that passed them through. They reached a real page as readable text:
+        # "<0>Carpimlarin toplami</0> formu ve <1>Toplamlarin carpimi</1> formu."
+        clean = _MARKER_RE.sub("", text)
         spans = [Span(text=clean, bbox=block.bbox, style=dominant, direction=block.direction)]
     block.lines = [Line(spans=spans, bbox=block.bbox)]
     return faithful
