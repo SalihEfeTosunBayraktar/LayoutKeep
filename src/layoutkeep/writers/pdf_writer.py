@@ -126,6 +126,10 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                     graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
                 )
             for block in blocks:
+                if scanned and is_wordless(block):
+                    # Left exactly as scanned - see `_MIN_WORDINESS`. Nothing was cleared under
+                    # it either, so skipping the draw leaves the original pixels in place.
+                    continue
                 if abs(block.rotation) > _ROTATION_EPS:
                     _write_rotated_block(page, block, resolver)
                 else:
@@ -149,6 +153,41 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
 _SCAN_COVER_PAD = 1.5
 
 
+#: Letters per character, below which a block carries no words and is left as scanned.
+#:
+#: OCR reads a Karnaugh map or a truth table correctly character by character but has no idea
+#: the digits form a grid, so it returns one block per horizontal run. Re-typesetting that run
+#: as a line of prose destroys the figure: page 28 of `computer-systems-Architecture.pdf` came
+#: back with `{123`, `{14576` and `1112131514 A 108` where its maps had been.
+#:
+#: OCR confidence cannot tell these apart - `1112131514 A 108` is reported at 1.00, because the
+#: recognition is right and it is the two-dimensional structure that is lost. What does tell
+#: them apart is words. Measured over that page's 34 blocks, the grid fragments run 0.00 to 0.18
+#: letters per character and the real text ('(a) Two-variable map', 'adjacent squares') 0.50 to
+#: 1.00, with nothing in between.
+#:
+#: Such a block has nothing to translate - protection already answers it with its own source -
+#: so redrawing it cannot improve it, and measurably makes it worse.
+_MIN_WORDINESS = 0.3
+
+_LETTER_RE = re.compile(r"[^\W\d_]", re.UNICODE)
+
+
+def is_wordless(block: Block) -> bool:
+    """True when a block carries essentially no letters, only digits and punctuation.
+
+    Judged on the source text where there is one (`Block.source_text`, set when a translation
+    overwrites the block), because the question is whether this block ever had words to
+    translate - not what came back. A grid of digits answered with a grid of digits would read
+    the same either way, but a reply that arrived as prose would otherwise talk the writer into
+    re-typesetting a figure it should have left alone.
+    """
+    text = (block.source_text or block.text).strip()
+    if not text:
+        return True
+    return len(_LETTER_RE.findall(text)) / len(text) < _MIN_WORDINESS
+
+
 def _cover_scanned_blocks(page: pymupdf.Page, blocks: list[Block]) -> None:
     """Paint out the source text of a scanned page so the translation is not drawn over it.
 
@@ -162,6 +201,8 @@ def _cover_scanned_blocks(page: pymupdf.Page, blocks: list[Block]) -> None:
     """
     pad = (-_SCAN_COVER_PAD, -_SCAN_COVER_PAD, _SCAN_COVER_PAD, _SCAN_COVER_PAD)
     for block in blocks:
+        if is_wordless(block):
+            continue
         page.draw_rect(
             _rect(block.bbox) + pad, color=None, fill=_fill_color(block), overlay=True
         )
