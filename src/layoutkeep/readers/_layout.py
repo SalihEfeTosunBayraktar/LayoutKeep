@@ -35,8 +35,18 @@ def infer_alignment(bbox: BBox, page_width: float) -> str:
     # Centred: the block's middle sits near the page's middle, with balanced margins.
     if abs(block_center - page_center) <= page_width * 0.05 and min(left_margin, right_margin) > 0:
         return "center"
-    # Right-aligned: hugged to the right edge, with a large left margin and small right one.
-    if right_margin <= page_width * 0.05 and left_margin > page_width * 0.15:
+    # Right-aligned: hugged to the right edge, and genuinely pushed there - the space to its
+    # left is larger than the block itself. Comparing the left margin with a fraction of the
+    # PAGE instead called a narrow page's body column right-aligned: 318pt wide with its text
+    # from x=74 to x=307 leaves an 11pt right margin and a 74pt left one, and the full-width
+    # guard above only fires at 80% of the page against that column's 73%. Measured over six
+    # pages of computer-systems-Architecture.pdf, 55 of 192 blocks came out "right" and 25 of
+    # those were prose over 80 characters long.
+    #
+    # A folio in the right margin is 20pt wide with 280pt to its left; a column of prose is
+    # 233pt wide with 74pt to its left. The margin being larger than the text is what "pushed
+    # to the right" means, and it scales with the page instead of guessing at it.
+    if right_margin <= page_width * 0.05 and left_margin > span:
         return "right"
     return "left"
 
