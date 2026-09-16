@@ -112,10 +112,15 @@ def test_bold_and_italic_are_never_guessed(tmp_path: Path) -> None:
 
 
 def test_is_scanned_page() -> None:
-    assert is_scanned_page("") is True
-    assert is_scanned_page("   \n  ") is True
-    assert is_scanned_page("3") is True  # a lone page number, well under the threshold
-    assert is_scanned_page("A" * 50) is False
+    """A density now, not a character count: the same text means different things depending on
+    how much page is around it. See tests/test_scanned_page_density.py for the document that
+    forced the change - 22 A4 pages whose only text layer was a 13-character template stamp."""
+    book_area = 318.0 * 424.0
+    assert is_scanned_page("", book_area) is True
+    assert is_scanned_page("   \n  ", book_area) is True
+    assert is_scanned_page("3", book_area) is True  # a lone page number
+    assert is_scanned_page("A" * 50, book_area) is True  # 0.37 chars/1000pt2 - a stamp
+    assert is_scanned_page("A" * 2000, book_area) is False
 
 
 def _find_numpy_fields(obj: object, path: str = "doc") -> list[str]:

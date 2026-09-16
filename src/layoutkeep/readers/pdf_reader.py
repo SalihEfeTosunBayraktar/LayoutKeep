@@ -117,7 +117,15 @@ def _read_page(
     top_edge = height * _MARGIN_RATIO
     bottom_edge = height * (1 - _MARGIN_RATIO)
 
-    if is_scanned_page(page.get_text()):
+    # How much of the page is picture: a scan is a page that IS an image, and OCR needs
+    # something to read. Computed here because `image_reader` may not import pymupdf.
+    page_area = width * height
+    covered = sum(
+        (info["bbox"][2] - info["bbox"][0]) * (info["bbox"][3] - info["bbox"][1])
+        for info in page.get_image_info()
+    )
+    coverage = covered / page_area if page_area > 0 else 0.0
+    if is_scanned_page(page.get_text(), page_area, coverage):
         return _read_scanned_page(
             page, index, top_edge=top_edge, bottom_edge=bottom_edge, classifier=classifier
         )

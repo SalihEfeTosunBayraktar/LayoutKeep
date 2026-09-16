@@ -46,8 +46,36 @@ NEEDS_REVIEW_THRESHOLD = 0.80
 #: Assumed image resolution when the file carries no DPI metadata (PIL default for PNG/JPEG
 #: created by screenshot/scan tools without an explicit resolution tag).
 _DEFAULT_DPI = 96.0
-#: A page whose extracted text is shorter than this is treated as scanned/image-only.
-_SCANNED_TEXT_CHAR_THRESHOLD = 10
+#: Characters per 1000 square points, below which a page's text layer is not a text layer and
+#: the page has to be read by OCR.
+#:
+#: This was an absolute count of ten characters, which assumes something about page size and
+#: about what a text layer contains. Both assumptions broke on the second document tried:
+#: `Notes_260730_153127.pdf` is 22 A4 pages, each an image with a thirteen-character template
+#: stamp in its text layer - "my notes / date". Thirteen is not under ten, so every page was
+#: read as though it had text, OCR never ran, and the content of every page was silently
+#: ignored - 96 characters recovered from the whole document, where OCR reads 362 off page 2
+#: alone.
+#:
+#: Density separates the cases by three orders of magnitude, and scales with the page instead of
+#: assuming its size:
+#:
+#:     book, 318x424pt, no text layer         0.00 chars / 1000pt2
+#:     notes, A4, template stamp only         0.03
+#:     a real text layer (our own output)    11.16 - 21.38
+#:
+#: So the threshold sits between them with room to spare, where ten characters sat three away
+#: from a stamp.
+_SCANNED_TEXT_DENSITY = 1.0
+
+#: How much of the page a picture must cover before OCR has anything worth reading.
+#:
+#: Measured on the two documents in hand: the textbook's pages are one full-page image (100%),
+#: and the notes document's pages carry one image covering 8% to 61%. So the floor sits under
+#: the smallest real case. It exists because text density alone is not a scan test - a small
+#: born-digital page with a caption and no picture reads as "negligible text" too, and OCR would
+#: then invent a second copy of everything on it.
+_SCANNED_IMAGE_COVERAGE = 0.05
 
 #: What a detected text box's height means, relative to the type size of the text in it.
 #:
@@ -69,11 +97,30 @@ _PITCH_TO_BOX_HEIGHT = 0.957
 _BOX_HEIGHT_TO_FONT_SIZE = _PITCH_TO_BOX_HEIGHT / _LINE_HEIGHT_RATIO
 
 
-def is_scanned_page(extracted_text: str) -> bool:
-    """True when a PDF page's own text layer is negligible, i.e. it is image-only and should be
-    handed off to OCR instead. Takes plain text (e.g. pymupdf `Page.get_text()`) rather than a
-    pymupdf object so this module stays free of a pymupdf import."""
-    return len(extracted_text.strip()) < _SCANNED_TEXT_CHAR_THRESHOLD
+def is_scanned_page(
+    extracted_text: str, page_area_pt2: float, image_coverage: float = 1.0
+) -> bool:
+    """True when a page's text has to come from OCR because the page itself is a picture.
+
+    Two things have to hold, and the conjunction matters. The text layer must be negligible FOR
+    A PAGE OF THAT SIZE - see `_SCANNED_TEXT_DENSITY` - and there must be enough image on the
+    page for OCR to have something to read.
+
+    Density alone is not enough: a small page with a little text and no picture on it is a page
+    with a text layer, not a scan, and OCR would invent a second copy of everything. Nine tests
+    of the born-digital path said so the moment density went in on its own.
+
+    Takes plain values rather than a pymupdf page so this module stays free of a pymupdf import
+    (CONTRACT.md). `image_coverage` is the share of the page covered by pictures, 0.0 to 1.0; it
+    defaults to 1.0 so a caller that only has the text - the existing unit tests, a reader with
+    no picture information - still gets the density answer on its own.
+    """
+    characters = len(extracted_text.strip())
+    if image_coverage < _SCANNED_IMAGE_COVERAGE:
+        return False
+    if page_area_pt2 <= 0:
+        return characters == 0
+    return characters / (page_area_pt2 / 1000.0) < _SCANNED_TEXT_DENSITY
 
 
 def read_image(path: str | Path, *, engine: OcrEngine | None = None) -> Document:
