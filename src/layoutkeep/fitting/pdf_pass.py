@@ -43,6 +43,13 @@ def fit_pdf_pass(
     from layoutkeep.writers.pdf_writer import measure_fit
 
     blocks = {b.id: b for _, b in doc.iter_blocks()}
+    # Which blocks came from a page with no text layer. Their boxes are OCR's idea of where the
+    # glyphs were, widened further by `image_reader._grant_blank_paper` so a longer language has
+    # somewhere to go - not the frame the source text filled. Measuring fill against that box
+    # asks the model to pad until it covers space the original never used, which invents content
+    # (expansion measured 1.47x on a page of computer-systems-Architecture.pdf against the
+    # 0.93-1.12x an honest EN->TR run produces). See the `char_budget` argument below.
+    from_scan = {b.id: page.scanned for page, b in doc.iter_blocks()}
     measurers: dict[tuple, TextMeasurer | None] = {}
     results = []
 
@@ -65,8 +72,13 @@ def fit_pdf_pass(
             mode=mode,
             retranslate=retranslate,
             # Without a real budget the engine's under-fill direction has no honest
-            # reference and stays silent - the whole point of this pass.
-            char_budget=char_budget if measurer is not None else None,
+            # reference and stays silent - the whole point of this pass. A scanned page has no
+            # honest reference either, for the reason `from_scan` records, so it is silenced the
+            # same way. The overflow direction is unaffected: it falls back to a length-based
+            # budget, so text that does not fit is still shortened.
+            char_budget=(
+                char_budget if measurer is not None and not from_scan.get(seg.block_id) else None
+            ),
             rotation=block.rotation,
         )
         if on_fitted is not None:
