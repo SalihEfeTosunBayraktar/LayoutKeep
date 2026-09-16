@@ -92,9 +92,34 @@ _SCANNED_IMAGE_COVERAGE = 0.05
 #: the writers actually stack lines at (`pdf_writer._LINE_HEIGHT_RATIO` / `image_writer`). The
 #: same line height decides how much blank paper one more line needs (`_grant_blank_paper`), so
 #: it must be the one number, not two that drift apart.
-_LINE_HEIGHT_RATIO = 1.2
 _PITCH_TO_BOX_HEIGHT = 0.957
-_BOX_HEIGHT_TO_FONT_SIZE = _PITCH_TO_BOX_HEIGHT / _LINE_HEIGHT_RATIO
+
+#: The tunable that holds how tall a rendered line is, relative to the font size. One number,
+#: read by the reader (to derive a size and to measure blank paper) and by the writer (to stack
+#: the lines). It was declared separately in three places, all 1.2, with nothing tying them
+#: together - and if they drift, every scanned page comes out mis-sized. Readers and writers may
+#: not import each other (CONTRACT.md D1), so the shared value lives where both may read it.
+#:
+#: The key says "merge" because that is what first needed it; its meaning is broader now.
+_LINE_HEIGHT_KEY = "merge.line_height_ratio"
+
+
+def line_height_ratio() -> float:
+    """How tall a rendered line is, as a multiple of the font size.
+
+    Read at use, never captured at import: a module constant computed from a tunable is
+    evaluated once when the module loads, so a setting changed afterwards would never be seen.
+    """
+    return tunables.get(_LINE_HEIGHT_KEY)
+
+
+def box_height_to_font_size() -> float:
+    """What to multiply a detector's box height by to get a type size.
+
+    Only holds while the line height it assumes is the one the writer stacks lines at, which is
+    why both read `_LINE_HEIGHT_KEY` rather than each keeping a copy.
+    """
+    return _PITCH_TO_BOX_HEIGHT / line_height_ratio()
 
 
 def is_scanned_page(
@@ -313,7 +338,7 @@ def _grant_blank_paper(page: Page, grey: np.ndarray, *, dpi: float) -> None:
         # The height one rendered line occupies, by the same rule the writer will use. Measuring
         # the scan's own pitch instead looks more faithful but leaves the block a fraction short
         # of the line it is being grown for, because the two differ slightly.
-        line_height = block.dominant_style().size * _LINE_HEIGHT_RATIO * px_per_point
+        line_height = block.dominant_style().size * line_height_ratio() * px_per_point
         if line_height <= 0:
             continue
         x0 = max(0, int(block.bbox.x0))
@@ -554,7 +579,7 @@ def _block_from_paragraph(
             bbox = BBox(x0, y0, x1, y1)
             line_bbox = bbox if line_bbox is None else line_bbox.union(bbox)
             fg, bg = _box_colors(pixels, bbox)
-            size_pt = float((y1 - y0) * 72.0 / dpi) * _BOX_HEIGHT_TO_FONT_SIZE
+            size_pt = float((y1 - y0) * 72.0 / dpi) * box_height_to_font_size()
             # "Arial" rather than the generic "sans-serif": fitting/fontmatch.py's classify()
             # checks its serif hint list before its sans hint list, and "serif" is a substring
             # of "sans-serif", so that literal string misclassifies as serif. "Arial" names a

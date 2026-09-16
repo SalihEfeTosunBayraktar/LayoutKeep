@@ -56,7 +56,19 @@ _BOX_SLACK_KEY = "write.box_slack_pt"
 #: `dir` vector, not an actual rotation. Matches `pdf_reader.py`'s own tolerance.
 _ROTATION_EPS = 0.5
 #: `insert_htmlbox`'s line-height guess, reused for stacking a rotated block's lines.
-_LINE_HEIGHT_RATIO = 1.2
+#:
+#: Read from the tunable rather than declared here, because the reader derives a scanned block's
+#: font size so that size x this ratio reproduces the line pitch it measured off the page. The
+#: two must agree or every scanned page is mis-sized, and 1.2 used to be written out separately
+#: in both files with nothing enforcing it.
+_LINE_HEIGHT_KEY = "merge.line_height_ratio"
+
+
+def writer_line_height_ratio() -> float:
+    """How tall a line is stacked, as a multiple of the font size. Read at use, so a changed
+    setting is seen without reimporting the module."""
+    return tunables.get(_LINE_HEIGHT_KEY)
+
 
 #: PDF base-14 font names, keyed by (generic family, bold, italic). Fallback for the rotated-text
 #: path (needs a real `pymupdf.Font`, not a CSS family name) and for any block whose font could
@@ -276,7 +288,7 @@ def measure_fit(
         scale = 1.0 - (1.0 - scale_low) * i / steps
         size = style.size * scale
         longest = max((font.text_length(ln, fontsize=size) for ln in lines), default=0.0)
-        depth = len(lines) * size * _LINE_HEIGHT_RATIO
+        depth = len(lines) * size * writer_line_height_ratio()
         if rotated_block_fits(bbox, rotation, longest, depth):
             return True, scale
     return False, scale_low
@@ -455,7 +467,7 @@ def _write_rotated_block(page: pymupdf.Page, block: Block, resolver: _FontResolv
     font_bytes = resolver.font_bytes_for(dominant)
     font = pymupdf.Font(fontbuffer=font_bytes) if font_bytes else pymupdf.Font(fontname=_base14_font(dominant))
     lines = block.text.split("\n") or [""]
-    line_height = dominant.size * _LINE_HEIGHT_RATIO
+    line_height = dominant.size * writer_line_height_ratio()
     cx = (block.bbox.x0 + block.bbox.x1) / 2
     cy = (block.bbox.y0 + block.bbox.y1) / 2
     start_y = cy - (line_height * len(lines)) / 2 + dominant.size
