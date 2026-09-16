@@ -446,12 +446,26 @@ def apply_segments(doc: Document, segments: Sequence[Segment]) -> list[str]:
 _MARKER_RE = re.compile(r"<(/?)(\d+)>")
 
 
+#: What separates two lines of the same paragraph in the text a provider is handed.
+#:
+#: A line break inside a paragraph is a word separator. It used to be a bare newline, and
+#: OCR line text carries no trailing space, so the boundary carried no separator at all - a
+#: model that collapses the newline without putting anything in its place fuses the words
+#: either side of it. Real output: "guclen cok daha azdir.Tamponun amaci" and
+#: "Bu kitaptaikili degisken".
+#:
+#: A space rather than a preserved break, because the writer re-wraps the translation to its
+#: box and a translation is a different length from its source - the original break positions
+#: are not wanted and could not be honoured anyway.
+_LINE_JOIN = " "
+
+
 def _block_runs(block: Block) -> list[tuple[str, Style | None]]:
     """Flatten a block's spans into (text, style) runs, with a newline run between lines."""
     runs: list[tuple[str, Style | None]] = []
     for i, line in enumerate(block.lines):
-        if i:
-            runs.append(("\n", None))
+        if i and not runs[-1][0].endswith(_LINE_JOIN):
+            runs.append((_LINE_JOIN, None))
         runs.extend((span.text, span.style) for span in line.spans)
     return runs
 
@@ -493,7 +507,11 @@ def _plain_original(block: Block) -> str:
 
 def block_source_text(block: Block) -> str:
     """The text handed to a provider: plain, or with inline markers when the block needs them."""
-    plain = block.text
+    # A paragraph, not a set of lines: see `_LINE_JOIN`. `Block.text` keeps its
+    # newlines - the writer walks the lines itself, and the review editor shows them
+    # as they were read.
+    plain = _LINE_JOIN.join(line.text for line in block.lines)
+    plain = plain.replace(_LINE_JOIN * 2, _LINE_JOIN)
     styles = _inline_styles(block)
     if not styles or _MARKER_RE.search(plain):
         # Nothing to mark, or the text already looks like markers and we would corrupt it.
