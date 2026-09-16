@@ -19,7 +19,6 @@ This module must not `import pymupdf` (CONTRACT.md S4 reserves that to the two P
 from __future__ import annotations
 
 import math
-from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -293,23 +292,80 @@ def _within_join_reach(line: list[TextBox], box: TextBox) -> bool:
     return gap <= height * _LINE_JOIN_GAP_RATIO
 
 
+#: How far right of the line above a line must start to read as a new, indented paragraph, as a
+#: multiple of the line height.
+#:
+#: And how far LEFT it may start and still be the same paragraph (`_DEINDENT_LIMIT`). Grouping
+#: used `abs()` on the difference with a single 1.5 tolerance, which in a book that indents its
+#: first lines splits every paragraph: measured on page 22 of
+#: `computer-systems-Architecture.pdf`, the opening line sits at x=90.0 and the body at x=73.5 -
+#: a 16.6pt indent against an 8pt line height, so 2.1 heights, over the tolerance. Each
+#: paragraph became two blocks, an indented one-liner and the rest, and 6 of that page's 18
+#: blocks began mid-sentence: unable to be translated, fitted to different type sizes (6.60pt
+#: against 8.04pt on the same paragraph), and colliding because they were fitted apart.
+#:
+#: The de-indent limit is what still separates a centred caption from the paragraph beneath it -
+#: that step left is much larger than an indent.
+_NEW_PARAGRAPH_INDENT = 0.5
+_DEINDENT_LIMIT = 3.0
+#: Vertical gap, in line heights, still close enough to be the next line of a paragraph.
+_LINE_GAP_RATIO = 0.6
+
+
 def _merge_lines_into_paragraphs(lines: list[list[TextBox]]) -> list[list[list[TextBox]]]:
-    """Group consecutive lines into paragraphs by vertical gap and left-alignment."""
+    """Group consecutive lines into paragraphs by vertical gap and left-alignment.
+
+    Two things make this more than "compare each line with the one above".
+
+    Indentation is asymmetric. A new paragraph announces itself by starting to the RIGHT of the
+    line above; a line starting to the LEFT is the body of a paragraph whose first line was
+    indented. Testing `abs()` against one tolerance split every paragraph in a book that indents
+    (see `_NEW_PARAGRAPH_INDENT`).
+
+    And a paragraph can be interrupted. This book prints a keyword in the left margin beside the
+    paragraph it introduces - "OR", "inverter", "NAND" - level with the paragraph's body, so
+    sorting lines top-to-bottom drops it between the indented opening line and the rest.
+    Compared with the line above, the paragraph ended at the note. A line that far left of the
+    page's body column is a different column: it becomes its own paragraph and leaves the one it
+    interrupted open, so the line after it rejoins.
+
+    The body column is the median left edge over all the lines - prose lines outnumber margin
+    notes - rather than something measured from the neighbouring line, which cascades: once a
+    centred caption is the thing being compared against, every body line under it looks like a
+    different column too.
+    """
     if not lines:
         return []
+
+    left_edges = sorted(min(b.bbox[0] for b in line) for line in lines)
+    body_x0 = left_edges[len(left_edges) // 2]
+
     paragraphs: list[list[list[TextBox]]] = [[lines[0]]]
-    for prev, cur in pairwise(lines):
-        prev_bottom = max(b.bbox[3] for b in prev)
-        prev_height = prev_bottom - min(b.bbox[1] for b in prev)
+    open_index = 0
+    for cur in lines[1:]:
+        anchor = paragraphs[open_index][-1]
+        anchor_bottom = max(b.bbox[3] for b in anchor)
+        anchor_height = (anchor_bottom - min(b.bbox[1] for b in anchor)) or 1.0
+        anchor_x0 = min(b.bbox[0] for b in anchor)
         cur_top = min(b.bbox[1] for b in cur)
-        gap = cur_top - prev_bottom
-        prev_x0 = min(b.bbox[0] for b in prev)
         cur_x0 = min(b.bbox[0] for b in cur)
-        same_paragraph = gap <= prev_height * 0.6 and abs(cur_x0 - prev_x0) <= prev_height * 1.5
-        if same_paragraph:
-            paragraphs[-1].append(cur)
+
+        if body_x0 - cur_x0 > anchor_height * _DEINDENT_LIMIT:
+            # A margin note: its own paragraph, and the interrupted one stays open.
+            paragraphs.append([cur])
+            continue
+
+        indent = cur_x0 - anchor_x0
+        close_enough = cur_top - anchor_bottom <= anchor_height * _LINE_GAP_RATIO
+        aligned = (
+            indent <= anchor_height * _NEW_PARAGRAPH_INDENT
+            and -indent <= anchor_height * _DEINDENT_LIMIT
+        )
+        if close_enough and aligned:
+            paragraphs[open_index].append(cur)
         else:
             paragraphs.append([cur])
+            open_index = len(paragraphs) - 1
     return paragraphs
 
 
