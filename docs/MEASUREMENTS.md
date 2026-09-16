@@ -243,3 +243,57 @@ Tek kitap, tek tarama kalitesi, tek sütunlu düzen. Çok sütunlu ya da daha g�
 taramada hem OCR güveni hem satır birleştirme eşiği farklı davranabilir. 0.957 çarpanı bu
 belgenin dizgisinden türetildi; başka bir kitabın satır aralığı farklıysa çarpan da farklı
 olur — sabit, ölçülen bir orandır, evrensel bir tipografi kuralı değil.
+
+## 8. Tam kitap koşumu — 524 sayfa, uçtan uca
+
+`computer-systems-Architecture.pdf` (524 sayfa, metin katmanı yok) tamamı çevrildi:
+66 parça × 8 sayfa, 8 işçi süreci, 8 paralel model yuvası, **4.6 saat**.
+
+| | başlangıç | sonuç |
+|---|---|---|
+| çıkarılabilir karakter | **0** | **954.585** |
+| sayfa dışına taşan kelime | — | **0** |
+| sayfada ham işaret | — | **0** |
+| kelime kaynaşması | — | 11 |
+| düzyazının çevrilme oranı | %0 | **%96.0** (2.501 blok) |
+
+"Taşma yok" iddiası iki sayıyla verilmeli, tek sayı yanıltır: **sayfa dışına çıkan tek
+kelime yok** — bu kesin. Ama sığdırma geçişi kitap boyunca **1.860 bloğu** taşıyor diye
+işaretledi (parça başına medyan 28). Bunlar okunabilirlik tabanına kadar küçültülüp
+incelemeye bayraklandı; metin sayfada kalıyor ama bir kısmı orijinalinden küçük punto ile.
+
+### Paralellik — yuva ve işçi sayısı eşleşmeli
+
+Kullanıcı "bu paralel değil" dedi ve haklıydı: model 4 yuvayla yüklüyken koşum 8 işçiyle
+çalışıyordu, yani yarısı sürekli sırada bekliyordu. Ölçüm:
+
+| eşzamanlı istek | süre | sıraya alınsaydı | etkin |
+|---|---|---|---|
+| 1 | 3.3 sn | — | — |
+| 4 | 2.9 sn | 13.0 sn | 4.5x |
+| 8 | 3.3 sn | 26.0 sn | **8.0x** |
+
+Yuva sayısını işçi sayısına eşitlemek ~2 kat kazandırdı.
+
+**VRAM paralellikle artmıyor:** `--context-length` toplam bütçedir ve yuvalara bölünür —
+4 yuva 5620 MiB, 8 yuva 5592 MiB. Bağlamı büyütmek de hız vermez: istemler en fazla 745
+token, yuva başına pay 5120. Darboğaz **CPU** (%100 sabit, GPU %28) — OCR ve PDF yazımı.
+
+### Ölçümle çürütülen üç hipotez
+
+Uygulanmış olsalardı boşa emek ve gereksiz yeniden başlatma olurdu:
+
+- **Güven tabanlı şekil koruma.** Bozuk Karnaugh ızgaralarının OCR güveni **1.00** çıktı —
+  tanıma doğru, kaybolan şey iki boyutlu yapı. Çözüm güvende değil, harf oranındaydı.
+- **Yığın boyutlandırıcının çöktüğü.** Aslında düzgün çalışıyor: 1→2→3→4 büyüyor, 5'te
+  başarısız olup 4'te tutunuyor (3.2 segment/istek). İstek maliyetinin %75'i sığdırma
+  geçişinden geliyordu, yığınlardan değil.
+- **İş parçacığı sınırlama.** 27.9x aşırı-abonelik (19 süreçte 446 iş parçacığı, 16
+  çekirdek) **gerçek ama maliyetsiz**: 8 eşzamanlı sayfa-OCR'ı varsayılanla 21.3 sn,
+  2'ye sınırlıyken 21.5 sn.
+
+### Bu ölçümün sınırları
+
+Tek kitap, tek dil çifti, tek model (gemma-4-e4b), tek makine. Çeviri tamlığının tavanını
+artık uygulama değil model belirliyor: kalan %4'ün bir kısmı çevrilmemesi gereken formüller,
+gerisi modelin boş döndürdüğü segmentler (bildiriliyor ve bir kez yeniden deneniyor).
