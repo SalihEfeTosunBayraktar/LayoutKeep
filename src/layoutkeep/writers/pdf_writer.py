@@ -108,7 +108,11 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
         page_blocks: list[tuple[pymupdf.Page, list[Block], list[Block], bool]] = []
         for page_data in doc.pages:
             page = pdf[int(page_data.source_ref)]
-            blocks = [b for b in page_data.blocks if b.translatable]
+            # A block whose translation is its source - a name, a document code, a running header
+            # - is left exactly as set: removing and redrawing it only loses its typography
+            # (small caps redrawn in a wider substitute were shrunk below the readability floor on
+            # every NIST page).
+            blocks = [b for b in page_data.blocks if b.translatable and not _unchanged(b)]
             if not blocks:
                 continue
             # Font resolution runs before any page is redacted: it may need to read the source
@@ -210,6 +214,18 @@ def is_wordless(block: Block) -> bool:
     if not text:
         return True
     return len(_LETTER_RE.findall(text)) / len(text) < _MIN_WORDINESS
+
+
+def _unchanged(block: Block) -> bool:
+    """The written text is the source exactly - letter case included, since a change of case is
+    a change on the page. Markers and whitespace are not compared."""
+    if not block.source_text:
+        return False
+
+    def plain(text: str) -> str:
+        return " ".join(re.sub(r"</?\d+>", "", text).split())
+
+    return plain(block.source_text) == plain(block.text)
 
 
 def _cover_scanned_blocks(
@@ -529,7 +545,7 @@ def _rotated_quads(page: pymupdf.Page, block: Block) -> list[pymupdf.Quad]:
             # every side so `search_for` has room to match the text it clips.
             line_rect = pymupdf.Rect(*raw_line["bbox"]) + (-1, -1, 1, 1)  # noqa: RUF005 - Rect arithmetic, not a list
             quads.extend(_line_quads(page, text, line_rect))
-    return quads or [pymupdf.Quad(clip)]
+    return quads or [clip.quad]
 
 
 #: How much of a line's own box the quads found under it must cover before they are trusted to
@@ -567,7 +583,7 @@ def _line_quads(page: pymupdf.Page, text: str, line_rect: pymupdf.Rect) -> list[
             runs.extend(page.search_for(part, clip=line_rect, quads=True))
     if _covers(runs, line_rect):
         return runs
-    return found or runs or [pymupdf.Quad(line_rect)]
+    return found or runs or [line_rect.quad]
 
 
 def _covers(quads: list[pymupdf.Quad], line_rect: pymupdf.Rect) -> bool:

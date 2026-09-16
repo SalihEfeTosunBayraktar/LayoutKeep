@@ -355,3 +355,57 @@ def test_the_source_is_recognised_even_when_its_style_markers_were_dropped():
         retranslate=lambda segment, max_len: echoed,
     )
     assert result.text == turkish
+
+
+def test_a_short_heading_handed_back_is_not_accepted_either():
+    heading, turkish = "Decoder Expansion", "Kod Cozucu Genisletme Bolumu"
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return len(text) <= len(heading), scale_low
+
+    result = fit_segment(
+        Segment(block_id="h", source=heading, target=turkish), STYLE, BOX, measure,
+        retranslate=lambda segment, max_len: heading,
+    )
+    assert result.text == turkish
+
+
+def test_a_leader_run_is_resized_so_the_entry_keeps_its_length():
+    """Digital pilot, NIST contents page: every entry was a line of text, a run of dots and a page
+    number, set to fill the column exactly. The model kept the dots and the Turkish ran longer, so
+    each entry overflowed by a different amount and was shrunk to its own size - 9.3pt to 12pt down
+    one page. Leader dots are fill, not content: the translation's run is resized to give the line
+    the source's length, and every entry fits alike."""
+    source = "3.13 System Security Engineer (SSE) ........................ 17"
+    turkish = "3.13 Sistem Guvenlik Muhendisi (SSE) ........................ 17"
+    seen = []
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        seen.append(text)
+        return True, 1.0
+
+    result = fit_segment(Segment(block_id="t", source=source, target=turkish), STYLE, BOX, measure)
+    assert len(result.text) == len(source), result.text
+    assert result.text.startswith("3.13 Sistem Guvenlik Muhendisi (SSE) ...") and result.text.endswith(" 17")
+
+
+def test_text_without_leaders_is_left_alone():
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return True, 1.0
+
+    text = "Etc... and so on."
+    assert fit_segment(Segment(block_id="t", source="And so on...", target=text), STYLE, BOX, measure).text == text
+
+
+def test_a_shorter_rendering_that_drops_a_number_is_not_accepted():
+    source = "These terms were retrieved from CNSSI 4009, dated April 6, 2015."
+    turkish = "Bu terimler 6 Nisan 2015 tarihli CNSSI 4009 kaynagindan alinmistir ve burada kullanilir."
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return len(text) <= 60, scale_low
+
+    result = fit_segment(
+        Segment(block_id="n", source=source, target=turkish), STYLE, BOX, measure,
+        retranslate=lambda segment, max_len: "Terimler CNSS kaynagindan, 6 Nisan 2015.",
+    )
+    assert "4009" in result.text

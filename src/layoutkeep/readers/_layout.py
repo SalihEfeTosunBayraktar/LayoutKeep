@@ -11,7 +11,7 @@ from __future__ import annotations
 from layoutkeep.core.docir import BBox, Line, Span
 
 
-def infer_alignment(bbox: BBox, page_width: float) -> str:
+def infer_alignment(bbox: BBox, page_width: float, lines: list[BBox] | None = None) -> str:
     """Infer a block's horizontal alignment from its x-position relative to the page.
 
     A centred block sits roughly symmetric around the page midline; a right-aligned block sits
@@ -22,6 +22,9 @@ def infer_alignment(bbox: BBox, page_width: float) -> str:
     """
     if page_width <= 0:
         return "left"
+    boxes = [box for box in (lines or []) if box is not None]
+    if len(boxes) >= 2:
+        return _alignment_from_lines(boxes, page_width)
     left_margin = bbox.x0
     right_margin = page_width - bbox.x1
     block_center = (bbox.x0 + bbox.x1) / 2.0
@@ -48,6 +51,32 @@ def infer_alignment(bbox: BBox, page_width: float) -> str:
     # to the right" means, and it scales with the page instead of guessing at it.
     if right_margin <= page_width * 0.05 and left_margin > span:
         return "right"
+    return "left"
+
+
+def _alignment_from_lines(boxes: list[BBox], page_width: float) -> str:
+    """Alignment read from how a block's lines line up, not from where the block sits.
+
+    Justified or flush-left lines share a left edge; centred lines share a centre and not a left
+    edge; right-aligned lines share a right edge. A block's position on the page cannot tell a
+    column of prose in the middle of a narrow page from a centred title - the digital pilot's novel
+    and textbook came out with every paragraph centred - but its lines can.
+
+    From three lines on, the first line is not required to share the left edge: a first-line
+    indent is a paragraph, not a different alignment.
+    """
+    tolerance = max(2.0, page_width * 0.015)
+
+    def spread(values: list[float]) -> float:
+        return max(values) - min(values)
+
+    lefts = [box.x0 for box in boxes]
+    if spread(lefts[1:] if len(boxes) >= 3 else lefts) <= tolerance:
+        return "left"
+    if spread([box.x1 for box in boxes]) <= tolerance:
+        return "right"
+    if spread([(box.x0 + box.x1) / 2 for box in boxes]) <= tolerance:
+        return "center"
     return "left"
 
 

@@ -34,7 +34,7 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
-from layoutkeep.ocr.layout_detector import LayoutDetector
+from layoutkeep.ocr.layout_detector import LABEL_TO_ROLE, LayoutDetector, resolve_duplicates
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
 from layoutkeep.readers.image_reader import (
@@ -175,7 +175,19 @@ def _read_page(
                 block.needs_review = True
                 block.review_reason = "metin aynalanmış, olduğu gibi geri yazılacak"
 
-    blocks = _merge_wrapped_lines(_split_side_by_side_lines(blocks))
+    from_model: list[Block] = []
+    if layout is not None:
+        blocks, from_model = _regroup_by_layout(page, index, blocks, layout)
+    # The rules only see what the model did not place: run over a table of contents the model
+    # split into entries, "merge wrapped lines" would glue the entries back together.
+    blocks = _merge_wrapped_lines(_split_side_by_side_lines(blocks)) + from_model
+
+    # Alignment is decided once every block has its final lines, from those lines: a paragraph
+    # PyMuPDF delivered as single-line pieces, then merged, is judged as the paragraph it became.
+    for block in blocks:
+        block.align = infer_alignment(
+            block.bbox, width, [line.bbox for line in block.lines if line.bbox is not None]
+        )
 
     order = _reading_order(blocks, width, height)
     for block, position in zip(blocks, order, strict=True):
@@ -203,6 +215,104 @@ def _read_page(
         blocks=raw_blocks,
         images=images,
     )
+
+
+#: Resolution a born-digital page is rendered at for the layout model. The model resizes to 640px
+#: whatever it is given, so this only needs to keep small type legible to it.
+_DIGITAL_LAYOUT_DPI = 100
+
+#: Regions whose lines are separate items, not a paragraph: a table of contents is one entry per
+#: line, a table one cell per line, a figure one label per line.
+_ONE_BLOCK_PER_LINE = frozenset({"document_index", "table", "form", "key_value_region", "picture"})
+
+#: How much of a line has to lie inside a region to belong to it.
+_DIGITAL_REGION_MEMBERSHIP = 0.5
+
+
+def _regroup_by_layout(
+    page: pymupdf.Page, index: int, blocks: list[Block], layout: LayoutDetector
+) -> tuple[list[Block], list[Block]]:
+    """Group a born-digital page's lines by the layout model's regions.
+
+    Regions come from the model, looking at the rendered page; text, fonts and positions still
+    come from the PDF, so nothing is re-recognised. Returns (blocks the model did not claim, for
+    the existing rules; blocks built from the model's regions).
+
+    Campaign, NIST SP 800-12 page 6: a table of contents came out with its entries run together,
+    because the rules merged its lines into paragraphs. The model labels that page
+    `document_index`, and each of its lines is one entry.
+
+    Rotated text is left to the rules: its line boxes are not what the model sees upright.
+    """
+    pixmap = page.get_pixmap(dpi=_DIGITAL_LAYOUT_DPI)
+    image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
+    sx, sy = page.rect.width / pixmap.width, page.rect.height / pixmap.height
+    regions = [
+        (r.label, BBox(r.bbox[0] * sx, r.bbox[1] * sy, r.bbox[2] * sx, r.bbox[3] * sy))
+        for r in resolve_duplicates(layout.detect(image))
+    ]
+    if not regions:
+        return blocks, []
+
+    unclaimed: list[Block] = []
+    members: dict[int, list[Line]] = {}
+    for block in blocks:
+        if abs(block.rotation) > 1e-3:
+            unclaimed.append(block)
+            continue
+        left: list[Line] = []
+        for line in block.lines:
+            owner = _owning_region(line.bbox, regions) if line.bbox is not None else None
+            if owner is None:
+                left.append(line)
+            else:
+                members.setdefault(owner, []).append(line)
+        if left:
+            box = left[0].bbox
+            for line in left[1:]:
+                if line.bbox is not None:
+                    box = line.bbox if box is None else box.union(line.bbox)
+            unclaimed.append(
+                Block(
+                    id=block.id, role=block.role, bbox=box or block.bbox, lines=left,
+                    rotation=block.rotation, align=block.align,
+                    needs_review=block.needs_review, review_reason=block.review_reason,
+                )
+            )
+
+    width = page.rect.width
+    built: list[Block] = []
+    for owner, lines in sorted(members.items()):
+        label, _box = regions[owner]
+        lines.sort(key=lambda line: (line.bbox.y0, line.bbox.x0))
+        groups = [[line] for line in lines] if label in _ONE_BLOCK_PER_LINE else [lines]
+        role = BlockRole.TABLE if label == "table" else (
+            BlockRole.BODY if label in _ONE_BLOCK_PER_LINE else LABEL_TO_ROLE.get(label, BlockRole.BODY)
+        )
+        for group in groups:
+            box = group[0].bbox
+            for line in group[1:]:
+                box = box.union(line.bbox)
+            built.append(
+                Block(
+                    id=f"p{index}#m{owner}.{len(built)}", role=role, bbox=box, lines=group,
+                    align=infer_alignment(box, width),
+                )
+            )
+    return unclaimed, built
+
+
+def _owning_region(box: BBox, regions: list[tuple[str, BBox]]) -> int | None:
+    """The smallest region holding at least half of `box`."""
+    area = max((box.x1 - box.x0) * (box.y1 - box.y0), 1e-6)
+    best, best_area = None, float("inf")
+    for i, (_label, region) in enumerate(regions):
+        ix = max(0.0, min(box.x1, region.x1) - max(box.x0, region.x0))
+        iy = max(0.0, min(box.y1, region.y1) - max(box.y0, region.y0))
+        size = (region.x1 - region.x0) * (region.y1 - region.y0)
+        if ix * iy / area >= _DIGITAL_REGION_MEMBERSHIP and size < best_area:
+            best, best_area = i, size
+    return best
 
 
 #: Resolution the page is rasterised at before OCR. Measured on page 61 of

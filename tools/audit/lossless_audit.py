@@ -7,7 +7,9 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L3  nothing dropped by the writer  translated blocks whose words are missing from the page == 0
     L4  nothing drawn off the page     words outside the page box == 0
     L5  no markup leaked               tags in the output that are not in the source == 0
+    L6  no numbers lost                numbers of the source missing from the translation == 0
     D1  readability (reported only)    blocks drawn below the readability floor
+    D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
 
 It reads a `translate_book.py` work directory, where every chunk left its source (`src/`), its
 output and its project file (`out/t_NNNN.pdf`, `out/t_NNNN.lkproj`). The project records which
@@ -28,9 +30,9 @@ from pathlib import Path
 
 import pymupdf
 
-from layoutkeep.core.docir import Segment, load_project
+from layoutkeep.core.copies import drops_numbers, is_copy, is_identical, ordinary_words
+from layoutkeep.core.docir import load_project
 from layoutkeep.core.protect import is_data_only
-from layoutkeep.providers.passthrough import is_copy_of_source
 from layoutkeep.writers.pdf_writer import is_wordless
 
 #: Words that mark a text as still English. Common enough that any English sentence carries
@@ -93,13 +95,10 @@ def _words(text: str) -> list[str]:
     return [w.casefold() for w in _WORD.findall(text.replace("­", ""))]
 
 
-def _normal(text: str) -> str:
-    return " ".join(text.split()).casefold()
-
 
 def audit_chunk(src: Path, out: Path, project: Path) -> dict:
     doc = load_project(project)
-    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "D1")}
+    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
     counts = Counter()
 
     with pymupdf.open(str(src)) as source, pymupdf.open(str(out)) as output:
@@ -143,24 +142,30 @@ def audit_chunk(src: Path, out: Path, project: Path) -> dict:
                 written_words = _words(written)
                 sample = f"{tag}: {written[:90]!r}"
 
-                untouched = not block.source_text or _normal(written) == _normal(source_text)
+                untouched = not block.source_text or is_identical(source_text, written)
+                ordinary = ordinary_words(written)
                 english = (
-                    len(written_words) >= _ENGLISH_MIN_WORDS
-                    and sum(w in _ENGLISH for w in written_words) / len(written_words)
-                    >= _ENGLISH_SHARE
+                    len(ordinary) >= _ENGLISH_MIN_WORDS
+                    and sum(w in _ENGLISH for w in ordinary) / len(ordinary) >= _ENGLISH_SHARE
                 )
-                copy = is_copy_of_source(Segment(block_id=block.id, source=source_text, target=written))
-                # A label, a formula or a part number legitimately comes back unchanged; only a
-                # block with enough words to be prose can be judged untranslated.
-                prose = len(set(written_words)) >= 4 or len(source_words) >= 4
-                if prose and (untouched or english or copy):
-                    found["L2"].append(sample)
+                # Prose is judged on ordinary words (core.copies): names, brands, addresses and
+                # quoted strings legitimately survive translation and must not count against it.
+                if len(ordinary_words(source_text)) >= 4:
+                    if untouched or english or is_copy(source_text, written):
+                        found["L2"].append(sample)
+                elif untouched and len(source_words) >= 2:
+                    # Too short to tell a name from an untranslated phrase without knowing the
+                    # language: listed for a human, not counted as a loss or as a success.
+                    found["D2"].append(sample)
 
                 if written_words:
                     need = Counter(written_words)
                     present = sum(min(n, on_page[w]) for w, n in need.items())
                     if present / sum(need.values()) < _PRESENT_SHARE:
                         found["L3"].append(sample)
+
+                if block.source_text and drops_numbers(source_text, written):
+                    found["L6"].append(sample)
 
                 if _FIT_FAILED in (block.review_reason or ""):
                     found["D1"].append(sample)
@@ -170,7 +175,7 @@ def audit_chunk(src: Path, out: Path, project: Path) -> dict:
 
 def audit_work(work: Path) -> dict:
     totals = Counter()
-    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "D1")}
+    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
     missing = []
     for project in chunks:
@@ -187,7 +192,7 @@ def audit_work(work: Path) -> dict:
     source_chunks = len(list((work / "src").glob("chunk_*.pdf")))
     if len(chunks) != source_chunks:
         findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited")
-    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5")) and not missing
+    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5", "L6")) and not missing
     return {
         "chunks": len(chunks),
         "blocks": totals["blocks"],
@@ -213,7 +218,9 @@ def main() -> int:
         ("L3", "dropped by writer"),
         ("L4", "off the page"),
         ("L5", "markup leaked"),
+        ("L6", "numbers lost"),
         ("D1", "below readability floor"),
+        ("D2", "short blocks left unchanged"),
     ):
         _say(f"{key}  {label:<26} {result['counts'][key]}")
         for example in result["examples"][key][:5]:

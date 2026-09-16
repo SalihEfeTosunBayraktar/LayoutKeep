@@ -480,7 +480,9 @@ def _inline_styles(block: Block) -> list[Style]:
     styles: list[Style] = []
     seen: set[tuple[Any, ...]] = set()
     for text, style in _block_runs(block):
-        if style is None or not text or style.key() == dominant or style.key() in seen:
+        # A run of nothing but whitespace carries no formatting a reader can see; marking it lost
+        # section numbers (NIST contents: "5.2.1<0> </0>Basic ..." came back without "5.2.1").
+        if style is None or not text.strip() or style.key() == dominant or style.key() in seen:
             continue
         seen.add(style.key())
         styles.append(style)
@@ -520,7 +522,7 @@ def block_source_text(block: Block) -> str:
     dominant = block.dominant_style().key()
     out: list[str] = []
     for text, style in _block_runs(block):
-        if style is None or style.key() == dominant:
+        if style is None or style.key() == dominant or not text.strip():
             out.append(text)
         else:
             n = index[style.key()]

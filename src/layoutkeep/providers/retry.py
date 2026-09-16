@@ -21,6 +21,7 @@ import dataclasses
 import statistics
 from typing import Protocol
 
+from layoutkeep.core.copies import drops_numbers
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
@@ -82,37 +83,70 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
     pending = [
         s for s in segments
         if (not s.target and not is_data_only(s.source))
+        or is_identical(s)
         or is_copy_of_source(s)
         or _is_runaway(s, typical)
+        or (bool(s.target) and drops_numbers(s.source, s.target))
     ]
     if not pending:
         return 0
 
+    # Sent WITHOUT the neighbouring-paragraph context. Measured on gemma-4-e4b: four exercise
+    # items came back in English 3 times out of 3 with their context and translated 3 times out of
+    # 3 without it (docs/campaign/JOURNAL.md, echo experiment) - resending the identical request
+    # cannot recover them. The caller's segments keep their context.
+    accepted = _ask(provider, pending, typical, kwargs)
+    still = [s for s in pending if s.block_id not in accepted]
+    if len(pending) > 1:
+        # Whatever still fails is asked for one segment at a time. A Time Machine dialogue
+        # paragraph echoed in the main pass and in the batch retry, yet translated 24 times out of
+        # 24 in isolation; the condition behind it could not be reproduced, a request holding only
+        # that segment reliably did not echo.
+        for segment in still:
+            accepted.update(_ask(_for_numbers(provider, segment), [segment], typical, kwargs))
+    elif still and still[0].target and drops_numbers(still[0].source, still[0].target):
+        accepted.update(_ask(_for_numbers(provider, still[0]), still, typical, kwargs))
+
+    for segment in pending:
+        if segment.block_id in accepted:
+            segment.target = accepted[segment.block_id]
+    return sum(1 for segment in pending if segment.block_id in accepted)
+
+
+def _for_numbers(provider: _Provider, segment: Segment) -> _Provider:
+    """The provider to ask, for one segment on its last attempt.
+
+    A reply that lost a number is asked for without the protection layer when there is one: the
+    protection holds numbers back as placeholders, and on NIST's glossary the model dropped the
+    placeholder for "(1)" 6 times out of 6 while keeping the plain "(1)" 3 times out of 3.
+    """
+    inner = getattr(provider, "inner", None)
+    if inner is not None and segment.target and drops_numbers(segment.source, segment.target):
+        return inner
+    return provider
+
+
+def _ask(
+    provider: _Provider, batch: list[Segment], typical: float | None, kwargs: dict
+) -> dict[str, str]:
+    """Translate `batch` without context; return the replies that are real translations."""
     try:
-        # Sent WITHOUT the neighbouring-paragraph context. Measured on gemma-4-e4b: four
-        # exercise items came back in English 3 times out of 3 with their context and translated
-        # 3 times out of 3 without it (docs/campaign/JOURNAL.md, echo experiment) - resending the
-        # identical request cannot recover them. The caller's segments keep their context.
         answered = provider.translate(
-            [dataclasses.replace(s, context_before="", context_after="") for s in pending],
+            [dataclasses.replace(s, context_before="", context_after="") for s in batch],
             **kwargs,
         )
     except _RECOVERABLE:
         # This pass runs over a document that is already translated as well as it is going to
         # be; a server that dies now must not cost the work that succeeded before it.
-        return 0
-
-    filled = {
-        seg.block_id: seg
+        return {}
+    wanted = {s.block_id for s in batch}
+    return {
+        seg.block_id: seg.target
         for seg in answered
-        if seg.target and not is_copy_of_source(seg) and not _is_runaway(seg, typical)
+        if seg.block_id in wanted
+        and seg.target
+        and not is_identical(seg)
+        and not is_copy_of_source(seg)
+        and not _is_runaway(seg, typical)
+        and not drops_numbers(seg.source, seg.target)
     }
-    recovered = 0
-    by_id = {seg.block_id: seg for seg in pending}
-    for block_id, reply in filled.items():
-        segment = by_id.get(block_id)
-        if segment is None:
-            continue
-        segment.target = reply.target
-        recovered += 1
-    return recovered

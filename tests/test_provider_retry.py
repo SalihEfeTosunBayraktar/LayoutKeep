@@ -14,6 +14,8 @@ recovers most of them.
 
 from __future__ import annotations
 
+import re
+
 from layoutkeep.core.docir import Segment
 from layoutkeep.providers.retry import retry_untranslated
 
@@ -46,6 +48,10 @@ def _fake_translation(source: str) -> str:
     """A stand-in translation that shares no words with its source. Prefixing the source ("TR:"
     + source) would itself be an untranslated copy, and the retry now rightly rejects those."""
     return "TR:" + source[::-1]
+
+
+def _good(source: str) -> str:
+    return "G" * len(source) + " " + " ".join(re.findall(r"\d+", source))
 
 
 def _segment(block_id: str, source: str, target: str = "") -> Segment:
@@ -160,10 +166,11 @@ def test_a_reply_that_ran_on_into_the_next_paragraph_is_retried() -> None:
 
     class _Good:
         def translate(self, segments, **_kwargs):
-            return [Segment(block_id=s.block_id, source=s.source, target="G" * len(s.source)) for s in segments]
+            # A stand-in translation that keeps the source's numbers, as a real one must.
+            return [Segment(block_id=s.block_id, source=s.source, target=_good(s.source)) for s in segments]
 
     assert retry_untranslated(_Good(), [*ordinary, runaway]) == 1
-    assert runaway.target == "G" * len(caption_src)
+    assert runaway.target == _good(caption_src)
     assert all(seg.target.startswith("T") for seg in ordinary)
 
 
@@ -226,3 +233,62 @@ def test_an_echo_without_the_sources_markers_is_still_an_echo() -> None:
     segment = _segment("m", source, target="When the circuit is disabled, none of the outputs are selected at all.")
     provider = _Recorder()
     assert retry_untranslated(provider, [segment]) == 1
+
+
+def test_what_still_echoes_after_the_batch_retry_is_sent_alone() -> None:
+    """Digital pilot, The Time Machine: a dialogue paragraph came back in English from the main
+    pass AND the context-free batch retry, yet translated 24 of 24 times in isolation, alone or in
+    parallel (docs/campaign/JOURNAL.md). The condition that makes the model echo it could not be
+    reproduced; a request holding only that segment reliably did not."""
+
+    class _EchoesInBatches:
+        def __init__(self):
+            self.batch_sizes = []
+
+        def translate(self, segments, **_kwargs):
+            self.batch_sizes.append(len(segments))
+            return [
+                Segment(block_id=s.block_id, source=s.source,
+                        target=s.source if len(segments) > 1 else _fake_translation(s.source))
+                for s in segments
+            ]
+
+    segments = [_segment("a", _PROSE, target=_PROSE), _segment("b", _PROSE + " Again.", target=_PROSE + " Again.")]
+    provider = _EchoesInBatches()
+    assert retry_untranslated(provider, segments) == 2
+    assert provider.batch_sizes == [2, 1, 1]
+    assert all(not s.target.startswith("An encoder") for s in segments)
+
+
+def test_a_reply_that_lost_a_number_is_retried() -> None:
+    source = "5.2.1 Basic Components of Program Policy ........ 27"
+    segment = _segment("toc", source, target="Program Politikasinin Temel Bilesenleri ........ 27")
+
+    class _KeepsNumbers:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="5.2.1 Program Politikasinin Temel Bilesenleri ........ 27") for s in segments]
+
+    assert retry_untranslated(_KeepsNumbers(), [segment]) == 1
+    assert segment.target.startswith("5.2.1")
+
+
+def test_a_number_lost_through_protection_is_retried_without_it() -> None:
+    """Digital pilot 2, NIST: "(1)" in a glossary entry was held back as a placeholder, and the model
+    dropped the placeholder 6 times out of 6. Sent as plain text, the same entry kept "(1)" 3 times
+    out of 3 (docs/campaign/JOURNAL.md, number experiment). The last, one-at-a-time attempt for a
+    reply that lost a number therefore bypasses the protection layer."""
+
+    class _Plain:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="(1) Bilgi ve olgular (2) Bilgi") for s in segments]
+
+    class _Protected:
+        inner = _Plain()
+
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="Bilgi ve olgular (2) Bilgi") for s in segments]
+
+    source = "(1) Facts or ideas (2) Knowledge"
+    segments = [_segment("a", source, target="Bilgi ve olgular (2) Bilgi"), _segment("b", "(3) More", target="Daha")]
+    assert retry_untranslated(_Protected(), segments) >= 1
+    assert segments[0].target.startswith("(1)")

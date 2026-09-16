@@ -296,7 +296,9 @@ def page_from_rendered_page(
     # left margin. Computed after the conversion above so the box and the page width are both
     # in points.
     for block in page.blocks:
-        block.align = infer_alignment(block.bbox, page.width)
+        block.align = infer_alignment(
+            block.bbox, page.width, [line.bbox for line in block.lines if line.bbox is not None]
+        )
 
     return page
 

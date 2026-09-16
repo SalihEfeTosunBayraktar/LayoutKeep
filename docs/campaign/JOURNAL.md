@@ -213,3 +213,141 @@ provider already splits, retries and flags. Tests `tests/test_http_max_tokens.py
 
 Only the campaign's own processes were stopped (matched by their `_artifacts/campaign/runs`
 command line). The server returned to IDLE when the clients disconnected.
+
+## 2026-09-17 - born-digital pages read with the layout model too
+
+Restarted run (with `max_tokens`) moved again: 9 NIST pages in 11 minutes. Looking at the first
+finished pages before letting 1281 pages run:
+
+- cover (NIST p1): layout, alignment, rules intact, clean translation;
+- **table of contents (NIST p6): no word lost, structure lost** - entries run together
+  ("... 16 3.13 Sistem ..."). The born-digital reader still uses the rule chain the model replaced
+  on scans; it merged the entry lines into paragraphs and the translation reflowed them.
+
+The audit measures lost *words*; this is lost *layout*, and it is recorded here so the report does
+not count it as success.
+
+Measured before building (`tools/audit/layout_pure.py` on NIST pages 6, 7, 20, 35, 60): the model
+labels both contents pages `document_index`, and on text pages finds section headers and
+paragraph boundaries.
+
+**Change** (`pdf_reader._regroup_by_layout`, used when `--layout-detector` is on): the digital page
+is rendered at 100 DPI for the model; its regions group the PDF's own lines - text, fonts and
+positions still come from the PDF, nothing is re-recognised. A text region becomes one block with
+the model's role; a contents, table, form or figure region one block per line; lines in no region,
+and rotated text, keep the old rules; blocks built from the model are not fed back into the
+"merge wrapped lines" rule. Tests `tests/test_pdf_reader_digital_layout.py` (two failed first; the
+two that pass without it guard unclaimed lines and the no-model path).
+
+On the real pages: contents p7 went from 9- and 12-line merged blocks to one block per entry;
+text p20 now has its section headers as headings and a 16-line block split at its real paragraph
+boundary (9 + 7).
+
+The NIST run was stopped at 9 of 101 pages - every page it translated would have been discarded -
+and replaced by a 30-page **digital pilot** first (10 pages each of NIST, The Time Machine and
+Think Python: contents, prose, chapter openings, dialogue, code, tables, index), so defects on
+the digital path are found on 30 pages instead of 465.
+
+## 2026-09-17 - digital pilot 1: 30 pages of NIST, The Time Machine, Think Python
+
+`_artifacts/campaign/digital_pilot`. First pass: **7 of 30 pages produced no output.**
+
+### Pages lost to a crash: "Point: bad args"
+
+Every NIST page carries a line rotated 90 degrees in its margin. When the writer cannot find a
+rotated line again it falls back to redacting the line's box, built as `pymupdf.Quad(rect)` -
+which this PyMuPDF rejects. The fallback, written for the rare case, had never run; the whole
+page was lost instead. Traceback obtained by running the chunk through the CLI command with the
+writer wrapped (the CLI turns writer errors into a one-line message). **Fix:** `rect.quad`, in both
+fallbacks. Test `tests/test_pdf_writer_rotated_fallback.py` (failed first with the same error).
+The 7 pages then translated on `--resume`.
+
+### The audit's own false alarms, checked one by one
+
+L2 reported 11, then 4 on the full 30 pages. Read block by block: names ("Michael Nieles Kelley
+Dempsey ..."), a brand in a footer ("Planet eBook.com"), URLs (text extraction spaces them out:
+"https: // thinkpython. com/ code/"), and a program's quoted output kept verbatim inside a Turkish
+sentence. All correct translations. One was real: a Time Machine paragraph entirely in English.
+
+**Fix, in `core/copies.py`** (so retry, fitting and the audit share it): a copy is judged on
+*ordinary words* - lower-case, outside quotation marks and addresses, with spaced-out addresses
+joined back first; "most" means strictly more than half. Short blocks too short to tell a name
+from an untranslated phrase are no longer counted either way: the audit lists them as **D2** for
+a human. Tests `tests/test_core_copies.py`, each case a real pilot block.
+
+### The Time Machine paragraph: five hypotheses measured, none reproduced
+
+It came back in English from the main pass and from the context-free batch retry. Sent to the model
+in isolation it was translated **every time**: as-is 3/3, without its quotation marks 3/3, half of
+it 3/3, 8 in parallel x 3 rounds 24/24, in a batch with its whole page 3/3, paired with one
+neighbour 3/3 (`echo_experiment/run_quote.py`, `run_parallel.py`, `run_batch.py`). The trigger could
+not be reproduced. **Fix, based on what was reproducible:** whatever still fails after the batch
+retry is asked for one segment at a time. Test
+`test_what_still_echoes_after_the_batch_retry_is_sent_alone`.
+
+### Looking at the pages
+
+- **NIST contents: structure now kept** (one block per entry, page numbers in place) - the
+  layout-model change works. But entry sizes varied from 9.3 to 12 pt down one page.
+- **The Time Machine and Think Python: justified body paragraphs drawn centred.** A regression of
+  my own: alignment was inferred from where a block sits on the page, and a text column in the
+  middle of a narrow page looks like a centred title; once the writer honoured alignment (the
+  NASA cover fix), every such paragraph was centred.
+- **Content loss the audit could not see: section numbers.** NIST contents "5.2.1 Basic Components
+  ..." came out as "Program Politikasinin Temel Bilesenleri .... 27" - "5.2.1", "5.3.2", "5.4.1"
+  gone. The audit's L3 only counts words with letters.
+
+### Fixes for what the pages showed (each with a failing-first test)
+
+- **Alignment from the lines, not the position** (`_layout._alignment_from_lines`): lines sharing a
+  left edge are left/justified (from three lines on, a first-line indent is allowed); sharing a
+  right edge, right; sharing only a centre, centred. Both readers decide alignment after every
+  block has its final lines. Tests in `tests/test_layout_alignment_prose.py`.
+- **Section numbers lost:** the cause was a whitespace run in another font becoming an inline
+  marker ("5.2.1<0> </0>Basic ..."), which the model dropped together with the number. No marker
+  is made around whitespace (`tests/test_docir_whitespace_markers.py`). And a reply that loses a
+  number is not accepted: `core.copies.drops_numbers` (digit groups, so "3,14" matches "3.14") is
+  used by the retry pass, and by the audit as new criterion **L6 - numbers lost**.
+- **Uneven contents sizes:** leader dots are fill. `fit.even_leaders` resizes the translation's
+  leader so the entry keeps the source line's length, and entries fit alike.
+
+A fresh 30-page pilot with all of this is running in `_artifacts/campaign/digital_pilot2`.
+
+## 2026-09-17 - digital pilot 2: untranslated reaches zero
+
+`_artifacts/campaign/digital_pilot2`, 30 pages, every fix above, 15.0 min.
+
+| | L1 | L2 | L3 | L4 | L5 | L6 | D1 | D2 |
+|---|---|---|---|---|---|---|---|---|
+| digital pilot 1 (after resume) | 0 | 1 | 0 | 0 | 0 | - | 52 | 2 |
+| digital pilot 2 | 0 | **0** | 0 | 0 | 0 | 2 | 52 | 10 |
+
+L6 did not exist in pilot 1, so its two findings are newly visible, not new.
+
+### L6: numbers lost through the protection layer
+
+Both on the NIST glossary page: "(1)" in a definition, and "4009" in "CNSSI 4009". The protection
+layer holds numbers back as placeholder tokens; the model dropped the placeholder. Measured
+(`echo_experiment/run_numbers.py`), 3 trials each:
+
+| request | "(1)" kept | "4009" kept |
+|---|---|---|
+| through protection | 0 / 3 | 0 / 3 |
+| plain text | 3 / 3 | 0 / 3 |
+
+Protection *causes* the first loss; the second is the model rewriting "CNSSI 4009" as "CNSS".
+Protection is not removed (it keeps values from being altered elsewhere).
+**Fixes:** the retry's last, one-at-a-time attempt for a reply that lost a number bypasses the
+protection layer (`retry._for_numbers`); fitting no longer accepts a shorter or longer rendering
+that loses a number (`fit._is_source`). Tests
+`test_a_number_lost_through_protection_is_retried_without_it`,
+`test_a_shorter_rendering_that_drops_a_number_is_not_accepted`.
+
+### D1: an unchanged header shrunk on every page
+
+"NIST SP 800-12 REV. 1" is set in small caps and correctly comes back unchanged (a document code),
+yet the writer removed its glyphs and redrew it in a wider substitute font, below the readability
+floor. **Fix:** a block whose written text is exactly its source (letter case included - an
+existing test caught a first version that ignored case, which would have skipped upper-cased
+translations) is not redacted or redrawn: the original glyphs stay. Test
+`tests/test_pdf_writer_unchanged_blocks.py`.

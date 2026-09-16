@@ -7,11 +7,12 @@ accept overflow or reflow. Try each layer in order and stop at the first success
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from layoutkeep.core.copies import is_copy
+from layoutkeep.core.copies import drops_numbers, is_copy, is_identical
 from layoutkeep.core.docir import BBox, Segment, Style
 from layoutkeep.fitting.measure import MeasureFn
 
@@ -130,7 +131,7 @@ def fit_segment(
     # import, so the setting would never be seen after the module loaded.
     if min_scale is None:
         min_scale = min_scale_setting()
-    text = segment.target
+    text = even_leaders(segment.source, segment.target)
     fits, scale = measure(text, style, bbox, scale_low=min_scale, rotation=rotation)
     if fits:
         layer = FitLayer.AS_IS if scale >= 1.0 else FitLayer.SHRUNK
@@ -165,6 +166,32 @@ def fit_segment(
     return FitResult(layer=FitLayer.OVERFLOW, scale=min_scale, text=text, reflow=True)
 
 
+#: A run of this many dots or more is a leader - the fill between a contents entry and its page
+#: number - not an ellipsis.
+_LEADER = re.compile(r"(?:\.\s?){4,}\.?|…{2,}|(?:·\s?){4,}")
+_MARKERS = re.compile(r"</?\d+>")
+
+
+def even_leaders(source: str, target: str) -> str:
+    """Resize the translation's leader so the line keeps the source's length.
+
+    Leader dots fill a contents line to the column's edge. A translation that keeps the source's
+    dots runs longer or shorter by exactly the difference in wording, so every entry overflowed
+    by its own amount and was shrunk to its own size - 9.3pt to 12pt down one NIST contents page.
+    With the fill resized, entries fit alike. At least three dots are kept, so a leader never
+    disappears.
+    """
+    if not _LEADER.search(_MARKERS.sub("", source)):
+        return target
+    match = _LEADER.search(target)
+    if match is None:
+        return target
+    without = len(_MARKERS.sub("", target)) - len(match.group(0))
+    wanted = max(3, len(_MARKERS.sub("", source)) - without)
+    padding = " " if match.group(0).endswith(" ") else ""
+    return target[: match.start()] + "." * (wanted - len(padding)) + padding + target[match.end():]
+
+
 def _is_source(segment: Segment, reply: str) -> bool:
     """True when a re-rendering is the source handed back rather than a translation.
 
@@ -173,7 +200,13 @@ def _is_source(segment: Segment, reply: str) -> bool:
     accepted as a successful retranslation and replaced a correct translation (book page 61).
     Judged by `core.copies.is_copy`, which ignores inline markers the reply may have dropped.
     """
-    return bool(segment.source) and is_copy(segment.source, reply)
+    return bool(segment.source) and (
+        is_identical(segment.source, reply)
+        or is_copy(segment.source, reply)
+        # A re-rendering that loses a number the source has is not the same translation made
+        # shorter; it is a different text (NIST glossary: "CNSSI 4009" came back as "CNSS").
+        or drops_numbers(segment.source, reply)
+    )
 
 
 def _try_expand(

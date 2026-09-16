@@ -42,3 +42,34 @@ def test_a_folio_in_the_right_margin_is_still_right_aligned() -> None:
 
 def test_a_centred_caption_is_still_centred() -> None:
     assert infer_alignment(BBox(100, 200, 218, 212), PAGE) == "center"
+
+
+# Digital pilot, The Time Machine and Think Python: justified body paragraphs came out CENTRED.
+# Their text column sits in the middle of the page (a 322pt page, text 44-278), so a rule that
+# only compares a block with the page could not tell a centred column of prose from a centred
+# title - and once the writer honoured alignment, every paragraph was centred. The lines say
+# which it is: justified or flush-left lines share a left edge; centred lines share a centre and
+# not a left edge.
+
+
+_NOVEL = 322.0
+
+
+def test_a_justified_paragraph_in_a_centred_column_is_left() -> None:
+    lines = [BBox(44, 100 + i * 12, 278, 110 + i * 12) for i in range(5)] + [BBox(44, 160, 180, 170)]
+    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "left"
+
+
+def test_a_first_line_indent_paragraph_is_left() -> None:
+    lines = [BBox(56, 100, 278, 110)] + [BBox(44, 112 + i * 12, 278, 122 + i * 12) for i in range(4)] + [BBox(44, 160, 150, 170)]
+    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "left"
+
+
+def test_centred_lines_of_different_widths_are_centred() -> None:
+    lines = [BBox(61, 100, 261, 110), BBox(111, 112, 211, 122), BBox(86, 124, 236, 134)]
+    assert infer_alignment(BBox(61, 100, 261, 134), _NOVEL, lines) == "center"
+
+
+def test_right_aligned_lines_are_right() -> None:
+    lines = [BBox(150, 100, 278, 110), BBox(200, 112, 278, 122), BBox(120, 124, 278, 134)]
+    assert infer_alignment(BBox(120, 100, 278, 134), _NOVEL, lines) == "right"
