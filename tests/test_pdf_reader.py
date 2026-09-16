@@ -22,28 +22,29 @@ from fixtures.build_pdf_fixture import (
 )
 
 from layoutkeep.core.docir import BBox, BlockRole, Line, Span, Style
-from layoutkeep.readers.pdf_reader import _infer_alignment, _looks_like_math, read_pdf
+from layoutkeep.readers._layout import infer_alignment
+from layoutkeep.readers.pdf_reader import _looks_like_math, read_pdf
 
 # -- S6: mathematics blocks must be classified FORMULA, not BODY -------------------------
 
 
 def test_alignment_centered_block() -> None:
     # 600pt page, block centred around x=300 with balanced margins.
-    assert _infer_alignment(BBox(150, 0, 450, 20), 600) == "center"
+    assert infer_alignment(BBox(150, 0, 450, 20), 600) == "center"
 
 
 def test_alignment_right_block() -> None:
     # Block hugged to the right edge (right margin < 5%, left margin > 15%).
-    assert _infer_alignment(BBox(480, 0, 590, 20), 600) == "right"
+    assert infer_alignment(BBox(480, 0, 590, 20), 600) == "right"
 
 
 def test_alignment_left_block() -> None:
-    assert _infer_alignment(BBox(50, 0, 200, 20), 600) == "left"
+    assert infer_alignment(BBox(50, 0, 200, 20), 600) == "left"
 
 
 def test_alignment_full_width_stays_left() -> None:
     # A justified paragraph spanning nearly the whole page must not be read as centred.
-    assert _infer_alignment(BBox(30, 0, 570, 20), 600) == "left"
+    assert infer_alignment(BBox(30, 0, 570, 20), 600) == "left"
 
 
 def _line_with_font(font: str, text: str = "x") -> Line:
