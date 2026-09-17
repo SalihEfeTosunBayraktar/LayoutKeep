@@ -565,3 +565,60 @@ Every finished book re-audited with the refined checks (still first-pass outputs
 
 (Think Python's L2 13 still counts the code blocks, which only a re-translation with the code fix
 removes.) The architecture book is translating; repair rounds for all six follow it.
+
+## 2026-09-17 - repair round works: The Time Machine lossless, checked by eye
+
+`repair_book.py`, all current fixes (commit `7e52d51`), while the architecture book translates:
+
+| round | chunks with a loss |
+|---|---|
+| before repair (re-audited first pass) | 26 (L2 1, L7 26) |
+| after round 1 (9.6 min) | 1 (page 41) |
+| after round 2 (1.6 min) | **0** |
+
+Final: L1-L7 all 0; D1 72 of 532 blocks; D2 0; D3 20.
+
+Not taken on the audit's word this time - the earlier "lossless" on this book was wrong. Pages
+checked side by side with the original: page 41 (the paragraph that had come back in German) is
+Turkish and nothing overlaps; page 14 (lines drawn over each other in the first pass) is clean.
+Remaining, recorded as quality not loss: a one-line paragraph whose translation needs two lines is
+drawn very small, some paragraphs are smaller than the source, and the model's wording is weak in
+places ("Konakji hastaliklar tum konaklamam boyunca" for "contagious diseases during all my stay").
+
+## 2026-09-17 - NIST repair: two losses that came back every round, and why
+
+Rounds 1-3: chunks with a loss 8 -> 2 -> 2. A loss that survives re-translation is not chance;
+both were read at the source.
+
+1. **"part 1" lost on the references page (L6)** - a reader defect, not the model's. The page sets
+   "[SP800-57 part 1]" in a narrow left column beside its entry; the model drew one region over
+   both, and sorted by height the label's lines were interleaved with the entry's ("Recommendation
+   [SP800-57 for Key Management ... part 1] Technology"). The model lost "part 1" from that mixture
+   every time. Scanned pages already cut each region by whitespace; born-digital pages did not.
+   **Fix:** `pdf_reader._cut_by_whitespace` - digital regions are split with the same XY-cut. Test
+   `test_a_label_column_inside_one_region_is_not_mixed_into_the_entry` (failed first with exactly
+   that interleaving).
+2. **A URL's second line dropped by the writer (L3)** - a chain: a translated entry reached the
+   unchanged line above the URL, which was therefore redrawn, and *that* line's clearing reached the
+   URL line, which nothing had marked. **Fix:** the set of kept blocks to redraw grows until no
+   clearing reaches another. Test `test_a_kept_block_reached_through_another_kept_block_is_not_lost`
+   (failed first).
+
+## 2026-09-17 - NIST lossless after repair; a layout defect the audit could not see
+
+Repair with the two fixes above: chunks with a loss 2 -> **0**. Final: L1-L7 all 0; D1 270 of 1578;
+D2 126 (the running header code and author names, correctly unchanged); D3 2.
+
+Checked by eye, pages 71, 73 and 7 against the original. Page 71: every URL present, labels in their
+column. **Page 73 showed what no loss criterion measures:** one-line reference labels ("[SP800-39]")
+were still set in the middle of their entries' sentences - every word and number present, the
+layout wrong. Cause: the label (x 77-136) sits 18 pt from its entry (x 154), just under the
+whitespace-cut threshold for 16 pt lines. **Fix:** within a group, two lines side by side on one row
+(overlapping vertically, disjoint horizontally, both at least two line-heights wide - so a footnote
+mark beside a word is not a column) cannot be one run of text; the group is split at the gap
+between them. Test `test_a_one_line_label_beside_its_entry_is_separated_however_narrow_the_gap`
+(failed first); guard `test_a_superscript_beside_a_word_does_not_split_its_paragraph`.
+
+Pages 81-84 re-translated: labels in the left column for 8 of the 9 entries on page 73; "[SP800-53A]"
+still joins its entry (the longest label - PyMuPDF appears to deliver it on the same PDF line as the
+entry's first line). Audit: **lossless**.

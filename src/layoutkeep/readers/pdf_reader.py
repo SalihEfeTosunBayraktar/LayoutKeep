@@ -34,9 +34,11 @@ from layoutkeep.core.docir import (
     Span,
     Style,
 )
+from layoutkeep.ocr.engine import TextBox
 from layoutkeep.ocr.layout_detector import LABEL_TO_ROLE, LayoutDetector, resolve_duplicates
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
+from layoutkeep.readers._segment import segment
 from layoutkeep.readers.image_reader import (
     expected_characters,
     is_scanned_page,
@@ -292,11 +294,21 @@ def _regroup_by_layout(
             )
 
     width = page.rect.width
+    heights = [
+        line.bbox.y1 - line.bbox.y0 for block in blocks for line in block.lines if line.bbox is not None
+    ]
+    line_height = statistics.median(heights) if heights else 1.0
     built: list[Block] = []
     for owner, lines in sorted(members.items()):
         label, _box = regions[owner]
         lines.sort(key=lambda line: (line.bbox.y0, line.bbox.x0))
-        groups = [[line] for line in lines] if label in _ONE_BLOCK_PER_LINE else [lines]
+        if label in _ONE_BLOCK_PER_LINE:
+            groups = [[line] for line in lines]
+        else:
+            # A region can hold more than one column - a references page's "[SP800-57 part 1]" label
+            # beside its entry came as one region, and sorted by height the label was interleaved
+            # into the entry. The page's whitespace separates them, as it does on scanned pages.
+            groups = _cut_by_whitespace(lines, line_height)
         role = BlockRole.TABLE if label == "table" else (
             BlockRole.BODY if label in _ONE_BLOCK_PER_LINE else LABEL_TO_ROLE.get(label, BlockRole.BODY)
         )
@@ -311,6 +323,46 @@ def _regroup_by_layout(
                 )
             )
     return unclaimed, built
+
+
+def _cut_by_whitespace(lines: list[Line], line_height: float) -> list[list[Line]]:
+    """Split a region's lines at the page's structural gaps (see `readers/_segment.py`)."""
+    stand_ins = [
+        [TextBox(text=str(i), bbox=(ln.bbox.x0, ln.bbox.y0, ln.bbox.x1, ln.bbox.y1), confidence=1.0)]
+        for i, ln in enumerate(lines)
+    ]
+    groups = [
+        [lines[int(stand_in[0].text)] for stand_in in region.lines]
+        for region in segment(stand_ins, line_height=line_height)
+    ]
+    return [part for group in groups for part in _split_side_by_side_rows(group)]
+
+
+def _split_side_by_side_rows(lines: list[Line]) -> list[list[Line]]:
+    """Split a group where two lines sit side by side on one row, at the gap between them.
+
+    Two lines on the same row cannot be one run of text, however narrow the gap: NIST's one-line
+    reference labels ("[SP800-39]", x 77-136) sit 18 pt from their entries (x 154) - just under the
+    whitespace threshold for 16 pt lines - and were read into the middle of the entry.
+    """
+    for i, a in enumerate(lines):
+        for b in lines[i + 1:]:
+            overlap = min(a.bbox.y1, b.bbox.y1) - max(a.bbox.y0, b.bbox.y0)
+            shorter = min(a.bbox.y1 - a.bbox.y0, b.bbox.y1 - b.bbox.y0)
+            if shorter <= 0 or overlap < shorter * 0.5:
+                continue
+            # A footnote mark set as its own tiny line beside a word is not a column.
+            if min(a.bbox.x1 - a.bbox.x0, b.bbox.x1 - b.bbox.x0) < 2 * shorter:
+                continue
+            left, right = (a, b) if a.bbox.x1 <= b.bbox.x0 else (b, a) if b.bbox.x1 <= a.bbox.x0 else (None, None)
+            if left is None:
+                continue
+            cut = (left.bbox.x1 + right.bbox.x0) / 2
+            before = sorted((ln for ln in lines if ln.bbox.x1 <= cut), key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
+            after = sorted((ln for ln in lines if ln.bbox.x1 > cut), key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
+            if before and after:
+                return _split_side_by_side_rows(before) + _split_side_by_side_rows(after)
+    return [lines]
 
 
 def _owning_region(box: BBox, regions: list[tuple[str, BBox]]) -> int | None:

@@ -73,3 +73,32 @@ def test_an_unchanged_block_overlapped_by_a_translated_one_is_not_lost(tmp_path:
     write_pdf(read, src, out)
     with pymupdf.open(out) as result:
         assert "doi.org" in result[0].get_text()
+
+
+def test_a_kept_block_reached_through_another_kept_block_is_not_lost(tmp_path: Path) -> None:
+    """NIST references page: a translated entry reached the unchanged line "128 Stat. 3073.
+    http://www.gpo.gov/fdsys/pkg/PLAW-" beneath it, which was therefore redrawn - and that line's
+    own clearing reached the next unchanged line, "113publ283/pdf/PLAW-113publ283.pdf", which
+    nothing had marked. Every block a clearing reaches is redrawn, however many steps away."""
+    src = tmp_path / "chain.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=400)
+    page.insert_text((40, 100), "Federal Information Security Modernization Act of 2014", fontsize=11)
+    page.insert_text((40, 140), "128 Stat. 3073. http://www.gpo.gov/fdsys/pkg/PLAW-", fontsize=11)
+    page.insert_text((40, 180), "113publ283/pdf/PLAW-113publ283.pdf", fontsize=11)
+    doc.save(str(src))
+
+    read = read_pdf(src)
+    blocks = sorted((b for _p, b in read.iter_blocks()), key=lambda b: b.bbox.y0)
+    assert len(blocks) == 3, [b.text for b in blocks]
+    # As measured on the page: each box reaches a couple of points into the one below it.
+    blocks[0].bbox.y1 = blocks[1].bbox.y0 + 2.0
+    blocks[1].bbox.y1 = blocks[2].bbox.y0 + 2.0
+    segments = segments_from_document(read)
+    for seg in segments:
+        seg.target = "2014 Federal Bilgi Guvenligi Modernizasyonu Yasasi" if "Modernization" in seg.source else seg.source
+    apply_segments(read, segments)
+    out = tmp_path / "out.pdf"
+    write_pdf(read, src, out)
+    with pymupdf.open(out) as result:
+        assert "113publ283" in result[0].get_text()

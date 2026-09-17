@@ -117,12 +117,19 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             # ...unless the clearing of a changed neighbour would reach it: redaction removes every
             # glyph its box touches, and NIST's DOI line, 3pt inside the box of the sentence above
             # it, vanished from the page. Such a block is redrawn like any other.
-            reached = [
-                b for b in page_data.blocks
-                if b.translatable and _unchanged(b)
-                and any(_rect(b.bbox).intersects(_rect(c.bbox)) for c in changed)
-            ]
-            blocks = changed + reached
+            # Transitively: a kept block that is redrawn is cleared too, and its clearing can reach
+            # the next kept block (NIST references: a URL's second line, two steps from the entry
+            # that was translated, vanished).
+            blocks = list(changed)
+            waiting = [b for b in page_data.blocks if b.translatable and _unchanged(b)]
+            grew = True
+            while grew:
+                grew = False
+                for candidate in list(waiting):
+                    if any(_rect(candidate.bbox).intersects(_rect(c.bbox)) for c in blocks):
+                        blocks.append(candidate)
+                        waiting.remove(candidate)
+                        grew = True
             if not blocks:
                 continue
             # Font resolution runs before any page is redacted: it may need to read the source

@@ -79,3 +79,64 @@ def test_without_a_model_digital_reading_is_unchanged(tmp_path: Path) -> None:
     _toc(src)
     with_none = [b.text for b in read_pdf(src).pages[0].blocks]
     assert any("3.12" in t for t in with_none)
+
+
+def test_a_label_column_inside_one_region_is_not_mixed_into_the_entry(tmp_path: Path) -> None:
+    """NIST references page: "[SP800-57 part 1]" in a narrow left column beside its entry, both in
+    one region the model drew. Sorted by height, the label's two lines were interleaved with the
+    entry's ("Recommendation [SP800-57 for Key Management ... part 1] Technology"), and the model
+    lost "part 1" from the mixture on every retry. Inside a region the page's whitespace still
+    separates the columns, as it does on scanned pages."""
+    src = tmp_path / "refs.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    page.insert_text((72, 200), "[SP800-57", fontsize=10)
+    page.insert_text((72, 212), "part 1]", fontsize=10)
+    for row, text in enumerate(["NIST Special Publication (SP) 800-57 part 1 Revision 4,",
+                                "Recommendation for Key Management, Part 1: General,",
+                                "National Institute of Standards and Technology."]):
+        page.insert_text((200, 200 + row * 12), text, fontsize=10)
+    doc.save(str(src))
+
+    detector = _Detector([("text", (65, 188, 540, 240))])
+    blocks = read_pdf(src, layout=detector).pages[0].blocks
+    entry = next(b for b in blocks if "Recommendation" in b.text)
+    assert "[SP800-57" not in entry.text, entry.text
+    assert any(b.text.replace("\n", " ").strip() == "[SP800-57 part 1]" for b in blocks), [b.text for b in blocks]
+
+
+def test_a_one_line_label_beside_its_entry_is_separated_however_narrow_the_gap(tmp_path: Path) -> None:
+    """NIST references page after the whitespace cut: one-line labels ("[SP800-39]") still ended up
+    inside their entries. The gap between label (x 77-136) and entry (x 154) is 18 pt, just under
+    the structural-gap threshold for 16 pt lines. But the label and the entry's first line sit on the
+    same row - two lines side by side cannot be one run of text, whatever the gap."""
+    src = tmp_path / "refs1.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    page.insert_text((77, 200), "[SP800-39]", fontsize=12)
+    for row, text in enumerate(["NIST Special Publication (SP) 800-39, Managing",
+                                "Information Security Risk: Organization, Mission,",
+                                "and Information System View, National Institute."]):
+        page.insert_text((154, 200 + row * 14), text, fontsize=12)
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("list_item", (70, 185, 540, 240))])).pages[0].blocks
+    entry = next(b for b in blocks if "Managing" in b.text)
+    assert "[SP800-39]" not in entry.text, entry.text
+
+
+def test_a_superscript_beside_a_word_does_not_split_its_paragraph(tmp_path: Path) -> None:
+    """The guard on the side-by-side rule: a footnote mark set as its own small line next to a word
+    is not a second column."""
+    src = tmp_path / "sup.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    page.insert_text((80, 200), "Information security protects information", fontsize=11)
+    page.insert_text((316, 196), "12", fontsize=6)
+    for row, text in enumerate(["and systems from unauthorized access, use and", "disclosure of every kind."], start=1):
+        page.insert_text((80, 200 + row * 13), text, fontsize=11)
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("text", (70, 185, 540, 240))])).pages[0].blocks
+    prose = [b for b in blocks if "Information security" in b.text or "disclosure" in b.text]
+    assert len(prose) == 1, [b.text for b in blocks]
