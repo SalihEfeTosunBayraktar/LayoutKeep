@@ -191,9 +191,30 @@ class CompletionWidget(QFrame):
         ]
         if flagged:
             lines.append(UIStrings.COMPLETION_FLAGGED.format(count=flagged))
+        lines += self._verification_lines()
         self._stats_label.setText("\n".join(lines))
         self._stats_title.setVisible(True)
         self._stats_label.setVisible(True)
+
+    def _verification_lines(self) -> list[str]:
+        """What checking the written output found (layoutkeep/verify.py), when the job was checked."""
+        if "verify_remaining" not in self._stats:
+            return []
+        lines = []
+        repaired = int(self._stats.get("verify_repaired", 0))
+        if repaired:
+            lines.append(UIStrings.COMPLETION_VERIFY_REPAIRED.format(count=repaired))
+        remaining = {k: int(v) for k, v in dict(self._stats["verify_remaining"]).items() if v}
+        if remaining:
+            kinds = ", ".join(
+                f"{UIStrings.get(f'VERIFY_{kind}')} {count}" for kind, count in sorted(remaining.items())
+            )
+            lines.append(
+                UIStrings.COMPLETION_VERIFY_REMAINING.format(count=sum(remaining.values()), kinds=kinds)
+            )
+        else:
+            lines.append(UIStrings.COMPLETION_VERIFY_CLEAN)
+        return lines
 
     def apply_theme(self) -> None:
         # Tema değişiminde ikon renklerini günceller / Refreshes icon colors on theme change

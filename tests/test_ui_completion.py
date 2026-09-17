@@ -133,3 +133,34 @@ def test_without_stats_the_block_stays_hidden(qtbot):
     widget.set_stats(None)
 
     assert widget._stats_label.text() == ""
+
+
+def test_what_verification_found_is_reported_by_kind(qtbot):
+    """The application checks what it wrote (layoutkeep/verify.py). A loss it could not mend is
+    flagged in the review queue; the completion screen has to say so, and say what kind."""
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(verify_repaired=3, verify_remaining={"L2": 2, "L7": 1}))
+
+    text = widget._stats_label.text()
+    assert "3 segments mended" in text
+    assert "3 losses flagged" in text
+    assert "left untranslated" in text and "drawn over other text" in text
+
+
+def test_a_verified_clean_output_says_so(qtbot):
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(verify_repaired=0, verify_remaining={}))
+    assert "no losses found" in widget._stats_label.text()
+
+    widget.set_stats(_stats())  # a job that was not verified says nothing about it
+    assert "Verification" not in widget._stats_label.text()
