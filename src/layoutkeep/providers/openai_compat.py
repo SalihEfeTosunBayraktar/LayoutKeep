@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import time
 from collections import Counter
 
@@ -199,6 +200,13 @@ class OpenAICompatProvider(TranslationProvider):
             # One repair round: ask the model to turn its own broken reply into valid JSON.
             repaired = self._try_repair(reply)
             parsed = _parse_reply(repaired) if repaired is not None else None
+            if parsed is None:
+                # Said out loud: two held-out paragraphs were never answered and nothing recorded
+                # why, so the cause could only be guessed.
+                print(
+                    f"reply     unreadable for {len(segments)} segment(s): {_why_unreadable(reply)}",
+                    file=sys.stderr,
+                )
         by_id = parsed or {}
 
         if adaptive and len(segments) > 1:
@@ -465,6 +473,18 @@ def _build_messages(
         {"role": "system", "content": "\n".join(system_lines)},
         {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
     ]
+
+
+def _why_unreadable(reply: str) -> str:
+    """The parser's complaint about a reply, with the text around the fault - never the whole reply."""
+    try:
+        data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
+    except json.JSONDecodeError as exc:
+        start = max(exc.pos - 40, 0)
+        return f"{exc.msg} at character {exc.pos}: {reply[start:exc.pos + 40]!r}"
+    if not isinstance(data, list):
+        return f"a {type(data).__name__}, not a list: {reply[:80]!r}"
+    return f"an item without id and text: {reply[:80]!r}"
 
 
 def _parse_reply(reply: str) -> dict[str, str] | None:

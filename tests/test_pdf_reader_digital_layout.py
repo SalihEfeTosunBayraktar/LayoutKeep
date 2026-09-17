@@ -196,3 +196,32 @@ def test_text_inside_a_picture_is_kept_as_it_is_on_a_digital_page_too(tmp_path: 
 
     blocks = read_pdf(src, layout=_Detector([("picture", (120, 90, 420, 160))])).pages[0].blocks
     assert blocks and all(b.role in NON_TRANSLATABLE_ROLES for b in blocks), [(b.role, b.text) for b in blocks]
+
+
+def test_paragraphs_inside_one_text_region_are_split_at_their_blank_line(tmp_path: Path) -> None:
+    """Held-out Wikipedia "Printing press", page 9: the model boxed the whole page as one text region,
+    and its four paragraphs came out as one 4,000-character block the model never answered - the page
+    was lost. The paragraphs are separated by a blank line: 15 pt between them against 2.5-3 pt
+    between lines, which is still under the whitespace cut's 1.2 line heights (15.9 pt)."""
+    src = tmp_path / "paragraphs.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    first = ["Printing presses spread quickly across Europe during the late fifteenth century,",
+             "and within a few decades most large cities had at least one workshop producing",
+             "books, pamphlets and broadsheets for a growing number of readers in many towns."]
+    second = ["Quantitative work in economics has tested some of these claims about growth,",
+              "finding that cities where printing was established grew faster than comparable",
+              "cities without presses between the years fifteen hundred and sixteen hundred."]
+    top = 120.0
+    for text in first:
+        page.insert_text((72, top), text, fontsize=11)
+        top += 14.5
+    top += 13.0  # a blank line between the paragraphs
+    for text in second:
+        page.insert_text((72, top), text, fontsize=11)
+        top += 14.5
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("text", (60, 100, 560, top))])).pages[0].blocks
+    prose = [b.text for b in blocks if "Printing presses" in b.text or "Quantitative" in b.text]
+    assert len(prose) == 2, prose

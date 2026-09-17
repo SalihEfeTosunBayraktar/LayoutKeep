@@ -13,6 +13,7 @@ This is one of only two modules allowed to `import pymupdf` (see CONTRACT.md §4
 from __future__ import annotations
 
 import base64
+import itertools
 import math
 import re
 import statistics
@@ -343,7 +344,41 @@ def _cut_by_whitespace(lines: list[Line], line_height: float) -> list[list[Line]
         [lines[int(stand_in[0].text)] for stand_in in region.lines]
         for region in segment(stand_ins, line_height=line_height)
     ]
-    return [part for group in groups for part in _split_side_by_side_rows(group)]
+    return [
+        paragraph
+        for group in groups
+        for part in _split_side_by_side_rows(group)
+        for paragraph in _split_at_blank_lines(part, line_height)
+    ]
+
+
+#: A gap between two stacked lines of one region at least this many times the region's usual gap
+#: between lines is a blank line between paragraphs.
+_PARAGRAPH_GAP_FACTOR = 3.0
+
+
+def _split_at_blank_lines(lines: list[Line], line_height: float) -> list[list[Line]]:
+    """Split stacked lines where a blank line separates paragraphs.
+
+    Held-out Wikipedia "Printing press", page 9: one text region held the whole page, and its four
+    paragraphs, 15 pt apart against 2.5-3 pt between lines, stayed under the whitespace cut's
+    threshold of 1.2 line heights (15.9 pt) - one 4,000-character block the model never answered, and
+    the page was lost. Measured against the region's own spacing, a blank line is unmistakable; half
+    a line height is the least a gap must be, so tight leading does not turn every line into one.
+    """
+    ordered = sorted(lines, key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
+    # Lines set tighter than their boxes overlap a little: that is a gap of nothing, not less.
+    gaps = [max(b.bbox.y0 - a.bbox.y1, 0.0) for a, b in itertools.pairwise(ordered)]
+    if len(gaps) < 2:
+        return [lines]
+    threshold = max(_PARAGRAPH_GAP_FACTOR * statistics.median(gaps), 0.5 * line_height)
+    parts: list[list[Line]] = [[ordered[0]]]
+    for gap, line in zip(gaps, ordered[1:], strict=True):
+        if gap >= threshold:
+            parts.append([line])
+        else:
+            parts[-1].append(line)
+    return parts
 
 
 def _split_side_by_side_rows(lines: list[Line]) -> list[list[Line]]:

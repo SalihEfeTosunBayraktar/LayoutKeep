@@ -505,3 +505,16 @@ def test_valid_escapes_are_left_as_json_means_them():
     text = 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve\tsekme"
     reply = json.dumps([{"id": "b1", "text": text}])
     assert _parse_reply(reply) == {"b1": 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve sekme"}
+
+
+def test_why_a_reply_could_not_be_read_is_said(monkeypatch, capsys):
+    """Held-out: two long paragraphs were never answered, and nothing recorded why - the raw reply
+    is not kept, so the cause could only be guessed. An unreadable reply now leaves its reason and
+    the text around the fault in the log."""
+    provider = _multi_segment_provider()
+    monkeypatch.setattr(provider, "_chat", lambda messages: '[{"id": "b1", "text": "a "quoted" word"}]')
+
+    provider.translate(_segments(), "en", "fr")
+
+    err = capsys.readouterr().err
+    assert "unreadable for 2 segment(s)" in err and "delimiter" in err and "quoted" in err, err

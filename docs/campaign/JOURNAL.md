@@ -1014,3 +1014,29 @@ untouched. Tests `test_a_raw_backslash_in_a_reply_does_not_lose_the_whole_batch`
 The paragraph with 43 markers is recorded as unexplained rather than given a cause: the application
 does not keep the raw reply, and asking the server again now would exceed the 8 parallel requests
 agreed for tests.
+
+## 2026-09-17 - held-out finding 6: a page lost as one 4,000-character paragraph
+
+Wikipedia "Printing press" (at `583027d`) finished with page 9 missing (L1). The page is four
+paragraphs separated by blank lines; the layout model boxed the whole page as one text region, and
+the whitespace cut inside it did not split them. Measured on that page: 15.0 pt between paragraphs,
+2.5-3.2 pt between lines, and a cut threshold of 1.2 line heights = 15.9 pt (citation superscripts
+make the line boxes tall). One 4,056-character segment went out, no reply came back, the CLI wrote
+nothing for a document with no translated segment, and the book could not be merged.
+
+**Fix:** inside a region, a gap of at least 3x the region's own usual gap between lines (and at least
+half a line height) is a blank line between paragraphs. Test
+`test_paragraphs_inside_one_text_region_are_split_at_their_blank_line` (failed first; a first
+version ignored overlapping line boxes, which tightly set text has, and the synthetic case caught it).
+The real page reads as 4 blocks (357, 1655, 723, 1234 characters). Checked for side effects with
+`stale_chunks.py` on the campaign's born-digital books: The Time Machine 0 of 120 pages read
+differently, Think Python 0 of 244, NIST the same 2 of 101 as before the change.
+
+**Also:** a reply the parser cannot read now leaves its reason and the text around the fault in the
+log (`reply     unreadable for N segment(s): <json error> at character K: '...'`), never the whole
+reply. Two held-out paragraphs had gone unanswered with no record of why; the next sources collect
+that evidence. Test `test_why_a_reply_could_not_be_read_is_said` (failed first).
+
+Not changed, noted: when *no* segment of a document comes back, the CLI writes no output. For a
+one-page chunk that is a lost page; for a whole document it avoids presenting an untranslated copy as
+a result. Splitting the paragraphs removes the case that caused it here.
