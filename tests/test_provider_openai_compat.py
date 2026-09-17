@@ -528,3 +528,10 @@ def test_a_single_item_reply_without_its_list_is_read():
     itself - {"id": ..., "text": ...} - not a list of one. The logged reason was "a dict, not a list",
     and the paragraph stayed in English."""
     assert _parse_reply(json.dumps({"id": "b1", "text": "Merhaba"})) == {"b1": "Merhaba"}
+
+
+def test_items_written_one_per_line_instead_of_a_list_are_read():
+    """Held-out NASA scan: asked for two segments, the model wrote two items one after the other,
+    not inside a list. The log said "Extra data at character 392", and both translations were lost."""
+    reply = '{"id": "b1", "text": "Daha hızlı ve verimli."}\n{"id": "b2", "text": "Güvenlik"}'
+    assert _parse_reply(reply) == {"b1": "Daha hızlı ve verimli.", "b2": "Güvenlik"}

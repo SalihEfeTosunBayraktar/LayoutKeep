@@ -487,19 +487,47 @@ def _why_unreadable(reply: str) -> str:
     return f"an item without id and text: {reply[:80]!r}"
 
 
+def _decode_reply(reply: str) -> object:
+    """The JSON in a reply, read as leniently as the replies measured in held-out runs require.
+
+    - A backslash that starts no JSON escape - a set-minus copied from inline math (arXiv
+      2609.19145) - made the whole reply unreadable, the same way on every retry; it is read as
+      the literal character it is.
+    - Items written one after another instead of inside a list (NASA scan: "Extra data at character
+      392") are read as that list.
+    Returns None when nothing readable is there.
+    """
+    for candidate in (reply, _LONE_BACKSLASH.sub(r"\\\\", reply)):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+        items = _json_sequence(candidate)
+        if items is not None:
+            return items
+    return None
+
+
+def _json_sequence(text: str) -> list | None:
+    """Two or more JSON values written one after another (separated by whitespace or commas)."""
+    decoder = json.JSONDecoder()
+    text = text.strip()
+    values, position = [], 0
+    while position < len(text):
+        try:
+            value, position = decoder.raw_decode(text, position)
+        except json.JSONDecodeError:
+            return None
+        values.append(value)
+        while position < len(text) and text[position] in " \t\r\n,":
+            position += 1
+    return values if len(values) > 1 else None
+
+
 def _parse_reply(reply: str) -> dict[str, str] | None:
     """Parse a model reply into {id: translated_text}. Returns None if it isn't the expected
     JSON array of {id, text} objects - the caller treats that as a malformed reply."""
-    try:
-        data = json.loads(reply)
-    except json.JSONDecodeError:
-        # A backslash that starts no JSON escape - a set-minus copied from inline math, held-out
-        # arXiv 2609.19145 - made the whole reply, every segment in it, unreadable, and it came back
-        # the same through every retry. Escaped as the literal character it is, the reply reads.
-        try:
-            data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
-        except json.JSONDecodeError:
-            return None
+    data = _decode_reply(reply)
     if isinstance(data, dict) and "id" in data and "text" in data:
         # Asked for one segment, a model may answer with the item itself rather than a list of one
         # (held-out Wikipedia "Photosynthesis": logged as "a dict, not a list", paragraph lost).

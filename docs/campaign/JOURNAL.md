@@ -1114,3 +1114,19 @@ it away. An existing test (`test_parse_reply_rejects_non_list_json`) had pinned 
 rejection. **Fix:** a single `{id, text}` item is read as a list of one; JSON that is neither a list
 nor an item is still rejected, and the old test now checks that. Test
 `test_a_single_item_reply_without_its_list_is_read` (failed first).
+
+## 2026-09-17 - held-out result: NASA NTRS one-page scan, and finding 12
+
+NASA NTRS 19750007530 (one image-only page, commit `e45ddb8`, no repair): **L1-L9 all 0 except L2 1**
+over 13 blocks. The counts say little here: the OCR of this scan is poor ("The Naga Merorautigs
+Frogrom is direcled" for a line about the NASA aeronautics program), and garbage in gave garbage out,
+including a word that is not Turkish ("bidangolo"). No loss criterion measures recognition quality
+against a transcription that does not exist. What the application did do: 13 of the 14 segments are
+flagged for review (low OCR confidence, overflow), so the review queue shows the page as unreliable.
+
+**Finding 12.** The log caught another thrown-away reply: `reply unreadable for 2 segment(s): Extra
+data at character 392: '...afficicntly."}\n{"id": "img0#11", ...'` - asked for two segments, the model
+wrote the two items one after the other, not inside a list. **Fix:** items written in sequence
+(separated by whitespace or commas) are read as the list they should have been; the backslash repair
+and this now share one decoding step (`_decode_reply`). Test
+`test_items_written_one_per_line_instead_of_a_list_are_read` (failed first).
