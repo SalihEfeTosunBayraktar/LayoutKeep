@@ -990,3 +990,27 @@ never reach it; each run writes its commit to `commit.txt`. Kept as measured: th
 arXiv 2609.19145 (both entirely at `bad981a`). Restarted from scratch: Wikipedia "Printing press"
 and the EPUB. arXiv 2609.19145 runs once more at the end with the current code, for a before/after
 on the same source.
+
+## 2026-09-17 - held-out finding 5: what the first paper's losses were, one by one
+
+arXiv 2609.19145 at `bad981a`, audited with the current criteria: L1 1, L2 7, L6 2, L7 1, L8 2, L9 0.
+Every L2 and L6 block read against its source:
+
+| block | what it is | verdict |
+|---|---|---|
+| p. 3 paragraph with inline math (set-minus written as a backslash) | never answered, through the batch and all lone retries | **real loss**, flagged |
+| p. 7 paragraph "Distributional Properties of Tokens" | never answered; no backslash, but 43 style markers (every math symbol in its own font) | **real loss**, flagged; cause not yet proven |
+| 5 bibliography entries | titles left as published; one entry has only its title translated; one has "and" written as "ve ve" | policy question (should references be translated at all?) plus one real defect ("ve ve") |
+| p. 10 "Approximate top-down deletion scores" | a number dropped | **real loss**, flagged |
+| p. 19 table header "95% CI" -> "% GA" | the 95 dropped | **real loss**, flagged |
+
+**Finding and fix - one backslash lost the whole reply.** `json.loads` rejects a backslash that
+starts no JSON escape, and the parser then treated the entire reply as malformed: every segment of
+that batch unanswered, and a lone retry of the math paragraph failed the same way each time. A
+backslash that begins no valid escape is now read as the literal character it is; valid escapes are
+untouched. Tests `test_a_raw_backslash_in_a_reply_does_not_lose_the_whole_batch` (failed first) and
+`test_valid_escapes_are_left_as_json_means_them`.
+
+The paragraph with 43 markers is recorded as unexplained rather than given a cause: the application
+does not keep the raw reply, and asking the server again now would exceed the 8 parallel requests
+agreed for tests.

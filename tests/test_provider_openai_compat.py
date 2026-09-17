@@ -489,3 +489,19 @@ def test_a_leading_list_number_the_model_dropped_is_put_back() -> None:
     assert kept.target.startswith("3. Sagladigim") and not kept.target.startswith("3. 3.")
     sub = _apply_result(Segment(block_id="s", source="a. FULL = 1 and EMTY = 0?"), "FULL = 1 ve EMTY = 0 ise?")
     assert sub.target.startswith("a. FULL")
+
+
+def test_a_raw_backslash_in_a_reply_does_not_lose_the_whole_batch():
+    """Held-out arXiv 2609.19145: a paragraph with inline math ("S_k = S_{k-1} minus {s}", the
+    set-minus written as a backslash) never came back, through the batch and every lone retry. A
+    model copies that backslash as it is, and a backslash that starts no JSON escape made json.loads
+    reject the reply with every segment in it."""
+    backslash = chr(92)
+    reply = '[{"id": "b1", "text": "Bu, S' + backslash + ' {s} verir."}, {"id": "b2", "text": "Merhaba"}]'
+    assert _parse_reply(reply) == {"b1": "Bu, S" + backslash + " {s} verir.", "b2": "Merhaba"}
+
+
+def test_valid_escapes_are_left_as_json_means_them():
+    text = 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve\tsekme"
+    reply = json.dumps([{"id": "b1", "text": text}])
+    assert _parse_reply(reply) == {"b1": 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve sekme"}

@@ -473,7 +473,13 @@ def _parse_reply(reply: str) -> dict[str, str] | None:
     try:
         data = json.loads(reply)
     except json.JSONDecodeError:
-        return None
+        # A backslash that starts no JSON escape - a set-minus copied from inline math, held-out
+        # arXiv 2609.19145 - made the whole reply, every segment in it, unreadable, and it came back
+        # the same through every retry. Escaped as the literal character it is, the reply reads.
+        try:
+            data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
+        except json.JSONDecodeError:
+            return None
     if not isinstance(data, list):
         return None
     result: dict[str, str] = {}
@@ -496,5 +502,8 @@ _HTML_BREAK = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
 _HTML_TAG = re.compile(
     r"</?\s*(?:p|b|i|u|em|strong|span|div|sup|sub|small|font)(?:\s[^>]*)?/?>", re.IGNORECASE
 )
+
+#: A backslash that begins no JSON escape: not a quote, backslash, slash, b f n r t, or u + 4 hex.
+_LONE_BACKSLASH = re.compile(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})')
 
 _FIELD_TAG = re.compile(r"</?\s*(?:text|id)\s*/?(?:>|$)", re.IGNORECASE)
