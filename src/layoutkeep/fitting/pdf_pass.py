@@ -12,6 +12,7 @@ to `MAX_RETRANSLATE_ROUNDS` rounds, converging on the budget the last round reve
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable
 
 from layoutkeep.core.docir import BBox, Block, Document, Segment
@@ -56,6 +57,7 @@ def fit_pdf_pass(
 
     slack = float(tunables.get("write.box_slack_pt"))
     measurers: dict[tuple, TextMeasurer | None] = {}
+    drawn_fonts: dict[tuple, str | None] = {}
     results = []
 
     for seg in segments:
@@ -63,7 +65,10 @@ def fit_pdf_pass(
         if block is None or not seg.translated:
             continue
 
-        style = block.dominant_style()
+        # Measured in the face the writer will draw: with no font file resolved, the generic serif
+        # (Times) is up to 29% narrower than the Noto Serif the writer substitutes, and a line that
+        # "fit" wrapped when drawn and lost its end (held-out PLOS ONE, eight one-line blocks).
+        style = _as_drawn(block.dominant_style(), target_lang, drawn_fonts)
         measurer = _measurer_for(measurers, style, target_lang)
 
         def char_budget(style, bbox, scale, _m=measurer):
@@ -102,6 +107,31 @@ def fit_pdf_pass(
         results.append(result)
 
     return summarize(results) if results else None
+
+
+def _as_drawn(style, target_lang: str | None, cache: dict[tuple, str | None]):
+    """`style` with the font file the writer will substitute for it, when it has none yet.
+
+    The same resolution the writer makes (`fontmatch.resolve_font`, with the source's serif flag),
+    short of reusing a PDF's own embedded font, which only the writer can open - there a substitute
+    is measured, which errs on the wide side. The block's own style is not changed.
+    """
+    if style.font_path or not target_lang:
+        return style
+    key = (style.font_family, style.bold, style.italic, style.serif)
+    if key not in cache:
+        from layoutkeep.fitting.fontmatch import resolve_font
+
+        try:
+            match = resolve_font(
+                style.font_family or "sans-serif", target_lang,
+                bold=style.bold, italic=style.italic, serif_hint=style.serif,
+            )
+            cache[key] = match.resolved_path
+        except Exception:  # noqa: BLE001 - an unresolvable font keeps the generic measurement
+            cache[key] = None
+    path = cache[key]
+    return dataclasses.replace(style, font_path=path) if path else style
 
 
 def apply_scale(block: Block, scale: float) -> None:

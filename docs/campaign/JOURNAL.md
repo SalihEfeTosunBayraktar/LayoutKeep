@@ -1062,3 +1062,38 @@ like a name to that check. Reverted.
 **Fix:** a source with no ordinary words (a name, a code, a label) whose every reply lost its
 figures keeps the source text. A heading with no figures is unaffected and its echo is still retried.
 Test `test_a_name_whose_every_reply_lost_its_figures_keeps_the_source` (the failing scenario first).
+
+## 2026-09-17 - held-out result: PLOS ONE, and findings 8-10 (text cut off with nothing noticing)
+
+PLOS ONE 10.1371/journal.pone.0235750 (30 pages, commit `6390410`, no repair): **L1 0, L2 3, L3 8,
+L6 0, L7 0, L8 0, L9 0** over 468 blocks, 28.3 minutes. The 3 L2 are bibliography entries (the
+references question again). The 8 L3 were one-line blocks whose last words were not on the page -
+"...model su" drawn, "sekilde verilmistir" missing - and neither fitting nor the writer had flagged
+them. Three causes, each measured before it was fixed:
+
+**Finding 8 - fitting measured a narrower face than the writer drew.** The source face is Minion
+(serif); with no font file resolved, fitting measured in the generic serif (Times) and found the line
+fit at full size, while the writer substitutes Noto Serif. The same Turkish sentence at 10 pt: Times
+260.5 pt, Noto Serif 335.8 pt - 29% wider. **Fix:** fitting measures with the font file the writer
+will substitute (`pdf_pass._as_drawn`, the same resolution with the serif flag; the block's own style
+is not changed). Test `test_a_line_that_wraps_in_the_drawn_face_does_not_fit_as_it_is`; a first
+version of the test passed without the fix (its geometry left room to shrink) and was rebuilt on the
+PLOS geometry, where it failed first.
+
+**Finding 9 - `insert_htmlbox` reports a fit and draws only the first line.** Probed the same line in
+Noto Serif across box heights: 11, 12, 13.5, 14 and 20 pt were reported as not fitting; at exactly
+13 pt - a 10 pt glyph box plus the 3 pt slack, one line of 10 pt text - it returned "spare 0, scale
+1.0" and laid out half the sentence. **Fix:** `measure_fit` counts a layout as fitting only if the
+laid-out text holds the whole text (compared without whitespace and hyphens, ligatures unfolded);
+the writer lays each block out on a scratch page first and draws the first attempt that holds all of
+it - the floor, then no floor, then the box a little taller - never a layout that cut text. Tests
+`test_a_layout_cut_short_at_the_boundary_height_is_not_a_fit` and
+`test_the_writer_draws_the_whole_text_at_the_boundary_height` (both failed first).
+
+**Finding 10 - a NUL character ends the drawn text.** Page 13's paragraph with inline math came out of
+the PDF with NUL where its symbol font had no mapping; the layout stops at a NUL, silently. **Fix:**
+control characters are removed before drawing - they have no drawable form. Test
+`test_a_control_character_from_extraction_does_not_end_the_drawn_text` (failed first).
+
+**Measured on the real pages** (the run's own translations redrawn from their projects, no model
+call): L3 on 7 of 7 pages -> none.

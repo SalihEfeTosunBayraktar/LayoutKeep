@@ -24,10 +24,12 @@ full face per document.
 from __future__ import annotations
 
 import contextlib
+import html as html_escapes
 import io
 import math
 import re
 import string
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -495,7 +497,8 @@ def measure_fit(
             spare, scale = page.insert_htmlbox(
                 _layout_rect(bbox), html, css=css, scale_low=scale_low, archive=archive
             )
-            return spare != -1, scale
+            # A layout that fits only because it stopped early is not a fit (see `_laid_out_whole`).
+            return spare != -1 and _laid_out_whole(page.get_text(), html), scale
         finally:
             scratch.close()
 
@@ -547,11 +550,45 @@ def _draw_block(
     than it should be, but it is on the page, and the block carries fitting's review flag saying
     so. Losing it silently would be the worse failure.
     """
-    spare, _scale = page.insert_htmlbox(
-        rect, html, css=css, scale_low=min_scale_setting(), archive=archive
-    )
-    if spare < 0:
-        page.insert_htmlbox(rect, html, css=css, scale_low=0, archive=archive)
+    # Laid out on a scratch page first: `insert_htmlbox` can report a fit and draw only the first
+    # lines (see `_laid_out_whole`), and on the real page there is no taking a draw back.
+    attempts = [(rect, min_scale_setting()), (rect, 0)]
+    attempts += [(pymupdf.Rect(rect.x0, rect.y0, rect.x1, rect.y1 + extra), 0) for extra in (0.5, 1.0, 2.0)]
+    for box, scale_low in attempts:
+        if _lays_out_whole(box, html, css, scale_low, archive):
+            page.insert_htmlbox(box, html, css=css, scale_low=scale_low, archive=archive)
+            return
+    # Nothing tried holds the whole text; draw it shrunk anyway rather than not at all, and let
+    # verification report what is missing (L3).
+    page.insert_htmlbox(attempts[-1][0], html, css=css, scale_low=0, archive=archive)
+
+
+def _lays_out_whole(
+    rect: pymupdf.Rect, html: str, css: str, scale_low: float, archive: pymupdf.Archive | None
+) -> bool:
+    scratch = pymupdf.open()
+    try:
+        page = scratch.new_page(width=rect.x1 + 50, height=rect.y1 + 50)
+        spare, _scale = page.insert_htmlbox(rect, html, css=css, scale_low=scale_low, archive=archive)
+        return spare >= 0 and _laid_out_whole(page.get_text(), html)
+    finally:
+        scratch.close()
+
+
+def _laid_out_whole(drawn: str, html: str) -> bool:
+    """Whether a layout holds all of the text it was given.
+
+    `insert_htmlbox` has a boundary case: when the box is exactly as tall as the lines it holds - a
+    10 pt glyph box plus the 3 pt slack is 13 pt, one line of 10 pt text - it reports a fit (spare
+    0, scale 1.0) and lays out only the first line. Held-out PLOS ONE: eight one-line blocks lost
+    their last words that way, with neither fitting nor the writer noticing. Compared without
+    whitespace and hyphens, which the layout adds, and with ligatures unfolded.
+    """
+    def comparable(text: str) -> str:
+        return unicodedata.normalize("NFKC", re.sub(r"[\s­-]+", "", text))
+
+    expected = html_escapes.unescape(re.sub(r"<[^>]+>", "", html))
+    return comparable(expected) in comparable(drawn)
 
 
 def _layout_rect(bbox: BBox, room_below: float | None = None) -> pymupdf.Rect:
@@ -711,7 +748,14 @@ def _write_rotated_block(page: pymupdf.Page, block: Block, resolver: _FontResolv
 
 
 def _escape_text(text: str) -> str:
+    # A control character is extraction noise - a symbol-font glyph with no mapping comes out as NUL
+    # - and the HTML layout stops at a NUL, dropping the rest of the block while reporting a fit
+    # (held-out PLOS ONE, page 13). It has no drawable form to keep.
+    text = _CONTROL_CHARACTERS.sub("", text)
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+_CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
 def _generic_family(font_name: str, serif: bool | None = None) -> str:
