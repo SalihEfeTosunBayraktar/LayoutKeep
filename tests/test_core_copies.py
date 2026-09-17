@@ -7,7 +7,7 @@ a word list.
 
 from __future__ import annotations
 
-from layoutkeep.core.copies import is_copy
+from layoutkeep.core.copies import is_copy, wrong_language
 
 
 def test_names_that_stay_names_are_not_a_copy() -> None:
@@ -64,3 +64,34 @@ def test_a_reply_that_lost_a_section_number_drops_numbers() -> None:
     assert not drops_numbers("5.2.1 Basic Components .... 27", "5.2.1 Temel Bilesenler .... 27")
     # A decimal localised for the target language keeps its digits.
     assert not drops_numbers("pi is about 3.14 here", "pi burada yaklasik 3,14")
+
+
+# Every book of the campaign had replies in the wrong language, including The Time Machine, which
+# the audit had called lossless: a paragraph came back in German, a magazine headline too
+# ("Sahne ist schockierend!"), and a heading half Turkish, half English. A copy check cannot see
+# these - the words are not the source's.
+
+
+
+def test_a_german_reply_to_a_turkish_request_is_wrong() -> None:
+    reply = "Konkrete Krankheiten während meines gesamten Aufenthalts. Und ich muss sagen, dass die Luft"
+    assert wrong_language(reply, "tr") == "de"
+
+
+def test_a_half_translated_heading_is_wrong() -> None:
+    reply = "the estimated power consumption of electrical appliances in the house and on the farm"
+    assert wrong_language(reply, "tr") == "en"
+
+
+def test_a_turkish_reply_is_right() -> None:
+    reply = "Bu yayın, NIST tarafından 2014 Federal Bilgi Güvenliği Modernizasyon Yasası kapsamında ve bir çok"
+    assert wrong_language(reply, "tr") is None
+
+
+def test_a_turkish_reply_keeping_english_terms_is_right() -> None:
+    reply = "Python'da math modülü bulunur ve bu modül ile log ve sin gibi fonksiyonlar kullanılabilir"
+    assert wrong_language(reply, "tr") is None
+
+
+def test_an_unknown_target_language_is_never_judged() -> None:
+    assert wrong_language("the and of to is in that with for are", "ja") is None

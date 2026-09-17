@@ -392,3 +392,72 @@ them again with `--resume`, and re-audits, for up to N rounds, recording each ro
 **Consistency note for the comparison:** these fixes landed while the campaign was translating The
 Time Machine, so that book's pages were produced by a mix of code before and after them. Every book
 gets the same repair rounds with the final code, and the report compares books after repair.
+
+## 2026-09-17 - campaign books 2 and 3: The Time Machine, Electricity in Agriculture
+
+### The Time Machine (120 pages, born-digital novel): lossless on the first pass
+
+16.6 min. L1-L6 all 0 over 532 blocks; D1 74 (14%); D2 0. Visual spot check (pages 2, 8, 40, 77,
+110): fully Turkish, coloured links keep their colour, page numbers in place. Typography not kept,
+recorded rather than counted as loss: first-line paragraph indents are lost, and the licence
+paragraph on page 2 is drawn centred.
+
+### Electricity in Agriculture (148 pages, 1922 scan with a hidden OCR layer): first pass
+
+42.9 min. The hidden-layer fixes held on a real book - spot check of pages 6, 21, 34, 51, 67: the
+English is erased from the scan, the yellowed paper's texture is intact with no patches, photographs
+and drawings untouched, captions translated. (The typeface changes from serif to sans.)
+
+**7 pages produced no output**, so the book did not merge:
+
+- 6 were pages with nothing to translate (blanks, plates). The CLI rightly refuses a document with
+  nothing to translate; inside a book such a page translates to itself. `translate_book.py` now
+  keeps it as it is, with a project the audit reads.
+- 1 (page 140) was a 2,247-character paragraph that never came back, twice.
+
+**The generation ceiling was too tight - my own regression.** LM Studio's log: 13 replies ended
+with `finish_reason: length`, e.g. a 1,213-token request cut at 915 tokens. One output token per two
+characters sent does not hold for Turkish, which takes more tokens than the English it translates;
+a cut reply is malformed JSON, so its segments count as "no reply". **Fix:** one token per character
+sent, at least 1024 (still bounded - a runaway cannot fill the context). Test
+`test_the_ceiling_leaves_room_for_a_long_turkish_reply` (failed first).
+
+After completing the missing pages: L1 1 (page 140), L2 8, L3 3, L5 1, L6 15, D1 22, D2 13 - 26
+failing chunks. The largest losses sit in the longest blocks (the publisher's price lists, 40+
+numbers each; a results table in prose), which matches truncated replies; they are left to the
+repair round with the loosened ceiling rather than explained by guesswork.
+
+**L5 "</vagon>"** - the model invented a tag named with a Turkish word. Handling tags by name
+("<br/>", "</text") cannot keep up. **Fix:** any named tag the source does not itself contain is
+removed from a reply; numeric style markers have no name and are untouched, and real content such as
+"<stdio.h>" is kept (checked). Test `test_a_tag_the_source_does_not_have_is_removed_whatever_its_name`.
+
+Commit `f6fbbe7`.
+
+## 2026-09-17 - correction: "The Time Machine: lossless" was wrong - replies in the wrong language
+
+Spot-checking Popular Science's first finished pages: a headline and its deck came back **in German**
+("Sahne ist schockierend! Die Schauspieler sind aufgeladen ..."). The audit could not see it - the
+words are not the source's (no copy), the numbers are all there. Measured across the finished books
+with function-word profiles: replies not in Turkish in **every** book, including **The Time Machine,
+which the audit had called lossless** (a paragraph in German) - so that verdict is withdrawn.
+Partial translations too: "ELEKTRIK CIHAZLARININ TAHMINI GUC TUKETIMI OF ELECTRICAL APPLIANCES".
+
+**Fix:** `core.copies.wrong_language(reply, target)` - function-word profiles for tr, en, de, fr, es,
+it, pt, nl; a reply is in another language when that language's function words are at least 12% of
+its words and outnumber the target's; quoted text and addresses left out; an unknown target is never
+judged. Used by the retry pass (a wrong-language reply is resent, and not accepted) and by the audit
+as part of L2 (`--to` gives the target). Tests in `tests/test_core_copies.py` (real replies) and
+`test_a_reply_in_another_language_than_asked_is_retried`.
+
+Re-audited (no re-translation):
+
+| book | L2 before | L2 with language check | verdict |
+|---|---|---|---|
+| NIST | 1 | 1 | no |
+| The Time Machine | 0 | **2** | **no** (was "yes") |
+| Electricity in Agriculture | 8 | 15 | no |
+
+Also seen on the magazine and recorded for the next step: on a dense multi-column page some
+translated blocks are drawn over each other, and the erased English leaves grey smudges where the
+scan is halftoned - the text is present, but part of it is not legible.

@@ -22,7 +22,7 @@ import statistics
 import sys
 from typing import Protocol
 
-from layoutkeep.core.copies import drops_numbers
+from layoutkeep.core.copies import drops_numbers, wrong_language
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
@@ -81,6 +81,7 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
     the recovered text without any re-merging.
     """
     typical = _typical_ratio(segments)
+    target_lang = str(kwargs.get("tgt_lang") or "")
     pending = [
         s for s in segments
         if (not s.target and not is_data_only(s.source))
@@ -88,6 +89,7 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
         or is_copy_of_source(s)
         or _is_runaway(s, typical)
         or (bool(s.target) and drops_numbers(s.source, s.target))
+        or (bool(s.target) and wrong_language(s.target, target_lang) is not None)
     ]
     if not pending:
         return 0
@@ -156,4 +158,5 @@ def _ask(
         and not is_copy_of_source(seg)
         and not _is_runaway(seg, typical)
         and not drops_numbers(seg.source, seg.target)
+        and wrong_language(seg.target, str(kwargs.get("tgt_lang") or "")) is None
     }

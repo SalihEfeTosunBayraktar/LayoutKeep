@@ -292,3 +292,16 @@ def test_a_number_lost_through_protection_is_retried_without_it() -> None:
     segments = [_segment("a", source, target="Bilgi ve olgular (2) Bilgi"), _segment("b", "(3) More", target="Daha")]
     assert retry_untranslated(_Protected(), segments) >= 1
     assert segments[0].target.startswith("(1)")
+
+
+def test_a_reply_in_another_language_than_asked_is_retried() -> None:
+    """The Time Machine, campaign run: a paragraph came back in German for a Turkish request."""
+    source = "No particular illness during my whole stay. And I must say that the air was sweet."
+    segment = _segment("g", source, target="Konkrete Krankheiten während meines gesamten Aufenthalts. Und ich muss sagen, dass die Luft")
+
+    class _Turkish:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="Tum kaldigim sure boyunca belirli bir hastalik yoktu ve hava cok tatliydi.") for s in segments]
+
+    assert retry_untranslated(_Turkish(), [segment], src_lang="en", tgt_lang="tr") == 1
+    assert segment.target.startswith("Tum")

@@ -105,3 +105,54 @@ def drops_numbers(source: str, reply: str) -> bool:
     have = Counter(_DIGITS.findall(_MARKER.sub("", reply)))
     need = Counter(_DIGITS.findall(_MARKER.sub("", source)))
     return any(have[digits] < count for digits, count in need.items())
+
+
+#: The most frequent function words of each language this can judge. They carry no subject matter,
+#: so any running text in a language is dense with its own and nearly free of another's - which is
+#: what makes a reply in the wrong language visible whatever it is about.
+_FUNCTION_WORDS: dict[str, frozenset[str]] = {
+    "tr": frozenset(["ve", "bir", "bu", "için", "ile", "da", "de", "olan", "olarak", "gibi", "daha", "çok", "en", "ancak", "ya", "veya", "ki", "ama", "her", "şu", "o"]),
+    "en": frozenset(["the", "and", "of", "to", "is", "in", "that", "with", "for", "are", "this", "which", "by", "be", "as", "on", "an", "or", "from", "it", "was", "were"]),
+    "de": frozenset(["der", "die", "das", "und", "ist", "sind", "nicht", "mit", "von", "zu", "den", "ein", "eine", "im", "auf", "für", "sich", "dem", "des", "ich"]),
+    "fr": frozenset(["le", "la", "les", "et", "est", "des", "une", "un", "du", "que", "pour", "dans", "pas", "sur", "au", "qui", "ne", "se"]),
+    "es": frozenset(["el", "la", "los", "las", "y", "es", "que", "en", "un", "una", "por", "con", "para", "del", "se", "no", "lo"]),
+    "it": frozenset(["il", "la", "le", "e", "è", "che", "di", "un", "una", "per", "con", "del", "della", "non", "si", "gli"]),
+    "pt": frozenset(["o", "a", "os", "as", "e", "é", "que", "de", "um", "uma", "para", "com", "do", "da", "não", "se", "em"]),
+    "nl": frozenset(["de", "het", "en", "is", "een", "van", "dat", "die", "in", "op", "met", "voor", "niet", "zijn", "te"]),
+}
+
+#: A reply needs this many words before its function words say anything.
+_LANGUAGE_MIN_WORDS = 6
+
+#: Share of a reply's words that must be another language's function words, and outnumber the
+#: target's, before the reply is called that language.
+_LANGUAGE_SHARE = 0.12
+
+
+def wrong_language(reply: str, target_lang: str) -> str | None:
+    """The language a reply is actually in, when it is clearly not `target_lang`; else None.
+
+    Only languages with a profile are judged, and an unknown target is never judged. Quoted text
+    and addresses are left out first, so a translation that keeps an English program output or a
+    URL is not taken for English.
+    """
+    target = _FUNCTION_WORDS.get(target_lang.split("-")[0].casefold())
+    if target is None:
+        return None
+    text = _QUOTED.sub(" ", _MARKER.sub("", reply))
+    words = [
+        w.casefold() for token in text.split()
+        if not any(hint in token.casefold() for hint in _ADDRESS_HINTS)
+        for w in re.findall(r"[^\W\d_]+", token)
+    ]
+    if len(words) < _LANGUAGE_MIN_WORDS:
+        return None
+    own = sum(w in target for w in words) / len(words)
+    best, best_share = None, own
+    for lang, profile in _FUNCTION_WORDS.items():
+        if profile is target:
+            continue
+        share = sum(w in profile for w in words) / len(words)
+        if share >= _LANGUAGE_SHARE and share > best_share:
+            best, best_share = lang, share
+    return best

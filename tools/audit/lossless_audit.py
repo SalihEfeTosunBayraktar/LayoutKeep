@@ -3,7 +3,7 @@
 The criteria are defined in `docs/campaign/JOURNAL.md`:
 
     L1  same pages                     output page count == source page count
-    L2  nothing left untranslated      translatable blocks still in the source language == 0
+    L2  nothing left untranslated      blocks still in the source, or in another language than the target == 0
     L3  nothing dropped by the writer  translated blocks whose words are missing from the page == 0
     L4  nothing drawn off the page     words outside the page box == 0
     L5  no markup leaked               tags in the output that are not in the source == 0
@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pymupdf
 
-from layoutkeep.core.copies import drops_numbers, is_copy, is_identical, ordinary_words
+from layoutkeep.core.copies import drops_numbers, is_copy, is_identical, ordinary_words, wrong_language
 from layoutkeep.core.docir import load_project
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.writers.pdf_writer import is_wordless
@@ -96,7 +96,7 @@ def _words(text: str) -> list[str]:
 
 
 
-def audit_chunk(src: Path, out: Path, project: Path) -> dict:
+def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") -> dict:
     doc = load_project(project)
     found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
     counts = Counter()
@@ -151,7 +151,8 @@ def audit_chunk(src: Path, out: Path, project: Path) -> dict:
                 # Prose is judged on ordinary words (core.copies): names, brands, addresses and
                 # quoted strings legitimately survive translation and must not count against it.
                 if len(ordinary_words(source_text)) >= 4:
-                    if untouched or english or is_copy(source_text, written):
+                    wrong = wrong_language(written, target_lang) if target_lang else None
+                    if untouched or english or wrong or is_copy(source_text, written):
                         found["L2"].append(sample)
                 elif untouched and len(source_words) >= 2:
                     # Too short to tell a name from an untranslated phrase without knowing the
@@ -173,7 +174,7 @@ def audit_chunk(src: Path, out: Path, project: Path) -> dict:
     return {"counts": dict(counts), "found": found}
 
 
-def audit_work(work: Path) -> dict:
+def audit_work(work: Path, target_lang: str = "tr") -> dict:
     totals = Counter()
     findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
@@ -186,7 +187,7 @@ def audit_work(work: Path) -> dict:
         if not (src.exists() and out.exists()):
             missing.append(project.stem)
             continue
-        result = audit_chunk(src, out, project)
+        result = audit_chunk(src, out, project, target_lang)
         totals.update(result["counts"])
         for key, items in result["found"].items():
             findings[key].extend(items)
@@ -212,9 +213,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--json", type=Path)
+    parser.add_argument("--to", default="tr", help="target language, for the wrong-language check")
     args = parser.parse_args()
 
-    result = audit_work(args.work)
+    result = audit_work(args.work, args.to)
     _say(f"work      {args.work}")
     _say(f"chunks    {result['chunks']}   translatable prose blocks {result['blocks']}")
     for key, label in (
