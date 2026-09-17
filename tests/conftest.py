@@ -116,3 +116,29 @@ def _isolate_qsettings(tmp_path_factory: pytest.TempPathFactory):
         os.environ.pop(paths.ENV_DATA_DIR, None)
     else:
         os.environ[paths.ENV_DATA_DIR] = previous
+
+
+@pytest.fixture(scope="session")
+def _figures_report_as_read():
+    """The 23-figure NASA report, read once for the whole run.
+
+    Eleven conversion tests read this same PDF, each for about 90 seconds - more than half of a
+    19.5-minute suite. The reading is the same every time; what the tests check is the writers.
+    """
+    from pathlib import Path
+
+    from layoutkeep.writers.converter import read_any_document
+
+    src = Path("_artifacts/corpus/nasa_report.pdf")
+    if not src.exists():
+        pytest.skip("corpus PDF not available")
+    return src, read_any_document(src)
+
+
+@pytest.fixture
+def figures_report(_figures_report_as_read):
+    """(source path, a private copy of its document): tests translate and write it."""
+    import copy
+
+    src, doc = _figures_report_as_read
+    return src, copy.deepcopy(doc)

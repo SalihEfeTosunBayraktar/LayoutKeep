@@ -152,16 +152,7 @@ def test_a_single_page_source_keeps_the_exact_requested_filename(tmp_path: Path)
     assert Image.open(out).size[0] > 0
 
 
-def _pdf_with_figures() -> Path:
-    src = Path("_artifacts/corpus/nasa_report.pdf")
-    if not src.exists():
-        import pytest
-
-        pytest.skip("corpus PDF not available")
-    return src
-
-
-def test_the_reader_carries_image_bytes_not_just_their_positions() -> None:
+def test_the_reader_carries_image_bytes_not_just_their_positions(figures_report) -> None:
     """DocIR held text and nothing else.
 
     The PDF reader already computed image bounding boxes, to help decide block roles, and threw
@@ -171,21 +162,17 @@ def test_the_reader_carries_image_bytes_not_just_their_positions() -> None:
     """
     import pymupdf
 
-    from layoutkeep.readers.pdf_reader import read_pdf
-
-    src = _pdf_with_figures()
+    src, doc = figures_report  # read_pdf's reading of the report, shared (conftest)
     expected = sum(len(p.get_images(full=True)) for p in pymupdf.open(src))
     assert expected > 0
 
-    doc = read_pdf(src)
     images = [img for page in doc.pages for img in page.images]
     assert len(images) == expected
     assert all(img.data for img in images), "an image was carried without its bytes"
 
 
-def test_figures_survive_conversion_to_html(tmp_path: Path) -> None:
-    src = _pdf_with_figures()
-    doc = read_any_document(src)
+def test_figures_survive_conversion_to_html(tmp_path: Path, figures_report) -> None:
+    src, doc = figures_report
     expected = sum(len(p.images) for p in doc.pages)
 
     out = tmp_path / "o.html"
@@ -194,11 +181,10 @@ def test_figures_survive_conversion_to_html(tmp_path: Path) -> None:
     assert out.read_text(encoding="utf-8", errors="ignore").lower().count("<img") == expected
 
 
-def test_figures_survive_conversion_to_epub(tmp_path: Path) -> None:
+def test_figures_survive_conversion_to_epub(tmp_path: Path, figures_report) -> None:
     import zipfile
 
-    src = _pdf_with_figures()
-    doc = read_any_document(src)
+    src, doc = figures_report
     expected = sum(len(p.images) for p in doc.pages)
 
     out = tmp_path / "o.epub"
@@ -232,7 +218,7 @@ def test_an_image_only_page_does_not_take_the_whole_epub_export_down(tmp_path: P
     assert out.exists() and out.stat().st_size > 0
 
 
-def test_figures_survive_conversion_to_docx(tmp_path: Path) -> None:
+def test_figures_survive_conversion_to_docx(tmp_path: Path, figures_report) -> None:
     """A DOCX carries pictures as separate parts wired through document.xml.rels.
 
     None of that plumbing existed: the package held three files, and every figure was dropped
@@ -242,8 +228,7 @@ def test_figures_survive_conversion_to_docx(tmp_path: Path) -> None:
     import xml.dom.minidom
     import zipfile
 
-    src = _pdf_with_figures()
-    doc = read_any_document(src)
+    src, doc = figures_report
     expected = sum(len(p.images) for p in doc.pages)
 
     out = tmp_path / "o.docx"
@@ -265,12 +250,11 @@ def test_figures_survive_conversion_to_docx(tmp_path: Path) -> None:
         assert f'Extension="{extension}"' in content_types
 
 
-def test_images_round_trip_through_a_saved_project(tmp_path: Path) -> None:
+def test_images_round_trip_through_a_saved_project(tmp_path: Path, figures_report) -> None:
     """A .lkproj must stay self-contained: re-exportable without the source (CONTRACT.md, D5)."""
     from layoutkeep.core.docir import load_project, save_project
 
-    src = _pdf_with_figures()
-    doc = read_any_document(src)
+    _src, doc = figures_report
     expected = sum(len(p.images) for p in doc.pages)
 
     project = tmp_path / "p.lkproj"

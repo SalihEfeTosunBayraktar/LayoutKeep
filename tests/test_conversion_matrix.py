@@ -34,14 +34,6 @@ from layoutkeep.writers.converter import read_any_document, write_any_document
 # ---------------------------------------------------------------------------
 
 
-def _pdf_shapes_path() -> Path:
-    # 23 gorselli NASA raporu / NASA report with 23 figures
-    p = Path("_artifacts/corpus/nasa_report.pdf")
-    if not p.exists():
-        pytest.skip("corpus PDF not available")
-    return p
-
-
 def _pdf_text_path() -> Path:
     return Path("tests/fixtures/pdf_single_column.pdf")
 
@@ -181,9 +173,9 @@ class TestPdfShapesMatrix:
     # PDF (23 sekilli) -> tum cikti formatlari / PDF with 23 figures -> all output formats
 
     @pytest.fixture(autouse=True)
-    def _setup(self, tmp_path: Path) -> None:
-        self.src = _pdf_shapes_path()
-        self.doc = read_any_document(self.src)
+    def _setup(self, tmp_path: Path, figures_report) -> None:
+        # 23 gorselli NASA raporu, bir kez okunur / NASA report with 23 figures, read once (conftest)
+        self.src, self.doc = figures_report
         _translate_with_fake(self.doc)
         self.tmp = tmp_path
 
