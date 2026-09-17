@@ -260,7 +260,18 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
             continue
         saved_object = document.xref_object(rewritten)
         saved_stream = document.xref_stream(rewritten)
-        document.xref_copy(original, rewritten)
+        try:
+            # The whole object at once: `xref_copy` sets key by key, and a value holding a path -
+            # pdfLaTeX's `/PTEX.FileName (./vocab_venn5.pdf)` on every included figure - was parsed
+            # as a key path and raised, taking the whole page with it (held-out arXiv 2609.19145).
+            document.update_object(rewritten, document.xref_object(original))
+            document.update_stream(rewritten, document.xref_stream(original))
+        except (pymupdf.mupdf.FzErrorBase, RuntimeError, ValueError):
+            # A form that cannot be restored keeps MuPDF's rewrite: text inside it may sit a little
+            # off, which verification reports (L8), rather than the page being lost.
+            document.update_object(rewritten, saved_object)
+            document.update_stream(rewritten, saved_stream)
+            continue
         if removed_text_is_back():
             document.update_object(rewritten, saved_object)
             document.update_stream(rewritten, saved_stream)

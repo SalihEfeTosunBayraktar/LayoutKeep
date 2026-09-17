@@ -57,3 +57,23 @@ def test_text_redacted_inside_a_form_stays_redacted(tmp_path: Path) -> None:
     x0, y0, x1, y1 = inside[:4]
     redact_keeping_forms(page, [pymupdf.Rect(x0 - 1, y0 - 1, x1 + 1, y1 + 1)])
     assert "__main__" not in page.get_text()
+
+
+def test_a_form_pdflatex_tagged_with_its_file_name_is_restored_without_crashing(tmp_path: Path) -> None:
+    """Held-out arXiv 2609.19145, page 18: pdfLaTeX writes `/PTEX.FileName (./vocab_venn5.pdf)` into
+    every included PDF figure. Restoring that form key by key made PyMuPDF parse the file path as a
+    key path and raise "invalid key in dict" - the page produced no output at all."""
+    doc = _page_with_form(tmp_path)
+    page = doc[0]
+    xref = page.get_xobjects()[0][0]
+    tagged = doc.xref_object(xref).replace(
+        "/Subtype /Form", "/Subtype /Form\n  /PTEX.FileName (./figure.pdf)\n  /PTEX.PageNumber 1", 1
+    )
+    doc.update_object(xref, tagged)
+    before = [s for s in _spans(page) if "tiddle" in s[1] or "__main__" in s[1]]
+
+    redact_keeping_forms(page, [pymupdf.Rect(70, 48, 250, 64)])
+
+    after = _spans(page)
+    assert all(s in after for s in before), (before, after)
+    assert not any("Stack diagrams" in s[1] for s in after)

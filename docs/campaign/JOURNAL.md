@@ -954,3 +954,21 @@ Popular Science 61 -> 54, and each of the 7 pages that dropped out has at least 
 overlapping pairs on its source page (1/1, 3/14, 2/2, 5/5, 2/2, 1/1, 2/2) - the magazine's own
 invisible OCR layer overlapping itself, not text the pipeline drew. Popular Science also shows
 **L9 = 3** under the new criterion (the words found when L9 was measured).
+
+## 2026-09-17 - held-out finding 4: a page lost to a crash in form restoration
+
+arXiv 2609.19145 finished at 15:53 with one page missing (L1): page 18 raised
+`FzErrorSyntax: invalid key in dict` in `redact_keeping_forms` - the fix for Think Python's
+Figure 3.1. pdfLaTeX writes `/PTEX.FileName (./vocab_venn5.pdf)` into every PDF figure it
+includes; restoring the form with `xref_copy` sets it key by key, and PyMuPDF parsed the path in
+that value as a key path. So any paper with an included PDF figure could lose the page it is on.
+
+**Fix:** the form is restored as a whole object (`update_object` + `update_stream`), and a form
+that still cannot be restored keeps MuPDF's rewrite instead of taking the page down - a label a
+little off is reported by verification (L8); a missing page is not a trade anyone would make.
+Test `test_a_form_pdflatex_tagged_with_its_file_name_is_restored_without_crashing` reproduces the
+crash with the same key on a synthetic figure (failed first). The real page now writes, and
+verification finds no loss on it.
+
+The first held-out paper's audit (commit bad981a, no repair): L1 1 (this crash), L2 7, L6 2, L7 8,
+L8 2; the L7 count predates the typesetting fix above.
