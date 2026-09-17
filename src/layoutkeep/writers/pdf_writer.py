@@ -506,7 +506,7 @@ def _measure_horizontal_source(style: Style) -> tuple[str, pymupdf.Archive | Non
     the old generic-family keyword with no archive at all."""
     if style.font_path:
         return "MeasureFont", pymupdf.Archive(style.font_path, "measure.ttf")
-    return _generic_family(style.font_family), None
+    return _generic_family(style.font_family, style.serif), None
 
 
 def _measure_rotated_font(style: Style) -> pymupdf.Font:
@@ -658,7 +658,7 @@ def _covers(quads: list[pymupdf.Quad], line_rect: pymupdf.Rect) -> bool:
 
 
 def _base14_font(style: Style) -> str:
-    return _BASE14[(_generic_family(style.font_family), style.bold, style.italic)]
+    return _BASE14[(_generic_family(style.font_family, style.serif), style.bold, style.italic)]
 
 
 def _hex_to_rgb(color: str) -> tuple[float, float, float]:
@@ -703,14 +703,20 @@ def _escape_text(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _generic_family(font_name: str) -> str:
+def _generic_family(font_name: str, serif: bool | None = None) -> str:
     """Map a source PDF font name to one of the generic families pymupdf's HTML engine always
     knows, without needing a resolved font file. Fallback for blocks `_FontResolver` could not
-    resolve to a real font file at all."""
-    lowered = font_name.lower()
-    if any(k in lowered for k in ("courier", "mono", "consolas")):
+    resolve to a real font file at all.
+
+    The name decides when it can, as in `fontmatch.resolve_font`; when it cannot, the source's own
+    serif flag does. By name alone URW Palladio, Nimbus Roman and Computer Modern all came out as
+    sans - every paragraph of Think Python and of a pdfLaTeX paper redrawn in Helvetica."""
+    from layoutkeep.fitting.fontmatch import FontClass, classify
+
+    kind = classify(font_name)
+    if kind is FontClass.MONO:
         return "monospace"
-    if any(k in lowered for k in ("times", "georgia", "serif", "garamond", "cambria", "minion")):
+    if kind is FontClass.SERIF or (kind is FontClass.UNKNOWN and serif):
         return "serif"
     return "sans-serif"
 
@@ -1005,7 +1011,7 @@ class _FontResolver:
 
     def css_family_for(self, style: Style) -> str:
         resolved = self._resolved.get(_style_key(style))
-        return resolved.css_family if resolved else _generic_family(style.font_family)
+        return resolved.css_family if resolved else _generic_family(style.font_family, style.serif)
 
     def font_bytes_for(self, style: Style) -> bytes | None:
         resolved = self._resolved.get(_style_key(style))

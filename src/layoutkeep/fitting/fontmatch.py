@@ -498,8 +498,17 @@ def resolve_font(
     missing = ""
     covers: bool | None = None
     if embedded_font_bytes is not None:
-        original_metrics = read_metrics(embedded_font_bytes)
-        missing = missing_glyphs(embedded_font_bytes, required)
+        try:
+            original_metrics = read_metrics(embedded_font_bytes)
+            missing = missing_glyphs(embedded_font_bytes, required)
+        except (TTLibError, OSError, ValueError, KeyError, AssertionError):
+            # A Type 1 program ("%!PS", what pdfLaTeX embeds) or a bare CFF that fontTools cannot
+            # open: its coverage is unknown, so the substitution goes ahead as if no bytes were
+            # given. Raising here made the writer give up on the style and draw arXiv papers' serif
+            # text in a sans.
+            original_metrics, missing = None, ""
+            embedded_font_bytes = None
+    if embedded_font_bytes is not None:
         covers = not missing
         if covers:
             return FontMatch(

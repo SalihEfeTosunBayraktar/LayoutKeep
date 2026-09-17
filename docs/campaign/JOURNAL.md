@@ -900,3 +900,38 @@ remains. Tests: `test_a_letter_from_another_alphabet_inside_a_word_is_garbled`,
 
 The held-out measurement keeps running on the frozen commit without L9; its outputs are audited
 with both criteria sets, so the effect of the new check is visible rather than mixed in.
+
+## 2026-09-17 - held-out finding 2: serif text redrawn in a sans (Type 1 fonts, and a fallback that ignored the serif flag)
+
+arXiv 2609.19145, page 4, first held-out paper: the layout survived - two columns, display
+equations and footnotes in place - but every translated paragraph was drawn in a sans, much
+smaller than the Times-like source, and 13 of the page's 15 blocks overflowed. The fitting pass
+then asked the model for shorter versions one by one, which is also why that one page took 27
+minutes. Think Python's output had shown the same thing ("NimbusSans-Regular" for a Palatino
+source) and it had gone unremarked.
+
+The chain, measured:
+1. The source faces are Type 1 programs ("%!PS") - what pdfLaTeX embeds, and most older publishing.
+2. `resolve_font` checks an embedded font's glyph coverage with fontTools, which opens only
+   TrueType/OpenType; on a Type 1 program it raised `TTLibError`.
+3. The writer caught that and gave up on the style, falling back to a generic family chosen by the
+   font's *name*: "NimbusRomNo9L", "URWPalladioL", "CMR10", "LMRoman", "TeXGyreTermes", "Charter",
+   "Utopia" all carry no hint, so all became `sans-serif` - although the reader had the PDF's serif
+   flag on every one of those spans.
+
+**Fixes:** a font whose program cannot be opened has unknown coverage, and substitution proceeds as
+if no bytes were given (`test_an_embedded_type1_font_does_not_stop_substitution`, failed first);
+the writer's last resort asks the font classification first and the source's serif flag when the
+name cannot answer - a recognised sans name still outranks a careless flag, as in resolution
+(`test_pdf_writer_serif_fallback.py`, the serif case failed first).
+
+**Measured on the real page** (the held-out run's own Turkish text, fitted and written with each
+version, no model call): before - NimbusSans for 3,795 characters, NimbusSans-Italic for 259;
+after - Noto Serif for 3,790, a serif italic for 259, Noto Serif Bold for the heading. Overflowing
+blocks 3 -> 2 in that offline fit. Seen side by side with the source, the paragraphs now carry the
+paper's typography instead of a Helvetica.
+
+Not fixed and noted: inline math inside a paragraph is flattened to plain text in the translation
+("n^D_{s1,s2}" becomes "nD s1,s2") - no criterion measures it; and fitting measures with a generic
+family while the writer draws with the resolved font, so the shrink it decides is not measured on
+the face actually drawn.
