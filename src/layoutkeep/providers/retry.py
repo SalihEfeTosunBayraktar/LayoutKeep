@@ -22,7 +22,7 @@ import statistics
 import sys
 from typing import Protocol
 
-from layoutkeep.core.copies import drops_numbers, garbled_words, wrong_language
+from layoutkeep.core.copies import drops_numbers, garbled_words, ordinary_words, wrong_language
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
@@ -112,10 +112,22 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
         for segment in still:
             accepted.update(_ask(_for_numbers(provider, segment), [segment], typical, kwargs))
 
+    mended = 0
     for segment in pending:
         if segment.block_id in accepted:
             segment.target = accepted[segment.block_id]
-    return sum(1 for segment in pending if segment.block_id in accepted)
+            mended += 1
+        elif (
+            segment.target
+            and not ordinary_words(segment.source)
+            and drops_numbers(segment.source, segment.target, target_lang)
+        ):
+            # A name, a code or a label whose every reply lost its figures keeps the source. Held-out
+            # arXiv 2609.19113: the table cell "GLM-5.3" came back as the next cell's question,
+            # translated, and each retry answered "GLM-5.3" - rightly, and rejected as an echo.
+            segment.target = segment.source
+            mended += 1
+    return mended
 
 
 #: How many times a segment that still fails is asked for on its own.

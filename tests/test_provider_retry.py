@@ -338,3 +338,23 @@ def test_a_reply_with_a_letter_from_another_alphabet_is_retried() -> None:
 
     assert retry_untranslated(_Clean(), [segment], src_lang="en", tgt_lang="tr") == 1
     assert "Д" not in segment.target
+
+
+
+def test_a_name_whose_every_reply_lost_its_figures_keeps_the_source() -> None:
+    """Held-out arXiv 2609.19113, a results table: the cell "GLM-5.3" came back as the question in
+    the next cell, translated. The reply lost the version number, so it was asked for again, three
+    times alone - and each time the model answered "GLM-5.3", which is right for a name and was
+    rejected as an echo, so the wrong first reply stayed in the cell."""
+
+    class _Names:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target=s.source) for s in segments]
+
+    cell = _segment("c", "GLM-5.3", target="Konu bireysel bir insan mi?")
+    assert retry_untranslated(_Names(), [cell], src_lang="en", tgt_lang="tr") == 1
+    assert cell.target == "GLM-5.3"
+
+    # A heading with no figures is untouched by this: an echo of it is still an echo.
+    heading = _segment("h", "Decoder Expansion", target="Decoder Expansion")
+    assert retry_untranslated(_Names(), [heading], src_lang="en", tgt_lang="tr") == 0

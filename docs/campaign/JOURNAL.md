@@ -1040,3 +1040,25 @@ that evidence. Test `test_why_a_reply_could_not_be_read_is_said` (failed first).
 Not changed, noted: when *no* segment of a document comes back, the CLI writes no output. For a
 one-page chunk that is a lost page; for a whole document it avoids presenting an untranslated copy as
 a result. Splitting the paragraphs removes the case that caused it here.
+
+## 2026-09-17 - held-out result: arXiv 2609.19113, and finding 7 (a table cell answered with another cell's text)
+
+arXiv 2609.19113 (29 pages, commit `6390410`, no repair): **L1 0, L2 1, L6 7, L7 1, L8 0, L9 0** over
+511 blocks, D1 96; 27.6 minutes against about 66 for the 20-page first paper under the sans-font
+defect. Every L2/L6 read against its source: 3 paragraphs lost a figure (e.g. "GPT's $2.46") and one
+heading stayed in English - real, all flagged; 2 flags show no missing digit at all (a number
+written as an ordinal, "round-1" -> "ilk tur") - the criterion's false alarms; and 2 table cells are
+the finding below.
+
+**Two cells holding "GLM-5.3" were written as unrelated text** - one as the neighbouring cell's
+question translated ("Konu bireysel bir insan mi?"), one as a warning sign. Traced: the reply lost
+the version number, so the retry asked again, once in a batch and three times alone. Reproduced
+offline with a model that answers every request with "GLM-5.3": 4 requests, 0 accepted - each right
+answer was rejected as an echo, and the wrong first reply stayed. A first fix accepted an identical
+reply whenever the source has no ordinary words; the existing test for English headings failed at
+once, because ordinary words exclude every capitalised word and "Decoder Expansion" looks exactly
+like a name to that check. Reverted.
+
+**Fix:** a source with no ordinary words (a name, a code, a label) whose every reply lost its
+figures keeps the source text. A heading with no figures is unaffected and its echo is still retried.
+Test `test_a_name_whose_every_reply_lost_its_figures_keeps_the_source` (the failing scenario first).
