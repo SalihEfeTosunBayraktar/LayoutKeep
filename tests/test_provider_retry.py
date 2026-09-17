@@ -326,3 +326,15 @@ def test_a_lone_segment_that_keeps_echoing_is_asked_more_than_once() -> None:
     provider = _EchoesTwice()
     assert retry_untranslated(provider, [segment]) == 1
     assert segment.target == _fake_translation(_PROSE)
+
+
+def test_a_reply_with_a_letter_from_another_alphabet_is_retried() -> None:
+    """Held-out WPA poster: "MAKİNE MÜHENДİSİ" - a Cyrillic letter inside a Turkish word."""
+    segment = _segment("m", "MECHANICAL ENGINEER AND MATHEMATICS TEACHER", target="MAKİNE MÜHENДİSİ VE MATEMATİK ÖĞRETMENİ")
+
+    class _Clean:
+        def translate(self, segments, **_kwargs):
+            return [Segment(block_id=s.block_id, source=s.source, target="MAKİNE MÜHENDİSİ VE MATEMATİK ÖĞRETMENİ") for s in segments]
+
+    assert retry_untranslated(_Clean(), [segment], src_lang="en", tgt_lang="tr") == 1
+    assert "Д" not in segment.target

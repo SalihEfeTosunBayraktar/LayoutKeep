@@ -10,6 +10,7 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L6  no numbers lost                numbers of the source missing from the translation == 0
     L7  nothing drawn over text        pages with words of one block drawn over another's == 0
     L8  nothing untouched moved        digital pages where text no translated block covers is not where it was == 0
+    L9  no garbled letters             translated blocks with a word mixing in another alphabet's letter == 0
     D1  readability (reported only)    blocks drawn below the readability floor
     D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
     D3  legibility (reported only)     pages where a block's own lines are squeezed into each other
@@ -67,7 +68,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
     for loss in translation_losses(doc, target_lang) + output_losses(src, out, doc):
         if loss.kind == "L1":
             found["L1"].append(loss.detail)
-        elif loss.kind in ("L2", "L3", "L6"):
+        elif loss.kind in ("L2", "L3", "L6", "L9"):
             found[loss.kind].append(f"{tag(loss.page)}: {blocks[loss.block_ids[0]].text[:90]!r}")
         else:
             found[loss.kind].append(f"{tag(loss.page)}: {loss.detail}")
@@ -149,6 +150,7 @@ def main() -> int:
         ("L6", "numbers lost"),
         ("L7", "text drawn over text"),
         ("L8", "untouched text moved"),
+        ("L9", "garbled letters"),
         ("D1", "below readability floor"),
         ("D2", "short blocks left unchanged"),
         ("D3", "text squeezed in its box"),

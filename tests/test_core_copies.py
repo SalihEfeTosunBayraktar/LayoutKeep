@@ -121,3 +121,22 @@ def test_a_small_number_written_as_a_word_is_not_lost() -> None:
 
     assert not drops_numbers("Since 3 is not 0, it takes the second branch", "3 sıfır olmadığı için ikinci dalı alır", "tr")
     assert drops_numbers("Since 3 is not 0, it takes the second branch", "3 olmadığı için ikinci dalı alır", "tr")
+
+
+def test_a_letter_from_another_alphabet_inside_a_word_is_garbled() -> None:
+    """Held-out WPA poster and Popular Science: "MÜHENДİSİ" - a Cyrillic letter inside a Turkish
+    word, three times from the same model. Every other check passed it: the language is right,
+    no number is lost, nothing was copied."""
+    from layoutkeep.core.copies import garbled_words
+
+    assert garbled_words("MECHANICAL ENGINEER", "MAKİNE MÜHENДİSİ") == ["MÜHENДİSİ"]
+    assert garbled_words("the atmosphere", "〳atmosferinden") == ["〳atmosferinden"]
+
+
+def test_scripts_the_source_has_and_symbols_that_are_not_letters_are_not_garbled() -> None:
+    from layoutkeep.core.copies import garbled_words
+
+    # Subscripts, superscripts and fractions are not letters (computer-systems-Architecture: "A₃").
+    assert garbled_words("the output A3 and x squared", "A₃ çıkışı ve x² değeri, l½ inç") == []
+    # A Greek letter the source already uses is carried, not invented.
+    assert garbled_words("the α-helix and βcatenin", "α-heliks ve βkatenin") == []

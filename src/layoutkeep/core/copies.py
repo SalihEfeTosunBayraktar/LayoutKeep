@@ -178,3 +178,34 @@ def wrong_language(reply: str, target_lang: str) -> str | None:
         if len(set(hits)) >= 2 and share >= _LANGUAGE_SHARE and share > best_share:
             best, best_share = lang, share
     return best
+
+
+_LETTER_RUN = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def _script(letter: str) -> str:
+    """The writing system a letter belongs to, as Unicode names it ("LATIN", "CYRILLIC", ...)."""
+    import unicodedata
+
+    try:
+        return unicodedata.name(letter).split()[0]
+    except ValueError:
+        return "UNKNOWN"
+
+
+def garbled_words(source: str, reply: str) -> list[str]:
+    """Words of the reply that mix letters of two writing systems, one of them not in the source.
+
+    Held-out WPA poster and Popular Science Monthly: "MÜHENДİSİ" - a Cyrillic letter inside a
+    Turkish word, three times from the same model, and every other check passed it. Only letters
+    count: subscripts, superscripts and fractions ("A₃", "x²", "l½") are not a script, and a Greek
+    letter the source already uses ("α-helix") is carried rather than invented. Measured on the
+    campaign's 21,600 translated blocks: the three glitches above and nothing else.
+    """
+    known = {_script(c) for c in source if c.isalpha()}
+    found = []
+    for word in _LETTER_RUN.findall(reply):
+        scripts = {_script(c) for c in word if c.isalpha()}
+        if len(scripts) > 1 and scripts - known:
+            found.append(word)
+    return found

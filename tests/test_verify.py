@@ -124,7 +124,7 @@ def test_text_drawn_over_another_block_names_the_block_underneath(tmp_path: Path
 
 def test_untouched_text_that_moved_is_found(tmp_path: Path) -> None:
     src = _source(tmp_path / "s.pdf", (100, _ENGLISH), (400, "Figure 3.1"))
-    doc, segments = _translated(src, _TURKISH, "Figure 3.1")
+    doc, _ = _translated(src, _TURKISH, "Figure 3.1")
     out = tmp_path / "o.pdf"
     with pymupdf.open(str(src)) as written:
         page = written[0]
@@ -135,3 +135,18 @@ def test_untouched_text_that_moved_is_found(tmp_path: Path) -> None:
 
     moved = [loss for loss in output_losses(src, out, doc) if loss.kind == "L8"]
     assert moved and moved[0].block_ids == (doc.pages[0].blocks[1].id,)
+
+
+def test_a_letter_from_another_alphabet_is_a_loss_asked_for_again(tmp_path: Path) -> None:
+    doc, segments = _translated(
+        _source(tmp_path / "s.pdf", (100, "MECHANICAL ENGINEER")), "MAKİNE MÜHENДİSİ"
+    )
+    assert [loss.kind for loss in translation_losses(doc, "tr")] == ["L9"]
+
+    def ask_again(again):
+        for segment in again:
+            segment.target = "MAKİNE MÜHENDİSİ"
+        return len(again)
+
+    report = verify_and_repair(doc, segments, target_lang="tr", write=lambda: None, ask_again=ask_again)
+    assert report.repaired == 1 and report.lossless

@@ -22,7 +22,7 @@ import statistics
 import sys
 from typing import Protocol
 
-from layoutkeep.core.copies import drops_numbers, wrong_language
+from layoutkeep.core.copies import drops_numbers, garbled_words, wrong_language
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.providers.batching import BatchTooLargeError
@@ -90,6 +90,7 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
         or _is_runaway(s, typical)
         or (bool(s.target) and drops_numbers(s.source, s.target, target_lang))
         or (bool(s.target) and wrong_language(s.target, target_lang) is not None)
+        or (bool(s.target) and bool(garbled_words(s.source, s.target)))
     ]
     if not pending:
         return 0
@@ -164,4 +165,5 @@ def _ask(
         and not _is_runaway(seg, typical)
         and not drops_numbers(seg.source, seg.target, str(kwargs.get("tgt_lang") or ""))
         and wrong_language(seg.target, str(kwargs.get("tgt_lang") or "")) is None
+        and not garbled_words(seg.source, seg.target)
     }

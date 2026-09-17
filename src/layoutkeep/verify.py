@@ -13,8 +13,9 @@ received. They live here now, and the CLI and the desktop worker run them after 
     L6  no numbers lost            numbers of the source missing from the translation
     L7  nothing over other text    words of one block drawn over another's
     L8  nothing untouched moved    on born-digital pages, text no translated block covers moved
+    L9  no garbled letters         a word of the translation mixing in another alphabet's letter
 
-`verify_and_repair` asks again for what a translation lost (L2, L6) - a reply in the wrong
+`verify_and_repair` asks again for what a translation lost (L2, L6, L9) - a reply in the wrong
 language or without a number is intermittent, so a later request often comes back right - and
 flags everything still lost for review, with the reason, so the review queue shows exactly where
 the output departs from the source.
@@ -30,6 +31,7 @@ from pathlib import Path
 
 from layoutkeep.core.copies import (
     drops_numbers,
+    garbled_words,
     is_copy,
     is_identical,
     ordinary_words,
@@ -59,7 +61,7 @@ _LEGIBLE_PT = 5.0
 #: the language: a name and an untranslated two-word phrase look the same.
 _MIN_PROSE_WORDS = 4
 
-LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
+LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9")
 
 LABELS = {
     "L1": "page count differs",
@@ -70,6 +72,7 @@ LABELS = {
     "L6": "numbers lost",
     "L7": "text drawn over text",
     "L8": "untouched text moved",
+    "L9": "garbled letters",
 }
 
 #: What the review queue says, in the application's language like every other review reason.
@@ -82,10 +85,11 @@ REVIEW_REASONS = {
     "L6": "doğrulama: çeviride sayılar kayboldu",
     "L7": "doğrulama: metin başka bir metnin üstüne yazıldı",
     "L8": "doğrulama: çevrilmeyen metin yerinden oynadı",
+    "L9": "doğrulama: çeviride başka bir alfabeden harf karıştı",
 }
 
 #: The losses a new request to the model can mend. The rest are drawn wrong, not translated wrong.
-_ASK_AGAIN = frozenset({"L2", "L6"})
+_ASK_AGAIN = frozenset({"L2", "L6", "L9"})
 
 
 @dataclass(frozen=True)
@@ -118,7 +122,7 @@ def words(text: str) -> list[str]:
 
 
 def translation_losses(doc: Document, target_lang: str | None) -> list[Loss]:
-    """L2 and L6, block by block, on the text as written."""
+    """L2, L6 and L9, block by block, on the text as written."""
     losses: list[Loss] = []
     for index, page in enumerate(doc.pages):
         for block in page.blocks:
@@ -133,6 +137,8 @@ def translation_losses(doc: Document, target_lang: str | None) -> list[Loss]:
                     losses.append(Loss("L2", index, written[:90], (block.id,)))
             if block.source_text and drops_numbers(source, written, target_lang or ""):
                 losses.append(Loss("L6", index, written[:90], (block.id,)))
+            if block.source_text and garbled_words(source, written):
+                losses.append(Loss("L9", index, written[:90], (block.id,)))
     return losses
 
 

@@ -830,3 +830,73 @@ possible, with the product as a user runs it and no campaign repair.
   losses found`. That page did not exercise a repair; the measurement that does is next.
 - The overlap check now sweeps words sorted by height instead of comparing every pair - same
   result (the four-book comparison above includes L7), far fewer comparisons on a dense page.
+
+## 2026-09-17 - the completion screen says what verification found
+
+The worker already sent the counts; the screen showed none of them. It now reports, in Turkish,
+English and German, segments mended by asking again, losses flagged for review by kind, or that no
+loss was found (`test_ui_completion.py`: 2 tests, failed first). A job that was not verified says
+nothing about it.
+
+## 2026-09-17 - held-out measurement: sources never seen during development
+
+**Method.** The application as a user runs it - layout model on (installed), verification on,
+`--verify-rounds 2` - and *no* campaign repair. The code is frozen at commit `bad981a` in a git
+worktree (`_artifacts/heldout/code`, imported through PYTHONPATH), so a fix made while the
+measurement runs cannot reach the pages still waiting. PDFs go through `translate_book.py` one page
+per CLI process, 7 in parallel (the CLI sends its own batches one after another, so this is only
+throughput - each page is exactly one `layoutkeep translate`); the EPUB and the image run as one CLI
+call each, on the eighth connection. Every output is then audited with `lossless_audit.py`, whose
+criteria are now the same code as the application's verification - so the audit is not an
+independent judge of the verification. Visual checks against the source are what cover that.
+
+Downloaded with the user's approval (licences checked on the source page):
+
+| source | kind | pages | licence |
+|---|---|---|---|
+| arXiv 2609.19145 | academic paper, math, tables | 20 | CC BY 4.0 |
+| arXiv 2609.19113 | academic paper | 29 | CC BY 4.0 |
+| PLOS ONE 10.1371/journal.pone.0235750 | journal article, figures | 30 | CC BY 4.0 |
+| Wikipedia "Photosynthesis" (PDF export) | encyclopedia, images, references | 33 | CC BY-SA |
+| Wikipedia "Printing press" (PDF export) | encyclopedia | 19 | CC BY-SA |
+| IRS Publication 505 | government guide, worksheets, tables | 48 | public domain |
+| IRS Form 1040 general instructions | dense multi-column instructions | 126 | public domain |
+| Twentieth Century Cook Book (1907), archive.org | searchable scan, recipes, lists | 140 | public domain |
+| Our Edible Toadstools and Mushrooms (1895), archive.org | searchable scan, plates; every 3rd page | 121 of 362 | public domain |
+| NASA NTRS 19750007530 | one-page image-only scan | 1 | public use permitted |
+| The Adventures of Sherlock Holmes, Project Gutenberg | EPUB to EPUB | book | public domain (US) |
+| WPA poster "Occupations related to mathematics" (1938), Wikimedia Commons | image to DOCX | 1 | public domain |
+
+Two sources were dropped before download: a Library of Congress newspaper page (the site answered
+with a bot check, which is not something to get around) and three US agency PDFs that refused
+scripted access.
+
+## 2026-09-17 - held-out finding 1: a letter from another alphabet inside a word (new criterion L9)
+
+The first held-out output, the WPA poster (image to DOCX), passed verification ("8 blocks checked,
+no losses found") and was not clean. Read block by block against the source:
+
+| source (OCR) | translation | what it is | flagged? |
+|---|---|---|---|
+| MECHANICAL ENGINEER 7 | MAKİNE MÜHEN**Д**İSİ 7 | a Cyrillic letter inside a Turkish word | **no** |
+| FEUERAL ARI IHVALE (OCR of the poster's credit line) | an invented agency name | hallucination on garbage input | yes - OCR confidence 0.73 |
+| E三三三 (a graphic read as text) | nonsense letters | noise in, noise out | yes - OCR confidence 0.74 |
+| ACTUARY STATISTICIAN | a wrong term for "actuary" | translation quality, not a loss | no (no criterion claims it) |
+
+The low-confidence readings already reach the review queue. The Cyrillic letter reached nobody.
+Measured before building anything: across the campaign's 21,618 translated blocks, words mixing
+letters of two alphabets appeared 3 times, all genuine - "MÜHENДİSİ" twice more in Popular Science
+(the same model, the same word, in capitals) and a kana mark glued to a Turkish word. A first
+version also caught subscripts, superscripts and fractions ("A₃", "x²", "l½", 20 blocks in
+computer-systems-Architecture and Electricity): those are not letters, and only letters count now.
+
+**Fix:** `core.copies.garbled_words` - a word of the reply mixing letters of two writing systems,
+one of which the source does not use. The retry pass asks again for such a reply (and does not
+accept one), and verification reports it as **L9 garbled letters**, asks again and flags what
+remains. Tests: `test_a_letter_from_another_alphabet_inside_a_word_is_garbled`,
+`test_scripts_the_source_has_and_symbols_that_are_not_letters_are_not_garbled`,
+`test_a_reply_with_a_letter_from_another_alphabet_is_retried`,
+`test_a_letter_from_another_alphabet_is_a_loss_asked_for_again` (all failed first).
+
+The held-out measurement keeps running on the frozen commit without L9; its outputs are audited
+with both criteria sets, so the effect of the new check is visible rather than mixed in.
