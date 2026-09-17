@@ -74,7 +74,10 @@ def fit_pdf_pass(
         page_blocks = page_of.get(seg.block_id, [])
         missing = slack - room_below(block, page_blocks, slack)
         measured_box = (
-            BBox(block.bbox.x0, block.bbox.y0, block.bbox.x1, block.bbox.y1 - missing)
+            BBox(
+                block.bbox.x0, block.bbox.y0, block.bbox.x1,
+                max(block.bbox.y0 + min(block.bbox.height, 6.0), block.bbox.y1 - missing),
+            )
             if missing > 0 else block.bbox
         )
         result = fit_segment(

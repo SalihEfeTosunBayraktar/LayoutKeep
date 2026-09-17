@@ -17,7 +17,12 @@ from layoutkeep.core.docir import Block
 
 
 def room_below(block: Block, page_blocks: list[Block], slack: float) -> float:
-    """The slack below `block` that does not reach a block under it in the same column."""
+    """The slack below `block` that does not reach a block under it in the same column.
+
+    Negative when the next block starts inside this one - the model's regions can overlap partly
+    (5-10 pt on Popular Science), and blocks drawn into each other's boxes were drawn over each
+    other. The drawing then stops where the next block starts.
+    """
     box = block.bbox
     room = slack
     for other in page_blocks:
@@ -27,5 +32,5 @@ def room_below(block: Block, page_blocks: list[Block], slack: float) -> float:
         # Same column: overlaps horizontally. Beneath: starts below this block's top.
         if min(box.x1, o.x1) - max(box.x0, o.x0) <= 0 or o.y0 <= box.y0:
             continue
-        room = min(room, max(0.0, o.y0 - box.y1))
+        room = min(room, o.y0 - box.y1)
     return room

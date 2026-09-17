@@ -494,3 +494,38 @@ without the fix, so it is a guard, not evidence): The Time Machine pages 3, 6, 7
 from their saved projects - overlapping word pairs **18 -> 0**; visually no line over another, the
 first paragraph slightly smaller. A one-line paragraph whose translation needs two lines is still
 drawn very small - D1, not L7.
+
+## 2026-09-17 - campaign book 4: Popular Science Monthly, January 1920 - first pass
+
+The hardest document: 144 pages of a magazine scan with columns, adverts and decorative type.
+3 h 06 min (dense pages; one took 23 minutes).
+
+| L1 | L2 | L3 | L4 | L5 | L6 | L7 | D1 | D2 |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 46 | 33 | 0 | 3 | 13 | 114 | 846 / 4222 | 89 |
+
+(L1: two blank pages translated before the keep-as-is fix; `--resume` fills them.)
+
+### The L7 fixes were not enough for the magazine - measured, not assumed
+
+Split by when each page was translated: before the column/slack fixes 63 of 77 pages had text over
+text; **after both fixes still 51 of 65**. On a post-fix page two different things were counted:
+
+1. **Blocks overlapping each other:** the model's regions overlap *partly* (5-10 pt); duplicate
+   resolution only removes near-containment. The slack fix could not help - the boxes themselves
+   overlap. **Fix:** `room_below` may be negative; the writer stops drawing a block where the next
+   block in its column starts (never shorter than 6 pt), the fitting pass measures the same box, and
+   the box the source is cleared by stays whole. Test
+   `test_negative_room_when_the_next_block_starts_inside_this_one` (failed first).
+2. **A block's own lines squeezed into each other:** recognition noise from decorative adverts
+   ("STHHTTLLTY", "PTH") forced into a tiny box. Not one text over another. The audit now separates
+   it: **L7** counts words of *different* blocks; **D3** (reported, not a loss) counts a block's lines
+   squeezed together.
+
+Verified by rewriting 12 post-fix magazine pages from their projects: words of different blocks
+drawn over each other **45 -> 17**. The remaining 17 read, word by word: advert recognition scraps 2-4
+pt tall ("AR" over "STW"), already below the readability floor. The audit's L7 now counts legible
+words only (at least 5 pt tall) - smaller text is D1 territory.
+
+Re-audited first-pass outputs (not yet repaired): L7 NIST 1, The Time Machine 26, Electricity 3,
+Popular Science 61.

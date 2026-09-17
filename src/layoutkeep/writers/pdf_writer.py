@@ -526,7 +526,14 @@ def _layout_rect(bbox: BBox, room_below: float | None = None) -> pymupdf.Rect:
     # Below, only as much as the page has free (`fitting.room`): paragraphs set close together have
     # none, and the slack drew the last line of one over the first line of the next.
     below = slack if room_below is None else min(slack, room_below)
-    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, rect.y1 + below)
+    # Never shorter than a sliver: a box the next block starts right below the top of is still
+    # given a line's worth of height, and its text shrinks rather than vanishing.
+    bottom = max(rect.y1 + below, rect.y0 + min(rect.height, _MIN_DRAW_HEIGHT))
+    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, bottom)
+
+
+#: The least height a block is drawn in, whatever overlaps it from below.
+_MIN_DRAW_HEIGHT = 6.0
 
 
 def _rect(bbox: BBox) -> pymupdf.Rect:

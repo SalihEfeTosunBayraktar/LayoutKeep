@@ -23,7 +23,15 @@ def _block(y0: float, y1: float, x0: float = 72.0, x1: float = 540.0) -> Block:
 
 def test_no_room_below_a_box_touching_the_next_paragraph() -> None:
     upper, lower = _block(50.1, 194.8), _block(194.1, 230.8)
-    assert room_below(upper, [upper, lower], slack=3.0) == 0.0
+    assert abs(room_below(upper, [upper, lower], slack=3.0) - (-0.7)) < 1e-6
+
+
+def test_negative_room_when_the_next_block_starts_inside_this_one() -> None:
+    """Popular Science: the model's regions overlap partly (5-10 pt) and so did their blocks, which
+    were drawn over each other. The room is then negative - the drawing stops where the next block
+    starts - while the box the source is cleared by stays whole."""
+    upper, lower = _block(151.0, 235.0, 45, 99), _block(224.0, 307.0, 46, 219)
+    assert room_below(upper, [upper, lower], slack=3.0) == -11.0
 
 
 def test_part_of_the_slack_where_the_gap_is_smaller() -> None:

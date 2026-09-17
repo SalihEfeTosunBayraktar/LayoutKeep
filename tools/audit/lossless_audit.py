@@ -8,9 +8,10 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L4  nothing drawn off the page     words outside the page box == 0
     L5  no markup leaked               tags in the output that are not in the source == 0
     L6  no numbers lost                numbers of the source missing from the translation == 0
-    L7  nothing illegible              pages with words drawn over other words == 0
+    L7  nothing drawn over text        pages with words of one block drawn over another's == 0
     D1  readability (reported only)    blocks drawn below the readability floor
     D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
+    D3  legibility (reported only)     pages where a block's own lines are squeezed into each other
 
 It reads a `translate_book.py` work directory, where every chunk left its source (`src/`), its
 output and its project file (`out/t_NNNN.pdf`, `out/t_NNNN.lkproj`). The project records which
@@ -102,13 +103,29 @@ def _words(text: str) -> list[str]:
 #: clean novel page, a contents page, a scanned book page and the source PDF itself had 0.
 _OVERLAP_SHARE = 0.3
 
+#: Height below which a drawn word is not legible text in the first place.
+_LEGIBLE_PT = 5.0
 
-def _overlapping_words(words: list) -> int:
-    boxes = [(pymupdf.Rect(w[:4]), (w[5], w[6])) for w in words if len(w[4]) > 1]
+
+def _overlapping_words(words: list, *, same_block: bool = False) -> int:
+    """Pairs of words from different lines drawn over each other.
+
+    `same_block=False` counts words of different blocks - one text drawn over another (L7).
+    `same_block=True` counts lines of one block squeezed into each other - text forced into a box
+    far too small, typically recognition noise from a decorative advert (D3).
+    """
+    # Only legible words count: text under _LEGIBLE_PT tall is already below the readability floor
+    # (D1) - on the magazine it is recognition noise from adverts ("AR", "STW") - and two such
+    # scraps touching is not one text drawn over another.
+    boxes = [
+        (pymupdf.Rect(w[:4]), w[5], (w[5], w[6]))
+        for w in words
+        if len(w[4]) > 1 and (w[3] - w[1]) >= _LEGIBLE_PT
+    ]
     pairs = 0
-    for i, (a, line_a) in enumerate(boxes):
-        for b, line_b in boxes[i + 1:]:
-            if line_a == line_b:
+    for i, (a, block_a, line_a) in enumerate(boxes):
+        for b, block_b, line_b in boxes[i + 1:]:
+            if line_a == line_b or (block_a == block_b) != same_block:
                 continue
             inter = a & b
             if inter.is_empty:
@@ -121,7 +138,7 @@ def _overlapping_words(words: list) -> int:
 
 def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") -> dict:
     doc = load_project(project)
-    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2")}
+    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2", "D3")}
     counts = Counter()
 
     with pymupdf.open(str(src)) as source, pymupdf.open(str(out)) as output:
@@ -150,6 +167,9 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
             overlapping = _overlapping_words(words)
             if overlapping:
                 found["L7"].append(f"{tag}: {overlapping} overlapping word pairs")
+            squeezed = _overlapping_words(words, same_block=True)
+            if squeezed:
+                found["D3"].append(f"{tag}: {squeezed} squeezed word pairs")
             for match in _MARKUP.finditer(page.get_text()):
                 if match.group(0).casefold() not in source_markup:
                     found["L5"].append(f"{tag}: {match.group(0)!r}")
@@ -202,7 +222,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
 
 def audit_work(work: Path, target_lang: str = "tr") -> dict:
     totals = Counter()
-    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2")}
+    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2", "D3")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
     missing = []
     failing: list[str] = []
@@ -255,6 +275,7 @@ def main() -> int:
         ("L7", "text drawn over text"),
         ("D1", "below readability floor"),
         ("D2", "short blocks left unchanged"),
+        ("D3", "text squeezed in its box"),
     ):
         _say(f"{key}  {label:<26} {result['counts'][key]}")
         for example in result["examples"][key][:5]:
