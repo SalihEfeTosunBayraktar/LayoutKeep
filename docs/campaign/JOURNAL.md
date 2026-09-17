@@ -461,3 +461,36 @@ Re-audited (no re-translation):
 Also seen on the magazine and recorded for the next step: on a dense multi-column page some
 translated blocks are drawn over each other, and the erased English leaves grey smudges where the
 scan is halftoned - the text is present, but part of it is not legible.
+
+## 2026-09-17 - L7: text drawn over text
+
+Popular Science's multi-column pages had translated blocks drawn over each other: legible nowhere,
+though every word is present. The audit counted words, so it passed them. A measurement first
+(overlapping word boxes from different lines, over 30% of the smaller): a broken magazine page 17
+pairs; a clean novel page, a contents page, a scanned book page and the source PDF itself 0. Added to
+the audit as **L7 - text drawn over text** (pages with any such pair).
+
+Re-audited: NIST 3 pages, The Time Machine **46**, Electricity 16.
+
+### Cause 1 - magazine: words of two columns joined into one line
+
+On a page with a narrow gutter, OCR words of both columns at the same height were joined into one
+"line" spanning x=33-570, so the translation mixed two paragraphs and was drawn over both columns.
+**Fix:** with the layout model, words are grouped by region *before* they are joined into lines, so
+a line can never cross a column the model found. Test
+`test_words_of_two_columns_are_never_joined_into_one_line` (failed first).
+
+### Cause 2 - novel: the writer's slack below reached into the next paragraph
+
+The writer lays text out in the block's box plus 3 pt of slack right and below (for the renderer's
+own inset). Paragraphs set close together have no room below: one box ended at 194.8 pt, the next
+began at 194.1 pt, and the last line of one was drawn over the first line of the next.
+**Fix:** `fitting/room.room_below` - the slack below is only what the page has free above the next
+block in the same column; used by the fitting measurement and by the writer, so both agree. The box
+itself is not shortened, because the writer clears the source by that box.
+
+Verified on the real pages rather than only on a synthetic test (the synthetic test passed with and
+without the fix, so it is a guard, not evidence): The Time Machine pages 3, 6, 7, 10 and 14 rewritten
+from their saved projects - overlapping word pairs **18 -> 0**; visually no line over another, the
+first paragraph slightly smaller. A one-line paragraph whose translation needs two lines is still
+drawn very small - D1, not L7.

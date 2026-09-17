@@ -397,7 +397,11 @@ def _page_from_image(
     dpi = float(image.info.get("dpi", (_DEFAULT_DPI, _DEFAULT_DPI))[0]) or _DEFAULT_DPI
 
     pixels = np.array(image)
-    lines = _merge_boxes_into_lines(boxes)
+    regions = resolve_duplicates(layout.detect(image)) if layout is not None else []
+    # Words are joined into lines within one region only. The model's regions are the columns: on a
+    # magazine page with a narrow gutter, words of both columns at the same height were joined into
+    # one line, so a translation mixed two paragraphs and was drawn over both columns.
+    lines = _lines_within_regions(boxes, regions) if regions else _merge_boxes_into_lines(boxes)
 
     # A layout model, when installed, says where each paragraph, heading and caption is; its
     # text regions become blocks directly, with the role it assigned. Lines it places in a
@@ -406,7 +410,6 @@ def _page_from_image(
     groups: list[tuple[list[list[TextBox]], BlockRole | None]] = []
     rest = lines
     if layout is not None:
-        regions = resolve_duplicates(layout.detect(image))
         claimed, labels, rest = _lines_by_region(lines, regions)
         # A table cell or a figure label is never a paragraph. Grouping them geometrically, as
         # they were, took them away from the page they belong to: among a table's lines alone
@@ -465,6 +468,26 @@ def _page_from_image(
 def _median_line_height(lines: list[list[TextBox]]) -> float:
     heights = [max(b.bbox[3] for b in line) - min(b.bbox[1] for b in line) for line in lines]
     return statistics.median(heights) if heights else 1.0
+
+
+def _lines_within_regions(boxes: list[TextBox], regions: list[LayoutRegion]) -> list[list[TextBox]]:
+    """Join words into lines separately inside each region, and among the words in no region."""
+    groups: dict[int, list[TextBox]] = {}
+    for box in boxes:
+        x0, y0, x1, y1 = box.bbox
+        area = max((x1 - x0) * (y1 - y0), 1e-6)
+        best, best_area = -1, float("inf")
+        for index, region in enumerate(regions):
+            rx0, ry0, rx1, ry1 = region.bbox
+            overlap = max(0.0, min(x1, rx1) - max(x0, rx0)) * max(0.0, min(y1, ry1) - max(y0, ry0))
+            size = (rx1 - rx0) * (ry1 - ry0)
+            if overlap / area >= _REGION_MEMBERSHIP and size < best_area:
+                best, best_area = index, size
+        groups.setdefault(best, []).append(box)
+    lines: list[list[TextBox]] = []
+    for group in groups.values():
+        lines.extend(_merge_boxes_into_lines(group))
+    return lines
 
 
 #: How much of a line has to lie inside a detected region to belong to it.

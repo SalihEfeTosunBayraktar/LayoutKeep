@@ -8,6 +8,7 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L4  nothing drawn off the page     words outside the page box == 0
     L5  no markup leaked               tags in the output that are not in the source == 0
     L6  no numbers lost                numbers of the source missing from the translation == 0
+    L7  nothing illegible              pages with words drawn over other words == 0
     D1  readability (reported only)    blocks drawn below the readability floor
     D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
 
@@ -96,9 +97,31 @@ def _words(text: str) -> list[str]:
 
 
 
+#: Two words from different lines overlapping by more than this share of the smaller one cannot
+#: both be read. Measured: a magazine page with blocks drawn over each other had 17 such pairs; a
+#: clean novel page, a contents page, a scanned book page and the source PDF itself had 0.
+_OVERLAP_SHARE = 0.3
+
+
+def _overlapping_words(words: list) -> int:
+    boxes = [(pymupdf.Rect(w[:4]), (w[5], w[6])) for w in words if len(w[4]) > 1]
+    pairs = 0
+    for i, (a, line_a) in enumerate(boxes):
+        for b, line_b in boxes[i + 1:]:
+            if line_a == line_b:
+                continue
+            inter = a & b
+            if inter.is_empty:
+                continue
+            smaller = min(a.get_area(), b.get_area())
+            if smaller > 0 and inter.get_area() / smaller > _OVERLAP_SHARE:
+                pairs += 1
+    return pairs
+
+
 def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") -> dict:
     doc = load_project(project)
-    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
+    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2")}
     counts = Counter()
 
     with pymupdf.open(str(src)) as source, pymupdf.open(str(out)) as output:
@@ -124,6 +147,9 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                 x0, y0, x1, y1 = word[:4]
                 if x1 < rect.x0 - 1 or x0 > rect.x1 + 1 or y1 < rect.y0 - 1 or y0 > rect.y1 + 1:
                     found["L4"].append(f"{tag}: {word[4]!r}")
+            overlapping = _overlapping_words(words)
+            if overlapping:
+                found["L7"].append(f"{tag}: {overlapping} overlapping word pairs")
             for match in _MARKUP.finditer(page.get_text()):
                 if match.group(0).casefold() not in source_markup:
                     found["L5"].append(f"{tag}: {match.group(0)!r}")
@@ -176,7 +202,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
 
 def audit_work(work: Path, target_lang: str = "tr") -> dict:
     totals = Counter()
-    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
+    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
     missing = []
     failing: list[str] = []
@@ -191,12 +217,12 @@ def audit_work(work: Path, target_lang: str = "tr") -> dict:
         totals.update(result["counts"])
         for key, items in result["found"].items():
             findings[key].extend(items)
-        if any(result["found"][k] for k in ("L1", "L2", "L3", "L4", "L5", "L6")):
+        if any(result["found"][k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7")):
             failing.append(index)
     source_chunks = len(list((work / "src").glob("chunk_*.pdf")))
     if len(chunks) != source_chunks:
         findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited")
-    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5", "L6")) and not missing
+    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7")) and not missing
     return {
         "chunks": len(chunks),
         "blocks": totals["blocks"],
@@ -226,6 +252,7 @@ def main() -> int:
         ("L4", "off the page"),
         ("L5", "markup leaked"),
         ("L6", "numbers lost"),
+        ("L7", "text drawn over text"),
         ("D1", "below readability floor"),
         ("D2", "short blocks left unchanged"),
     ):

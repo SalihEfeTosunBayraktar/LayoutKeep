@@ -42,6 +42,7 @@ from layoutkeep.core.docir import BBox, Block, Document, Span, Style
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
 from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, resolve_font
+from layoutkeep.fitting.room import room_below
 
 #: `insert_htmlbox`'s own line-height/padding model is not pixel-identical to the tight glyph
 #: bbox `pdf_reader.py` measures, so even untouched text can be a point or two taller than its
@@ -105,7 +106,7 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
     """Render `doc` (read from `src_path`, possibly with translations applied) to `out_path`."""
     with pymupdf.open(str(src_path)) as pdf:
         resolver = _FontResolver(doc.target_lang)
-        page_blocks: list[tuple[pymupdf.Page, list[Block], list[Block], bool]] = []
+        page_blocks: list[tuple[pymupdf.Page, list[Block], list[Block], bool, list[Block]]] = []
         for page_data in doc.pages:
             page = pdf[int(page_data.source_ref)]
             # A block whose translation is its source - a name, a document code, a running header
@@ -131,10 +132,10 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             for block in blocks:
                 resolver.register(page, block)
             kept = [b for b in page_data.blocks if not b.translatable]
-            page_blocks.append((page, blocks, kept, page_data.scanned))
+            page_blocks.append((page, blocks, kept, page_data.scanned, page_data.blocks))
         resolver.finalize()
 
-        for page, blocks, kept, scanned in page_blocks:
+        for page, blocks, kept, scanned, everything in page_blocks:
             if scanned:
                 # A searchable scan also carries an invisible OCR text layer over the image. Left
                 # in place, the output looks translated and searches, copies and reads aloud in
@@ -172,7 +173,9 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                 else:
                     html = f"<p>{_block_html(block, resolver)}</p>"
                     css = _css_for_block(block, resolver)
-                    _draw_block(page, _layout_rect(block.bbox), html, css, resolver.archive)
+                    room = room_below(block, everything, float(tunables.get(_BOX_SLACK_KEY)))
+                    rect = _layout_rect(block.bbox, room)
+                    _draw_block(page, rect, html, css, resolver.archive)
         # `garbage=4` dedupes identical objects: every block drawn in a given resolved font
         # embeds its own copy of that font's subset bytes (`insert_htmlbox`'s own font-loading
         # does not share a face across separate calls, even given the same `archive`), and since
@@ -502,7 +505,7 @@ def _draw_block(
         page.insert_htmlbox(rect, html, css=css, scale_low=0, archive=archive)
 
 
-def _layout_rect(bbox: BBox) -> pymupdf.Rect:
+def _layout_rect(bbox: BBox, room_below: float | None = None) -> pymupdf.Rect:
     """The box `insert_htmlbox` is given for a block, which is not quite the box the reader
     measured.
 
@@ -520,7 +523,10 @@ def _layout_rect(bbox: BBox) -> pymupdf.Rect:
     """
     slack = float(tunables.get(_BOX_SLACK_KEY))
     rect = _rect(bbox)
-    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, rect.y1 + slack)
+    # Below, only as much as the page has free (`fitting.room`): paragraphs set close together have
+    # none, and the slack drew the last line of one over the first line of the next.
+    below = slack if room_below is None else min(slack, room_below)
+    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, rect.y1 + below)
 
 
 def _rect(bbox: BBox) -> pymupdf.Rect:

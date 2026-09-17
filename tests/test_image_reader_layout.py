@@ -219,3 +219,19 @@ def test_separate_boxes_on_one_line_keep_a_space_between_them() -> None:
     boxes = [_box("46", 20, 30, 20), _box("CHAPTER TWO Digital Components", 70, 30, 300)]
     page = _read(boxes, [LayoutRegion("page_header", (15, 25, 380, 55), 0.94)])
     assert page.blocks[0].text == "46 CHAPTER TWO Digital Components"
+
+
+def test_words_of_two_columns_are_never_joined_into_one_line() -> None:
+    """Popular Science, January 1920: on a page with a narrow gutter, words of both columns at the
+    same height were joined into one line ("ers. Ancak bu seyler ..." spanning x=33-570), so the
+    translation mixed two paragraphs and was drawn over both columns. The model's regions are the
+    columns; boxes are grouped by region before they are joined into lines."""
+    left = [_box(f"left{i}", 40 + i * 70, 300, 60) for i in range(4)]     # x 40..310
+    right = [_box(f"right{i}", 330 + i * 70, 300, 60) for i in range(4)]  # x 330..600, gutter 20px
+    regions = [
+        LayoutRegion("text", (35, 290, 315, 330), 0.95),
+        LayoutRegion("text", (325, 290, 605, 330), 0.95),
+    ]
+    page = _read([*left, *right], regions)
+    texts = sorted(b.text for b in page.blocks)
+    assert texts == ["left0 left1 left2 left3", "right0 right1 right2 right3"], texts

@@ -14,9 +14,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from layoutkeep.core.docir import Block, Document, Segment
+from layoutkeep.core.docir import BBox, Block, Document, Segment
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
 from layoutkeep.fitting.measure import TextMeasurer
+from layoutkeep.fitting.room import room_below
 
 #: (segment, max_len) -> replacement translation, wired to the real provider by the caller.
 Retranslate = Callable[[Segment, int], str]
@@ -50,6 +51,10 @@ def fit_pdf_pass(
     # (expansion measured 1.47x on a page of computer-systems-Architecture.pdf against the
     # 0.93-1.12x an honest EN->TR run produces). See the `char_budget` argument below.
     from_scan = {b.id: page.scanned for page, b in doc.iter_blocks()}
+    page_of = {b.id: page.blocks for page, b in doc.iter_blocks()}
+    from layoutkeep.core import tunables
+
+    slack = float(tunables.get("write.box_slack_pt"))
     measurers: dict[tuple, TextMeasurer | None] = {}
     results = []
 
@@ -64,10 +69,18 @@ def fit_pdf_pass(
         def char_budget(style, bbox, scale, _m=measurer):
             return _m.char_budget(style, bbox, scale)
 
+        # Measured against the room the writer will actually draw in: the slack below is only what
+        # the page has free (`fitting.room`), so a box with less is measured that much shorter.
+        page_blocks = page_of.get(seg.block_id, [])
+        missing = slack - room_below(block, page_blocks, slack)
+        measured_box = (
+            BBox(block.bbox.x0, block.bbox.y0, block.bbox.x1, block.bbox.y1 - missing)
+            if missing > 0 else block.bbox
+        )
         result = fit_segment(
             seg,
             style,
-            block.bbox,
+            measured_box,
             measure_fit,
             mode=mode,
             retranslate=retranslate,
