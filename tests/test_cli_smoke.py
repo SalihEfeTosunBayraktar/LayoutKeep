@@ -68,3 +68,5 @@ def test_cli_translates_a_pdf_end_to_end(tmp_path: Path) -> None:
     assert pdf.page_count >= 1
     full_text = "".join(pdf[p].get_text() for p in range(pdf.page_count))
     assert "[tr]" in full_text, "the translation reached the page"
+    # The written output is checked, and what the check finds is reported (layoutkeep/verify.py).
+    assert "verify    " in result.stdout, result.stdout

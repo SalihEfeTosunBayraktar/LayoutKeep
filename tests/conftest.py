@@ -142,3 +142,24 @@ def figures_report(_figures_report_as_read):
 
     src, doc = _figures_report_as_read
     return src, copy.deepcopy(doc)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_installed_layout_model(tmp_path_factory: pytest.TempPathFactory):
+    """Tests read without the layout model a developer's machine may have installed.
+
+    The CLI and the desktop worker use it whenever it is installed, so without this a test's
+    reading - and its result - would depend on what happens to be in LOCALAPPDATA. Tests that
+    exercise the model pass a detector of their own.
+    """
+    import os
+
+    from layoutkeep.ocr.layout_detector import ENV_MODEL
+
+    previous = os.environ.get(ENV_MODEL)
+    os.environ[ENV_MODEL] = str(tmp_path_factory.mktemp("no_layout_model") / "absent.onnx")
+    yield
+    if previous is None:
+        os.environ.pop(ENV_MODEL, None)
+    else:
+        os.environ[ENV_MODEL] = previous

@@ -1,0 +1,381 @@
+"""Is the translated document lossless? Checked on what was written, and repaired where it can be.
+
+The loss criteria were defined and measured in the translation campaign (docs/campaign/JOURNAL.md)
+and used to live only in `tools/audit/lossless_audit.py`, so a document translated in the
+application got none of it: what the campaign reached after its repair rounds was not what a user
+received. They live here now, and the CLI and the desktop worker run them after writing.
+
+    L1  same pages                 output page count == source page count
+    L2  nothing left untranslated  blocks still in the source language, or in a third one
+    L3  nothing dropped by writer  translated blocks whose words are missing from their page
+    L4  nothing off the page       words outside the page box
+    L5  no markup leaked           tags in the output that are not in the source
+    L6  no numbers lost            numbers of the source missing from the translation
+    L7  nothing over other text    words of one block drawn over another's
+    L8  nothing untouched moved    on born-digital pages, text no translated block covers moved
+
+`verify_and_repair` asks again for what a translation lost (L2, L6) - a reply in the wrong
+language or without a number is intermittent, so a later request often comes back right - and
+flags everything still lost for review, with the reason, so the review queue shows exactly where
+the output departs from the source.
+"""
+
+from __future__ import annotations
+
+import re
+from collections import Counter
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from layoutkeep.core.copies import (
+    drops_numbers,
+    is_copy,
+    is_identical,
+    ordinary_words,
+    wrong_language,
+)
+from layoutkeep.core.docir import Block, Document, Segment, apply_segments
+from layoutkeep.core.protect import is_data_only
+
+#: A block counts as present on its page when this share of its words are found there. Below 1.0
+#: because the renderer may hyphenate a long word across a line break, which splits one token in
+#: two.
+_PRESENT_SHARE = 0.9
+
+_MARKUP = re.compile(r"</?[A-Za-z][A-Za-z0-9_]*\s*/?>|<\d+>|</\d+>|</?text\b", re.IGNORECASE)
+_WORD = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
+_INLINE_MARKER = re.compile(r"</?\d+>")
+
+#: Two words from different lines overlapping by more than this share of the smaller one cannot
+#: both be read. Measured: a magazine page with blocks drawn over each other had 17 such pairs; a
+#: clean novel page, a contents page, a scanned book page and the source PDF itself had 0.
+_OVERLAP_SHARE = 0.3
+
+#: Height below which a drawn word is not legible text in the first place.
+_LEGIBLE_PT = 5.0
+
+#: Blocks with fewer ordinary words than this are too short to call untranslated without knowing
+#: the language: a name and an untranslated two-word phrase look the same.
+_MIN_PROSE_WORDS = 4
+
+LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
+
+LABELS = {
+    "L1": "page count differs",
+    "L2": "left untranslated",
+    "L3": "dropped by the writer",
+    "L4": "drawn off the page",
+    "L5": "markup leaked",
+    "L6": "numbers lost",
+    "L7": "text drawn over text",
+    "L8": "untouched text moved",
+}
+
+#: What the review queue says, in the application's language like every other review reason.
+REVIEW_REASONS = {
+    "L1": "doğrulama: çıktının sayfa sayısı farklı",
+    "L2": "doğrulama: çevrilmemiş ya da başka bir dilde",
+    "L3": "doğrulama: çeviri sayfaya yazılamadı",
+    "L4": "doğrulama: metin sayfanın dışına taştı",
+    "L5": "doğrulama: çıktıya etiket sızdı",
+    "L6": "doğrulama: çeviride sayılar kayboldu",
+    "L7": "doğrulama: metin başka bir metnin üstüne yazıldı",
+    "L8": "doğrulama: çevrilmeyen metin yerinden oynadı",
+}
+
+#: The losses a new request to the model can mend. The rest are drawn wrong, not translated wrong.
+_ASK_AGAIN = frozenset({"L2", "L6"})
+
+
+@dataclass(frozen=True)
+class Loss:
+    kind: str
+    #: Index of the page in `Document.pages`, or -1 for the document as a whole.
+    page: int
+    detail: str
+    block_ids: tuple[str, ...] = ()
+
+
+def source_of(block: Block) -> str:
+    """The text the block had before translation, without inline markers."""
+    return _INLINE_MARKER.sub("", block.source_text) if block.source_text else block.text
+
+
+def is_checked(block: Block) -> bool:
+    """A block whose words the criteria judge: translatable prose, not data, not a wordless scrap."""
+    from layoutkeep.writers.pdf_writer import is_wordless
+
+    return block.translatable and not is_data_only(source_of(block)) and not is_wordless(block)
+
+
+def is_untouched(block: Block) -> bool:
+    return not block.source_text or is_identical(source_of(block), block.text)
+
+
+def words(text: str) -> list[str]:
+    return [w.casefold() for w in _WORD.findall(text.replace("­", ""))]
+
+
+def translation_losses(doc: Document, target_lang: str | None) -> list[Loss]:
+    """L2 and L6, block by block, on the text as written."""
+    losses: list[Loss] = []
+    for index, page in enumerate(doc.pages):
+        for block in page.blocks:
+            if not is_checked(block):
+                continue
+            source, written = source_of(block), block.text
+            # Prose is judged on ordinary words (core.copies): names, brands, addresses and
+            # quoted strings legitimately survive translation and must not count against it.
+            if len(ordinary_words(source)) >= _MIN_PROSE_WORDS:
+                wrong = wrong_language(written, target_lang) if target_lang else None
+                if is_untouched(block) or wrong or is_copy(source, written):
+                    losses.append(Loss("L2", index, written[:90], (block.id,)))
+            if block.source_text and drops_numbers(source, written, target_lang or ""):
+                losses.append(Loss("L6", index, written[:90], (block.id,)))
+    return losses
+
+
+def output_losses(source_pdf: Path, output_pdf: Path, doc: Document) -> list[Loss]:
+    """L1, L3, L4, L5, L7 and L8, on the written PDF against its source."""
+    import pymupdf
+
+    losses: list[Loss] = []
+    with pymupdf.open(str(source_pdf)) as source, pymupdf.open(str(output_pdf)) as output:
+        if source.page_count != output.page_count:
+            losses.append(
+                Loss("L1", -1, f"{source.page_count} source pages, {output.page_count} output")
+            )
+        source_markup = {
+            m.group(0).casefold() for page in source for m in _MARKUP.finditer(page.get_text())
+        }
+        for index, page_data in enumerate(doc.pages):
+            try:
+                number = int(page_data.source_ref)
+            except ValueError:
+                continue
+            if number >= output.page_count or number >= source.page_count:
+                continue
+            losses.extend(_page_losses(source[number], output[number], page_data, index, source_markup))
+    return losses
+
+
+def _page_losses(source_page, page, page_data, index: int, source_markup: set[str]) -> list[Loss]:
+    losses: list[Loss] = []
+    rect = page.rect
+    drawn = page.get_text("words")
+    on_page = Counter(w for word in drawn for w in words(word[4]))
+
+    for word in drawn:
+        x0, y0, x1, y1 = word[:4]
+        if x1 < rect.x0 - 1 or x0 > rect.x1 + 1 or y1 < rect.y0 - 1 or y0 > rect.y1 + 1:
+            losses.append(Loss("L4", index, repr(word[4])))
+
+    pairs, involved = overlapping_words(drawn)
+    if pairs:
+        owners = tuple(sorted({
+            block.id for x, y in involved
+            if (block := _block_at(page_data.blocks, x, y)) is not None
+        }))
+        losses.append(Loss("L7", index, f"{pairs} overlapping word pairs", owners))
+
+    text = page.get_text()
+    for match in _MARKUP.finditer(text):
+        if match.group(0).casefold() not in source_markup:
+            owners = tuple(b.id for b in page_data.blocks if match.group(0) in b.text)
+            losses.append(Loss("L5", index, repr(match.group(0)), owners))
+
+    if not page_data.scanned:
+        moved = kept_text_moved(source_page, page, page_data)
+        if moved:
+            owners = tuple(sorted({
+                block.id for r in moved
+                if (block := _block_at(page_data.blocks, (r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2)) is not None
+            }))
+            losses.append(Loss("L8", index, f"{len(moved)} untouched text runs moved", owners))
+
+    for block in page_data.blocks:
+        if not is_checked(block):
+            continue
+        written = words(block.text)
+        # An unchanged block on a scanned page is not drawn: its text is the scan's pixels, and the
+        # invisible layer holds whatever that page's own OCR read there.
+        if not written or (page_data.scanned and is_untouched(block)):
+            continue
+        need = Counter(written)
+        present = sum(min(n, on_page[w]) for w, n in need.items())
+        if present / sum(need.values()) < _PRESENT_SHARE:
+            losses.append(Loss("L3", index, block.text[:90], (block.id,)))
+    return losses
+
+
+def _block_at(blocks: Sequence[Block], x: float, y: float) -> Block | None:
+    for block in blocks:
+        b = block.bbox
+        if b.x0 - 2 <= x <= b.x1 + 2 and b.y0 - 2 <= y <= b.y1 + 2:
+            return block
+    return None
+
+
+def overlapping_words(
+    drawn: list, *, same_block: bool = False
+) -> tuple[int, list[tuple[float, float]]]:
+    """Pairs of words from different lines drawn over each other, and the centres of those words.
+
+    `same_block=False` counts words of different text blocks - one text drawn over another (L7).
+    `same_block=True` counts lines of one block squeezed into each other - text forced into a box
+    far too small, typically recognition noise from a decorative advert.
+    """
+    import pymupdf
+
+    # Only legible words count: text under _LEGIBLE_PT tall is already below the readability floor,
+    # and two such scraps touching is not one text drawn over another.
+    boxes = sorted(
+        (
+            (pymupdf.Rect(w[:4]), w[5], (w[5], w[6]))
+            for w in drawn
+            if len(w[4]) > 1 and (w[3] - w[1]) >= _LEGIBLE_PT
+        ),
+        key=lambda item: item[0].y0,
+    )
+    pairs = 0
+    involved: list[tuple[float, float]] = []
+    for i, (a, block_a, line_a) in enumerate(boxes):
+        for b, block_b, line_b in boxes[i + 1:]:
+            if b.y0 >= a.y1:
+                break  # sorted by top: nothing further down can reach into `a`
+            if line_a == line_b or (block_a == block_b) != same_block:
+                continue
+            inter = a & b
+            if inter.is_empty:
+                continue
+            smaller = min(a.get_area(), b.get_area())
+            if smaller > 0 and inter.get_area() / smaller > _OVERLAP_SHARE:
+                pairs += 1
+                involved += [((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2), ((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2)]
+    return pairs, involved
+
+
+def kept_text_moved(source_page, output_page, page_data) -> list:
+    """Source text runs that no translated block covers, and that are not where they were.
+
+    Nothing the pipeline did not translate should move. Think Python's Figure 3.1 did - redaction
+    elsewhere on the page shifted 8 of its 11 labels.
+    """
+    import pymupdf
+
+    changed = [
+        pymupdf.Rect(b.bbox.x0 - 2, b.bbox.y0 - 2, b.bbox.x1 + 2, b.bbox.y1 + 2)
+        for b in page_data.blocks
+        if b.translatable and not (b.source_text and source_of(b).split() == b.text.split())
+    ]
+
+    def runs(page) -> list[tuple[str, pymupdf.Rect]]:
+        return [
+            (s["text"].strip(), pymupdf.Rect(s["bbox"]))
+            for b in page.get_text("dict")["blocks"] if b["type"] == 0
+            for line in b["lines"] for s in line["spans"] if s["text"].strip()
+        ]
+
+    out = runs(output_page)
+    moved = []
+    for text, rect in runs(source_page):
+        if any(r.intersects(rect) for r in changed):
+            continue
+        # Half a line of the run's own height: a kept block redrawn because a neighbour's clearing
+        # reached it lands a point or two off (NIST's author names, 2-3 pt), which is not damage;
+        # Figure 3.1's labels dropped 10-11 pt, a whole line.
+        tolerance = max(1.0, rect.height / 2)
+        if not any(
+            t == text and abs(o.x0 - rect.x0) <= tolerance and abs(o.y0 - rect.y0) <= tolerance
+            for t, o in out
+        ):
+            moved.append(rect)
+    return moved
+
+
+@dataclass
+class VerifyReport:
+    """What verification found, what asking again mended, and what was left flagged."""
+
+    rounds: int = 0
+    repaired: int = 0
+    remaining: Counter = field(default_factory=Counter)
+    checked_blocks: int = 0
+
+    @property
+    def lossless(self) -> bool:
+        return not sum(self.remaining.values())
+
+
+def verify_and_repair(
+    doc: Document,
+    segments: Sequence[Segment],
+    *,
+    target_lang: str | None,
+    write: Callable[[], None],
+    source_pdf: Path | None = None,
+    output_pdf: Path | None = None,
+    ask_again: Callable[[list[Segment]], int] | None = None,
+    refit: Callable[[list[Segment]], None] | None = None,
+    rounds: int = 2,
+) -> VerifyReport:
+    """Check the written document, ask again for what a translation lost, flag what remains.
+
+    The document must already be written. `write()` writes it again after a repair; `ask_again`
+    re-requests segments in place and returns how many came back mended (`providers.retry`);
+    `refit` fits the re-requested segments to their boxes again (PDF). The output checks run when
+    `source_pdf` and `output_pdf` are given, i.e. for PDF to PDF.
+    """
+    report = VerifyReport(checked_blocks=sum(1 for _, b in doc.iter_blocks() if is_checked(b)))
+    by_block = {s.block_id: s for s in segments}
+
+    def find() -> list[Loss]:
+        found = translation_losses(doc, target_lang)
+        if source_pdf is not None and output_pdf is not None:
+            found += output_losses(source_pdf, output_pdf, doc)
+        return found
+
+    losses = find()
+    while losses and ask_again is not None and report.rounds < rounds:
+        wanted = {bid for loss in losses if loss.kind in _ASK_AGAIN for bid in loss.block_ids}
+        again = [by_block[bid] for bid in sorted(wanted) if bid in by_block]
+        if not again:
+            break
+        report.rounds += 1
+        mended = ask_again(again)
+        if not mended:
+            break
+        report.repaired += mended
+        if refit is not None:
+            refit(again)
+        apply_segments(doc, again)
+        write()
+        losses = find()
+
+    flag_losses(doc, segments, losses)
+    report.remaining = Counter(loss.kind for loss in losses)
+    return report
+
+
+def flag_losses(doc: Document, segments: Sequence[Segment], losses: Sequence[Loss]) -> None:
+    """Raise the review flag, with the reason, on every block a loss names."""
+    blocks = {b.id: b for _, b in doc.iter_blocks()}
+    by_block = {s.block_id: s for s in segments}
+    for loss in losses:
+        for block_id in loss.block_ids:
+            reason = REVIEW_REASONS[loss.kind]
+            block = blocks.get(block_id)
+            if block is not None:
+                block.needs_review = True
+                block.review_reason = _joined(block.review_reason, reason)
+            segment = by_block.get(block_id)
+            if segment is not None:
+                segment.needs_review = True
+                segment.review_reason = _joined(segment.review_reason, reason)
+
+
+def _joined(existing: str, reason: str) -> str:
+    if not existing:
+        return reason
+    return existing if reason in existing else f"{existing}; {reason}"

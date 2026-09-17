@@ -134,18 +134,22 @@ def _layout_classifier(args: argparse.Namespace):
 
 
 def _layout_detector(args: argparse.Namespace):
-    """The local layout model for scanned pages, or None.
+    """The local layout model, or None.
 
-    Off unless asked for: it needs a 171 MB model file installed (see ocr/layout_detector.py).
-    Asked for and missing is an error rather than a silent fallback, so a run believed to use
-    the model cannot quietly not use it.
+    Used whenever it is installed (a 171 MB model file, see ocr/layout_detector.py): every
+    result of the translation campaign was measured with it, on born-digital pages and scans
+    alike, so reading without it is reading worse than the project knows how to.
+    `--no-layout-detector` turns it off. `--layout-detector` requires it: asked for and missing
+    is an error rather than a silent fallback, so a run believed to use the model cannot quietly
+    not use it.
     """
-    if not getattr(args, "layout_detector", False):
+    choice = getattr(args, "layout_detector", None)
+    if choice is False:
         return None
     from layoutkeep.ocr.layout_detector import default_model_path, load_detector
 
     detector = load_detector()
-    if detector is None:
+    if detector is None and choice is True:
         raise SystemExit(f"layout model not found or not loadable: {default_model_path()}")
     return detector
 
@@ -380,12 +384,50 @@ def cmd_translate(args: argparse.Namespace) -> int:
     else:
         print(f"wrote     {out}")
 
+    _verify(doc, translated, src, out, provider, glossary, args)
+
     if args.save_project:
         proj = Path(args.save_project)
         save_project(doc, proj)
         print(f"project   {proj}")
 
     return EXIT_OK
+
+
+def _verify(doc: Document, translated, src: Path, out: Path, provider, glossary, args) -> None:
+    """Check what was written, ask again for what a translation lost, flag what remains.
+
+    The same pass the desktop worker runs (layoutkeep/verify.py). The output itself is checked
+    for PDF to PDF; every target gets the translation checks.
+    """
+    from layoutkeep.providers.retry import retry_untranslated
+    from layoutkeep.verify import LABELS, verify_and_repair
+
+    pdf_to_pdf = src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf"
+
+    def ask_again(again) -> int:
+        return retry_untranslated(
+            provider, again, src_lang=args.from_lang, tgt_lang=args.to_lang,
+            glossary=glossary.terms if glossary else None,
+        )
+
+    report = verify_and_repair(
+        doc,
+        translated,
+        target_lang=args.to_lang,
+        write=lambda: _write_document(doc, src, out),
+        source_pdf=src if pdf_to_pdf else None,
+        output_pdf=out if pdf_to_pdf else None,
+        ask_again=ask_again if args.verify_rounds > 0 else None,
+        refit=(lambda again: _fit_pdf(doc, again, provider, args)) if src.suffix.lower() == ".pdf" else None,
+        rounds=args.verify_rounds,
+    )
+    line = f"verify    {report.checked_blocks} blocks checked"
+    if report.repaired:
+        line += f", {report.repaired} mended by asking again - output written again"
+    print(line + (", no losses found" if report.lossless else ""))
+    for kind in sorted(report.remaining):
+        print(f"          {kind} {LABELS[kind]}: {report.remaining[kind]} - flagged for review")
 
 
 def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
@@ -481,9 +523,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tr.add_argument(
         "--layout-detector",
-        action="store_true",
-        help="read SCANNED pages with the local layout model (ocr/layout_detector.py)",
+        dest="layout_detector", action="store_const", const=True, default=None,
+        help="require the local layout model (ocr/layout_detector.py); it is used whenever "
+             "installed, this makes a missing model an error",
     )
+    tr.add_argument(
+        "--no-layout-detector",
+        dest="layout_detector", action="store_const", const=False,
+        help="read without the local layout model even when it is installed",
+    )
+    tr.add_argument("--verify-rounds", type=int, default=2, metavar="N",
+                    help="after writing, check the output for losses and ask the model again "
+                         "for lost text up to N times; what remains is flagged for review "
+                         "(0 checks and flags without asking again)")
     tr.add_argument("--fit-mode", choices=["strict", "reflow"], default="strict",
                     help="strict keeps the original boxes; reflow lets blocks grow (PDF only)")
     tr.add_argument("--memory", default=None, metavar="PATH",

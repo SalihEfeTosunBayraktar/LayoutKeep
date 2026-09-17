@@ -62,9 +62,13 @@ def _set_provider_timeout(provider, seconds: float) -> None:
 
 
 def _read_document(path: Path) -> Document:
+    from layoutkeep.ocr.layout_detector import load_detector
     from layoutkeep.writers.converter import read_any_document
 
-    return read_any_document(path)
+    # The local layout model when it is installed, as the CLI reads (cli._layout_detector): the
+    # desktop application read every page without it, although the campaign measured every result
+    # with it.
+    return read_any_document(path, layout=load_detector())
 
 
 def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
@@ -438,10 +442,46 @@ class TranslationWorker(QThread):
         self.status.emit("writing output")
         _write_document(doc, src, out)
 
+        verification = self._verify(doc, translated, src, out, config, provider)
+
         project_path = config.project_path or str(out.with_suffix(".lkproj"))
         save_project(doc, project_path)
-        self.job_stats.emit(self._collect_stats(translated))
+        stats = self._collect_stats(translated)
+        stats["verify_repaired"] = verification.repaired
+        stats["verify_remaining"] = dict(verification.remaining)
+        self.job_stats.emit(stats)
         self.finished_ok.emit(project_path)
+
+    def _verify(self, doc, translated, src: Path, out: Path, config: JobConfig, provider=None):
+        """The CLI's verification pass (layoutkeep/verify.py): check what was written, ask again
+        for what a translation lost, flag the rest - so the review queue shows every loss."""
+        from layoutkeep.providers.retry import retry_untranslated
+        from layoutkeep.verify import verify_and_repair
+
+        self.status.emit("verifying output")
+        pdf_to_pdf = src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf"
+
+        def ask_again(again) -> int:
+            return retry_untranslated(
+                provider, again, src_lang=config.source_lang, tgt_lang=config.target_lang
+            )
+
+        report = verify_and_repair(
+            doc,
+            translated,
+            target_lang=config.target_lang,
+            write=lambda: _write_document(doc, src, out),
+            source_pdf=src if pdf_to_pdf else None,
+            output_pdf=out if pdf_to_pdf else None,
+            ask_again=ask_again if provider is not None else None,
+            refit=(
+                (lambda again: self._fit_pdf_pass(doc, again, config, provider))
+                if src.suffix.lower() == ".pdf" else None
+            ),
+        )
+        if report.repaired:
+            self.status.emit(f"verification mended {report.repaired} segments")
+        return report
 
     def _collect_stats(self, translated: list[Segment]) -> dict:
         """Figures the completion screen reports, all counted rather than estimated.

@@ -787,3 +787,46 @@ First-pass audit, 7417 translatable blocks: **L1 0, L2 41, L3 0, L4 0, L5 0, L6 
 D1 567, D2 99, D3 0. No text dropped, off the page, leaked or drawn over other text on any of the
 524 pages; what remains is untranslated or wrong-language replies and lost numbers - the kind a
 repair round has fixed on every other book.
+
+## 2026-09-17 - Think Python after the stale-project repair
+
+`repair_book.py --stale`: round 1 translated the 81 stale chunks again with the current code (31.4
+min), round 2 found **0 chunks with a loss: L1-L8 all 0**, D1 390, D2 12 (was 16). This time the
+count means more than before - the pages whose diagrams had been translated are among the 81, and
+the check that exposed them (`stale_chunks.py`) is what put them into the round.
+
+# Phase 2 - into the product, then unseen sources
+
+The user's question after the campaign's first results: are these fixes cumulative and forward
+looking, or arranged per document? The answer had two halves. The code fixes are general rules
+(no condition anywhere looks at a book's name, page or file - checked: the 31 mentions of campaign
+books in `src/` are all in comments recording why a rule exists). But the verification, the repair
+rounds and the layout model's use were campaign tools: a user of the application got none of them.
+Decision (user): carry both into the product first, then measure on as many unseen sources as
+possible, with the product as a user runs it and no campaign repair.
+
+## 2026-09-17 - verification and repair in the application (`layoutkeep/verify.py`)
+
+- **The loss criteria L1-L8 moved into the package.** The audit tool now calls them and keeps only
+  its diagnostics (D1-D3). Checked that nothing changed in the move: the rewritten audit on NIST,
+  The Time Machine, Electricity and computer-systems-Architecture gives the same counts, block
+  totals, failing chunks and examples as the committed tool, on all four.
+- **After writing, the CLI and the desktop worker verify.** Losses a new request can mend (L2 wrong
+  language / untranslated, L6 numbers) are asked for again through the retry machinery, fitted
+  again, applied and the output written again, up to `--verify-rounds` (default 2) and only while a
+  round mends something. Everything still lost - including what no request mends (L3, L4, L5,
+  L7, L8) - raises the review flag on its block with the reason ("doğrulama: ..."), so the review
+  queue names every place the output departs from the source. The CLI prints a `verify` line;
+  the worker adds the counts to the completion statistics.
+- **The layout model is used whenever it is installed**, in the CLI and in the desktop worker
+  (which had never used it). `--no-layout-detector` turns it off; `--layout-detector` still makes
+  a missing model an error. Tests run without whatever model a machine has installed (conftest),
+  so their results do not depend on LOCALAPPDATA.
+- Tests: `test_verify.py` (7: wrong language flagged with its reason, lost number, asking again
+  mends and rewrites, a request that mends nothing is not repeated, L3/L7/L8 found on real PDFs
+  and attributed to the right blocks), `test_cli_layout_default.py` (4), and the CLI end-to-end
+  test now requires the verify line.
+- Live, one page through the CLI with defaults against LM Studio: `verify 9 blocks checked, no
+  losses found`. That page did not exercise a repair; the measurement that does is next.
+- The overlap check now sweeps words sorted by height instead of comparing every pair - same
+  result (the four-book comparison above includes L7), far fewer comparisons on a dense page.
