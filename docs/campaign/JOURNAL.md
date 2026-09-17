@@ -622,3 +622,18 @@ between them. Test `test_a_one_line_label_beside_its_entry_is_separated_however_
 Pages 81-84 re-translated: labels in the left column for 8 of the 9 entries on page 73; "[SP800-53A]"
 still joins its entry (the longest label - PyMuPDF appears to deliver it on the same PDF line as the
 entry's first line). Audit: **lossless**.
+
+## 2026-09-17 - Think Python repair: 19 -> 10 -> 8 chunks, and what the eight were
+
+Three rounds did not reach zero. Every remaining finding read at the source:
+
+| finding | what it was | fix (failing test first) |
+|---|---|---|
+| L2 "... ne olur?" style | a correct Turkish sentence called Dutch: Python's "in" + Turkish "de" | a function word the target language also has is no evidence (`test_a_function_word_the_target_shares_is_no_evidence_of_another_language`) |
+| L6 "3 sifir olmadigi icin" | "0" written as the word "sifir" - nothing lost | the target language's words for 0-10 count as those digits (tr, en, de, fr, es) (`test_a_small_number_written_as_a_word_is_not_lost`) |
+| L2 "3. If I leave my house ..." (2 exercises) | echoed through three rounds, yet translated when sent by hand under the same load | a failing segment is asked for alone up to 3 times, not once (`test_a_lone_segment_that_keeps_echoing_is_asked_more_than_once`); the old "exactly one attempt" test now asserts a bound instead |
+| L6 exercise "3." lost | the model drops the leading list number, every time | a list label ("3.", "1.4.", "a)") the source starts with is put back when the reply lost it (`test_a_leading_list_number_the_model_dropped_is_put_back`) |
+| L3 "__main__" | **a stack diagram's labels, translated**: "letters" became "harfler", "delete_head" "basligi sil", the value 'c' became 'k', "t" and "__main__" vanished - the figure no longer described the code | text inside a picture region is FIGURE on digital pages too, as on scans (`test_text_inside_a_picture_is_kept_as_it_is_on_a_digital_page_too`) |
+
+The last one is the worst kind of defect in this campaign: no count in the audit says "the diagram
+is wrong", only one missing word hinted at it.

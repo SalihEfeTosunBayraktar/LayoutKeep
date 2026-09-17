@@ -337,6 +337,25 @@ def _marker_repair_messages(
 _ANY_TAG = re.compile(r"</?\s*([^\W\d][\w-]*)(?:\s[^<>]*)?/?>", re.UNICODE)
 
 
+#: A list label at the start of a text: "3.", "12)", "1.4.", "a.", "b)".
+_LEADING_LABEL = re.compile(r"^\s*((?:\d+(?:\.\d+)*[.)])|(?:[a-z][.)]))\s")
+
+
+def _with_leading_label(source: str, reply: str) -> str:
+    """Put back a list label the source starts with and the reply lost.
+
+    A list number is the list's structure, not text to translate - and the model drops it: a Think
+    Python exercise came back without "3." through three repair rounds.
+    """
+    match = _LEADING_LABEL.match(source)
+    if match is None:
+        return reply
+    label = match.group(1)
+    if reply.lstrip().startswith(label):
+        return reply
+    return f"{label} {reply.lstrip()}"
+
+
 def _without_invented_tags(source: str, reply: str) -> str:
     """Remove every named tag the source does not itself contain.
 
@@ -358,7 +377,7 @@ def _apply_result(seg: Segment, target: str | None) -> Segment:
     from the source text.
     """
     if target:
-        target = _without_invented_tags(seg.source, target)
+        target = _with_leading_label(seg.source, _without_invented_tags(seg.source, target))
     return Segment(
         block_id=seg.block_id,
         source=seg.source,

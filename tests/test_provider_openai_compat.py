@@ -473,3 +473,19 @@ def test_a_tag_the_source_does_not_have_is_removed_whatever_its_name() -> None:
     seg = Segment(block_id="a", source="The <0>truck</0> is a covered wagon.")
     out = _apply_result(seg, "<0>Kamyon</0> kapali bir <vagon>vagondur</vagon>.")
     assert out.target == "<0>Kamyon</0> kapali bir vagondur."
+
+
+def test_a_leading_list_number_the_model_dropped_is_put_back() -> None:
+    """Think Python exercise "3. The wordlist I provided, words.txt, ..." came back without "3."
+    through three repair rounds. A list number is the list's structure, not text to translate; if
+    the source starts with one and the reply does not, it goes back in front."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _apply_result
+
+    src = "3. The wordlist I provided, words.txt, doesn't contain single letter words."
+    out = _apply_result(Segment(block_id="e", source=src), "Sagladigim kelime listesi, words.txt, tek harfli kelimeler icermiyor.")
+    assert out.target.startswith("3. Sagladigim")
+    kept = _apply_result(Segment(block_id="e", source=src), "3. Sagladigim kelime listesi tek harfli kelimeler icermiyor.")
+    assert kept.target.startswith("3. Sagladigim") and not kept.target.startswith("3. 3.")
+    sub = _apply_result(Segment(block_id="s", source="a. FULL = 1 and EMTY = 0?"), "FULL = 1 ve EMTY = 0 ise?")
+    assert sub.target.startswith("a. FULL")

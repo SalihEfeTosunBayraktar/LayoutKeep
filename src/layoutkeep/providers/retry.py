@@ -88,7 +88,7 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
         or is_identical(s)
         or is_copy_of_source(s)
         or _is_runaway(s, typical)
-        or (bool(s.target) and drops_numbers(s.source, s.target))
+        or (bool(s.target) and drops_numbers(s.source, s.target, target_lang))
         or (bool(s.target) and wrong_language(s.target, target_lang) is not None)
     ]
     if not pending:
@@ -99,21 +99,26 @@ def retry_untranslated(provider: _Provider, segments: list[Segment], **kwargs: o
     # 3 without it (docs/campaign/JOURNAL.md, echo experiment) - resending the identical request
     # cannot recover them. The caller's segments keep their context.
     accepted = _ask(provider, pending, typical, kwargs)
-    still = [s for s in pending if s.block_id not in accepted]
-    if len(pending) > 1:
-        # Whatever still fails is asked for one segment at a time. A Time Machine dialogue
-        # paragraph echoed in the main pass and in the batch retry, yet translated 24 times out of
-        # 24 in isolation; the condition behind it could not be reproduced, a request holding only
-        # that segment reliably did not echo.
+    # Whatever still fails is asked for one segment at a time, a few times. A Time Machine
+    # dialogue paragraph echoed in the main pass and in the batch retry, yet translated 24 times
+    # out of 24 in isolation; a Think Python exercise echoed through three whole repair rounds and
+    # translated when sent by hand. Under a loaded server the echo is not reproducible, so one more
+    # attempt is not enough.
+    for _attempt in range(_LONE_ATTEMPTS):
+        still = [s for s in pending if s.block_id not in accepted]
+        if not still:
+            break
         for segment in still:
             accepted.update(_ask(_for_numbers(provider, segment), [segment], typical, kwargs))
-    elif still and still[0].target and drops_numbers(still[0].source, still[0].target):
-        accepted.update(_ask(_for_numbers(provider, still[0]), still, typical, kwargs))
 
     for segment in pending:
         if segment.block_id in accepted:
             segment.target = accepted[segment.block_id]
     return sum(1 for segment in pending if segment.block_id in accepted)
+
+
+#: How many times a segment that still fails is asked for on its own.
+_LONE_ATTEMPTS = 3
 
 
 def _for_numbers(provider: _Provider, segment: Segment) -> _Provider:
@@ -157,6 +162,6 @@ def _ask(
         and not is_identical(seg)
         and not is_copy_of_source(seg)
         and not _is_runaway(seg, typical)
-        and not drops_numbers(seg.source, seg.target)
+        and not drops_numbers(seg.source, seg.target, str(kwargs.get("tgt_lang") or ""))
         and wrong_language(seg.target, str(kwargs.get("tgt_lang") or "")) is None
     }

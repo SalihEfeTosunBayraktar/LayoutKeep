@@ -104,3 +104,20 @@ def test_short_turkish_sentences_are_not_taken_for_other_languages() -> None:
     assert wrong_language("Time nesnesinin durum diyagramı Şekil 16.1'e benziyor.", "tr") is None
     assert wrong_language("Peter Winstanley, Latince'deki uzun süredir devam eden bir hatayı Bölüm 3'te bize bildirdi.", "tr") is None
     assert wrong_language("İşte bir kare çizen for ifadesi ve bunun gibi daha fazlası:", "tr") is None
+
+
+def test_a_function_word_the_target_shares_is_no_evidence_of_another_language() -> None:
+    """Think Python: "in operatörü ayrıca listeler üzerinde de çalışır." was called Dutch - the
+    Python keyword "in" plus Turkish "de", both Dutch function words. A word the target language
+    also uses says nothing about which language the text is in."""
+    assert wrong_language("in operatörü ayrıca listeler üzerinde de çalışır.", "tr") is None
+
+
+def test_a_small_number_written_as_a_word_is_not_lost() -> None:
+    """Think Python: "Since 3 is not 0, it takes the second branch" came back as "3 sıfır
+    olmadığı için ikinci dalı alır" - 0 written "sıfır", nothing lost. Small numbers are written
+    in words as often as in digits; the target language's words for 0-10 count as those digits."""
+    from layoutkeep.core.copies import drops_numbers
+
+    assert not drops_numbers("Since 3 is not 0, it takes the second branch", "3 sıfır olmadığı için ikinci dalı alır", "tr")
+    assert drops_numbers("Since 3 is not 0, it takes the second branch", "3 olmadığı için ikinci dalı alır", "tr")

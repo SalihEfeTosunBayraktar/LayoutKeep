@@ -309,9 +309,17 @@ def _regroup_by_layout(
             # beside its entry came as one region, and sorted by height the label was interleaved
             # into the entry. The page's whitespace separates them, as it does on scanned pages.
             groups = _cut_by_whitespace(lines, line_height)
-        role = BlockRole.TABLE if label == "table" else (
-            BlockRole.BODY if label in _ONE_BLOCK_PER_LINE else LABEL_TO_ROLE.get(label, BlockRole.BODY)
-        )
+        if label == "picture":
+            # A picture's text is part of the picture and stays as it is, as on scanned pages: a
+            # stack diagram's labels translated line by line renamed its variables ("letters" ->
+            # "harfler"), changed a value ('c' -> 'k') and lost "__main__" (Think Python p. 97).
+            role = BlockRole.FIGURE
+        elif label == "table":
+            role = BlockRole.TABLE
+        elif label in _ONE_BLOCK_PER_LINE:
+            role = BlockRole.BODY
+        else:
+            role = LABEL_TO_ROLE.get(label, BlockRole.BODY)
         for group in groups:
             box = group[0].bbox
             for line in group[1:]:

@@ -94,7 +94,18 @@ def is_copy(source: str, reply: str) -> bool:
 _DIGITS = re.compile(r"\d+")
 
 
-def drops_numbers(source: str, reply: str) -> bool:
+#: Numbers from 0 to 10 in words, per language: small numbers are written in words as often as in
+#: digits ("0" came back as "sifir" on Think Python), and that is not a lost number.
+_NUMBER_WORDS: dict[str, tuple[str, ...]] = {
+    "tr": ("sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz", "on"),
+    "en": ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"),
+    "de": ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn"),
+    "fr": ("zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"),
+    "es": ("cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"),
+}
+
+
+def drops_numbers(source: str, reply: str, target_lang: str = "") -> bool:
     """True when a number in the source is missing from the reply.
 
     A section number, a page reference or a value is content, and the model can lose one without
@@ -103,6 +114,11 @@ def drops_numbers(source: str, reply: str) -> bool:
     groups, so a decimal the target language writes with a comma ("3,14" for "3.14") still matches.
     """
     have = Counter(_DIGITS.findall(_MARKER.sub("", reply)))
+    words = _NUMBER_WORDS.get(target_lang.split("-")[0].casefold()) if target_lang else None
+    if words:
+        tokens = Counter(re.findall(r"[^\W\d_]+", reply.casefold()))
+        for value, word in enumerate(words):
+            have[str(value)] += tokens[word]
     need = Counter(_DIGITS.findall(_MARKER.sub("", source)))
     return any(have[digits] < count for digits, count in need.items())
 
@@ -154,7 +170,8 @@ def wrong_language(reply: str, target_lang: str) -> str | None:
     for lang, profile in _FUNCTION_WORDS.items():
         if profile is target:
             continue
-        hits = [w for w in words if w in profile]
+        # A word the target language also uses ("de" is Turkish and Dutch) is no evidence either way.
+        hits = [w for w in words if w in profile and w not in target]
         share = len(hits) / len(words)
         # At least two different function words: one alone ("ne", which French also has) is a
         # coincidence, not a language.

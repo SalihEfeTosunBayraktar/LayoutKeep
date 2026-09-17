@@ -166,7 +166,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                     if present / sum(need.values()) < _PRESENT_SHARE:
                         found["L3"].append(sample)
 
-                if block.source_text and drops_numbers(source_text, written):
+                if block.source_text and drops_numbers(source_text, written, target_lang):
                     found["L6"].append(sample)
 
                 if _FIT_FAILED in (block.review_reason or ""):

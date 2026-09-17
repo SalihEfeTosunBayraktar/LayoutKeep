@@ -94,13 +94,14 @@ def test_data_only_segments_are_left_alone() -> None:
     assert provider.calls == []
 
 
-def test_a_still_empty_reply_is_not_retried_again() -> None:
-    """One extra attempt, not a loop - a segment the model will not translate must not hold the
-    job open."""
+def test_a_still_empty_reply_is_retried_a_bounded_number_of_times() -> None:
+    """A few attempts, never a loop - a segment the model will not translate must not hold the job
+    open. (It was exactly one; three repair rounds on Think Python showed one is not enough under a
+    loaded server, see `test_a_lone_segment_that_keeps_echoing_is_asked_more_than_once`.)"""
     segments = [_segment("b1", _PROSE)]
     provider = _Recorder(fails={"b1"})
     assert retry_untranslated(provider, segments) == 0
-    assert provider.calls == [["b1"]]
+    assert 1 < len(provider.calls) <= 4
     assert segments[0].target == ""
 
 
@@ -305,3 +306,23 @@ def test_a_reply_in_another_language_than_asked_is_retried() -> None:
 
     assert retry_untranslated(_Turkish(), [segment], src_lang="en", tgt_lang="tr") == 1
     assert segment.target.startswith("Tum")
+
+
+def test_a_lone_segment_that_keeps_echoing_is_asked_more_than_once() -> None:
+    """Think Python, three repair rounds: one exercise came back in English every time from the
+    pipeline, yet translated when sent alone by hand - under a loaded server the echo is not
+    reproducible. A single failing segment got exactly one more attempt; now a few."""
+
+    class _EchoesTwice:
+        def __init__(self):
+            self.calls = 0
+
+        def translate(self, segments, **_kwargs):
+            self.calls += 1
+            target = (lambda s: s.source) if self.calls <= 2 else (lambda s: _fake_translation(s.source))
+            return [Segment(block_id=s.block_id, source=s.source, target=target(s)) for s in segments]
+
+    segment = _segment("ex", _PROSE, target=_PROSE)
+    provider = _EchoesTwice()
+    assert retry_untranslated(provider, [segment]) == 1
+    assert segment.target == _fake_translation(_PROSE)

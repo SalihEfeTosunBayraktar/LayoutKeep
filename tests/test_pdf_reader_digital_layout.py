@@ -140,3 +140,21 @@ def test_a_superscript_beside_a_word_does_not_split_its_paragraph(tmp_path: Path
     blocks = read_pdf(src, layout=_Detector([("text", (70, 185, 540, 240))])).pages[0].blocks
     prose = [b for b in blocks if "Information security" in b.text or "disclosure" in b.text]
     assert len(prose) == 1, [b.text for b in blocks]
+
+
+def test_text_inside_a_picture_is_kept_as_it_is_on_a_digital_page_too(tmp_path: Path) -> None:
+    """Think Python page 97: a stack diagram's labels are PDF text. Translated line by line they
+    became "harfler" for the variable "letters", "basligi sil" for the function "delete_head", "'k'"
+    for the value "'c'", and "t" and "__main__" disappeared - the diagram no longer said what the
+    code does. Scanned pages already keep a picture's text as it is; digital pages now do too."""
+    from layoutkeep.core.docir import NON_TRANSLATABLE_ROLES
+
+    src = tmp_path / "diagram.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    for x, y, text in ((150, 110, "__main__"), (230, 110, "letters"), (140, 140, "delete_head"), (300, 110, "list")):
+        page.insert_text((x, y), text, fontsize=10)
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("picture", (120, 90, 420, 160))])).pages[0].blocks
+    assert blocks and all(b.role in NON_TRANSLATABLE_ROLES for b in blocks), [(b.role, b.text) for b in blocks]
