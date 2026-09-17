@@ -1130,3 +1130,18 @@ wrote the two items one after the other, not inside a list. **Fix:** items writt
 (separated by whitespace or commas) are read as the list they should have been; the backslash repair
 and this now share one decoding step (`_decode_reply`). Test
 `test_items_written_one_per_line_instead_of_a_list_are_read` (failed first).
+
+## 2026-09-17 - held-out result: IRS Publication 505; measurement stopped here
+
+IRS Publication 505 (48 pages, commit `dd52021`, no repair): **L1 0, L2 2, L3 0, L6 8, L7 0, L8 2,
+L9 0** over 2,144 blocks, D1 509, 71.6 minutes - the densest source so far (worksheets and tables,
+65 blocks on one page). The unreadable-reply log recorded three more malformed-JSON shapes from the
+model: a missing `:` delimiter, an unterminated string (a reply cut off), and items written in
+sequence (the last is fixed in `9efc608`, which this document did not have).
+
+**Stopped at the user's request** after this document, at 18:54. Not measured: the 1907 cookbook,
+the 1895 mushroom book, the IRS Form 1040 instructions and the planned re-run of arXiv 2609.19145
+with every fix. The Sherlock Holmes EPUB was stopped unfinished after about three hours of an
+estimated 10-16 (581,282 characters through one sequential connection); the CLI keeps no partial
+result, so the EPUB path has no measurement. The table in `docs/campaign/HELDOUT.md` holds every
+source that finished.
