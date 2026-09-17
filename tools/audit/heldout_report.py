@@ -1,8 +1,8 @@
 """Summarise the held-out measurement: one row per source, as the application translated it.
 
 Reads `_artifacts/heldout/`: `heldout.log` (when each source started), `code_versions.log` (which
-commit the frozen worktree held when), and each `runs/<name>/` - the audit of a PDF run, and the
-`verify` lines the application printed for every page. Numbers only; what they mean, and the
+commit the frozen worktree held when), and each `runs/<name>/` - its `commit.txt`, the audit of a PDF
+run, and the `verify` lines the application printed for every page. Numbers only; what they mean, and the
 visual checks against the sources, are written in the journal by hand.
 
     python tools/audit/heldout_report.py --root _artifacts/heldout --out docs/campaign/HELDOUT.md
@@ -74,7 +74,11 @@ def main() -> int:
     ]
     for name, start in starts.items():
         work = args.root / "runs" / name
-        commit = _commit_for(start, switches, args.first_commit)
+        recorded = work / "commit.txt"
+        commit = (
+            recorded.read_text(encoding="utf-8").strip() if recorded.exists()
+            else _commit_for(start, switches, args.first_commit)
+        )
         chunk_logs = sorted((work / "out").glob("t_*.log"))
         mended, flagged = _verification(chunk_logs or [work / "run.log"])
         flagged_text = ", ".join(f"{k} {v}" for k, v in sorted(flagged.items())) or "-"

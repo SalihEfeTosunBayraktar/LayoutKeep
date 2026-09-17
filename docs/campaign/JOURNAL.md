@@ -972,3 +972,21 @@ verification finds no loss on it.
 
 The first held-out paper's audit (commit bad981a, no repair): L1 1 (this crash), L2 7, L6 2, L7 8,
 L8 2; the L7 count predates the typesetting fix above.
+
+## 2026-09-17 - correction to the held-out protocol: code switched under running processes
+
+To let later sources benefit from fixes found on earlier ones, the frozen worktree was moved to the
+new commit "between documents" by a watcher that polled for the end of one document. It lost the
+race by two seconds - the next document's first pages had already started - and it overlooked a
+worse problem: a CLI process imports some modules when it starts and others only when it reaches
+them (retry, verification, the PDF writer). The EPUB run, started at 14:49, would have loaded the
+new `providers/retry.py` against the old `core/copies.py` it had loaded at start and crashed at the
+end of the book. Nothing had been measured wrongly yet, but it would have been.
+
+**Fix to the protocol:** all held-out processes were stopped (22, matched by path) and a second
+runner started. The PDF worktree is moved only by the runner itself, before a document starts,
+when no process of the previous one is left; the EPUB runs from its own worktree so those moves
+never reach it; each run writes its commit to `commit.txt`. Kept as measured: the WPA poster and
+arXiv 2609.19145 (both entirely at `bad981a`). Restarted from scratch: Wikipedia "Printing press"
+and the EPUB. arXiv 2609.19145 runs once more at the end with the current code, for a before/after
+on the same source.
