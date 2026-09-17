@@ -24,7 +24,12 @@ def main() -> int:
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--rounds", type=int, default=2)
+    parser.add_argument(
+        "--stale", type=Path,
+        help="stale_chunks.py's JSON: chunks read differently now are translated again in round 1",
+    )
     args = parser.parse_args()
+    stale = sorted(json.loads(args.stale.read_text(encoding="utf-8"))["stale"]) if args.stale else []
 
     name = args.work.name
     history = []
@@ -32,6 +37,9 @@ def main() -> int:
         audit = json.loads((args.work / "audit.json").read_text(encoding="utf-8"))
         failing = audit.get("failing_chunks", [])
         history.append({"round": round_no, "failing_before": failing, "counts": audit["counts"]})
+        if round_no == 1 and stale:
+            history[-1]["stale"] = stale
+            failing = sorted(set(failing) | set(stale))
         print(f"[repair {name}] round {round_no}: {len(failing)} chunk(s) with losses {failing}", flush=True)
         if not failing:
             break

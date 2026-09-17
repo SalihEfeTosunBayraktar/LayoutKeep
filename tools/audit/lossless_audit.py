@@ -9,6 +9,7 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L5  no markup leaked               tags in the output that are not in the source == 0
     L6  no numbers lost                numbers of the source missing from the translation == 0
     L7  nothing drawn over text        pages with words of one block drawn over another's == 0
+    L8  nothing untouched moved        digital pages where text no translated block covers is not where it was == 0
     D1  readability (reported only)    blocks drawn below the readability floor
     D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
     D3  legibility (reported only)     pages where a block's own lines are squeezed into each other
@@ -96,9 +97,50 @@ def _overlapping_words(words: list, *, same_block: bool = False) -> int:
     return pairs
 
 
+def _kept_text_moved(source_page: pymupdf.Page, output_page: pymupdf.Page, page_data) -> int:
+    """Source text runs that no translated block covers, and that are not where they were.
+
+    Nothing the pipeline did not translate should move. Think Python's Figure 3.1 did - redaction
+    elsewhere on the page shifted 8 of its 11 labels - and only the two pages where the shift made
+    words overlap showed up, as L7. Compared on born-digital pages, where the source has text.
+    """
+    import re as _re
+
+    changed = [
+        pymupdf.Rect(b.bbox.x0, b.bbox.y0, b.bbox.x1, b.bbox.y1)
+        for b in page_data.blocks
+        if b.translatable
+        and not (b.source_text and _re.sub(r"</?\d+>", "", b.source_text).split() == b.text.split())
+    ]
+    grown = [pymupdf.Rect(r.x0 - 2, r.y0 - 2, r.x1 + 2, r.y1 + 2) for r in changed]
+
+    def runs(page: pymupdf.Page) -> list[tuple[str, pymupdf.Rect]]:
+        return [
+            (s["text"].strip(), pymupdf.Rect(s["bbox"]))
+            for b in page.get_text("dict")["blocks"] if b["type"] == 0
+            for line in b["lines"] for s in line["spans"] if s["text"].strip()
+        ]
+
+    out = runs(output_page)
+    moved = 0
+    for text, rect in runs(source_page):
+        if any(r.intersects(rect) for r in grown):
+            continue
+        # Half a line of the run's own height: a kept block redrawn because a neighbour's clearing
+        # reached it lands a point or two off (NIST's author names, 2-3 pt), which is not damage;
+        # Figure 3.1's labels dropped 10-11 pt, a whole line.
+        tolerance = max(1.0, rect.height / 2)
+        if not any(
+            t == text and abs(o.x0 - rect.x0) <= tolerance and abs(o.y0 - rect.y0) <= tolerance
+            for t, o in out
+        ):
+            moved += 1
+    return moved
+
+
 def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") -> dict:
     doc = load_project(project)
-    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2", "D3")}
+    found: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "D1", "D2", "D3")}
     counts = Counter()
 
     with pymupdf.open(str(src)) as source, pymupdf.open(str(out)) as output:
@@ -134,6 +176,11 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                 if match.group(0).casefold() not in source_markup:
                     found["L5"].append(f"{tag}: {match.group(0)!r}")
 
+            if not page_data.scanned:
+                moved = _kept_text_moved(source[index], page, page_data)
+                if moved:
+                    found["L8"].append(f"{tag}: {moved} untouched text runs moved")
+
             for block in page_data.blocks:
                 if not block.translatable:
                     continue
@@ -160,7 +207,10 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                     # language: listed for a human, not counted as a loss or as a success.
                     found["D2"].append(sample)
 
-                if written_words:
+                # An unchanged block on a scanned page is not drawn: its text is the scan's pixels,
+                # and the invisible layer holds whatever that page's own OCR read there (Electricity
+                # chunk 0020: our OCR read the running header as "APYJIN", the layer as the title).
+                if written_words and not (page_data.scanned and untouched):
                     need = Counter(written_words)
                     present = sum(min(n, on_page[w]) for w, n in need.items())
                     if present / sum(need.values()) < _PRESENT_SHARE:
@@ -177,7 +227,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
 
 def audit_work(work: Path, target_lang: str = "tr") -> dict:
     totals = Counter()
-    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "D1", "D2", "D3")}
+    findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "D1", "D2", "D3")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
     missing = []
     failing: list[str] = []
@@ -192,12 +242,12 @@ def audit_work(work: Path, target_lang: str = "tr") -> dict:
         totals.update(result["counts"])
         for key, items in result["found"].items():
             findings[key].extend(items)
-        if any(result["found"][k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7")):
+        if any(result["found"][k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")):
             failing.append(index)
     source_chunks = len(list((work / "src").glob("chunk_*.pdf")))
     if len(chunks) != source_chunks:
         findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited")
-    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7")) and not missing
+    lossless = all(not findings[k] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")) and not missing
     return {
         "chunks": len(chunks),
         "blocks": totals["blocks"],
@@ -228,6 +278,7 @@ def main() -> int:
         ("L5", "markup leaked"),
         ("L6", "numbers lost"),
         ("L7", "text drawn over text"),
+        ("L8", "untouched text moved"),
         ("D1", "below readability floor"),
         ("D2", "short blocks left unchanged"),
         ("D3", "text squeezed in its box"),

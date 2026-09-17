@@ -420,8 +420,15 @@ def _page_from_image(
             # Text inside a picture is part of the picture and stays as scanned: re-typesetting a
             # circuit diagram's labels (book page 61) squeezed translations between its wires and
             # redrew subscripts as "D{2}". A table's cells are text laid out in a grid, and are
-            # translated one cell at a time.
-            groups.append(([line], BlockRole.FIGURE if label == "picture" else BlockRole.TABLE))
+            # translated one cell at a time. An index's entries are one line each, as on born-digital
+            # pages: a scanned catalogue read as one block came back as its first column heading.
+            if label == "picture":
+                role = BlockRole.FIGURE
+            elif label == "document_index":
+                role = BlockRole.BODY
+            else:
+                role = BlockRole.TABLE
+            groups.append(([line], role))
         page_line_height = _median_line_height(lines)
         for label, region_lines in claimed:
             role = LABEL_TO_ROLE.get(label, BlockRole.BODY)

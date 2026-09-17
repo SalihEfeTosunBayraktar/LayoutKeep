@@ -366,7 +366,11 @@ def _split_side_by_side_rows(lines: list[Line]) -> list[list[Line]]:
             if left is None:
                 continue
             cut = (left.bbox.x1 + right.bbox.x0) / 2
-            before = sorted((ln for ln in lines if ln.bbox.x1 <= cut), key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
+            # Think Python p. 139: a justified line came out as two lines around a stretched space.
+            # A paragraph's other lines run across that gap; two side-by-side columns leave it empty.
+            if any(ln.bbox.x0 < cut < ln.bbox.x1 for ln in lines):
+                continue
+            before =sorted((ln for ln in lines if ln.bbox.x1 <= cut), key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
             after = sorted((ln for ln in lines if ln.bbox.x1 > cut), key=lambda ln: (ln.bbox.y0, ln.bbox.x0))
             if before and after:
                 return _split_side_by_side_rows(before) + _split_side_by_side_rows(after)

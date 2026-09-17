@@ -235,3 +235,16 @@ def test_words_of_two_columns_are_never_joined_into_one_line() -> None:
     page = _read([*left, *right], regions)
     texts = sorted(b.text for b in page.blocks)
     assert texts == ["left0 left1 left2 left3", "right0 right1 right2 right3"], texts
+
+
+def test_an_index_region_is_one_block_per_line_on_a_scan_too() -> None:
+    """Electricity in Agriculture, catalogue page: the model labelled a price list `document_index`,
+    as it labels a table of contents. Born-digital pages already read such a region one line per
+    block; on the scan its thirty entries came back as one block, and the reply to that block held
+    only its first column heading - the whole list was lost."""
+    entries = ["Gas Engine Troubles. J. B. Rathbun . . 8 0", "Geology, Elementary. A. J. Jukes . . 3 0",
+               "Hosiery Manufacture. W. Davis . . 9 0", "Induction Coils. G. E. Bonney . . 6 0"]
+    boxes = [_box(text, 100, 100 + i * 30, 600) for i, text in enumerate(entries)]
+    page = _read(boxes, [LayoutRegion("document_index", (95, 95, 705, 225), 0.82)])
+    assert [(b.role, b.text) for b in page.blocks] == [(BlockRole.BODY, text) for text in entries]
+    assert all(b.translatable for b in page.blocks)

@@ -142,6 +142,44 @@ def test_a_superscript_beside_a_word_does_not_split_its_paragraph(tmp_path: Path
     assert len(prose) == 1, [b.text for b in blocks]
 
 
+def test_a_justified_line_split_at_a_wide_space_stays_in_its_paragraph(tmp_path: Path) -> None:
+    """Think Python p. 139: a justified line came out of the PDF as two lines - a URL fragment in the
+    code font, a stretched space, then prose - and the side-by-side rule cut the paragraph there.
+    The URL's other lines became a block of their own and the paragraph lost them. A paragraph's
+    other lines run across that gap; two real columns leave it empty."""
+    src = tmp_path / "justified.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    page.insert_text((130, 210), "For more information on the format operator, see https://docs.org/3/", fontsize=10)
+    page.insert_text((130, 222), "stdtypes.html#printf-style-formatting.", fontsize=10, fontname="cour")
+    page.insert_text((377, 222), "A more powerful alternative is", fontsize=10)
+    page.insert_text((130, 234), "the string format method, which you can read about at https://docs.org/", fontsize=10)
+    page.insert_text((130, 246), "library/stdtypes.html#str.format.", fontsize=10, fontname="cour")
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("text", (120, 195, 540, 252))])).pages[0].blocks
+    prose = [b for b in blocks if "stdtypes" in b.text or "information" in b.text]
+    assert len(prose) == 1, [b.text for b in blocks]
+
+
+def test_two_index_columns_are_split_at_their_gutter_not_halfway_between_two_entries(tmp_path: Path) -> None:
+    """Think Python's index: a short entry ("suffix, 131") beside the right column's entry. Halfway
+    between the two lies inside the left column, where a longer entry runs; the columns are still
+    two, cut at the gutter no line crosses."""
+    src = tmp_path / "index.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=_W, height=_H)
+    left = ["suffix, 131", "superstitious debugging of loops, 200", "syntax error, 14"]
+    right = ["Turing Thesis, 55", "tuple assignment, 138", "type checking, 84"]
+    for row, (a, b) in enumerate(zip(left, right, strict=True)):
+        page.insert_text((130, 200 + row * 13), a, fontsize=10)
+        page.insert_text((340, 200 + row * 13), b, fontsize=10)
+    doc.save(str(src))
+
+    blocks = read_pdf(src, layout=_Detector([("text", (120, 185, 540, 240))])).pages[0].blocks
+    assert not any("suffix" in b.text and "Turing" in b.text for b in blocks), [b.text for b in blocks]
+
+
 def test_text_inside_a_picture_is_kept_as_it_is_on_a_digital_page_too(tmp_path: Path) -> None:
     """Think Python page 97: a stack diagram's labels are PDF text. Translated line by line they
     became "harfler" for the variable "letters", "basligi sil" for the function "delete_head", "'k'"

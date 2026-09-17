@@ -76,10 +76,11 @@ LABEL_TO_ROLE: dict[str, BlockRole] = {
     "code": BlockRole.CODE,
 }
 
-#: Regions whose text is not prose to be grouped into one paragraph: a picture's labels and a
-#: table's cells are many small independent pieces. Lines inside these keep the geometric
-#: grouping they had before.
-NOT_A_PARAGRAPH: frozenset[str] = frozenset({"picture", "table", "form", "key_value_region"})
+#: Regions whose text is not prose to be grouped into one paragraph: a picture's labels, a
+#: table's cells and an index's entries are many small independent pieces, one block per line.
+NOT_A_PARAGRAPH: frozenset[str] = frozenset(
+    {"picture", "table", "form", "key_value_region", "document_index"}
+)
 
 
 @dataclass(frozen=True, slots=True)

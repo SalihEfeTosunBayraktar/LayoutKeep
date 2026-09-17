@@ -636,6 +636,7 @@ def _page_from_dict(p: dict[str, Any]) -> Page:
             for img in p.get("images", [])
         ],
         source_ref=p.get("source_ref", ""),
+        scanned=p.get("scanned", False),
     )
 
 

@@ -147,29 +147,19 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                 # A searchable scan also carries an invisible OCR text layer over the image. Left
                 # in place, the output looks translated and searches, copies and reads aloud in
                 # the source language. Text only - the image is the page and is not redacted.
-                for block in blocks:
-                    if not is_wordless(block):
-                        page.add_redact_annot(_rect(block.bbox), cross_out=False, fill=None)
-                page.apply_redactions(
-                    images=pymupdf.PDF_REDACT_IMAGE_NONE,
-                    graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
-                    text=pymupdf.PDF_REDACT_TEXT_REMOVE,
-                )
+                redact_keeping_forms(page, [_rect(b.bbox) for b in blocks if not is_wordless(b)])
                 _cover_scanned_blocks(page, blocks, keep=kept)
             else:
+                areas: list[pymupdf.Rect | pymupdf.Quad] = []
                 for block in blocks:
                     if abs(block.rotation) > _ROTATION_EPS:
                         # A rotated line's axis-aligned bbox is bigger than its glyphs (see
                         # `Block.rotation`'s docstring); redacting that whole rectangle would eat
                         # into whatever sits in its corners. Redact the actual glyph quads instead.
-                        for quad in _rotated_quads(page, block):
-                            page.add_redact_annot(quad, cross_out=False, fill=None)
+                        areas.extend(_rotated_quads(page, block))
                     else:
-                        page.add_redact_annot(_rect(block.bbox), cross_out=False, fill=None)
-                page.apply_redactions(
-                    images=pymupdf.PDF_REDACT_IMAGE_NONE,
-                    graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
-                )
+                        areas.append(_rect(block.bbox))
+                redact_keeping_forms(page, areas)
             for block in blocks:
                 if scanned and is_wordless(block):
                     # Left exactly as scanned - see `_MIN_WORDINESS`. Nothing was cleared under
@@ -233,6 +223,47 @@ def is_wordless(block: Block) -> bool:
     if not text:
         return True
     return len(_LETTER_RE.findall(text)) / len(text) < _MIN_WORDINESS
+
+
+def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
+    """Remove the text under `areas`, without disturbing forms the redaction did not touch.
+
+    Applying redactions makes MuPDF rewrite the page, and it substitutes a rewritten copy for every
+    form XObject on it - even one no area touches. In that copy text can move: Think Python's Figure
+    3.1 had 8 of 11 labels up to 11 pt lower after redacting the running header 150 pt above it.
+    So each rewritten form is restored from the original, and the restoration kept only if nothing
+    the areas were meant to remove has come back with it.
+    """
+    document = page.parent
+    before = [xobject[0] for xobject in page.get_xobjects()]
+    for area in areas:
+        page.add_redact_annot(area, cross_out=False, fill=None)
+    page.apply_redactions(
+        images=pymupdf.PDF_REDACT_IMAGE_NONE,
+        graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+        text=pymupdf.PDF_REDACT_TEXT_REMOVE,
+    )
+    after = [xobject[0] for xobject in page.get_xobjects()]
+    if not areas or len(before) != len(after):
+        return
+    rects = [area.rect if isinstance(area, pymupdf.Quad) else pymupdf.Rect(area) for area in areas]
+
+    def removed_text_is_back() -> bool:
+        for word in page.get_text("words"):
+            middle = pymupdf.Point((word[0] + word[2]) / 2, (word[1] + word[3]) / 2)
+            if any(rect.contains(middle) for rect in rects):
+                return True
+        return False
+
+    for original, rewritten in zip(before, after, strict=True):
+        if original == rewritten:
+            continue
+        saved_object = document.xref_object(rewritten)
+        saved_stream = document.xref_stream(rewritten)
+        document.xref_copy(original, rewritten)
+        if removed_text_is_back():
+            document.update_object(rewritten, saved_object)
+            document.update_stream(rewritten, saved_stream)
 
 
 def _unchanged(block: Block) -> bool:

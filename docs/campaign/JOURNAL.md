@@ -637,3 +637,153 @@ Three rounds did not reach zero. Every remaining finding read at the source:
 
 The last one is the worst kind of defect in this campaign: no count in the audit says "the diagram
 is wrong", only one missing word hinted at it.
+
+## 2026-09-17 - L8: untouched text that moved (Think Python Figure 3.1)
+
+Looking at Think Python pages after repair, Figure 3.1 (a stack diagram) had labels one line lower
+than in the original, some drawn over each other. Nothing had translated them - the picture fix
+above keeps them. Only the two pages where the shift made words overlap had shown up at all (as L7).
+
+**New loss criterion L8 - untouched text moved:** on born-digital pages, every source text run that
+no translated block covers must be in the output at the same place (same text, x and y within half
+the run's own height). The tolerance is measured, not chosen: kept blocks redrawn because a
+neighbour's clearing reached them land 2-3 pt off (NIST's author names), which is no damage;
+Figure 3.1's labels dropped 10-11 pt, a whole line.
+
+**Cause:** the figure is a form XObject. MuPDF's redaction rewrites every form on the page it
+touches, even when no redaction rectangle is inside it, and the rewritten form's text came out
+shifted. **Fix (`redact_keeping_forms`):** after redaction, each rewritten form is put back to its
+original object unless a redacted area actually held words of that form. Tests
+`test_redaction_elsewhere_leaves_form_text_where_it_was` (failed first) and
+`test_text_redacted_inside_a_form_stays_redacted`. On the real page: moved runs 9 -> 3, the figure
+visually identical to the original.
+
+**Rewrite without the model (`tools/audit/rewrite_book.py`):** a writer defect does not need the
+translation again - every chunk's project holds the translated document. The tool redraws the
+chosen chunks from their projects with the current writer and merges the book. Think Python: 11
+pages rewritten, L8 11 -> 2.
+
+## 2026-09-17 - the last two L8 findings were two different things
+
+**Chunk 0129 (Figure 11.1, dict/list diagram): a stale project, not a new defect.** Labels
+translated ("dict" -> "sozluk", "hist" -> "tarih") and digits displaced. Read again with the current
+code, all 28 labels are FIGURE (the model labels the region `picture`, 0.95). The page was
+translated before the picture fix, and `rewrite_book` redraws the saved project, which still holds
+the old blocks. So a reader fix needs a repair round (re-read, re-translate), a writer fix only a
+rewrite.
+
+**Chunk 0160: a justified line cut into two paragraphs.** A line of the paragraph came out of the
+PDF as two lines - a URL fragment in the code font, a space stretched by justification, then
+prose. The side-by-side rule (NIST's reference labels) took them for two columns and cut the
+paragraph there; the URL's continuation became its own block, the paragraph was squeezed to a
+fraction of its size. The audit saw it only as one "." that moved. **Fix:** a cut is a column gap
+only if no line of the group crosses it - a paragraph's other lines run across a stretched space,
+two real columns leave it empty. Test
+`test_a_justified_line_split_at_a_wide_space_stays_in_its_paragraph` (failed first). The real page
+reads as one paragraph again.
+
+The rule was checked on every page of the three born-digital books before keeping it: the guard
+decides a cut on 36 Think Python pages and on none of NIST or The Time Machine (so NIST's reference
+labels still split). The one that looked risky, the two-column index (p. 221), reads better with it:
+the left column comes back as one block instead of three.
+
+## 2026-09-17 - a scanned catalogue page lost whole (Electricity in Agriculture, chunk 0140)
+
+Reading the remaining Electricity findings one by one: the L6 "numbers lost" on chunk 0140 was not
+a lost number but a lost page. The publisher's catalogue at the back - thirty book titles with
+authors and prices - was one block, and the reply to it was "s. d.", the price column's heading.
+The model had labelled the page `document_index` (0.82), as it labels a table of contents; born-digital
+pages already read that label one block per line, but on the scanned path it went through the
+paragraph cut, which found no gap. **Fix:** an index's lines are one block each on scans too.
+Test `test_an_index_region_is_one_block_per_line_on_a_scan_too` (failed first). The real page reads
+as 70 blocks, one per entry line.
+
+## 2026-09-17 - stale projects: a reader fix does not reach a page read before it
+
+Two findings in a row (Think Python 0129, Electricity 0140) were pages read by an older reader.
+`rewrite_book.py` fixes writer defects only; a reader fix needs the page read and translated again.
+Worse, some reader defects leave no count behind - a diagram's labels translated word for word lose
+nothing the audit measures. **New tool `tools/audit/stale_chunks.py`:** reads every chunk again with
+the current reader and lists those whose translatable blocks differ from the saved project. Those
+chunks go into the next repair round alongside the ones with losses.
+
+First results: **Think Python 81 of 244 chunks read differently now, NIST 2 of 101, The Time Machine
+0 of 120.** A sample of what Think Python's differences are (chunks 0065, 0094): blocks translated in
+the first pass that are now FIGURE - a stack diagram's "countdown" written as "geri sayim", a string
+diagram's "fruit" as "meyve", the letter "a" as "bir". The page that the audit counted as lossless
+carried diagrams that no longer match the code beside them. **So "Think Python: L1-L7 = 0, L8 = 2"
+did not mean lossless.** Those 81 chunks go into the next repair round.
+
+## 2026-09-17 - projects forgot which pages were scanned
+
+Re-auditing Electricity after the audit fix above changed nothing, and L8 - a check for
+born-digital pages only - suddenly reported nine of its scanned pages. The project files say
+`"scanned": true`; `load_project` returned False. The flag was written but never read back.
+
+This is a product defect, not an audit one: every scanned page drawn from a project - a book redrawn
+with `rewrite_book.py`, a document corrected in the review window and exported - went down the
+born-digital writer path, where redaction does not touch the image and the translation is drawn over
+the scanned English. (No campaign output was affected: only Think Python, born-digital, had been
+rewritten.) **Fix:** the page's `scanned` is read back. Test
+`test_a_scanned_page_is_still_scanned_after_a_project_round_trip` (failed first).
+
+Also fixed in the audit: an unchanged block on a scanned page is not drawn - its text is the scan's
+pixels - so it is no longer checked against the text layer (Electricity 0020: our OCR read the
+running header as "APYJIN", the file's own invisible layer as the title, and the "missing" word was
+never missing from the page).
+
+**Open question raised by the same page:** the file's own OCR layer read that header correctly and
+ours did not, so the header was never translated - and no criterion notices an untranslated line
+that is not recognisable English. Which text source is better on searchable scans is to be measured,
+not assumed.
+
+## 2026-09-17 - measured: the file's own OCR layer is not better than ours
+
+The open question above, measured (`tools/audit/ocr_source_compare.py`, every 10th page of both
+searchable scans; result in `tests/layout_eval/2026-09-17_ocr_source/`). No transcription exists, so
+each reading is scored by the share of its words (3+ letters) found in an English vocabulary built
+from the three born-digital books' text layers:
+
+| book | pages | invisible layer | our OCR | pages where the layer scored higher |
+|---|---|---|---|---|
+| Electricity in Agriculture | 14 | 76.7% | 75.3% | 7 of 14 |
+| Popular Science Monthly | 14 | 73.6% | 74.6% | 4 of 14 |
+
+A point either way, and a split by page. **Decision: the text source stays as it is**; the running
+header read as "APYJIN" is a single miss, not a pattern that switching would fix. (Limits of the
+measure: a vocabulary from modern books under-counts 1920s terms for both sources alike, and a
+known word read in the wrong place still scores.)
+
+Re-audit of both scans with the project loader fixed (scanned pages audited as scans again):
+Electricity L1 1, L2 9, L3 0, L5 1, L6 13, L7 3, L8 0; Popular Science L1 1, L2 34, L3 17, L5 3,
+L6 11, L7 61, L8 0. Neither has had a repair round yet.
+
+## 2026-09-17 - the repair plan, from stale projects and audited losses
+
+`stale_chunks.py` on all five translated books, against the audit's failing chunks:
+
+| book | chunks | read differently now | with a loss | both | to translate again |
+|---|---|---|---|---|---|
+| NIST SP 800-12 | 101 | 2 | 0 | 0 | 2 |
+| The Time Machine | 120 | 0 | 0 | 0 | 0 |
+| Think Python | 244 | 81 | 2 | 2 | 81 |
+| Electricity in Agriculture | 148 | 30 | 26 | 10 | 46 |
+| Popular Science Monthly | 144 | 38 | 82 | 28 | 92 |
+
+The overlap is the point: on the scans, 10 of 26 and 28 of 82 chunks with a loss were also read
+differently now - the reader fixes since their first pass reach those losses. And on Think Python,
+79 chunks with no measured loss would have stayed wrong. `repair_book.py --stale` puts both sets
+into round 1; later rounds take the audit's losses only. Books are repaired one at a time, so the
+server never has more than 8 requests.
+
+## 2026-09-17 - campaign book 6: computer-systems-Architecture (524-page scan) - first pass
+
+Translated in 313.9 min (8 parallel requests, one page per chunk, layout model on). Note for the
+record: each chunk runs the CLI as its own process, so the pages were translated with the code as
+it stood when each chunk started - fixes made during the run reached the later pages only. The
+stale-project check settles which pages that matters for.
+
+First-pass audit, 7417 translatable blocks: **L1 0, L2 41, L3 0, L4 0, L5 0, L6 39, L7 0, L8 0**;
+D1 567, D2 99, D3 0. No text dropped, off the page, leaked or drawn over other text on any of the
+524 pages; what remains is untranslated or wrong-language replies and lost numbers - the kind a
+repair round has fixed on every other book.
