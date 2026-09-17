@@ -43,3 +43,33 @@ def test_an_unchanged_block_keeps_its_original_glyphs(tmp_path: Path) -> None:
     assert header, "the header disappeared"
     assert all(s["font"].startswith("Times") for s in header), [s["font"] for s in header]
     assert all(abs(s["size"] - 9) < 0.01 for s in header), [s["size"] for s in header]
+
+
+def test_an_unchanged_block_overlapped_by_a_translated_one_is_not_lost(tmp_path: Path) -> None:
+    """NIST campaign run: URLs that came back unchanged were left in place - and then erased by
+    the redaction of the translated paragraph whose box they sit against ("https://doi.org/..."
+    gone from the page). A kept block the redaction would reach is redrawn like any other."""
+    src = tmp_path / "url.pdf"
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=300)
+    page.insert_text((40, 100), "This publication is available free of charge from:", fontsize=11)
+    page.insert_text((40, 140), "https://doi.org/10.6028/NIST.SP.800-12r1", fontsize=11)
+    doc.save(str(src))
+
+    read = read_pdf(src)
+    blocks = [b for _p, b in read.iter_blocks()]
+    assert len(blocks) == 2, [b.text for b in blocks]
+    url = next(b for b in blocks if "doi.org" in b.text)
+    # As on the real page (NIST p3: paragraph 328-341, URL 338-351): the paragraph's box reaches a
+    # few points into the URL line beneath it.
+    for block in blocks:
+        if "available" in block.text:
+            block.bbox.y1 = url.bbox.y0 + 3.0
+    segments = segments_from_document(read)
+    for seg in segments:
+        seg.target = seg.source if "doi.org" in seg.source else "Bu yayin ucretsiz olarak su adresten edinilebilir:"
+    apply_segments(read, segments)
+    out = tmp_path / "out.pdf"
+    write_pdf(read, src, out)
+    with pymupdf.open(out) as result:
+        assert "doi.org" in result[0].get_text()

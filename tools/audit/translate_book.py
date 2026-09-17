@@ -74,11 +74,28 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
     # The whole log is kept: the summary below drops retries and passthrough reports, which is
     # exactly what explains a paragraph left in English.
     out.with_suffix(".log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
+    if proc.returncode != 0 and "nothing translatable found" in proc.stdout + proc.stderr:
+        # A blank page, or a plate with no text, translates to itself. The CLI rightly refuses a
+        # whole document with nothing to translate, but inside a book such a page must still be
+        # in the output - 6 of Electricity in Agriculture's 148 pages held the merge back.
+        _keep_as_is(chunk, out)
+        return out, 0, f"{elapsed:6.0f}s | nothing to translate - page kept as it is"
     lines = [
         line for line in (proc.stdout + proc.stderr).splitlines()
         if any(token in line for token in _INTERESTING)
     ]
     return out, proc.returncode, f"{elapsed:6.0f}s | " + " | ".join(lines[-4:])
+
+
+def _keep_as_is(chunk: Path, out: Path) -> None:
+    """Copy a page with no translatable text to the output, with a project the audit can read."""
+    import shutil
+
+    from layoutkeep.core.docir import save_project
+    from layoutkeep.readers.pdf_reader import read_pdf
+
+    shutil.copyfile(chunk, out)
+    save_project(read_pdf(chunk), out.with_suffix(".lkproj"))
 
 
 def merge(parts: list[Path], out: Path) -> int:

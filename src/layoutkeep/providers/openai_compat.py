@@ -333,6 +333,23 @@ def _marker_repair_messages(
     ]
 
 
+#: An opening, closing or self-closing tag with a name - any name, in any script.
+_ANY_TAG = re.compile(r"</?\s*([^\W\d][\w-]*)(?:\s[^<>]*)?/?>", re.UNICODE)
+
+
+def _without_invented_tags(source: str, reply: str) -> str:
+    """Remove every named tag the source does not itself contain.
+
+    A model formatting a reply invents tags named after anything - "</vagon>" (Turkish for
+    "wagon") reached a page of Electricity in Agriculture, after "<br/>" and "</text" had each been
+    handled by name. What decides it is the source: a tag it contains is content, any other is not.
+    The numeric style markers (<0>...</0>) have no name and are never touched.
+    """
+    allowed = {m.group(0) for m in _ANY_TAG.finditer(source)}
+    cleaned = _ANY_TAG.sub(lambda m: m.group(0) if m.group(0) in allowed else "", reply)
+    return " ".join(cleaned.split())
+
+
 def _apply_result(seg: Segment, target: str | None) -> Segment:
     """Build the outbound Segment for one input segment.
 
@@ -340,6 +357,8 @@ def _apply_result(seg: Segment, target: str | None) -> Segment:
     reply stayed unparsable after the repair attempt) - marked for review, never filled in
     from the source text.
     """
+    if target:
+        target = _without_invented_tags(seg.source, target)
     return Segment(
         block_id=seg.block_id,
         source=seg.source,
@@ -442,11 +461,21 @@ def _parse_reply(reply: str) -> dict[str, str] | None:
     for item in data:
         if not isinstance(item, dict) or "id" not in item or "text" not in item:
             return None
-        result[str(item["id"])] = _FIELD_TAG.sub("", str(item["text"])).strip()
+        text = _HTML_BREAK.sub(" ", str(item["text"]))
+        text = _HTML_TAG.sub("", _FIELD_TAG.sub("", text))
+        result[str(item["id"])] = " ".join(text.split())
     return result
 
 
 #: A tag named after a field of the reply format, which the model sometimes wraps or closes a
 #: value with ("...sunmaktadir.</text" on book page 251). No document text is written this way,
 #: and the inline style markers are numeric (<0>...</0>), so these are never content.
+#: HTML the model sometimes formats a reply with ("<br/>" on NIST page 34). The source reached it
+#: as plain text, so no such tag is content. A break becomes a space; other tags are dropped. The
+#: numeric style markers (<0>...</0>) do not match.
+_HTML_BREAK = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
+_HTML_TAG = re.compile(
+    r"</?\s*(?:p|b|i|u|em|strong|span|div|sup|sub|small|font)(?:\s[^>]*)?/?>", re.IGNORECASE
+)
+
 _FIELD_TAG = re.compile(r"</?\s*(?:text|id)\s*/?(?:>|$)", re.IGNORECASE)

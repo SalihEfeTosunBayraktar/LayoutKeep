@@ -230,7 +230,7 @@ class OpenAIHTTPTransport:
 
 
 #: Floor for the generation ceiling: a short label still needs room for the JSON around it.
-_MIN_GENERATION_TOKENS = 512
+_MIN_GENERATION_TOKENS = 1024
 
 
 def _generation_ceiling(messages: list[dict[str, str]]) -> int:
@@ -238,9 +238,11 @@ def _generation_ceiling(messages: list[dict[str, str]]) -> int:
 
     Without a ceiling a reply that never stops holds its slot until the context is full: the
     first campaign run returned nothing for 38 minutes while every slot generated without end.
-    A translation is bounded by its input. Counting what is sent in characters and allowing one
-    output token for every two - roughly twice the tokens the input itself takes - leaves room for
-    a target language that runs far longer than the source, and for the JSON around it.
+    A translation is bounded by its input: one output token per character sent, plus room for the
+    JSON. The first ceiling allowed one token per two characters and cut 13 replies on the
+    Electricity book (a 1,213-token request stopped at 915) - Turkish takes more tokens than the
+    English it translates. Still bounded: a 2,000-character request can produce at most ~2,500
+    tokens, not a 56,000-token context.
     """
     sent = sum(len(m.get("content", "")) for m in messages if m.get("role") == "user")
-    return max(_MIN_GENERATION_TOKENS, sent // 2)
+    return max(_MIN_GENERATION_TOKENS, sent + _MIN_GENERATION_TOKENS // 2)

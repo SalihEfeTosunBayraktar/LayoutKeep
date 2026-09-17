@@ -351,3 +351,44 @@ floor. **Fix:** a block whose written text is exactly its source (letter case in
 existing test caught a first version that ignored case, which would have skipped upper-cased
 translations) is not redacted or redrawn: the original glyphs stay. Test
 `tests/test_pdf_writer_unchanged_blocks.py`.
+
+## 2026-09-17 - campaign book 1 of 6: NIST SP 800-12 (101 pages) - first full pass
+
+Commit `dd6c2d6`, 44.2 min at 8 parallel requests.
+
+| | L1 | L2 | L3 | L4 | L5 | L6 | D1 | D2 |
+|---|---|---|---|---|---|---|---|---|
+| NIST, first pass | 0 | 1 | 8 | 0 | 1 | 2 | 266 / 1578 | 124 |
+
+A whole book shows what 30 sampled pages did not. Each finding read at the source:
+
+- **L3 - URLs and an author name really gone** (DOI line on the imprint page, gpo.gov links in the
+  references, "Victoria Yan Pillitteri"). Caused by my own previous fix: blocks that come back
+  unchanged were left as set - and then erased by the redaction of a translated neighbour whose
+  box reaches a few points into them (imprint page: sentence 328-341 pt, DOI line 338-351 pt).
+  Before that fix these were redrawn, so the loss was new. **Fix:** a kept block that a changed
+  neighbour's box reaches is redrawn like any other. The first test did not reproduce it (its two
+  lines were close enough to be read as one block); rewritten to the measured geometry, it failed,
+  then passed with the fix.
+- **L5 - `<br/>` drawn on page 34.** The model formatted a reply with HTML. Replies are cleaned of
+  line breaks (to a space) and common formatting tags; numeric style markers are untouched.
+- **L2 - one paragraph "got no reply"** (page 72). Sent alone it translates every time. The retry
+  that should have recovered it left no trace: it swallows transport errors silently, so a timeout
+  under full load and a refusal look identical. **Fix for visibility:** a failed retry request is now
+  logged with its error. **Fix for the loss:** a verify-and-repair loop (below).
+- **L6 - "1996" dropped** from a sentence; a second L6 is doubtful (the extracted source repeats
+  "part 1").
+- **D1 266 of 1578 blocks (17%)** below the readability floor; D2 124, most of them the repeated
+  running header "NIST SP 800-12 REV. 1" and author names, correctly unchanged.
+
+### Verify-and-repair
+
+A failure the pipeline cannot prevent (a batch reply missing a segment under load, a one-off echo)
+does not repeat when its page is translated again. `lossless_audit.py` now lists every chunk with a
+loss (`failing_chunks`), and `tools/audit/repair_book.py` deletes those chunks' outputs, translates
+them again with `--resume`, and re-audits, for up to N rounds, recording each round in
+`repair_history.json`. A loss that survives every round is visible as exactly that.
+
+**Consistency note for the comparison:** these fixes landed while the campaign was translating The
+Time Machine, so that book's pages were produced by a mix of code before and after them. Every book
+gets the same repair rounds with the final code, and the report compares books after repair.

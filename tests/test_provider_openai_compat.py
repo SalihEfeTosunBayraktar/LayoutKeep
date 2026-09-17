@@ -453,3 +453,23 @@ def test_a_field_name_tag_the_model_appended_is_removed() -> None:
     )
     parsed = _parse_reply(reply)
     assert parsed == {"a": "Son bolum RISC kavramini sunmaktadir.", "b": "Bir <0>kalin</0> kelime"}
+
+
+def test_html_line_breaks_the_model_invents_are_removed() -> None:
+    """NIST campaign run, page 34: "<br/>" drawn on the page. A document's text reaches the model
+    as plain text; an HTML tag in the reply is the model's formatting, not the source's."""
+    from layoutkeep.providers.openai_compat import _parse_reply
+
+    parsed = _parse_reply('[{"id": "a", "text": "Birinci satir<br/>ikinci <b>satir</b> <0>kalin</0>"}]')
+    assert parsed == {"a": "Birinci satir ikinci satir <0>kalin</0>"}
+
+
+def test_a_tag_the_source_does_not_have_is_removed_whatever_its_name() -> None:
+    """Electricity in Agriculture: "</vagon>" (Turkish for "wagon") drawn on the page. A model
+    that invents tags names them after anything; only a tag the source itself contains is kept."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _apply_result
+
+    seg = Segment(block_id="a", source="The <0>truck</0> is a covered wagon.")
+    out = _apply_result(seg, "<0>Kamyon</0> kapali bir <vagon>vagondur</vagon>.")
+    assert out.target == "<0>Kamyon</0> kapali bir vagondur."

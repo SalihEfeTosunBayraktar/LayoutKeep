@@ -178,6 +178,7 @@ def audit_work(work: Path) -> dict:
     findings: dict[str, list[str]] = {k: [] for k in ("L1", "L2", "L3", "L4", "L5", "L6", "D1", "D2")}
     chunks = sorted((work / "out").glob("t_*.lkproj"))
     missing = []
+    failing: list[str] = []
     for project in chunks:
         index = project.stem.split("_")[1]
         src = work / "src" / f"chunk_{index}.pdf"
@@ -189,6 +190,8 @@ def audit_work(work: Path) -> dict:
         totals.update(result["counts"])
         for key, items in result["found"].items():
             findings[key].extend(items)
+        if any(result["found"][k] for k in ("L1", "L2", "L3", "L4", "L5", "L6")):
+            failing.append(index)
     source_chunks = len(list((work / "src").glob("chunk_*.pdf")))
     if len(chunks) != source_chunks:
         findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited")
@@ -199,6 +202,8 @@ def audit_work(work: Path) -> dict:
         "counts": {k: len(v) for k, v in findings.items()},
         "lossless": lossless,
         "missing_outputs": missing,
+        # Every chunk with a loss, so a repair pass can re-translate exactly those.
+        "failing_chunks": failing,
         "examples": {k: v[:15] for k, v in findings.items()},
     }
 

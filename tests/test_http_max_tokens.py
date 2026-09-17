@@ -49,3 +49,12 @@ def test_the_ceiling_scales_with_what_is_being_translated() -> None:
     assert long > short
     # Room for a translation that runs much longer than its source, as Turkish does.
     assert long >= len("word " * 2000) // 3
+
+
+def test_the_ceiling_leaves_room_for_a_long_turkish_reply() -> None:
+    """Campaign, Electricity in Agriculture: 13 replies were cut at the first ceiling (one output
+    token per two characters sent) - a 1,213-token request stopped at 915 - and a 2,247-character
+    paragraph never came back at all. Turkish takes more tokens than the English it translates."""
+    text = "x" * 2247
+    body = _chat('[{"id": "a", "text": "' + text + '"}]')
+    assert body["max_tokens"] >= len(text)

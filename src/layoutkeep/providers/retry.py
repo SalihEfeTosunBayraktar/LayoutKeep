@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import dataclasses
 import statistics
+import sys
 from typing import Protocol
 
 from layoutkeep.core.copies import drops_numbers
@@ -135,9 +136,15 @@ def _ask(
             [dataclasses.replace(s, context_before="", context_after="") for s in batch],
             **kwargs,
         )
-    except _RECOVERABLE:
+    except _RECOVERABLE as exc:
         # This pass runs over a document that is already translated as well as it is going to
-        # be; a server that dies now must not cost the work that succeeded before it.
+        # be; a server that dies now must not cost the work that succeeded before it. Said out
+        # loud, though: a NIST paragraph stayed English after a retry that left no trace, and
+        # without this line there was no way to tell a failed request from a refused one.
+        print(
+            f"retry     request for {len(batch)} segment(s) failed: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
         return {}
     wanted = {s.block_id for s in batch}
     return {

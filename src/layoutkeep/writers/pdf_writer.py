@@ -112,7 +112,16 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             # - is left exactly as set: removing and redrawing it only loses its typography
             # (small caps redrawn in a wider substitute were shrunk below the readability floor on
             # every NIST page).
-            blocks = [b for b in page_data.blocks if b.translatable and not _unchanged(b)]
+            changed = [b for b in page_data.blocks if b.translatable and not _unchanged(b)]
+            # ...unless the clearing of a changed neighbour would reach it: redaction removes every
+            # glyph its box touches, and NIST's DOI line, 3pt inside the box of the sentence above
+            # it, vanished from the page. Such a block is redrawn like any other.
+            reached = [
+                b for b in page_data.blocks
+                if b.translatable and _unchanged(b)
+                and any(_rect(b.bbox).intersects(_rect(c.bbox)) for c in changed)
+            ]
+            blocks = changed + reached
             if not blocks:
                 continue
             # Font resolution runs before any page is redacted: it may need to read the source
