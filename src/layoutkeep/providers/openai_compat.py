@@ -500,6 +500,10 @@ def _parse_reply(reply: str) -> dict[str, str] | None:
             data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
         except json.JSONDecodeError:
             return None
+    if isinstance(data, dict) and "id" in data and "text" in data:
+        # Asked for one segment, a model may answer with the item itself rather than a list of one
+        # (held-out Wikipedia "Photosynthesis": logged as "a dict, not a list", paragraph lost).
+        data = [data]
     if not isinstance(data, list):
         return None
     result: dict[str, str] = {}

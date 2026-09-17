@@ -171,7 +171,10 @@ def test_build_messages_includes_glossary_terms():
 
 
 def test_parse_reply_rejects_non_list_json():
-    assert _parse_reply(json.dumps({"id": "b1", "text": "x"})) is None
+    # A single {id, text} item is read as a list of one (see the held-out test below); JSON that is
+    # neither a list nor an item is still not a reply.
+    assert _parse_reply(json.dumps({"result": "x"})) is None
+    assert _parse_reply(json.dumps("x")) is None
 
 
 def test_parse_reply_rejects_items_missing_fields():
@@ -518,3 +521,10 @@ def test_why_a_reply_could_not_be_read_is_said(monkeypatch, capsys):
 
     err = capsys.readouterr().err
     assert "unreadable for 2 segment(s)" in err and "delimiter" in err and "quoted" in err, err
+
+
+def test_a_single_item_reply_without_its_list_is_read():
+    """Held-out Wikipedia "Photosynthesis": asked for one segment, the model answered with the item
+    itself - {"id": ..., "text": ...} - not a list of one. The logged reason was "a dict, not a list",
+    and the paragraph stayed in English."""
+    assert _parse_reply(json.dumps({"id": "b1", "text": "Merhaba"})) == {"b1": "Merhaba"}

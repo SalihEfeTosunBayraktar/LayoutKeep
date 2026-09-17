@@ -1097,3 +1097,20 @@ control characters are removed before drawing - they have no drawable form. Test
 
 **Measured on the real pages** (the run's own translations redrawn from their projects, no model
 call): L3 on 7 of 7 pages -> none.
+
+## 2026-09-17 - held-out result: Wikipedia "Photosynthesis", and finding 11 (the new log's first catch)
+
+Wikipedia "Photosynthesis" (33 pages, commit `ccf5348`, no repair): **L1 0, L2 5, L3 0, L6 1, L7 0,
+L8 0, L9 0** over 359 blocks, D1 24, 24.6 minutes. Read one by one: one paragraph ("In 1893, the
+American botanist...") came back in English through every retry - real, flagged; four L2 and the L6
+are reference-list entries (the references question), one of which lost a page range and an
+identifier in translation - real; and one paragraph ("Cyanobacteria possess carboxysomes...") was
+never answered.
+
+**Finding 11.** That last one is the first loss the unreadable-reply log explained: `reply unreadable
+for 1 segment(s): a dict, not a list: '{"id": "p0#m0.2", "text": "..."}'` - asked for one segment,
+the model answered with the item itself, a good translation, not a list of one, and the parser threw
+it away. An existing test (`test_parse_reply_rejects_non_list_json`) had pinned exactly that
+rejection. **Fix:** a single `{id, text}` item is read as a list of one; JSON that is neither a list
+nor an item is still rejected, and the old test now checks that. Test
+`test_a_single_item_reply_without_its_list_is_read` (failed first).
