@@ -150,3 +150,20 @@ def test_a_letter_from_another_alphabet_is_a_loss_asked_for_again(tmp_path: Path
 
     report = verify_and_repair(doc, segments, target_lang="tr", write=lambda: None, ask_again=ask_again)
     assert report.repaired == 1 and report.lossless
+
+
+
+def test_words_that_already_overlap_in_the_source_are_not_drawn_over_each_other() -> None:
+    """Held-out arXiv 2609.19145: display equations set a superscript over a subscript, so their
+    glyph boxes overlap on the source page itself, in separate text blocks. The page kept them
+    untouched, and verification flagged 11 overlapping pairs on it - all the source's typesetting."""
+    from layoutkeep.verify import overlapping_words
+
+    superscript = (306.0, 336.0, 344.0, 350.0, "Gll(D)", 8, 0, 0)
+    subscript = (315.0, 345.0, 333.0, 353.0, "s1,s2", 9, 0, 0)
+    source = [superscript, subscript]
+    assert overlapping_words(source)[0] == 1  # the source's own overlap
+    assert overlapping_words(source, as_in=source)[0] == 0
+
+    translation = (310.0, 340.0, 360.0, 352.0, "erişim", 12, 0, 0)  # drawn over the equation
+    assert overlapping_words([superscript, subscript, translation], as_in=source)[0] == 2

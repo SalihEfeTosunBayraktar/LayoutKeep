@@ -935,3 +935,22 @@ Not fixed and noted: inline math inside a paragraph is flattened to plain text i
 ("n^D_{s1,s2}" becomes "nD s1,s2") - no criterion measures it; and fitting measures with a generic
 family while the writer draws with the resolved font, so the shrink it decides is not measured on
 the face actually drawn.
+
+## 2026-09-17 - held-out finding 3: "text drawn over text" on an untouched equation
+
+arXiv 2609.19145 page 4: verification flagged L7 on a page whose display equations were not
+translated and stand exactly as set. Rendered side by side, the flagged spot is a superscript over
+a subscript - the equation's own typesetting, which PyMuPDF happened to split into separate text
+blocks. Counted: the *source* page itself has 14 overlapping word pairs; the output had 11 flagged.
+
+**Fix:** a pair of overlapping words both standing where the source set them (same text, within
+1 pt) is the source's typesetting, not text drawn over text. `overlapping_words(..., as_in=source)`;
+test `test_words_that_already_overlap_in_the_source_are_not_drawn_over_each_other` (failed first).
+A PDF-level synthetic test was tried first and passed without the fix - PyMuPDF puts two
+overlapping `insert_text` runs into one text block - so it was replaced by a word-level test.
+
+**Measured:** the arXiv page 11 -> 0. The campaign's real overlaps stay visible: Electricity 3 -> 3;
+Popular Science 61 -> 54, and each of the 7 pages that dropped out has at least as many
+overlapping pairs on its source page (1/1, 3/14, 2/2, 5/5, 2/2, 1/1, 2/2) - the magazine's own
+invisible OCR layer overlapping itself, not text the pipeline drew. Popular Science also shows
+**L9 = 3** under the new criterion (the words found when L9 was measured).

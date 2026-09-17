@@ -177,7 +177,7 @@ def _page_losses(source_page, page, page_data, index: int, source_markup: set[st
         if x1 < rect.x0 - 1 or x0 > rect.x1 + 1 or y1 < rect.y0 - 1 or y0 > rect.y1 + 1:
             losses.append(Loss("L4", index, repr(word[4])))
 
-    pairs, involved = overlapping_words(drawn)
+    pairs, involved = overlapping_words(drawn, as_in=source_page.get_text("words"))
     if pairs:
         owners = tuple(sorted({
             block.id for x, y in involved
@@ -224,21 +224,32 @@ def _block_at(blocks: Sequence[Block], x: float, y: float) -> Block | None:
 
 
 def overlapping_words(
-    drawn: list, *, same_block: bool = False
+    drawn: list, *, same_block: bool = False, as_in: list | None = None
 ) -> tuple[int, list[tuple[float, float]]]:
     """Pairs of words from different lines drawn over each other, and the centres of those words.
 
     `same_block=False` counts words of different text blocks - one text drawn over another (L7).
     `same_block=True` counts lines of one block squeezed into each other - text forced into a box
     far too small, typically recognition noise from a decorative advert.
+
+    `as_in` is the source page's words: a pair whose two words both stand where the source set them
+    is the source's own typesetting, not something drawn over it - an equation's superscript over
+    its subscript (held-out arXiv 2609.19145, 11 such pairs on one untouched equation).
     """
     import pymupdf
+
+    as_set: dict[str, list[tuple[float, float]]] = {}
+    for word in as_in or []:
+        as_set.setdefault(word[4], []).append((word[0], word[1]))
+
+    def untouched(word) -> bool:
+        return any(abs(x - word[0]) <= 1.0 and abs(y - word[1]) <= 1.0 for x, y in as_set.get(word[4], ()))
 
     # Only legible words count: text under _LEGIBLE_PT tall is already below the readability floor,
     # and two such scraps touching is not one text drawn over another.
     boxes = sorted(
         (
-            (pymupdf.Rect(w[:4]), w[5], (w[5], w[6]))
+            (pymupdf.Rect(w[:4]), w[5], (w[5], w[6]), untouched(w))
             for w in drawn
             if len(w[4]) > 1 and (w[3] - w[1]) >= _LEGIBLE_PT
         ),
@@ -246,11 +257,11 @@ def overlapping_words(
     )
     pairs = 0
     involved: list[tuple[float, float]] = []
-    for i, (a, block_a, line_a) in enumerate(boxes):
-        for b, block_b, line_b in boxes[i + 1:]:
+    for i, (a, block_a, line_a, set_a) in enumerate(boxes):
+        for b, block_b, line_b, set_b in boxes[i + 1:]:
             if b.y0 >= a.y1:
                 break  # sorted by top: nothing further down can reach into `a`
-            if line_a == line_b or (block_a == block_b) != same_block:
+            if line_a == line_b or (block_a == block_b) != same_block or (set_a and set_b):
                 continue
             inter = a & b
             if inter.is_empty:
