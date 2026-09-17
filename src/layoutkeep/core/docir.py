@@ -113,6 +113,9 @@ class Style:
     #: it lands on a sans); a recognised name is always believed over it, because producers set
     #: the flag carelessly and it is wrong about as often as it is right on names we do know.
     serif: bool | None = None
+    #: Whether the source sets this run in a monospaced face (a PDF span's monospace flag). Code
+    #: is set that way, and a block entirely in such a face is read as code, not prose.
+    monospace: bool = False
 
     def key(self) -> tuple[Any, ...]:
         """Identity used to decide whether two adjacent runs can be merged into one span."""

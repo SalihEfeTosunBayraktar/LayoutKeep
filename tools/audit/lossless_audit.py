@@ -37,46 +37,6 @@ from layoutkeep.core.docir import load_project
 from layoutkeep.core.protect import is_data_only
 from layoutkeep.writers.pdf_writer import is_wordless
 
-#: Words that mark a text as still English. Common enough that any English sentence carries
-#: several, and not words of the target language, so a share of them in a written block means
-#: the block (or a large part of it) was not translated - including partial translations, which
-#: an identity check alone misses.
-_ENGLISH = frozenset(
-    [
-        "the",
-        "and",
-        "of",
-        "to",
-        "is",
-        "in",
-        "that",
-        "with",
-        "for",
-        "are",
-        "this",
-        "which",
-        "by",
-        "be",
-        "as",
-        "on",
-        "an",
-        "or",
-        "from",
-        "it",
-        "its",
-        "was",
-        "were",
-        "can",
-        "will",
-        "not",
-        "but",
-        "have",
-        "has",
-    ]
-)
-_ENGLISH_SHARE = 0.2
-_ENGLISH_MIN_WORDS = 5
-
 #: A block counts as present on its page when this share of its words are found there. Below 1.0
 #: because the renderer may hyphenate a long word across a line break, which splits one token in
 #: two.
@@ -189,16 +149,11 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                 sample = f"{tag}: {written[:90]!r}"
 
                 untouched = not block.source_text or is_identical(source_text, written)
-                ordinary = ordinary_words(written)
-                english = (
-                    len(ordinary) >= _ENGLISH_MIN_WORDS
-                    and sum(w in _ENGLISH for w in ordinary) / len(ordinary) >= _ENGLISH_SHARE
-                )
                 # Prose is judged on ordinary words (core.copies): names, brands, addresses and
                 # quoted strings legitimately survive translation and must not count against it.
                 if len(ordinary_words(source_text)) >= 4:
                     wrong = wrong_language(written, target_lang) if target_lang else None
-                    if untouched or english or wrong or is_copy(source_text, written):
+                    if untouched or wrong or is_copy(source_text, written):
                         found["L2"].append(sample)
                 elif untouched and len(source_words) >= 2:
                     # Too short to tell a name from an untranslated phrase without knowing the

@@ -140,10 +140,12 @@ def wrong_language(reply: str, target_lang: str) -> str | None:
     if target is None:
         return None
     text = _QUOTED.sub(" ", _MARKER.sub("", reply))
+    # A suffix joined by an apostrophe ("Latince'deki", "16.1'e") is part of its word: split off,
+    # "de" and "e" read as Dutch and Italian function words.
     words = [
         w.casefold() for token in text.split()
         if not any(hint in token.casefold() for hint in _ADDRESS_HINTS)
-        for w in re.findall(r"[^\W\d_]+", token)
+        for w in re.findall(r"[^\W\d_]+(?:['’][^\W\d_]+)*", token)
     ]
     if len(words) < _LANGUAGE_MIN_WORDS:
         return None
@@ -152,7 +154,10 @@ def wrong_language(reply: str, target_lang: str) -> str | None:
     for lang, profile in _FUNCTION_WORDS.items():
         if profile is target:
             continue
-        share = sum(w in profile for w in words) / len(words)
-        if share >= _LANGUAGE_SHARE and share > best_share:
+        hits = [w for w in words if w in profile]
+        share = len(hits) / len(words)
+        # At least two different function words: one alone ("ne", which French also has) is a
+        # coincidence, not a language.
+        if len(set(hits)) >= 2 and share >= _LANGUAGE_SHARE and share > best_share:
             best, best_share = lang, share
     return best

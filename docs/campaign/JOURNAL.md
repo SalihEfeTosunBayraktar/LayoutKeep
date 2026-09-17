@@ -529,3 +529,39 @@ words only (at least 5 pt tall) - smaller text is D1 territory.
 
 Re-audited first-pass outputs (not yet repaired): L7 NIST 1, The Time Machine 26, Electricity 3,
 Popular Science 61.
+
+## 2026-09-17 - campaign book 5: Think Python (244 pages) - first pass, and what its L2 really was
+
+78.6 min. First audit: L1 0, L2 18, L3 1, L4 0, L5 0, L6 7, L7 2, D1 419 / 3696, D2 15, D3 0.
+
+The 18 "untranslated" blocks, read one by one, were three different things:
+
+1. **Real English left** (4): "3. If I leave my house at 6:52 am ...", "The reason for the IndexError
+   ...", and two more - loss, for the repair round.
+2. **Python code** (6): ">>> eng2sp = {...}", "def different_words(hist): return len(hist)", a
+   traceback. Code should stay as it is - but these blocks had been *sent for translation*, and some
+   came back with the strings inside `print()` translated, which changes the program the book
+   prints. **Fix:** a born-digital PDF marks runs set in a monospaced face (PyMuPDF span flag 8;
+   Think Python's code font SFTT1000 carries it on every span, its body text on none). `Style` now
+   records `monospace`, and a block entirely in such a face is role CODE - not translatable. Test
+   `tests/test_pdf_reader_code_blocks.py` (failed first).
+3. **Correct Turkish taken for another language** (6) - false alarms of the new language check:
+   "... olursa ne olur?" read as French ("ne"), "Sekil 16.1'e" as Italian (the apostrophe split off
+   "e"), "Latince'deki" as Dutch; and "Iste bir kare cizen for ifadesi" flagged by the audit's older
+   English-stopword share because of the Python keyword "for". **Fix:** apostrophe suffixes stay
+   part of their word; another language needs at least two different function words; the crude
+   English share is removed from the audit (the language check covers it). Test
+   `test_short_turkish_sentences_are_not_taken_for_other_languages` (failed first).
+
+Every finished book re-audited with the refined checks (still first-pass outputs):
+
+| book | L1 | L2 | L3 | L4 | L5 | L6 | L7 |
+|---|---|---|---|---|---|---|---|
+| NIST SP 800-12 | 0 | 1 | 8 | 0 | 1 | 2 | 1 |
+| The Time Machine | 0 | 1 | 0 | 0 | 0 | 0 | 26 |
+| Electricity in Agriculture | 1 | 9 | 3 | 0 | 1 | 15 | 3 |
+| Popular Science, Jan 1920 | 1 | 35 | 33 | 0 | 3 | 13 | 61 |
+| Think Python | 0 | 13 | 1 | 0 | 0 | 7 | 2 |
+
+(Think Python's L2 13 still counts the code blocks, which only a re-translation with the code fix
+removes.) The architecture book is translating; repair rounds for all six follow it.

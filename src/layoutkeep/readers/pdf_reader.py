@@ -46,6 +46,7 @@ from layoutkeep.readers.image_reader import (
 
 _BOLD_FLAG = 1 << 4  # pymupdf span flag bit for bold
 _ITALIC_FLAG = 1 << 1  # pymupdf span flag bit for italic
+_MONOSPACE_FLAG = 1 << 3  # pymupdf span flag bit for a monospaced face
 _SERIF_FLAG = 1 << 2  # pymupdf span flag bit for serifed, off the PDF's font descriptor
 
 #: A block at least this wide relative to the page is treated as spanning all columns
@@ -188,6 +189,11 @@ def _read_page(
         block.align = infer_alignment(
             block.bbox, width, [line.bbox for line in block.lines if line.bbox is not None]
         )
+        # Code is set in a monospaced face; a block entirely in one is code, and translating it
+        # changes the program the document prints (Think Python came back with the strings inside
+        # print() calls translated).
+        if block.role in (BlockRole.BODY, BlockRole.LIST) and _all_monospace(block):
+            block.role = BlockRole.CODE
 
     order = _reading_order(blocks, width, height)
     for block, position in zip(blocks, order, strict=True):
@@ -215,6 +221,11 @@ def _read_page(
         blocks=raw_blocks,
         images=images,
     )
+
+
+def _all_monospace(block: Block) -> bool:
+    spans = [span for line in block.lines for span in line.spans if span.text.strip()]
+    return bool(spans) and all(span.style.monospace for span in spans)
 
 
 #: Resolution a born-digital page is rendered at for the layout model. The model resizes to 640px
@@ -635,6 +646,7 @@ def _span_from_raw(raw: dict) -> Span:
         italic=bool(flags & _ITALIC_FLAG) or "italic" in font.lower() or "oblique" in font.lower(),
         color=f"#{raw.get('color', 0):06x}",
         serif=bool(flags & _SERIF_FLAG),
+        monospace=bool(flags & _MONOSPACE_FLAG),
     )
     return Span(text=raw.get("text", ""), bbox=BBox(*raw["bbox"]), style=style)
 

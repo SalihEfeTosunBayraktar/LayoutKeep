@@ -95,3 +95,12 @@ def test_a_turkish_reply_keeping_english_terms_is_right() -> None:
 
 def test_an_unknown_target_language_is_never_judged() -> None:
     assert wrong_language("the and of to is in that with for are", "ja") is None
+
+
+def test_short_turkish_sentences_are_not_taken_for_other_languages() -> None:
+    """Think Python, campaign run: correct Turkish replies called French ("ne" is also a French
+    function word), Italian ("16.1'e" split at the apostrophe into "e") and Dutch ("Latince'de")."""
+    assert wrong_language("5. Aralarında operatör olmayan iki değeriniz olursa ne olur?", "tr") is None
+    assert wrong_language("Time nesnesinin durum diyagramı Şekil 16.1'e benziyor.", "tr") is None
+    assert wrong_language("Peter Winstanley, Latince'deki uzun süredir devam eden bir hatayı Bölüm 3'te bize bildirdi.", "tr") is None
+    assert wrong_language("İşte bir kare çizen for ifadesi ve bunun gibi daha fazlası:", "tr") is None
