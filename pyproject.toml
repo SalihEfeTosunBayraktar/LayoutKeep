@@ -53,6 +53,10 @@ ui = ["PySide6>=6.11.2", "keyring"]
 # test modules at all.
 dev = ["pytest", "pytest-qt", "pytest-html", "ruff", "Pillow>=10", "numpy>=1.26"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [".venv", "_artifacts", "dist", "build", "tools/audit"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
