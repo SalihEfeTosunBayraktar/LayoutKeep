@@ -5,8 +5,14 @@ EPUB bölümlerini parçalara ayırma ve çeviri sonrası birleştirme mantığ�
 
 from __future__ import annotations
 
+import sys
 import zipfile
 from pathlib import Path
+
+# Proje kök dizinini sys.path'e ekle / Add project root to sys.path
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from fixtures.build_epub_fixture import build_sample_epub
 
