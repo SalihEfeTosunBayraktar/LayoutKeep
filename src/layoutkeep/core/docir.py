@@ -45,6 +45,7 @@ class BlockRole(StrEnum):
     FORMULA = "formula"
     CODE = "code"
     FIGURE = "figure"          # image region, no text
+    BIBLIOGRAPHY = "bibliography"  # references, citation entries
     UNKNOWN = "unknown"
 
 
@@ -55,6 +56,7 @@ NON_TRANSLATABLE_ROLES: frozenset[BlockRole] = frozenset(
         BlockRole.FORMULA,
         BlockRole.CODE,
         BlockRole.FIGURE,
+        BlockRole.BIBLIOGRAPHY,
     }
 )
 

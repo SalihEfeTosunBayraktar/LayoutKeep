@@ -232,6 +232,13 @@ def cmd_translate(args: argparse.Namespace) -> int:
     doc.source_lang = args.from_lang
     doc.target_lang = args.to_lang
 
+    if getattr(args, "preserve_references", False):
+        from layoutkeep.core.reference import tag_bibliography_blocks
+
+        tagged = tag_bibliography_blocks(doc, preserve=True)
+        if tagged:
+            print(f"references {tagged} bibliography blocks preserved untouched")
+
     segments = segments_from_document(doc)
     if not segments:
         print("nothing translatable found - stopping")
@@ -549,6 +556,10 @@ def build_parser() -> argparse.ArgumentParser:
                          "of a book's prose, so sampling from the middle measures better")
     tr.add_argument("--save-project", default=None, metavar="PATH",
                     help="also write a .lkproj file for later editing")
+    tr.add_argument("--preserve-references", action="store_true", default=False,
+                    help="preserve academic bibliography and citation sections without translating them")
+    tr.add_argument("--checkpoint-interval", type=int, default=0, metavar="N",
+                    help="periodically save translation progress to .lkproj every N segments (0 disables)")
     tr.set_defaults(func=cmd_translate)
 
     return parser

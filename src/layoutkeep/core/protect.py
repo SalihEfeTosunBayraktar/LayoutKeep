@@ -61,6 +61,12 @@ DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     # integers only - large ones are more likely to be ordinary numbers in prose. Losing or
     # reordering these sends a reader to the wrong part of the drawing.
     ("callout", r"\((?:[1-9]|[1-9]\d)\)"),
+    # Academic DOI identifier: doi:10.1000/182 or https://doi.org/10.1000/182.
+    ("doi", r"\b(?:doi:\s*|https?://(?:dx\.)?doi\.org/)?10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b"),
+    # Web URL: https://example.com/path
+    ("url", r"\bhttps?://[^\s<>\"']+\b"),
+    # arXiv publication id: arXiv:2609.19145v1
+    ("arxiv", r"\barXiv:\d{4}\.\d{4,5}(?:v\d+)?\b"),
 )
 
 

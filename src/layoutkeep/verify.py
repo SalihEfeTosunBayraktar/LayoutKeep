@@ -108,8 +108,11 @@ def source_of(block: Block) -> str:
 
 def is_checked(block: Block) -> bool:
     """A block whose words the criteria judge: translatable prose, not data, not a wordless scrap."""
+    from layoutkeep.core.docir import BlockRole
     from layoutkeep.writers.pdf_writer import is_wordless
 
+    if block.role == BlockRole.BIBLIOGRAPHY:
+        return False
     return block.translatable and not is_data_only(source_of(block)) and not is_wordless(block)
 
 
