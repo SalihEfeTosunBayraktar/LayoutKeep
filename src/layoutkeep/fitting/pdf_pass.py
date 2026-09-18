@@ -106,6 +106,23 @@ def fit_pdf_pass(
             on_fitted(seg, block, result)
         results.append(result)
 
+    if mode is FitMode.REFLOW and any(r.reflow for r in results):
+        from layoutkeep.fitting.elastic_flow import ElasticFlowEngine, compute_required_expansion
+
+        expansions = {
+            r_seg.block_id: compute_required_expansion(
+                r.text, blocks[r_seg.block_id].dominant_style(), blocks[r_seg.block_id].bbox, measure_fit
+            )
+            for r_seg, r in zip(segments, results, strict=False)
+            if r.reflow and r_seg.block_id in blocks
+        }
+        engine = ElasticFlowEngine()
+        for page in doc.pages:
+            page_h = getattr(page, "height", 842.0) or 842.0
+            page_exp = {b.id: expansions[b.id] for b in page.blocks if b.id in expansions and expansions[b.id] > 0}
+            if page_exp:
+                engine.reflow_column(page.blocks, page_exp, page_height=page_h)
+
     return summarize(results) if results else None
 
 
