@@ -68,6 +68,9 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
         command += ["--timeout", str(args.timeout)]
     if args.layout_detector:
         command.append("--layout-detector")
+    if getattr(args, "preserve_references", False):
+        # Kaynakça koruma bayrağını ilet / Forward bibliography protection flag
+        command.append("--preserve-references")
     started = time.time()
     proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     elapsed = time.time() - started
@@ -128,6 +131,10 @@ def main() -> int:
     parser.add_argument(
         "--resume", action="store_true",
         help="skip chunks whose output already exists, so an interrupted run continues",
+    )
+    parser.add_argument(
+        "--preserve-references", action="store_true",
+        help="preserve bibliography and citation blocks untranslated",
     )
     args = parser.parse_args()
 
