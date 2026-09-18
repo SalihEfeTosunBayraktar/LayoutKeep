@@ -42,6 +42,11 @@ OPEN_PAIRS: frozenset[tuple[str, str]] = frozenset({
     (".docx", ".png"),
     (".docx", ".pdf"),
     (".png", ".docx"),
+    (".lkproj", ".lkproj"),
+    (".lkproj", ".epub"),
+    (".lkproj", ".pdf"),
+    (".lkproj", ".docx"),
+    (".lkproj", ".html"),
 })
 
 #: Why each locked target is locked, in one sentence a person can act on. Keyed by target
