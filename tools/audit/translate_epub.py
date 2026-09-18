@@ -116,7 +116,8 @@ def main() -> int:
     parser.add_argument("--to", default="tr", help="target language code")
     parser.add_argument("--from", default="en", help="source language code")
     parser.add_argument("--model", required=True, help="LLM model identifier")
-    parser.add_argument("--base-url", default="http://localhost:1234/v1", help="API base URL")
+    # Windows IPv6 gecikmesini önlemek için 127.0.0.1 / Use 127.0.0.1 to avoid Windows IPv6 SynSent timeout
+    parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1", help="API base URL")
     parser.add_argument("--workers", type=int, default=4, help="concurrent worker count")
     parser.add_argument("--chapters-per-chunk", type=int, default=4, help="chapters per chunk")
     parser.add_argument("--timeout", type=float, default=0.0, help="per request timeout")
