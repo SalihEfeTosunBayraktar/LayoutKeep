@@ -122,7 +122,8 @@ def main() -> int:
     parser.add_argument("--to", default="tr")
     parser.add_argument("--from", default="en")
     parser.add_argument("--model", required=True)
-    parser.add_argument("--base-url", default="http://localhost:1234/v1")
+    # Windows IPv6 gecikmesini önlemek için 127.0.0.1 / Use 127.0.0.1 to avoid Windows IPv6 SynSent timeout
+    parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--pages-per-chunk", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=0.0)
