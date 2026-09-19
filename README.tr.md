@@ -63,8 +63,13 @@ kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevri
 |---|---|---|
 | ![Kurulum ekranı](docs/screenshots/01_setup_light.png) | ![İlerleme ekranı](docs/screenshots/02_progress_light.png) | ![Sağlayıcı ayarları](docs/screenshots/06_provider_settings_light.png) |
 
+| İlk açılış kendini anlatıyor | Uzun koşuyu pencere olmadan izle | Aynı çubuk iş bitince |
+|---|---|---|
+| ![Karşılama ekranı](docs/screenshots/07_welcome_first_light.png) | ![Yüzen ilerleme çubuğu](docs/screenshots/08_floating_bar_dark.png) | ![Yüzen ilerleme çubuğu, bitmiş](docs/screenshots/08_floating_bar_done_dark.png) |
+
 Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim başlıktadır ve
-hatırlanır. Her ekranın koyu bir varyantı var — görüntüler
+hatırlanır — karşılama ekranı ise boru hattını, sağlayıcı seçimini ve kaliteyi neyin belirlediğini
+her şeyden önce anlatır, atlanabilir. Her ekranın koyu bir varyantı var — görüntüler
 [`docs/screenshots/`](docs/screenshots/) altında.
 
 ## Daha uzun bir örnek, ve maliyeti
