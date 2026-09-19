@@ -1166,3 +1166,26 @@ Completed 20 chunks (489 blocks) in 74.5 minutes:
 - **L9**: 0
 - **D1**: 299 review flags
 Compared to the initial run at `bad981a` (L1 1), L1 is completely eliminated (0 lost pages).
+
+## 2026-09-19 - held-out result: Sherlock Holmes EPUB completed with 7 parallel workers
+
+Sherlock Holmes EPUB (*The Adventures of Sherlock Holmes*, 15 chapters, 628,529 characters, commit `e839938`):
+Previously abandoned unfinished after 3+ hours under sequential execution with no measurement, it has now **fully completed and merged** into `gutenberg_sherlock.tr.epub` in **34.3 minutes** of parallel wall time (286.5 minutes of aggregate worker compute across 7 parallel workers).
+
+**Loss Audit Results (2,624 blocks across 15 chapters):**
+- **L1**: 0 (all 15 chapters translated and merged)
+- **L2**: 1 (a single opening dialogue paragraph left untranslated)
+- **L3**: 0
+- **L4**: 0
+- **L5**: 0
+- **L6**: 1 (Project Gutenberg footer royalty fee percentage)
+- **L7**: 0
+- **L8**: 0
+- **L9**: 0
+- **Review flags**: 139 blocks (5.3%)
+
+**Key EPUB Engineering Fixes Delivered:**
+1. Chapter-aligned `.lkproj` chunking via `translate_epub.py` with multi-threaded execution.
+2. Graceful pass-through for non-translatable chunks (frontmatter/cover plates with no text) to avoid false aborts.
+3. UTF-8 standard console output/error reconfiguration preventing Windows `cp1254` Unicode crashes.
+4. Resumable checkpointing (`--resume`) ensuring zero lost progress across interrupted runs.

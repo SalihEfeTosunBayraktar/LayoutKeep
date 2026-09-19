@@ -6,7 +6,7 @@ The application as a user runs it: layout model on, verification on (`--verify-r
 |---|---|---|---|---|---|---|---|---|---|
 | wpa_poster | bad981a | - | - | 0 | - | not a PDF: verification only | - | - | - |
 | arxiv_19145 | bad981a | 20 | 478 | 5 | L2 7, L6 2, L7 8, L8 2 | 1 / 7 / 0 / 0 / 0 / 2 / 1 / 2 / 0 | 296 | no | - |
-| gutenberg_sherlock | 583027d | - | - | 0 | - | running | - | - | - |
+| gutenberg_sherlock | e839938 | 15 | 2624 | 4 | L2 1, L6 1 | 0 / 1 / 0 / 0 / 0 / 1 / 0 / 0 / 0 | 139 | no | 34.3 |
 | wikipedia_printing_press | 583027d | 19 | 250 | 1 | L2 4 | 1 / 4 / 0 / 0 / 0 / 0 / 0 / 0 / 0 | 8 | no | - |
 | arxiv_19113 | 6390410 | 29 | 511 | 0 | L2 1, L6 7, L7 1 | 0 / 1 / 0 / 0 / 0 / 7 / 1 / 0 / 0 | 96 | no | 27.6 |
 | plos_animal_movement | 6390410 | 30 | 468 | 2 | L2 3, L3 8 | 0 / 3 / 8 / 0 / 0 / 0 / 0 / 0 / 0 | 102 | no | 28.3 |
