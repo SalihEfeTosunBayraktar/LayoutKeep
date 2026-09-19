@@ -140,3 +140,36 @@ def test_scripts_the_source_has_and_symbols_that_are_not_letters_are_not_garbled
     assert garbled_words("the output A3 and x squared", "A₃ çıkışı ve x² değeri, l½ inç") == []
     # A Greek letter the source already uses is carried, not invented.
     assert garbled_words("the α-helix and βcatenin", "α-heliks ve βkatenin") == []
+
+
+def test_a_number_written_out_in_words_is_not_a_lost_number() -> None:
+    """Every held-out document had at least one: the 1907 cookbook's "five medium onions", the
+    IRS instructions' thresholds, an arXiv paper's "one hundred". Counting digits only reports a
+    loss that never happened - and the retry it triggers re-asks a number-heavy block, which is
+    what dropped NIST's "(1)" placeholder six times out of six."""
+    from layoutkeep.core.copies import drops_numbers
+
+    assert not drops_numbers("There are 20 pages of notes", "Notların yirmi sayfası var", "tr")
+    assert not drops_numbers("12 chapters", "on iki bölüm", "tr")
+    assert not drops_numbers("2500 items", "iki bin beş yüz öğe", "tr")
+    assert not drops_numbers("20 pages", "twenty pages", "en")
+    assert not drops_numbers("12 chapters", "twelve chapters", "en")
+    assert not drops_numbers("100 samples", "one hundred samples", "en")
+
+
+def test_a_number_that_is_really_missing_is_still_reported() -> None:
+    from layoutkeep.core.copies import drops_numbers
+
+    assert drops_numbers("Pages 20 to 24", "yirmi ve sonrası", "tr")
+    assert drops_numbers("See 5.2.1 for the policy", "Politika için bkz.", "tr")
+
+
+def test_a_run_of_number_words_is_folded_to_the_value_it_names() -> None:
+    from layoutkeep.core.copies import spelled_numbers
+
+    assert spelled_numbers("on iki bölüm", "tr")["12"] == 1
+    assert spelled_numbers("iki bin beş yüz", "tr")["2500"] == 1
+    assert spelled_numbers("two thousand five hundred", "en")["2500"] == 1
+    assert spelled_numbers("nothing here", "tr") == {}
+    # A language this has no words for contributes nothing rather than guessing.
+    assert spelled_numbers("twenty pages", "xx") == {}

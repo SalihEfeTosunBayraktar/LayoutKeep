@@ -67,6 +67,37 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="translation.reuse_repeats",
+        label="Tekrarlanan metni bir kez çevir",
+        default=True,
+        kind="bool",
+        help_text=(
+            "Bir belgede aynı metin birden çok yerde geçtiğinde (form etiketleri, her sayfada "
+            "yineleyen başlıklar, aynı talimat), metin bir kez çevrilir ve her yerde aynı çeviri "
+            "kullanılır. Kapatmak her tekrarı ayrı çevirtir: daha çok istek ve etiketlerin "
+            "satır satır farklı kelimelerle çıkması."
+        ),
+    ),
+    Tunable(
+        key="translation.piecewise_max_pieces",
+        label="Son çare: parçalara bölüp çevirme sınırı",
+        default=12,
+        kind="int",
+        section=ADVANCED,
+        minimum=0,
+        maximum=40,
+        help_text=(
+            "Modelin aynen geri verdiği bir paragraf, cümlelerine ve liste maddelerine bölünüp "
+            "tek tek sorulur. Bu, tek bir blok için en fazla kaç parça sorulacağıdır. 0 kapatır: "
+            "o zaman uzun bir blok çevrilmeden kalır ve inceleme kuyruğuna düşer."
+        ),
+        warning=(
+            "0'a çekmek, modelin aynen geri verdiği uzun blokları çevrilmemiş bırakır; çok "
+            "yükseltmek ise tek bir blok için düzinelerce istek gönderir ve parçalar ayrı ayrı "
+            "çevrildiği için cümleler arasındaki bağ kopabilir."
+        ),
+    ),
+    Tunable(
         key="batch.chunk_size",
         label="Parti boyutu (iptal/duraklat aralığı)",
         default=20,
@@ -150,6 +181,27 @@ TUNABLES: tuple[Tunable, ...] = (
             "kendileriyle aynı çevrilir. Yükseltmek gerçek geçirmeleri kaçırır."
         ),
     ),
+    Tunable(
+        key="fit.shorten_below_scale",
+        label="Bu ölçeğin altında kısa çeviri iste (yazı küçültmek yerine)",
+        default=0.95,
+        kind="float",
+        section=ADVANCED,
+        group="Sığdırma",
+        minimum=0.0,
+        maximum=1.0,
+        help_text=(
+            "Çeviri kutuya ancak yazı küçültülerek sığıyorsa ve ölçek bu değerin altındaysa, "
+            "modelden kutuya tam boyutta sığacak daha kısa bir çeviri istenir; küçültme yerine "
+            "kısa cümle tercih edilir. 1.0 her küçültmede dener, 0.0 kapatır."
+        ),
+        warning=(
+            "0 yapmak, kutuya ancak küçültülerek sığan uzun çevirileri olduğu gibi bırakır "
+            "(sayfa okunaksızlaşır); çok düşük bir değer yalnızca ağır küçültmelerde devreye "
+            "girer ve sorunu görmezden gelir."
+        ),
+    ),
+
     Tunable(
         key="fit.min_scale",
         label="En küçük yazı tipi ölçeği",
@@ -291,6 +343,26 @@ TUNABLES: tuple[Tunable, ...] = (
             "Yükseltmek yelpaze gibi dizilmiş ayrı etiketleri tek paragrafa toplar."
         ),
     ),
+    Tunable(
+        key="write.grant_room_pt",
+        label="Bloğun altındaki boş alanı kullanma sınırı (punto)",
+        default=24.0,
+        kind="float",
+        section=ADVANCED,
+        group="Yazma",
+        minimum=0.0,
+        maximum=120.0,
+        help_text=(
+            "Çeviri bir satır daha istediğinde blok, altındaki boşluğa (bir sonraki bloğa kadar) "
+            "bu kadar puntoya kadar büyüyebilir; böylece yazı küçültülmek yerine nefes alır. "
+            "0 kapatır ve eski davranışa döner: blok yalnızca kendi kutusuna sığdırılır."
+        ),
+        warning=(
+            "Çok yükseltmek, paragrafla bir sonraki blok arasındaki boşluğu yok eder ve sayfa "
+            "sıkışık görünür; 0 yapmak ise sığmayan çevirileri küçültmeye ya da taşmaya bırakır."
+        ),
+    ),
+
     Tunable(
         key="write.box_slack_pt",
         label="Kutuya verilen pay (punto)",

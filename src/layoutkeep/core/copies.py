@@ -94,15 +94,143 @@ def is_copy(source: str, reply: str) -> bool:
 _DIGITS = re.compile(r"\d+")
 
 
-#: Numbers from 0 to 10 in words, per language: small numbers are written in words as often as in
-#: digits ("0" came back as "sifir" on Think Python), and that is not a lost number.
-_NUMBER_WORDS: dict[str, tuple[str, ...]] = {
-    "tr": ("sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz", "on"),
-    "en": ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"),
-    "de": ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn"),
-    "fr": ("zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"),
-    "es": ("cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez"),
+#: Number words, per language, so a reply that writes a value out is not read as having lost it.
+#: Every held-out document had at least one: the 1907 cookbook's "five medium onions", the IRS
+#: instructions' thresholds, an arXiv paper's "one hundred". A checker that only counts digits
+#: reports a loss that never happened, and the report costs more than a wrong count: the retry it
+#: triggers re-asks a number-heavy block, and on NIST's glossary the retry is what dropped the
+#: placeholder for "(1)" six times out of six.
+#:
+#: The words are the language's own units, teens, tens, hundred and thousand; a run of them is
+#: folded to the value it names ("on iki" -> 12, "two thousand five hundred" -> 2500). Words
+#: outside a run are no evidence of anything and end it, which is what keeps "bir" as an article
+#: from looking like a "1" the reply never claimed to have.
+#:
+#: Zero counts as a number word: "0" came back as "sifir" on Think Python, and that is not a loss.
+_NUMBER_WORDS: dict[str, dict[str, int]] = {
+    "tr": {
+        "sıfır": 0, "bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7,
+        "sekiz": 8, "dokuz": 9, "on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50,
+        "altmış": 60, "yetmiş": 70, "seksen": 80, "doksan": 90, "yüz": 100, "bin": 1000,
+    },
+    "en": {
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+        "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+        "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+        "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+        "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000,
+    },
+    "de": {
+        "null": 0, "eins": 1, "ein": 1, "eine": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5,
+        "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12,
+        "zwanzig": 20, "dreißig": 30, "vierzig": 40, "fünfzig": 50, "sechzig": 60,
+        "siebzig": 70, "achtzig": 80, "neunzig": 90, "hundert": 100, "tausend": 1000,
+    },
+    "fr": {
+        "zéro": 0, "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6,
+        "sept": 7, "huit": 8, "neuf": 9, "dix": 10, "onze": 11, "douze": 12, "treize": 13,
+        "quatorze": 14, "quinze": 15, "seize": 16, "vingt": 20, "trente": 30, "quarante": 40,
+        "cinquante": 50, "soixante": 60, "cent": 100, "mille": 1000,
+    },
+    "es": {
+        "cero": 0, "uno": 1, "un": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+        "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "once": 11, "doce": 12,
+        "trece": 13, "catorce": 14, "quince": 15, "veinte": 20, "treinta": 30, "cuarenta": 40,
+        "cincuenta": 50, "sesenta": 60, "cien": 100, "ciento": 100, "mil": 1000,
+    },
 }
+
+#: Ordinals the target language writes as words instead of a digit with a suffix. IRS Publication
+#: 505's "by the 1st day of the 3rd month" comes back as "ayın ... günü" or "üçüncü ayın", and the
+#: "1st" no longer reads as a digit - reported as a lost number, three times over, on a document
+#: whose numbers are the content.
+#:
+#: Only the target's own ordinal for the same value counts, and only for values where the word is
+#: unambiguous. Turkish "ilk" is left out on purpose: it means "first" and it also means "initial",
+#: and counting it would hide a digit that really went missing.
+_ORDINAL_WORDS: dict[str, dict[str, int]] = {
+    "tr": {
+        "birinci": 1, "ikinci": 2, "üçüncü": 3, "dördüncü": 4, "beşinci": 5, "altıncı": 6,
+        "yedinci": 7, "sekizinci": 8, "dokuzuncu": 9, "onuncu": 10,
+    },
+    "en": {
+        "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7,
+        "eighth": 8, "ninth": 9, "tenth": 10,
+    },
+    "de": {
+        "erste": 1, "erstes": 1, "ersten": 1, "zweite": 2, "dritte": 3, "vierte": 4, "fünfte": 5,
+        "sechste": 6, "siebte": 7, "achte": 8, "neunte": 9, "zehnte": 10,
+    },
+    "fr": {
+        "premier": 1, "première": 1, "deuxième": 2, "troisième": 3, "quatrième": 4, "cinquième": 5,
+        "sixième": 6, "septième": 7, "huitième": 8, "neuvième": 9, "dixième": 10,
+    },
+    "es": {
+        "primero": 1, "primera": 1, "segundo": 2, "segunda": 2, "tercero": 3, "tercera": 3,
+        "cuarto": 4, "quinto": 5, "sexto": 6, "séptimo": 7, "octavo": 8, "noveno": 9, "décimo": 10,
+    },
+}
+
+#: A fraction the target writes as one glyph. "1/2" comes back as "½", and the checker that counts
+#: digits then reports the 1 and the 2 as lost on a translation that is exact. Both sides are
+#: expanded, so a source that uses the glyph and a reply that spells it out also match.
+_VULGAR_FRACTIONS: dict[str, str] = {
+    "½": "12", "⅓": "13", "⅔": "23", "¼": "14", "¾": "34", "⅕": "15", "⅖": "25", "⅗": "35",
+    "⅘": "45", "⅙": "16", "⅚": "56", "⅛": "18", "⅜": "38", "⅝": "58", "⅞": "78",
+}
+
+
+def _digit_groups(text: str) -> Counter[str]:
+    """Every number a piece of text states, as the digit groups it would be written with."""
+    stripped = _MARKER.sub("", text)
+    found = Counter(_DIGITS.findall(stripped))
+    for glyph, digits in _VULGAR_FRACTIONS.items():
+        count = stripped.count(glyph)
+        if count:
+            for digit in digits:
+                found[digit] += count
+    return found
+
+_LETTER_RUN = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def spelled_numbers(text: str, target_lang: str) -> Counter[str]:
+    """The values a reply writes out in words, counted as the digit groups the source would use.
+
+    "on iki" -> {"12": 1}, so a source "12" is found present, and "üçüncü" -> {"3": 1} for a source
+    "3rd". A language with no number words here contributes nothing rather than guessing.
+    """
+    language = target_lang.split("-")[0].casefold() if target_lang else ""
+    words = {**_NUMBER_WORDS.get(language, {}), **_ORDINAL_WORDS.get(language, {})}
+    if not words:
+        return Counter()
+    found: Counter[str] = Counter()
+    total = 0
+    current = 0
+    seen = False
+
+    def flush() -> None:
+        nonlocal total, current, seen
+        if seen:
+            found[str(total + current)] += 1
+        total = current = 0
+        seen = False
+
+    for token in _LETTER_RUN.findall(_MARKER.sub("", text).casefold()):
+        value = words.get(token)
+        if value is None:
+            flush()
+            continue
+        seen = True
+        if value == 100:
+            current = (current or 1) * 100
+        elif value == 1000:
+            total += (current or 1) * 1000
+            current = 0
+        else:
+            current += value
+    flush()
+    return found
 
 
 def drops_numbers(source: str, reply: str, target_lang: str = "") -> bool:
@@ -111,15 +239,17 @@ def drops_numbers(source: str, reply: str, target_lang: str = "") -> bool:
     A section number, a page reference or a value is content, and the model can lose one without
     anything else looking wrong - NIST's contents came back as "Program Politikasinin Temel
     Bilesenleri .... 27" for "5.2.1 Basic Components of Program Policy .... 27". Compared as digit
-    groups, so a decimal the target language writes with a comma ("3,14" for "3.14") still matches.
+    groups, so a decimal the target language writes with a comma ("3,14" for "3.14") still matches,
+    a fraction it writes as one glyph ("½" for "1/2") still matches, and a value it spells out
+    ("yirmi" for "20", "üçüncü" for "3rd") counts as present.
+
+    A limit worth stating: a target language whose number word doubles as an article ("bir", one)
+    is counted as the number it also is, so that value can hide a genuinely lost digit. The check
+    is a report, not a gate - the fitting pass keeps the source when a segment's numbers came back
+    wrong, and a human reads what is flagged.
     """
-    have = Counter(_DIGITS.findall(_MARKER.sub("", reply)))
-    words = _NUMBER_WORDS.get(target_lang.split("-")[0].casefold()) if target_lang else None
-    if words:
-        tokens = Counter(re.findall(r"[^\W\d_]+", reply.casefold()))
-        for value, word in enumerate(words):
-            have[str(value)] += tokens[word]
-    need = Counter(_DIGITS.findall(_MARKER.sub("", source)))
+    have = _digit_groups(reply) + spelled_numbers(reply, target_lang)
+    need = _digit_groups(source)
     return any(have[digits] < count for digits, count in need.items())
 
 
@@ -178,9 +308,6 @@ def wrong_language(reply: str, target_lang: str) -> str | None:
         if len(set(hits)) >= 2 and share >= _LANGUAGE_SHARE and share > best_share:
             best, best_share = lang, share
     return best
-
-
-_LETTER_RUN = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
 def _script(letter: str) -> str:

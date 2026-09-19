@@ -39,6 +39,7 @@ from layoutkeep.ocr.engine import TextBox
 from layoutkeep.ocr.layout_detector import LABEL_TO_ROLE, LayoutDetector, resolve_duplicates
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
+from layoutkeep.readers._nonprose import is_code_like, is_formula_like
 from layoutkeep.readers._segment import segment
 from layoutkeep.readers.image_reader import (
     expected_characters,
@@ -194,9 +195,18 @@ def _read_page(
         )
         # Code is set in a monospaced face; a block entirely in one is code, and translating it
         # changes the program the document prints (Think Python came back with the strings inside
-        # print() calls translated).
-        if block.role in (BlockRole.BODY, BlockRole.LIST) and _all_monospace(block):
+        # print() calls translated). A PDF does not always say so - a LaTeX paper's verbatim
+        # fragments are set in an ordinary face - so the text's own shape is asked as well
+        # (`_nonprose.is_code_like`), which is what catches arXiv's "trim_offsets=True,
+        # use_regex=True)": code the retry ladder could only ever be answered with.
+        if block.role in (BlockRole.BODY, BlockRole.LIST, BlockRole.TABLE) and (
+            _all_monospace(block) or is_code_like(block.text)
+        ):
             block.role = BlockRole.CODE
+        elif block.role in (BlockRole.BODY, BlockRole.LIST) and is_formula_like(block.text):
+            # An equation in an ordinary face: `_looks_like_math` judges equations by their faces,
+            # and a paper sets some of them in the body font.
+            block.role = BlockRole.FORMULA
 
     order = _reading_order(blocks, width, height)
     for block, position in zip(blocks, order, strict=True):
@@ -775,12 +785,96 @@ def _x_overlap_ratio(a: BBox, b: BBox) -> float:
     return overlap / narrower if narrower > 0 else 0.0
 
 
+def _hyphen_parents(lines: list[Line]) -> dict[int, Line]:
+    """For each line that continues the one above it across a line break, that line.
+
+    Keyed by `id(line)` - lines are not hashable and `Line` compares by value, which two blank
+    lines of a table would satisfy.
+
+    The test is the one the hyphen join is refused on: the line above ends in a hyphen after a
+    letter and this one starts lowercase. Where the join *did* run there is nothing left to pair -
+    the fragment already moved up - so this only ever fires on the breaks the join leaves alone,
+    a URL or a path whose hyphen is part of the text.
+    """
+    parents: dict[int, Line] = {}
+    ordered = sorted(lines, key=lambda ln: ln.bbox.y0)
+    for index, line in enumerate(ordered[1:], start=1):
+        above = ordered[index - 1]
+        text = above.text
+        if len(text) < 2 or text[-1] not in "-­‐‑" or not text[-2].isalpha():
+            continue
+        if not line.text or not line.text[0].islower():
+            continue
+        parents[id(line)] = above
+    return parents
+
+
+def _cell_groups(lines: list[Line]) -> list[list[Line]]:
+    """Group one block's lines into columns: each group is one cell of the row, or one item.
+
+    Two lines are in the same group when they overlap horizontally (same cell, wrapped onto the
+    next row) or when one of them continues the other across a line break - a hyphen at the end of
+    one and a lowercase start on the next (`_hyphen_parents`). A continuation may be seen before
+    the line it continues, because lines are walked left to right; it then waits for that line and
+    joins its group, and no unrelated line joins a group that is waiting.
+    """
+    parents = _hyphen_parents(lines)
+    groups: list[list[Line]] = []
+    waiting: dict[int, list[Line]] = {}  # id(line) -> lines that continue it
+
+    def place(line: Line, group: list[Line]) -> None:
+        group.append(line)
+        for follower in waiting.pop(id(line), ()):
+            place(follower, group)
+
+    def placed(line: Line) -> bool:
+        return any(other is line for group in groups for other in group)
+
+    for line in sorted(lines, key=lambda ln: ln.bbox.x0):
+        if placed(line):
+            continue  # came in as a continuation of a line before it
+        parent = parents.get(id(line))
+        if parent is not None and not any(other is line for group in waiting.values() for other in group):
+            waiting.setdefault(id(parent), []).append(line)
+            continue  # it joins the line it continues, when that line comes round
+        group = None
+        for candidate in groups:
+            if parent is not None:
+                if any(other is parent for other in candidate):
+                    group = candidate
+                    break
+            elif any(
+                _x_overlap_ratio(line.bbox, other.bbox) >= tunables.get(_CELL_OVERLAP_KEY)
+                for other in candidate
+            ):
+                group = candidate
+                break
+        if group is None:
+            group = []
+            groups.append(group)
+        place(line, group)
+    groups.extend(waiting.values())  # a line whose continuation never came round
+    return groups
+
+
 def _split_side_by_side_lines(blocks: list[Block]) -> list[Block]:
     """Split a block whose lines sit beside each other into one block per cell.
 
     MuPDF groups by proximity, so a table's header row - three short lines on one baseline -
     arrives as a single block. Read as a paragraph it becomes "Plate Cycles Deflection", and
     the translation of all three is written into the first cell's box.
+
+    A line that continues the one above it across a line break is not a cell of its own, and is
+    not a cell of anything else either: arXiv 2507.03009's footer holds a footnote and a URL set
+    around it, and the URL's second row - `reference/chat/create`, whose hyphen the join above
+    refused because a URL's hyphen is part of the link - overlaps the footnote's column, so it was
+    grouped with the footnote and translated as `1See: reference/chat/create`. A line beginning
+    lowercase under a line ending in a hyphen belongs to that line, whatever the columns say.
+
+    Lines are walked left to right, as they always were - a note's marker and the text beside it
+    belong together, and reading order split `Note.` off the note body it belongs to. A
+    continuation seen before the line it continues waits for it and joins its group when the line
+    above comes round; no unrelated line joins a group that is waiting.
     """
     out: list[Block] = []
     for block in blocks:
@@ -788,15 +882,7 @@ def _split_side_by_side_lines(blocks: list[Block]) -> list[Block]:
             out.append(block)
             continue
 
-        groups: list[list[Line]] = []
-        for line in sorted(block.lines, key=lambda ln: ln.bbox.x0):
-            for group in groups:
-                if any(_x_overlap_ratio(line.bbox, other.bbox) >= tunables.get(_CELL_OVERLAP_KEY)
-                       for other in group):
-                    group.append(line)
-                    break
-            else:
-                groups.append([line])
+        groups = _cell_groups(block.lines)
 
         if len(groups) < 2:
             out.append(block)

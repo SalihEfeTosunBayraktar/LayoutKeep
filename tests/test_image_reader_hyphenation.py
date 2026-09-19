@@ -88,3 +88,53 @@ def test_a_second_line_that_was_only_the_fragment_leaves_its_box_behind() -> Non
     join_hyphenation(lines)
     assert _texts(lines) == ["the corresponding"]
     assert lines[0].bbox.y1 == 351
+
+
+def test_a_url_is_not_a_split_word() -> None:
+    """A hyphen inside a URL belongs to the link, not to a line break.
+
+    arXiv 2507.03009's footer, read row by row:
+
+        https://platform.openai.com/docs/api-
+        reference/chat/create
+
+    joined into `.../docs/apireference/chat/create` - the hyphen gone - and fusing two rows into
+    one line 2.4x the width of either, which then ran over the footnote beside it.
+    """
+    lines = [_line("https://platform.openai.com/docs/api-"), _line("reference/chat/create")]
+    join_hyphenation(lines)
+    assert _texts(lines) == ["https://platform.openai.com/docs/api-", "reference/chat/create"]
+
+
+def test_a_continuation_to_the_right_is_not_a_split_word() -> None:
+    """A continuation starts at the line above's left edge or further left, never to its right.
+
+    The margin case must stay allowed: `(Von Gizy-` ending at the right of a column is continued
+    by `cki; Montgomery).` at the left margin, and the two boxes share no width at all. A line
+    beginning to the *right* of the one above it is in the column beside it, not under it.
+    """
+    above = Line(
+        spans=[Span(text="see also namespace-", bbox=BBox(70, 756, 200, 765), style=Style())],
+        bbox=BBox(70, 756, 200, 765),
+    )
+    below = Line(
+        spans=[Span(text="els in Kubernetes", bbox=BBox(240, 766, 380, 775), style=Style())],
+        bbox=BBox(240, 766, 380, 775),
+    )
+    join_hyphenation([above, below])
+    assert _texts([above, below]) == ["see also namespace-", "els in Kubernetes"]
+
+
+def test_a_continuation_at_the_margin_is_still_joined() -> None:
+    """A short last line shares no width with the line above it, and is still the same paragraph."""
+    above = Line(
+        spans=[Span(text="(Von Gizy-", bbox=BBox(238.9, 466.4, 300.0, 477.0), style=Style())],
+        bbox=BBox(238.9, 466.4, 300.0, 477.0),
+    )
+    below = Line(
+        spans=[Span(text="cki; Montgomery).", bbox=BBox(70.9, 479.9, 170.0, 490.5), style=Style())],
+        bbox=BBox(70.9, 479.9, 170.0, 490.5),
+    )
+    join_hyphenation([above, below])
+    assert _texts([above, below]) == ["(Von Gizycki;", "Montgomery)."]
+

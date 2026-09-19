@@ -8,6 +8,8 @@ back the other way would close the loop.
 
 from __future__ import annotations
 
+import re
+
 from layoutkeep.core.docir import BBox, Line, Span
 
 
@@ -84,12 +86,38 @@ def _alignment_from_lines(boxes: list[BBox], page_width: float) -> str:
 #: hyphen-minus, soft hyphen, and the two Unicode hyphens.
 _HYPHENS = "-­‐‑"
 
+#: A word that may legitimately be split across a line break: letters only, hyphen at the end.
+#: A token carrying a slash, a colon, a dot or a digit is a URL, a path or an identifier, where
+#: the hyphen belongs to the text: `.../docs/api-` + `reference/chat/create` joined into
+#: `.../docs/apireference/chat/create` on arXiv 2507.03009, eating a hyphen that was part of the
+#: link, and fusing two rows into one line 2.4x the width of either - which then ran over the
+#: footnote beside it (L7, a page that had no overlap came back with one).
+_WORD_FRAGMENT = re.compile(r"[^\W\d_]+-", re.UNICODE)
+
+
+def _continues_the_column(above, below) -> bool:
+    """Does `below` continue the column `above` was set in?
+
+    A hyphenated continuation begins at the same left edge, or further left where the paragraph's
+    next line starts at the margin - so `below` may start left of `above`, but not to its right,
+    which would put it in another column beside it.
+
+    An overlap of the two boxes is *not* required. A paragraph's last line is short: `(Von Gizy-`
+    ending at the right of a column is continued by `cki; Montgomery).` at the left margin, and
+    the two boxes share no width at all. Requiring it split a name in two on arXiv 2507.03009
+    (`fresh_pdfmt` chunk_0000).
+    """
+    if above is None or below is None:
+        return True  # nothing measured: let the other guards decide
+    return below.x0 <= above.x0 + 2.0
+
 
 def join_hyphenation(lines: list[Line]) -> None:
     """Merge `hyphen-` + `ation` at a line break into `hyphenation`, in place.
 
     Only applies when the break looks like a genuine word split: the line ends in a hyphen
-    directly after a letter, and the next line starts with a lowercase letter.
+    directly after a letter, the token ending in that hyphen is a word rather than a URL, path or
+    identifier, the next line starts with a lowercase letter, and it continues the same column.
     """
     i = 0
     while i < len(lines) - 1:
@@ -102,10 +130,16 @@ def join_hyphenation(lines: list[Line]) -> None:
         if len(tail) < 2 or tail[-1] not in _HYPHENS or not tail[-2].isalpha():
             i += 1
             continue
+        if not _WORD_FRAGMENT.fullmatch(tail.split()[-1]):
+            i += 1
+            continue  # a URL, a path or an identifier: the hyphen is part of the text
         next_spans = lines[i + 1].spans
         if not next_spans or not next_spans[0].text or not next_spans[0].text[0].islower():
             i += 1
             continue
+        if not _continues_the_column(lines[i].bbox, lines[i + 1].bbox):
+            i += 1
+            continue  # a continuation starts where the line above started, not in another column
         # Only the word fragment moves up. Folding the whole next line into this one - which
         # this did - left the merged line with its one-line box, so the block's box stopped a
         # line short and the writer never painted out the source line under it (book pages 28

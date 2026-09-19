@@ -13,6 +13,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
+from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     apply_segments,
@@ -72,7 +73,12 @@ def _build_provider(args: argparse.Namespace):
     Protection goes outermost so the memory stores the tokenised form. That is deliberate:
     "Tighten the bolts to 63 Nm" and "...to 150 Nm" tokenise to the same string, so one cached
     translation serves both and each restores its own value from its own source.
+
+    Inside it, repeated text is shared between its occurrences (`providers/dedupe.py`), so a form
+    whose header repeats on every page is translated once and reads the same on every page.
     """
+    from layoutkeep.providers.dedupe import DedupeProvider
+
     if args.provider == "fake":
         from layoutkeep.providers.fake import FakeProvider
 
@@ -99,13 +105,41 @@ def _build_provider(args: argparse.Namespace):
     from layoutkeep.providers.protected import ProtectedProvider
 
     if not args.memory:
-        return ProtectedProvider(provider), None
+        return ProtectedProvider(DedupeProvider(provider, enabled=_reuse_repeats(args))), None
 
     from layoutkeep.providers.cached import CachedProvider
     from layoutkeep.providers.memory import TranslationMemory
 
     memory = TranslationMemory(args.memory)
-    return ProtectedProvider(CachedProvider(provider, memory, model_id)), memory
+    return (
+        ProtectedProvider(
+            CachedProvider(DedupeProvider(provider, enabled=_reuse_repeats(args)), memory, model_id)
+        ),
+        memory,
+    )
+
+
+def _reuse_repeats(args: argparse.Namespace) -> bool:
+    """Whether text this document repeats is translated once (`providers/dedupe.py`).
+
+    Inside the protection wrapper, so the shared text is the tokenised text: two lines differing
+    only in the numbers they state are one request, and each restores its own values.
+    """
+    if getattr(args, "no_repeats", False):
+        return False
+    return bool(tunables.get("translation.reuse_repeats"))
+
+
+def _dedupe_stats(provider: object) -> dict[str, int]:
+    """What the repeat-sharing wrapper did, wherever it sits in the provider chain."""
+    seen: set[int] = set()
+    while provider is not None and id(provider) not in seen:
+        seen.add(id(provider))
+        totals = getattr(provider, "totals", None)
+        if isinstance(totals, dict) and "saved" in totals:
+            return {"saved": int(totals["saved"]), "shared": int(totals.get("shared", 0))}
+        provider = getattr(provider, "inner", None)
+    return {"saved": 0, "shared": 0}
 
 
 # --------------------------------------------------------------------------------------
@@ -310,6 +344,27 @@ def cmd_translate(args: argparse.Namespace) -> int:
     )
     if recovered:
         print(f"retry     {recovered} segments recovered on a second attempt")
+
+    # One source text, one translation across the document (core/repeats.py). The provider shares
+    # repeated text between its occurrences, so most of this is already true by the time we get
+    # here; what it catches came from a memory entry, a resumed run or a repair round.
+    from layoutkeep.core.repeats import unify_repeats
+
+    unified = unify_repeats(translated, args.to_lang)
+    if unified["rewritten"]:
+        print(
+            f"repeats   {unified['rewritten']} segment(s) reworded to match the same source "
+            f"translated elsewhere ({unified['groups']} text(s) disagreed)"
+        )
+        for source, kept in unified["examples"]:
+            print(f"          {source!r} -> {kept!r}")
+
+    shared = _dedupe_stats(provider)
+    if shared["saved"]:
+        print(
+            f"shared    {shared['saved']} repeated segment(s) answered from their first "
+            f"occurrence instead of being sent again"
+        )
 
     handed_back = flag_passthrough(translated)
     if handed_back:
@@ -520,6 +575,13 @@ def build_parser() -> argparse.ArgumentParser:
                     help="pin the per-request timeout. Omit it and the timeout adapts: a large "
                          "allowance while a cold model loads, then the throughput measured from "
                          "the first batch")
+    tr.add_argument(
+        "--no-repeats",
+        dest="no_repeats",
+        action="store_true",
+        help="translate every occurrence of repeated text instead of sharing one translation "
+             "between them (see providers/dedupe.py; the sharing is on by default)",
+    )
     tr.add_argument(
         "--classify-layout",
         metavar="MODEL",

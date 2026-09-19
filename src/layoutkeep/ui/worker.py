@@ -102,16 +102,17 @@ def _build_provider(config: JobConfig):
         )
         model_id = f"{config.provider.base_url}:{config.provider.model}"
 
+    from layoutkeep.providers.dedupe import DedupeProvider
     from layoutkeep.providers.protected import ProtectedProvider
 
     if not config.memory_path:
-        return ProtectedProvider(provider), None
+        return ProtectedProvider(DedupeProvider(provider)), None
 
     from layoutkeep.providers.cached import CachedProvider
     from layoutkeep.providers.memory import TranslationMemory
 
     memory = TranslationMemory(config.memory_path)
-    return ProtectedProvider(CachedProvider(provider, memory, model_id)), memory
+    return ProtectedProvider(CachedProvider(DedupeProvider(provider), memory, model_id)), memory
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +431,17 @@ class TranslationWorker(QThread):
 
         flag_passthrough(translated)
         flag_untranslated(translated)
+
+        # One source text, one translation across the document (core/repeats.py): the provider
+        # already shares repeated text, and this makes agree what a memory entry, an earlier run
+        # or a repair round left worded differently.
+        from layoutkeep.core.repeats import unify_repeats
+
+        unified = unify_repeats(translated, config.target_lang)
+        if unified["rewritten"]:
+            self.status.emit(
+                f"{unified['rewritten']} tekrarlanan segment aynı kaynak için tek çeviriye getirildi"
+            )
 
         # PDF: translated text must fit its original boxes, exactly like the CLI fits it
         # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).
