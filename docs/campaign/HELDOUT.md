@@ -16,3 +16,4 @@ The application as a user runs it: layout model on, verification on (`--verify-r
 | arxiv_19145_v2 | aff28d6 | 20 | 489 | 0 | L2 7, L6 3, L7 6, L8 6 | 0 / 7 / 0 / 0 / 0 / 3 / 6 / 6 / 0 | 299 | no | 74.5 |
 | cookbook_1907 | a0f1a21 | 35 | 444 | 0 | L2 1, L6 1 | 0 / 1 / 0 / 0 / 0 / 1 / 0 / 0 / 0 | 129 | no | 15.0 |
 | mushrooms_1895_sample | 360fad5 | 41 | 264 | 0 | L2 1 | 0 / 1 / 0 / 0 / 0 / 0 / 0 / 0 / 0 | 34 | no | 8.4 |
+| irs_i1040gi | 2f0f94e | 32 | 737 | 0 | L2 1, L6 6, L8 3 | 0 / 1 / 0 / 0 / 0 / 6 / 0 / 3 / 0 | 209 | no | 35.5 |

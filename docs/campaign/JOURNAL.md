@@ -1226,3 +1226,24 @@ Finished 41 chunks and merged into `mushrooms_1895_sample.tr.pdf` (41 pages) in 
 - **D1 (readability floor)**: 34 blocks
 - **D2 (botanical names kept as-is)**: 11 blocks (e.g. *Agaricus campestris*, *Amanita muscaria*)
 - **D3 (squeezed lines)**: 0
+
+## 2026-09-19 - held-out result: IRS 1040 Instructions completed with 7 parallel workers
+
+IRS Form 1040 Instructions (*2025 Form 1040 Instructions*, 32 pages, 737 translatable blocks, commit `2f0f94e`):
+Finished 32 chunks and merged into `irs_i1040gi.tr.pdf` (32 pages) in **35.5 minutes** of parallel wall time.
+
+**Loss Audit Results (737 blocks across 32 pages):**
+- **L1**: 0 (all 32 pages present and merged)
+- **L2**: 1 (one married filing jointly threshold line left untranslated)
+- **L3**: 0
+- **L4**: 0
+- **L5**: 0
+- **L6**: 6 (numbers altered in complex tax worksheets/tables)
+- **L7**: 0
+- **L8**: 3 (untouched text moved due to table column flow)
+- **L9**: 0
+- **D1 (readability floor)**: 209 blocks
+- **D2 (short phrases/caution headings kept)**: 3 blocks
+- **D3 (squeezed lines)**: 0
+
+With this run, **every held-out source in the entire test suite has finished, been measured, and been audited**.
