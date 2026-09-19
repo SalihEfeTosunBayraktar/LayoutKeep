@@ -11,7 +11,7 @@ for item in "$@"; do
   work="$ROOT/$name"; mkdir -p "$work"
   echo "[$(date '+%F %T')] START $name ($src)" | tee -a "$ROOT/campaign.log"
   $PY tools/audit/translate_book.py "$src" --out "$work/$name.tr.pdf" --work "$work" \
-      --model google/gemma-4-e4b --workers 8 --pages-per-chunk 1 --layout-detector --resume \
+      --model google/gemma-4-e4b --workers 7 --pages-per-chunk 1 --layout-detector --resume \
       > "$work/run.log" 2>&1
   tail -n 1 "$work/run.log" | tee -a "$ROOT/campaign.log"
   $PY tools/audit/lossless_audit.py --work "$work" --json "$work/audit.json" 2>&1 \

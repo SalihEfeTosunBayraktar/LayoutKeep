@@ -20,6 +20,9 @@ from layoutkeep.writers.epub_writer import write_epub
 
 _INTERESTING = ("segments", "fitting", "review", "wrote", "error", "Error", "Traceback", "references")
 
+#: LM Studio 7 paralel slot kapasitesine uygun varsayılan işçi sayısı / Default worker count matching LM Studio's 7 parallel slots
+DEFAULT_WORKERS = 7
+
 
 def split_epub_chapters(src: Path, work: Path, chapters_per_chunk: int) -> list[tuple[int, Path]]:
     # EPUB sayfalarını/bölümlerini bağımsız parçalara böler / Splits EPUB pages/chapters into chunks
@@ -118,7 +121,18 @@ def main() -> int:
     parser.add_argument("--model", required=True, help="LLM model identifier")
     # Windows IPv6 gecikmesini önlemek için 127.0.0.1 / Use 127.0.0.1 to avoid Windows IPv6 SynSent timeout
     parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1", help="API base URL")
-    parser.add_argument("--workers", type=int, default=4, help="concurrent worker count")
+    try:
+        from layoutkeep.core import tunables
+        configured_workers = int(tunables.get("translation.workers", DEFAULT_WORKERS))
+    except (ImportError, KeyError, ValueError, TypeError):
+        configured_workers = DEFAULT_WORKERS
+
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=configured_workers,
+        help=f"concurrent worker count (default: {configured_workers})",
+    )
     parser.add_argument("--chapters-per-chunk", type=int, default=4, help="chapters per chunk")
     parser.add_argument("--timeout", type=float, default=0.0, help="per request timeout")
     parser.add_argument("--limit-chunks", type=int, default=0, help="stop after N chunks")

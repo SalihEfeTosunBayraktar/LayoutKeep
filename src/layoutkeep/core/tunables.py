@@ -55,6 +55,18 @@ class Tunable:
 TUNABLES: tuple[Tunable, ...] = (
     # -- basic -------------------------------------------------------------
     Tunable(
+        key="translation.workers",
+        label="Paralel çeviri iş parçacığı (LM Studio yuva sayısı)",
+        default=7,
+        kind="int",
+        minimum=1,
+        maximum=32,
+        help_text=(
+            "LM Studio veya yerel sunucunun paralel istek (slot) kapasitesine göre "
+            "aynı anda çalıştırılacak eşzamanlı çeviri işçisi sayısı."
+        ),
+    ),
+    Tunable(
         key="batch.chunk_size",
         label="Parti boyutu (iptal/duraklat aralığı)",
         default=20,

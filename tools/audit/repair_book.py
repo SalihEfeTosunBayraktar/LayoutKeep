@@ -48,7 +48,7 @@ def main() -> int:
                 (args.work / "out" / f"t_{index}{suffix}").unlink(missing_ok=True)
         subprocess.run(
             [PY, "tools/audit/translate_book.py", str(args.source), "--out", str(args.work / f"{name}.tr.pdf"),
-             "--work", str(args.work), "--model", "google/gemma-4-e4b", "--workers", "8",
+             "--work", str(args.work), "--model", "google/gemma-4-e4b", "--workers", "7",
              "--pages-per-chunk", "1", "--layout-detector", "--resume"],
             check=False,
         )
