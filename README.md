@@ -94,6 +94,13 @@ inside it), rebuilt from the current output by
 comparison of something the pipeline no longer does. The file itself is
 [`docs/comparison.html`](docs/comparison.html) if you would rather open it from a clone.
 
+**[And the wider comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — the same draggable divider, now over **every held-out sample** (arXiv papers, IRS forms,
+NASA scans, Wikipedia, Gutenberg cookbooks, the most recent live run, and the first chunks of a
+220-page statistics textbook as they are translated): one button per document, one per page, and a
+zoom (Ctrl + wheel, `+` / `−`, *fit*) for reading the fine print. Built by
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) from the recorded runs, at
+144 dpi WebP so the zoom is worth having.
+
 Translation is under a fifth of the wall clock. **Fitting the translation back into boxes that
 were set for English is the expensive part** — it is where a language that runs longer than the
 source gets paid for, and where those 37 review flags come from. Writing the PDF is cheap here but

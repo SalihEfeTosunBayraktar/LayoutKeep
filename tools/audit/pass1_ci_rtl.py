@@ -1,6 +1,7 @@
 """Geçiş 1 kontrol: (1) OCR/DOCX testleri CI extra'ları yoksa koşmaz; (2) RTL dil + font zinciri."""
 import os
 import sys
+from pathlib import Path
 from _common import setup
 
 setup()
@@ -15,7 +16,7 @@ r = subprocess.run(
     [sys.executable, "-m", "pytest", "tests/test_ocr_engine.py", "tests/test_docx_reader.py",
      "tests/test_inpaint.py", "--collect-only", "-q"],
     capture_output=True, text=True, timeout=120,
-    cwd=r"C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep",
+    cwd=str(Path(__file__).resolve().parents[2]),  # proje kökü: betiğin kendi yeri
     env={**os.environ, "PYTHONPATH": "src"},
 )
 lines = r.stdout.strip().splitlines()
