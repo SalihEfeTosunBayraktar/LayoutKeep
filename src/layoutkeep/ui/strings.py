@@ -7,6 +7,7 @@ from __future__ import annotations
 
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     "tr": {
+        "WELCOME_SHOW": "Karşılamayı göster",
         "FLOAT_FOLD": "Küçült (sayfanın önünden çekil)",
         "FLOAT_EXPAND": "Geri büyüt",
         "STATUS_VERIFYING": "Çıktı doğrulanıyor…",
@@ -137,6 +138,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Eksik Bilgi",
     },
     "en": {
+        "WELCOME_SHOW": "Show the welcome screen",
         "FLOAT_FOLD": "Fold away",
         "FLOAT_EXPAND": "Expand",
         "STATUS_VERIFYING": "Verifying the output…",
@@ -267,6 +269,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Incomplete Information",
     },
     "de": {
+        "WELCOME_SHOW": "Begrüßung anzeigen",
         "FLOAT_FOLD": "Einklappen",
         "FLOAT_EXPAND": "Ausklappen",
         "STATUS_VERIFYING": "Ausgabe wird geprüft…",

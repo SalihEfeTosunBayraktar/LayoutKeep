@@ -58,6 +58,8 @@ def _editor_for(spec: tunables.Tunable) -> QSpinBox | QDoubleSpinBox:
 
 
 class TweaksDialog(QDialog):
+    #: "Show the welcome screen": it is dismissed for good on a first run.
+    welcome_requested = Signal()
     """Edits tunables. `applied` fires whenever values change, so the app can refresh."""
 
     applied = Signal()
@@ -82,9 +84,13 @@ class TweaksDialog(QDialog):
 
         self._reset_btn = QPushButton(UIStrings.TWEAKS_RESET)
         self._reset_btn.clicked.connect(self._reset_all)
+        # The welcome screen is dismissed for good on a first run, so this is the way back to it.
+        self._welcome_btn = QPushButton(UIStrings.WELCOME_SHOW)
+        self._welcome_btn.clicked.connect(self.welcome_requested.emit)
 
         bottom = QHBoxLayout()
         bottom.addWidget(self._reset_btn)
+        bottom.addWidget(self._welcome_btn)
         bottom.addStretch()
         bottom.addWidget(buttons)
 

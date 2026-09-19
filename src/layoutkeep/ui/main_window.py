@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
@@ -23,6 +23,7 @@ from layoutkeep.ui.progress import ProgressWidget
 from layoutkeep.ui.settings import app_settings
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
+from layoutkeep.ui.welcome import WelcomeDialog
 from layoutkeep.ui.worker import TranslationWorker
 
 
@@ -49,6 +50,8 @@ class MainWindow(QWidget):
         self._wire_signals()
         self._restore_theme()
         self._restore_ui_language()
+        # After the window is on screen, so the introduction is not the first thing Qt paints.
+        QTimer.singleShot(0, self._maybe_show_welcome)
 
     def _init_subwidgets(self) -> None:
         # Alt bileşenleri oluşturur / Instantiates subwidgets
@@ -227,11 +230,26 @@ class MainWindow(QWidget):
         self._stack.setCurrentWidget(self._completion)
         self._header.set_active_step(3)
 
+    def _maybe_show_welcome(self) -> None:
+        """First run only: the introduction, unless it has already been dismissed."""
+        if bool(self._settings.value("welcome_shown", False, type=bool)):
+            return
+        self.show_welcome()
+
+    def show_welcome(self) -> None:
+        """Open the introduction and let its language and theme choices reach the application."""
+        dialog = WelcomeDialog(self)
+        dialog.language_changed.connect(self._on_ui_language_changed)
+        dialog.theme_changed.connect(self._on_theme_changed)
+        dialog.exec()
+
     def _open_tweaks(self) -> None:
         # Gelişmiş ayarlar penceresini açar / Opens the advanced settings dialog
         from layoutkeep.ui.tweaks_dialog import TweaksDialog
 
-        TweaksDialog(self).exec()
+        dialog = TweaksDialog(self)
+        dialog.welcome_requested.connect(self.show_welcome)
+        dialog.exec()
 
     def _return_to_setup(self) -> None:
         # Tamamlandı ekranından ilk adıma döner / Returns to step 1 after completion
