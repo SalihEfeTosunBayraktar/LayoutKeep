@@ -170,8 +170,12 @@ def _campaign_documents() -> list[Document]:
     return documents
 
 
-def _live_documents(runs: int = 2, per_run: int = 4) -> list[Document]:
-    """The newest live runs: the freshest code, run against a real model, chunk by chunk."""
+def _live_documents(runs: int = 8, per_run: int = 4) -> list[Document]:
+    """The newest live runs: the freshest code, run against a real model, chunk by chunk.
+
+    Eight rather than two: re-running a document after a fix lands should put *that* document's
+    new pages on the site, and a handful of re-runs is exactly what a fix produces.
+    """
     documents: list[Document] = []
     newest = sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)[-runs:]
     head = _head_commit()
