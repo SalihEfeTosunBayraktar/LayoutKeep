@@ -64,9 +64,14 @@ they were. The source document and the translated output are in
 |---|---|---|
 | ![Setup screen](docs/screenshots/01_setup_light.png) | ![Progress screen](docs/screenshots/02_progress_light.png) | ![Provider settings](docs/screenshots/06_provider_settings_light.png) |
 
+| First run explains itself | Follow a long run without the window | The same bar when it finishes |
+|---|---|---|
+| ![Welcome screen](docs/screenshots/07_welcome_first_light.png) | ![Floating progress bar](docs/screenshots/08_floating_bar_dark.png) | ![Floating progress bar, finished](docs/screenshots/08_floating_bar_done_dark.png) |
+
 The interface is English by default and ships Turkish and German; the choice is in the header
-and is remembered. Every screen has a dark variant — the shots are in
-[`docs/screenshots/`](docs/screenshots/).
+and is remembered — and the welcome screen, which explains the pipeline, the provider choice and
+what decides quality, offers both before anything else and can be skipped. Every screen has a dark
+variant — the shots are in [`docs/screenshots/`](docs/screenshots/).
 
 ## A longer example, and what it cost
 
@@ -94,12 +99,13 @@ inside it), rebuilt from the current output by
 comparison of something the pipeline no longer does. The file itself is
 [`docs/comparison.html`](docs/comparison.html) if you would rather open it from a clone.
 
-**[And the wider comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — the same draggable divider, now over **every held-out sample** (arXiv papers, IRS forms,
-NASA scans, Wikipedia, Gutenberg cookbooks, the most recent live run, and the first chunks of a
-220-page statistics textbook as they are translated): one button per document, one per page, and a
-zoom (Ctrl + wheel, `+` / `−`, *fit*) for reading the fine print. Built by
-[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) from the recorded runs, at
-144 dpi WebP so the zoom is worth having.
+**[And the wider comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — the same draggable divider over
+**every held-out sample**: arXiv papers, two IRS instruction books, a NASA scan, a PLOS article,
+two Wikipedia articles, a Gutenberg novel, two Internet Archive scans, a WPA poster and the
+newest live runs. Each document carries what the audit measured on it, so a page that lost
+something says so beside the page itself. Generated from source and output by
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) — pages are chosen evenly
+across a document, never retouched.
 
 Translation is under a fifth of the wall clock. **Fitting the translation back into boxes that
 were set for English is the expensive part** — it is where a language that runs longer than the
@@ -126,6 +132,24 @@ both the application and the command line, so they cannot disagree about what is
 
 Latin scripts (Turkish, English, German, French, Spanish, …). The data model carries a `direction`
 field so right-to-left support can be added without a rewrite, but it is not implemented.
+
+## What decides how good a translation comes out
+
+The same settings produce very different results on different documents. In order of how much they
+move the outcome, with the numbers this project has actually measured:
+
+| Factor | What it does |
+|---|---|
+| **The document's kind** | An EPUB keeps its layout in CSS and comes out at 95%+ fidelity; a digital PDF is next, because its text is exactly where the source put it; a scanned page is the fragile one — text is recognised, the old letters are painted out, and the translation is written back, so OCR sits in the loop |
+| **Scan resolution and cleanliness** | Clean 300 dpi scans read reliably. Skewed, stained or low-resolution pages lose characters in OCR, and a lost character is a lost word: cropping a page to its content area once ate a whole paragraph on a dense page (threshold-guarded now, and the case is a regression test) |
+| **The model's skill in the target language** | The biggest lever on the *text*. The bundled flow reproduces numbers, names and lists faithfully and stumbles on idioms and terms — `việt語` for "Vietnamese" was an artefact of asking for a language *code* instead of a language *name*, which is why the prompt now names the language and its script |
+| **The language pair's length behaviour** | English→Turkish measures **0.93x** on average and **0.64x–1.40x per block**. A block that comes out far shorter than its box is flagged rather than padded with invented words; one that comes out longer is asked for again in shorter form, then shrunk, then flagged |
+| **Tables and forms** | The most flagged areas, for a structural reason: a cell has room for the source's words, not for a translation that runs longer. `--fit-mode reflow` (still being measured) lets a block push the ones under it down instead of shrinking |
+| **The model server's configuration** | A local model's context window is shared across its parallel slots: `-c 8192` with 7 workers leaves ~1.2k tokens per request, and a long paragraph overflows it (the failure read as "model not found" until the error body was opened). 32768 for 7 workers is what this project runs |
+
+Nothing here is hidden from a run: each factor shows up in the fitting line
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), in the audit (L1–L10 loss conditions, D1–D3
+descriptive ones) or in the review queue inside the application.
 
 **Also handled, because real documents do this:** rotated text at any angle, mirrored text
 (detected and flagged rather than silently un-mirrored), bold/italic runs carried through
@@ -177,6 +201,13 @@ Everything at once: `.[pdf,epub,docx,ocr,ui,dev]`.
 Three steps: choose the document and format, watch the translation, then open the finished output
 (or start another job). A packaged build is produced with `packaging/layoutkeep_onefile.spec` —
 see [`docs/PACKAGING.md`](docs/PACKAGING.md).
+
+Long documents get a **floating progress bar**: a small, frameless window that stays on top of
+everything else, showing which document is being translated, which phase it is in, how many
+segments are done and the percentage. Drag it anywhere, fold it down to a pill with the `—` button,
+or use *Back to window* to return to the full window. When the run ends it turns green and offers
+the output and a fresh start. Turn it off with the `ui.floating_progress` entry in the advanced
+settings.
 
 ### Command line
 

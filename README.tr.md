@@ -63,8 +63,13 @@ kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevri
 |---|---|---|
 | ![Kurulum ekranı](docs/screenshots/01_setup_light.png) | ![İlerleme ekranı](docs/screenshots/02_progress_light.png) | ![Sağlayıcı ayarları](docs/screenshots/06_provider_settings_light.png) |
 
+| İlk açılış kendini anlatıyor | Uzun koşuyu pencere olmadan izle | Aynı çubuk iş bitince |
+|---|---|---|
+| ![Karşılama ekranı](docs/screenshots/07_welcome_first_light.png) | ![Yüzen ilerleme çubuğu](docs/screenshots/08_floating_bar_dark.png) | ![Yüzen ilerleme çubuğu, bitmiş](docs/screenshots/08_floating_bar_done_dark.png) |
+
 Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim başlıktadır ve
-hatırlanır. Her ekranın koyu bir varyantı var — görüntüler
+hatırlanır — karşılama ekranı ise boru hattını, sağlayıcı seçimini ve kaliteyi neyin belirlediğini
+her şeyden önce anlatır, atlanabilir. Her ekranın koyu bir varyantı var — görüntüler
 [`docs/screenshots/`](docs/screenshots/) altında.
 
 ## Daha uzun bir örnek, ve maliyeti
@@ -86,11 +91,18 @@ yeniden kurulabilir.
 
 ![Süre nereye gidiyor](docs/images/bench_10_pages.png)
 
-**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe,
-sürüklediğiniz bir ayırıcının altında. Kendi kendine yeten tek bir dosya (görseller içinde
+**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe, üzerinde sürüklediğiniz bir ayırıcıyla.
+Kendi kendine yeten tek bir dosya (görseller içinde
 taşınıyor) ve güncel çıktıdan
 [`tools/make_comparison_page.py`](tools/make_comparison_page.py) ile yeniden üretiliyor; yani
 boru hattının artık yapmadığı bir şeyi gösteremez.
+
+**[Ve daha geniş karşılaştırma](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — aynı ayırıcı, **tüm held-out örnekleri** üzerinde:
+arXiv makaleleri, iki IRS talimat kitabı, bir NASA taraması, bir PLOS makalesi, iki Wikipedia
+maddesi, bir Gutenberg romanı, iki Internet Archive taraması, bir WPA afişi ve en yeni canlı
+koşular. Her belgenin yanında denetimin o belge için ölçtüğü sonuç yazılı; bir sayfa bir şey
+kaybettiyse, bunu sayfanın yanında söylüyor. Kaynak ve çıktıdan
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) ile üretilir.
 
 Çeviri, geçen sürenin beşte birinden az. **Asıl pahalı kısım, çevirinin İngilizce için
 ayarlanmış kutulara geri sığdırılması** — kaynaktan uzun bir dilin bedeli orada ödeniyor ve o 37
@@ -118,6 +130,24 @@ onu okur, dolayısıyla neyin hazır olduğu konusunda ayrı düşemezler.
 
 Latin yazılar (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, …). Veri modeli bir `direction`
 alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uygulanmış değil.
+
+## Sonucun iyi çıkmasını ne belirler
+
+Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına göre, bu projenin gerçekten
+ölçtüğü sayılarla:
+
+| Etken | Ne yapıyor |
+|---|---|
+| **Belgenin türü** | EPUB düzeni CSS'te taşıdığı için %95+ sadakatle çıkar; ondan sonra dijital PDF gelir, çünkü metni kaynağın koyduğu yerdedir; taranmış sayfa kırılgandır — metin önce okunur, eski harflerin üzeri boyanır, çeviri yerine yazılır, yani OCR boru hattın içindedir |
+| **Tarama çözünürlüğü ve temizliği** | Temiz 300 dpi taramalar güvenilir okunur. Eğik, lekeli ya da düşük çözünürlüklü sayfalar OCR'da karakter kaybeder; kaybolan karakter kaybolan kelimedir: sayfayı içerik alanına kırpmak yoğun bir sayfada bir paragrafı yedi (artık eşikle korunuyor ve o vaka bir regresyon testi) |
+| **Modelin hedef dildeki becerisi** | *Metin* üzerindeki en büyük kaldıraç. Sayıları, adları ve listeleri sadakatle taşır; deyim ve terimlerde tökezler — "Vietnamese" için `việt語` çıktısı, dil *kodunu* sormaktan doğan karışık betik hatasıydı; bu yüzden istem artık dilin adını ve betiğini söylüyor |
+| **Dil çiftinin uzunluk davranışı** | İngilizce→Türkçe ortalamada **0.93x**, blok blok **0.64x–1.40x**. Kutusundan çok kısa çıkan blok, uydurma dolguyla doldurulmak yerine işaretlenir; uzun çıkan blok önce kısası istenerek, sonra küçültülerek, en sonunda işaretlenerek çözülür |
+| **Tablolar ve formlar** | En çok bayrak toplayan yerler ve sebebi yapısal: hücrede kaynağın kelimelerine yer var, daha uzun çıkan çeviriye yok. `--fit-mode reflow` (ölçümü sürüyor) bloğu küçültmek yerine altındakileri aşağı iter |
+| **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür: 7 işçiyle `-c 8192` istek başına ~1.2k token bırakır ve uzun bir paragraf taşar (hata, gövdesi okunana kadar "model bulunamadı" gibi göründü). Bu projenin koştuğu ayar 7 işçi için 32768 |
+
+Bunların hiçbiri koşudan gizlenmez: her biri ya sığdırma satırında
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), ya denetimde (L1–L10 kayıp, D1–D3 tanımlayıcı), ya da
+uygulamanın inceleme kuyruğunda görünür.
 
 **Gerçek belgeler bunları yaptığı için ayrıca ele alınanlar:** her açıda döndürülmüş metin, aynalı
 metin (sessizce düzeltilmek yerine tespit edilip işaretlenir), çeviri boyunca satır-içi işaretlerle
@@ -170,6 +200,12 @@ Hepsi birden: `.[pdf,epub,docx,ocr,ui,dev]`.
 Dosyayı bırak, dilleri ve sağlayıcıyı seç, başlat. Sağlayıcı uç noktaları ayar penceresinde
 yönetilir: sürükleyerek sıralanır, birini diğerinin üstüne bırakınca grup olur, sağ tıkla silinir
 ve **Test Et** kaydetmeden dener.
+
+Uzun belgelerde **yüzen ilerleme çubuğu** çıkar: her şeyin üstünde duran küçük, çerçevesiz bir
+pencere; hangi belgenin çevrildiğini, hangi aşamada olduğunu, kaç parçanın bittiğini ve yüzdeyi
+gösterir. Sürükleyip taşıyabilir, `—` düğmesiyle minik bir hapa indirebilir, *Pencereye dön* ile
+tam pencereye geçebilirsin. İş bitince yeşile döner; çıktıyı açmayı ve yeni çeviri başlatmayı sunar.
+Gelişmiş ayarlardaki `ui.floating_progress` ile kapatılır.
 
 ### Komut satırı
 

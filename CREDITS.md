@@ -13,7 +13,8 @@ carries, because a project that ships someone else's code owes them the sentence
 | [EbookLib](https://github.com/aerkalov/ebooklib) | EPUB container, OPF and spine | AGPL-3.0 |
 | [lxml](https://lxml.de/) | XHTML and DOCX XML editing, in place, without reserialising the document | BSD-3-Clause |
 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | Text detection and recognition in images | Apache-2.0 |
-| [ONNX Runtime](https://onnxruntime.ai/) | Runs the OCR models | MIT |
+| [ONNX Runtime](https://onnxruntime.ai/) | Runs the OCR models and the optional layout detector | MIT |
+| [DocLayout "heron"](https://huggingface.co/docling-project/docling-layout-heron-onnx) (IBM Docling) | Optional layout detector for scanned pages: RT-DETRv2, ONNX export. Downloaded on first use, never bundled. Its report is [arXiv:2509.11720](https://arxiv.org/abs/2509.11720). | Apache-2.0 |
 | [OpenCV](https://opencv.org/) (headless) | Image work behind OCR and inpainting | Apache-2.0 |
 | [Pillow](https://python-pillow.org/) | Image loading and saving | MIT-CMU |
 | [NumPy](https://numpy.org/) | Pixel arrays | BSD-3-Clause |
@@ -61,11 +62,56 @@ Nothing was taken from a real publication, so the repository can publish the doc
 images made from them without a licence question. The academic paper's authors, journal, figures
 and measurements are all invented.
 
+## Measurement sources (not redistributed)
+
+The lossless work is measured on real documents, kept out of the repository in
+`_artifacts/heldout/sources/` and named in [`docs/campaign/HELDOUT.md`](docs/campaign/HELDOUT.md).
+They are read, translated and audited here; nothing of them is published except the findings.
+Saying which documents those findings came from is part of the finding:
+
+| Source | Where it comes from | Terms |
+|---|---|---|
+| `arxiv_2609.19113`, `arxiv_2609.19145` | [arXiv](https://arxiv.org/) | arXiv's non-exclusive licence; downloaded for measurement only |
+| `irs_i1040gi`, `irs_p505` | United States Internal Revenue Service | US government work, public domain |
+| `nasa_ntrs_19750007530` | [NASA Technical Reports Server](https://ntrs.nasa.gov/) | US government work, public domain |
+| `plos_pone_0235750` | [PLOS ONE](https://journals.plos.org/plosone/) | CC BY 4.0 |
+| `wikipedia_printing_press`, `wikipedia_photosynthesis` | Wikipedia | CC BY-SA 4.0 |
+| `gutenberg_1661_sherlock` | [Project Gutenberg](https://www.gutenberg.org/) | Public domain |
+| `archive_cookbook_1907`, `archive_mushrooms_1895` | [Internet Archive](https://archive.org/) scans | Public domain (pre-1930 US publication) |
+| `wpa_poster_mathematics` | [Library of Congress](https://www.loc.gov/) WPA posters | Public domain |
+
+The model used to test the pipeline locally is **Gemma** (`google/gemma-4-e4b`, quantised GGUF)
+served by [LM Studio](https://lmstudio.ai/). Its weights are used under Google's Gemma terms of
+use and are not redistributed here — the model file lives on the machine that runs the tests.
+
 ## Translation services
 
 [DeepL](https://www.deepl.com/) and any OpenAI-compatible endpoint (LM Studio, Ollama,
 llama.cpp, vLLM, OpenRouter, Groq, OpenAI). None of them are affiliated with this project, and
 using one is subject to that provider's own terms.
+
+## Compared with, and read alongside
+
+The layout-preserving translation field is not empty, and this project's roadmap is written against
+what is already out there rather than as if it were:
+
+- **[BabelDOC](https://github.com/funstory-ai/BabelDOC)** (AGPLv3) and its ancestor
+  [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate) — an intermediate-representation
+  pipeline with dual-page bilingual output, glossaries and terminology extraction. Its paper
+  ([arXiv 2605.10845](https://arxiv.org/abs/2605.10845), ACL 2026 demo) contains the feature table
+  this project measured itself against in [`docs/FEATURE-ROADMAP.md`](docs/FEATURE-ROADMAP.md).
+  One of its held-out samples is a document from that project, and it is credited as such on the
+  comparison site.
+- **[mineru-translate](https://pypi.org/project/mineru-translate/)** (Apache-2.0) — layout JSON from
+  the MinerU parser, then re-render; its overlap-resolution cascade (shrink → compress leading →
+  push down) is the design this project's fitting ladder is heading towards.
+- **Commercial document translators** (Doclingo, Lara Translate, Doctranslate, DeepL, Google
+  Translate) — for the comparison of what they do and do not preserve, per the roundups in the
+  roadmap's sources. None of their output is used here, and no claim is made about their internals.
+
+What this project has that the list above does not: a **page-by-page loss audit against the source**
+(L1–L10, `verify.py`), review flags that carry their reason into the application, and a comparison
+site built from held-out samples by the same generator that ships with the code.
 
 ## Practice
 
