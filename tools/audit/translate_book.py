@@ -74,6 +74,8 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
     if getattr(args, "preserve_references", False):
         # Kaynakça koruma bayrağını ilet / Forward bibliography protection flag
         command.append("--preserve-references")
+    if getattr(args, "fit_mode", None):
+        command += ["--fit-mode", args.fit_mode]
     started = time.time()
     proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     elapsed = time.time() - started
@@ -156,6 +158,10 @@ def main() -> int:
     parser.add_argument(
         "--preserve-references", action="store_true",
         help="preserve bibliography and citation blocks untranslated",
+    )
+    parser.add_argument(
+        "--fit-mode", default=None, choices=["strict", "reflow"],
+        help="forward the CLI's fitting mode; omit to use the application's default",
     )
     args = parser.parse_args()
 

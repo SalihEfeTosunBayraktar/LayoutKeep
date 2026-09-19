@@ -1247,3 +1247,297 @@ Finished 32 chunks and merged into `irs_i1040gi.tr.pdf` (32 pages) in **35.5 min
 - **D3 (squeezed lines)**: 0
 
 With this run, **every held-out source in the entire test suite has finished, been measured, and been audited**.
+
+## 2026-09-19 - the L2 residue attacked from three sides; the V2 branch read and judged
+
+Every held-out source ends with L2 above zero (one block on the cookbook, one on the mushroom book,
+one on the Sherlock EPUB, seven on arXiv 2609.19145) while L1/L3/L4/L5/L9 are at zero practically
+everywhere. So L2 is the single criterion standing between the pipeline and a lossless document,
+and three mechanisms were added against it, each measured on the recorded runs (no model needed):
+
+1. **A paragraph that survives the whole ladder is asked for in pieces** (`providers/split.py`,
+   `retry.py`). The ladder already changed a failed request's company and context, never its size -
+   and the size is what the echo experiments point at (a Time Machine paragraph echoed twice yet
+   translated 24 times out of 24 alone). The block is cut at its sentence and list boundaries, each
+   piece is asked for alone, and the replies are put back in the source's own whitespace. Any piece
+   that comes back unusable fails the whole attempt: a half-translated paragraph is worse than an
+   untranslated one, because it no longer reads as a loss. Tunable
+   `translation.piecewise_max_pieces` (default 12, 0 disables).
+
+2. **The number check stopped reporting losses that are not losses** (`core/copies.py`): number
+   words are folded to their value ("on iki" -> 12, "iki bin beş yüz" -> 2500), ordinals count
+   ("üçüncü" -> 3), and a vulgar fraction is expanded ("½" -> 1 and 2). Measured over the 11
+   recorded held-out projects: **1 of the 29 recorded L6 findings was of this kind** (IRS 505's
+   "tier 1 railroad benefits" -> "birinci kademe"). The other 28 are real: a source PDF gluing its
+   own footnote digit onto a number ("20261"), repeats compressed into one mention ("1099" three
+   times in the source, twice in the reply), and values genuinely dropped. L6 is mostly a content
+   finding, not a checker artifact.
+
+3. **Code and mathematics are recognised by shape, not only by face** (`readers/_nonprose.py`).
+   The reader caught code only in a monospaced face, so a LaTeX paper's verbatim line
+   (`trim_offsets=True, use_regex=True)`) and its equations set in the body font went to the model
+   as prose, came back as their own source, and were counted as L2 - and the ladder then spent
+   three lone requests plus a request per piece on text no model can translate. Both are now
+   carried through as `CODE` / `FORMULA`. Measured: **2 of the 34 recorded L2 findings are these
+   lines**; a scan of the real corpus (arxiv_19145 115 blocks, Think Python 49, NIST 51, Popular
+   Science 147, Time Machine 16, Electricity 16) claimed 13 blocks, every one read by eye, all
+   genuine (Python session output, comparison operators, equation fragments, the arXiv stamp) and
+   **zero prose**. The first version of the rule did misclassify ("Now, define f(a) = a log a,
+   which implies ..." - a single letter in parentheses is how a paper writes a function of x, not
+   code); the probe found it and the rule now demands a three-letter call name and refuses any text
+   carrying ten or more real words.
+
+Not touched, and why: **L7** (6 pages on arXiv), **L8** (untouched text moved: 4-111 runs on
+arXiv) and **D1** (296-509 blocks below the readability floor) all live in the writer's clearing
+and the fitting pass, where a change made without measuring L3/L4 back would trade one loss for a
+bigger one. The V2 branch's elastic flow is the right idea for D1 and is not portable as written:
+it moves `bbox.height` without the `fitting/room.py` measurement or the writer's clearing rules
+that depend on it. See `docs/KAYIPSIZ_MOD_DURUM.md` for the branch-by-branch judgement.
+
+No end-to-end run: LM Studio was not serving on 127.0.0.1:1234 during this work, so nothing here is
+a claim about output produced by a model - the measurements are over the runs already recorded.
+
+## 2026-09-19 - smoothness: a form that repeats itself now reads the same on every page
+
+The criteria in sections L1-L9 ask whether anything was lost. They do not ask whether the document
+reads as one document, and the recorded runs say it did not: irs_p505 repeats 537 of its 2,144
+translatable segments (25%; irs_i1040gi 34%, arXiv 2609.19145 31%, plos 30%) - form labels, the
+same instruction on every page, repeated table headings - and **80 of those repeated texts came
+back with more than one translation** (272 segments). IRS Form 1040's instructions word "Married
+filing separately" three ways in one document ("ayrı ayrı beyan eden", "evli ayrı ayrı beyan eden",
+"ayrı ayrı evli") and "Head of household" two ("hane başkanı", "hanevi"), each row correct alone.
+A quarter of the requests were also spent asking for text the document had already had translated.
+
+Two mechanisms, both on by default:
+
+1. **The same text is translated once** (`providers/dedupe.py`), inside the literal-protection
+   wrapper so the shared text is the tokenised text: "Tighten the bolts to 63 Nm" and "...to 150 Nm"
+   are one request and each restores its own value. The key ignores whitespace and case, and refuses
+   sources under three words - "where" came back as "nerede" and as "ner", "ours" as "biz" and as
+   "bizim", and sharing those would spread one sense across a document to save nothing.
+   Measured saving on the recorded sources: plos 86 of 468 requests (18%), irs_i1040gi 115 of 737
+   (16%), irs_p505 224 of 2,144 (10%), arXiv v2 36 of 489 (7%), nothing on the prose-only sources.
+   `--no-repeats`, or `translation.reuse_repeats` off, restores the old behaviour.
+
+2. **What is already written is made to agree with itself** (`core/repeats.py`), after the retry
+   ladder and before the fitting pass: a repeated source text with more than one translation keeps
+   the majority wording and the minority is rewritten to it. Nothing is re-asked and nothing is
+   invented - every rewrite is a translation this document already produced for that exact source -
+   and a variant that lost one of the source's numbers is never chosen over one that kept them
+   (consistency must not be bought with a lost value). Measured on the recordings as they stand
+   (produced with no sharing at all, so this is the upper bound): irs_p505 66 texts disagreeing
+   over 87 segments, irs_i1040gi 16/42, arXiv v2 8/22, cookbook_1907 4/4.
+
+Both keep the CLI and the desktop worker on the same code path; the run report says what was shared
+(`shared 224 repeated segment(s) answered from their first occurrence instead of being sent again`)
+and what was made to agree (`repeats N segment(s) reworded ...`).
+
+Tests: `tests/test_provider_dedupe.py` (14) - shared text asked once and answered everywhere, one
+segment out per segment in with its own block id and context, the three-word floor, off-switches,
+and the sweep's choice of majority, of numbers over consistency, and of the first occurrence on a
+tie. Full suite after the change: 1,075 passed, 1 failed - `test_every_advanced_entry_says_what_breaks`
+caught the new tunable's missing consequence warning, which is now written.
+
+## 2026-09-19 - a real model on the line: what the app does on real documents, and the fitting fix it forced
+
+**Setup.** LM Studio keeps its models on `T:\AiModels` and the drive was not mounted: `lms ls`
+listed one embedding model, `lms load google/gemma-4-e4b` answered "Model not found", the HTTP API
+"No models loaded". Mounting the drive was not enough - the index is built at app start - so
+`lms import -L --user-repo local/gemma-4-e4b <the GGUF already on T:>` hard-linked the file where
+the scanner looks, and the model returned as `gemma-4-e4b`. Loaded with
+`--identifier google/gemma-4-e4b --gpu max -c 8192 --parallel 7`, so the application's own default
+model id works and the campaign's 7-worker setting matches the server's slots.
+
+**Runs** (`tools/audit/live_check.py`, added for this: one source through the real pipeline, audited
+against the recorded run of the same source):
+
+| source | before | after |
+|---|---|---|
+| 2-page fixture, repeated text | `fitting 6 blocks: shrunk=2 overflow=4`, 4 flagged | `as_is=6`, nothing flagged, `no losses found` |
+| arXiv 2507.03009 p5 (new, born-digital table page) | `fitting 70 blocks: shrunk=42 overflow=28` | `as_is=32 shrunk=12 retranslated=1 expanded=1 overflow=24`, **LOSSLESS**, L7 0, L8 0 |
+| arXiv 2507.03009 p7 (author list) | `3 blocks: overflow=3` | `as_is=1 overflow=2` |
+| NASA NTRS scan p1 (held-out) | L2 1, D1 6 | L2 1, D1 5, L1-L9 otherwise 0 - unchanged |
+
+The table page is the finding. **Not one of its 70 blocks fitted as it was**, and the audit of the
+same output said "no losses found": the criteria ask whether anything was *lost*, never whether the
+page looks right, and a page of text shrunk to the readability floor loses nothing and still reads
+badly. On the scan the 10 of 14 segments recovered by the retry ladder are the model echoing a page
+of OCR noise, and the ladder is what keeps that page's L2 at 1 rather than 10.
+
+**The fix** (`fitting/growth.py`, tunable `write.grant_room_pt`, default 24 pt): a block the
+pipeline translated may grow downward into the room the page really has under it - bounded by the
+next block in its column, stopped by any picture, capped by the tunable and keeping 2 pt of the gap.
+`fitting.room.room_below` could not serve this: it answers "how much of the writer's 3 pt slack is
+free" and by construction never returns more than that slack, so it can never say "the page has
+room". The fitting pass and the writer both call the new function - if they disagree the text is
+measured in one box and drawn in another, which is the reason `fitting/room.py` exists at all. A
+block kept as it was is still drawn in its own box (its text must not move: L8), and a rotated block
+is measured as before (its `TextWriter` path has no such room).
+
+**Still rough, honestly.** 24 of the 70 table-page blocks overflow and 22 of its 33 checked blocks
+sit below the readability floor: a table cell has no room under it by construction, and the ladder
+can only shrink to the floor, ask for a shorter rendering, then flag. On a scan the grant is inert
+by design - the page image is the obstacle that stops it, and `image_reader._grant_blank_paper`
+(from the pixels) is its counterpart. Author lists and commit-message lines are still sent for
+translation and then have to fit.
+
+Tests: `tests/test_fitting_growth.py` (6, including the decision itself: the same render overflows
+in the tight box and fits once the room is granted); the 56 fitting/writer/verify tests stay green.
+
+### 2026-09-19 - the grant does not reach a running header (found by the full suite)
+
+The first version of the room grant applied to every translated block, and the full suite failed on
+`tests/test_pdf_writer.py::test_page_number_and_header_survive_untouched`: the running header's
+translation ("XX Running Header Text") wrapped onto two lines instead of being shrunk, because the
+grant reached it too. Wrapping a header changes the shape of the page, which is what the reader is
+told not to do - so a block whose role is a single-line design element (`heading`, `title`,
+`header`, `footer`, `page_number`) keeps its one-line box, in both the fitting pass and the writer,
+on the same shared rule (`fitting/growth.may_grow`). 1,096 tests green after it.
+
+## 2026-09-19 - why the overlap guard works, the shrink guard is half-off, and what was fixed
+
+**Question asked:** are the protections against overlap (shorter sentences, smaller type) actually
+working? Measured on arXiv 2507.03009 with gemma-4-e4b, 7 workers, and on the recorded projects.
+
+**They are, and the page still reads badly - the two facts have different causes.**
+
+1. **Overlap protection works.** 148 blocks, **L7 0** and **L4 0**: nothing drawn over anything, and
+   nothing off the page. `fitting.room` + the writer's clearing rules + the one-line rule for
+   headings are doing their job. The 10-page run's whole loss list is L2 2, L8 1, L9 1 - and the
+   two L2s are author lists ("Tom Brown, Benjamin Mann, ..." came back unchanged) that the model
+   was right to leave alone.
+
+2. **The shrink guard is working against itself.** `fit.min_scale = 0.85` is the floor, and D1
+   counts blocks that reached it: 63 of them. But 42 of the page-5 blocks "fitted" at a scale
+   between 0.878 and 0.997 - they were shrunk, the measurement said "fits", and **the engine stopped
+   there**: the shorter-rendering ladder is only reachable from OVERFLOW. So the blocks that most
+   needed fewer words (23 prose blocks of 9.4pt in a 220pt column, 517 to 1138 characters) were
+   never asked. A block shrunk to 0.88 is not a loss, so nothing flagged it either: 63 D1 blocks
+   and only some of them carry a review reason.
+
+3. **The ladder that does exist was spending its rounds on the wrong blocks.** Replaying the fitting
+   pass over page 5 with a model that refuses everything (the worst case) recorded 14 requests, and
+   they were: `'IMT5'` asked for 12 characters, `'Doc2X'` for 10, `'Ücretsiz'` for 4, `'Ücretli'` for
+   4, `'✓'` for 2. Targets no reply can meet, three rounds each, and each round is a chance to
+   replace a correct short translation with a worse one.
+
+**Fixes (`fitting/fit.py`, tunable `fit.shorten_below_scale` = 0.95):**
+
+* A fit held only by shrinking below the threshold now asks for a rendering that fits at full size
+  (`_try_shorten`, two attempts, not three - the block is already readable, so the prize is smaller
+  and the request cost is not). It accepts a candidate only if it fits at a *better* scale than the
+  current one, and only if it does not lose a number the source has - the same rule the overflow
+  direction already applied. The correct translation is never replaced by a worse one: when nothing
+  better comes back, the shrunk fit is kept unchanged.
+* A text under 24 characters is never asked to compress (`'Ücretli'` -> 4 was the measured waste),
+  and the overflow budget is now clamped by the proof in hand - the text does not fit at
+  `min_scale`, so the target is always strictly below it, never the box's optimistic estimate.
+
+**Measured after:** the same dry replay of page 5 makes **7 requests instead of 14**, and the
+oversized ones are gone: the shortest text asked to compress is 51 characters. The table cells that
+used to absorb three pointless rounds each are now simply flagged, which is what they always were -
+table cells with no room under them.
+
+Tests: `test_fitting_fit.py` gained six (a hard shrink asks for a shorter rendering; a candidate
+that does not fit better is refused; a 1% shrink is left alone; the ladder can be turned off; a
+candidate that drops a number is refused; a candidate that is the source is refused) plus one for
+the short-text floor. 37 fitting tests green, ruff clean.
+
+### 2026-09-19 (devam) - the L7 the shrink fix turned up, and what it really was
+
+The first real run with the shrink ladder (`fresh_pdfmt_r3`, 758s) came back L7=1 - a word pair
+drawn over another, on chunk_0001, a page that had none before. Chased it to the source page:
+
+    pymupdf block 30, bbox (306,755,526,775), three lines
+        (319,755,338,765)   '1See:'          <- a footnote, our reader splits it out as its own block
+        (388,756,526,765)   'https://platform.openai.com/docs/api-'
+        (306,766,381,775)   'reference/chat/create'
+
+Three separate faults, each found by measurement, each fixed:
+
+1. `join_hyphenation` ate a hyphen that belongs to a link. The row ends `api-`, the next begins
+   `reference` - a letter before the hyphen and a lowercase letter after it, which is all the rule
+   asked. Joined, the URL became `.../docs/apireference/chat/create`, and the block's one line
+   was 2.4x the width of either source row. Guards: the token ending in the hyphen must be a word
+   (letters only), and the next row must continue the same column (overlap it, start at or left of
+   its left edge). A footer's two rows need not overlap at all.
+
+2. `_unchanged` read a block with no `source_text` as *changed*. The pipeline only records
+   `source_text` when a segment comes back translated (`apply_segments`), so an empty one means
+   the text is still the source: the batch failed, or the block was never sent. Such blocks were
+   redrawn in a substitute face for nothing - and a redrawn block is laid out from its own box's
+   left edge, which put the URL's first row 82pt left of where the source set it, over the
+   footnote. Now they are kept, like any other unchanged block.
+
+3. `_clearing_reaches`: the "would this redaction eat that block" test used union boxes. The URL
+   block's box is the union of its two rows and covers the footnote's box, so the block was
+   pulled in and redrawn even though the footnote's clearing touches neither row. The test now
+   asks the kept block's own lines, with a 1pt margin (a redaction takes whole glyphs, and a glyph
+   box can stick out of its line's), and touching edges are not a reach.
+
+Also tried and reverted: `white-space: nowrap` for blocks with no words, on the theory that
+`insert_htmlbox` was scaling the URL's type up to fill its box. A probe (`tools/audit/url_size_probe.py`)
+showed the 11.9pt height was the substitute face's own ascent+descent (1.31em at 9.06pt), and that
+nowrap changes nothing - a token wider than its box draws nothing either way. Unproven fixes do
+not stay in.
+
+`tools/audit/rewrite_run.py` re-writes a recorded run's pages from its projects with the current
+writer and audits the result - no model needed, so a writer change can be measured in minutes.
+On the recorded `fresh_pdfmt_shorten` run: L7 1 -> 0. Its remaining D3=1 and L8=1 are artifacts of
+that run's saved projects (written by the older reader, the URL block still holds the merged
+one-line text); a fresh run is what settles those.
+
+### 2026-09-19 (devam) - the reader's own mistakes, found by an A/B of the reader alone
+
+`tools/audit/reader_ab.py` reads every held-out source with two source trees (`git worktree` of
+HEAD vs the working tree) and prints the lines that differ. It is the only honest way to judge a
+reader change: a translated project collapses each block to one line, so comparing against saved
+projects says nothing.
+
+Two more faults, both on the same footer, both now fixed:
+
+1. **A refused hyphen join left the line to be grouped with the wrong neighbour.** The URL's
+   second row (`reference/chat/create`) overlaps the footnote's column, so
+   `_split_side_by_side_lines` grouped it with the footnote and the pair was translated as
+   `1See: reference/chat/create` (a block that then overflowed, D1). A line under a line ending in
+   a hyphen, beginning lowercase, belongs to *that* line - `_hyphen_parents`, and lines are now
+   read in text order rather than by column, so the parent is always seen first.
+
+2. **The column guard was too strict, and split a name.** `_continues_the_column` required the two
+   boxes to overlap; a paragraph's last line is short, so `(Von Gizy-` at the right of a column
+   followed by `cki; Montgomery).` at the margin shares no width with it and the join was refused.
+
+The A/B then reads, over 43 held-out chunks: 21 chunks differ only in block *ids* (internal), and
+**2 pages differ in content, both in the right direction**:
+
+| page | before | after |
+|---|---|---|
+| chunk_0001 (arXiv footer) | `https://platform.openai.com/docs/apireference/chat/create` - one line, hyphen eaten, 2.4x too wide | `https://platform.openai.com/docs/api-` + `reference/chat/create` - the source's own two rows, hyphen intact |
+| chunk_0005 (arXiv p1) | `Exclusion of the non-Englishspeaking` - hyphen eaten | `Exclusion of the non-English-` + `speaking world from ...` - the source's own rows |
+
+### 2026-09-19 - branch survey: what is where, and why nothing gets merged
+
+Asked to tidy the branch structure. What the refs actually say:
+
+    feature/lossless-campaign-continuation   77f77bb   <- everything is here
+    layout-model                             7ef33ea   ancestor (17 commits behind)
+    scanned-pdf-ocr                          298e04f   ancestor (50 behind)
+    main / origin/* (6 branches)             f58f0eb   ancestor (77 behind)
+    v2-vision-layout (fetched from the V2 clone) b89396b  1 commit, NOT an ancestor
+
+Every branch of this repository - local and remote - is already contained in the feature branch, so
+there is nothing to merge from any of them. The one branch with unique work is Gemini's
+`v2-vision-layout`, which lives in the separate `LayoutKeep_V2` clone (its own `.git`); it is now
+fetched into this repository as a local branch so the work cannot be lost with that folder.
+
+Merging it is **not** conflict-free: `git merge-tree --write-tree` reports six conflicts, because
+this branch already carries its own, campaign-hardened implementation of the same ideas -
+`fitting/elastic_flow.py` and `readers/_segment.py` are add/add (both sides wrote them),
+`readers/pdf_reader.py`, `readers/image_reader.py`, `fitting/pdf_pass.py` and one test file
+conflict on content. Two files exist only on that branch: `readers/vision_layout.py` (a VLM layout
+detector wired to no model) and `readers/glyph_fusion.py`.
+
+Housekeeping done: three detached worktrees left inside `_artifacts/heldout/` (`code`,
+`code_epub`, `audit_bad981a`, ~60 MB each, clean, all at commits this branch already contains)
+were removed with `git worktree remove`. The V2 clone also holds 10 untracked sample files under
+`docs/`; they stay where they are.
