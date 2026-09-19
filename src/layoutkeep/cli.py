@@ -422,9 +422,14 @@ def cmd_translate(args: argparse.Namespace) -> int:
         fit_stats = _fit_pdf(doc, translated, provider, args)
         phases.mark("fit")
         if fit_stats:
-            total = sum(fit_stats.values())
-            parts = " ".join(f"{k}={v}" for k, v in fit_stats.items() if v)
+            # `off_figure` counts boxes that were narrowed, not a fit layer, so it is kept out of
+            # the block total the layers add up to.
+            layers = {k: v for k, v in fit_stats.items() if k != "off_figure"}
+            total = sum(layers.values())
+            parts = " ".join(f"{k}={v}" for k, v in layers.items() if v)
             print(f"fitting   {total} blocks: {parts}")
+            if fit_stats.get("off_figure"):
+                print(f"          {fit_stats['off_figure']} box(es) narrowed to stay off a figure")
             if fit_stats.get("overflow"):
                 print(f"          {fit_stats['overflow']} still overflow - flagged for review")
 

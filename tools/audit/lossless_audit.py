@@ -11,6 +11,7 @@ The criteria are defined in `docs/campaign/JOURNAL.md`:
     L7  nothing drawn over text        pages with words of one block drawn over another's == 0
     L8  nothing untouched moved        digital pages where text no translated block covers is not where it was == 0
     L9  no garbled letters             translated blocks with a word mixing in another alphabet's letter == 0
+    L10 nothing drawn on a figure      words sitting inside a picture rather than beside it == 0
     D1  readability (reported only)    blocks drawn below the readability floor
     D2  for review (reported only)     short blocks left unchanged: names, or untranslated phrases
     D3  legibility (reported only)     pages where a block's own lines are squeezed into each other
@@ -151,6 +152,7 @@ def main() -> int:
         ("L7", "text drawn over text"),
         ("L8", "untouched text moved"),
         ("L9", "garbled letters"),
+        ("L10", "text drawn over a figure"),
         ("D1", "below readability floor"),
         ("D2", "short blocks left unchanged"),
         ("D3", "text squeezed in its box"),

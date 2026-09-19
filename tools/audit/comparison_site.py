@@ -71,6 +71,11 @@ class Document:
     losses: str = ""
     note: str = ""
     origin: str = ""
+    #: Commit the run was recorded at, and a warning when it is not the commit the tree is on: a
+    #: page kept from an older engine is honest evidence about *that* engine, and the site has to
+    #: say so rather than let it pass for the current one.
+    commit: str = ""
+    stale: str = ""
 
 
 def _translation_pdfs(run: Path) -> list[Path]:
@@ -87,6 +92,32 @@ def _sample_pages(total: int, cap: int) -> list[int]:
         return list(range(total))
     step = (total - 1) / (cap - 1)
     return sorted({round(i * step) for i in range(cap)})
+
+
+def _head_commit() -> str:
+    """The short commit the working tree is on, so a run can be dated against it.
+
+    Read straight out of `.git` rather than through `git rev-parse`: this is a one-time label for
+    the page, and a subprocess per document would cost more than it is worth. A linked worktree
+    keeps its git directory elsewhere, in which case the label is simply left off.
+    """
+    try:
+        head = (ROOT / ".git" / "HEAD").read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+    if head.startswith("ref: "):
+        try:
+            return (ROOT / ".git" / head.removeprefix("ref: ").strip()).read_text(
+                encoding="utf-8"
+            ).strip()[:7]
+        except OSError:
+            return ""
+    return head[:7]
+
+
+def _run_commit(run: Path) -> str:
+    written = run / "commit.txt"
+    return written.read_text(encoding="utf-8").strip()[:7] if written.exists() else ""
 
 
 def _loss_summary(run: Path) -> str:
@@ -106,6 +137,7 @@ def _loss_summary(run: Path) -> str:
 def _campaign_documents() -> list[Document]:
     documents: list[Document] = []
     mapping = _run_sources()
+    head = _head_commit()
     for run in sorted(RUNS.iterdir()):
         if not run.is_dir():
             continue
@@ -128,6 +160,10 @@ def _campaign_documents() -> list[Document]:
                 title=run.name.replace("_", " "),
                 pairs=pairs,
                 losses=_loss_summary(run),
+                commit=_run_commit(run),
+                stale=(
+                    f"kayıt {_run_commit(run)} (güncel değil)" if _run_commit(run) and _run_commit(run) != head else ""
+                ),
                 origin=f"sources/{source.name} + runs/{run.name}",
             )
         )
@@ -138,18 +174,26 @@ def _live_documents(runs: int = 2, per_run: int = 4) -> list[Document]:
     """The newest live runs: the freshest code, run against a real model, chunk by chunk."""
     documents: list[Document] = []
     newest = sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)[-runs:]
+    head = _head_commit()
     for run in newest:
         sources = sorted((run / "src").glob("chunk_*.pdf")) if (run / "src").exists() else []
         outputs = sorted((run / "out").glob("t_*.pdf")) if (run / "out").exists() else []
         for index, (source, output) in enumerate(list(zip(sources, outputs, strict=False))[:per_run]):
             with pymupdf.open(output) as chunk:
                 pairs = [(source, page, output, page) for page in range(chunk.page_count)]
+            recorded = _run_commit(run)
             documents.append(
                 Document(
                     name=f"{run.name}_{index}",
                     title=f"{run.name} parça {index}",
                     pairs=pairs,
                     note="en güncel kod, gerçek model",
+                    commit=recorded,
+                    stale=(
+                        f"kayıt {recorded} (güncel değil)"
+                        if recorded and recorded != head
+                        else ""
+                    ),
                     origin=f"live/{run.name}",
                 )
             )
@@ -215,7 +259,8 @@ PAGE_TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LayoutKeep - orijinal / çeviri karşılaştırması</title>
 <style>
-  :root {{ color-scheme: dark; --ink:#e8eaed; --muted:#9aa0a6; --line:#2b2f36; --accent:#4c8dff; }}
+  :root {{ color-scheme: dark; --ink:#e8eaed; --muted:#9aa0a6; --line:#2b2f36; --accent:#4c8dff;
+           --warn:#e0a458; }}
   * {{ box-sizing: border-box; }}
   body {{ margin:0; font:15px/1.5 system-ui, "Segoe UI", sans-serif; background:#0f1115; color:var(--ink); }}
   header {{ padding:18px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#0f1115f2; backdrop-filter:blur(6px); z-index:5; }}
@@ -230,6 +275,8 @@ PAGE_TEMPLATE = """<!doctype html>
   section {{ padding:16px 20px 40px; }}
   h2 {{ font-size:16px; margin:4px 0 2px; }}
   .meta {{ color:var(--muted); font-size:13px; margin-bottom:12px; }}
+  .meta.stale {{ color:var(--warn); }}
+  nav button.stale {{ border-color:var(--warn); }}
   .viewport {{ overflow:auto; max-height:82vh; border:1px solid var(--line); border-radius:10px; background:#14171d; }}
   .stage {{ position:relative; width:100%; touch-action:none; cursor:ew-resize; }}
   .stage img {{ display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }}
@@ -303,7 +350,9 @@ function showDocument(index) {{
   current = index; page = 0;
   const doc = DATA[index];
   $("title").textContent = doc.title;
-  $("meta").textContent = [doc.pages.length + " sayfa", doc.losses, doc.note].filter(Boolean).join(" · ");
+  $("meta").textContent = [doc.pages.length + " sayfa", doc.losses, doc.note, doc.stale]
+    .filter(Boolean).join(" · ");
+  $("meta").classList.toggle("stale", Boolean(doc.stale));
   $("pages").replaceChildren(...doc.pages.map((record, i) => {{
     const button = document.createElement("button");
     button.textContent = record.page;
@@ -350,7 +399,8 @@ window.addEventListener("keydown", (event) => {{
 const nav = $("docs");
 DATA.forEach((doc, index) => {{
   const button = document.createElement("button");
-  button.innerHTML = `${{doc.title}}<small>${{doc.pages.length}} sayfa</small>`;
+  button.innerHTML = `${{doc.title}}<small>${{doc.pages.length}} sayfa${{doc.stale ? " · eski kayıt" : ""}}</small>`;
+  button.classList.toggle("stale", Boolean(doc.stale));
   button.onclick = () => showDocument(index);
   nav.append(button);
 }});
@@ -384,6 +434,7 @@ def main() -> int:
                 "title": document.title,
                 "losses": document.losses,
                 "note": document.note,
+                "stale": document.stale,
                 "pages": pages,
             }
         )

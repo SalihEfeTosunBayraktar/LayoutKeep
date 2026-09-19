@@ -61,7 +61,7 @@ _LEGIBLE_PT = 5.0
 #: the language: a name and an untranslated two-word phrase look the same.
 _MIN_PROSE_WORDS = 4
 
-LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9")
+LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10")
 
 LABELS = {
     "L1": "page count differs",
@@ -73,6 +73,7 @@ LABELS = {
     "L7": "text drawn over text",
     "L8": "untouched text moved",
     "L9": "garbled letters",
+    "L10": "text drawn over a figure",
 }
 
 #: What the review queue says, in the application's language like every other review reason.
@@ -86,6 +87,7 @@ REVIEW_REASONS = {
     "L7": "doğrulama: metin başka bir metnin üstüne yazıldı",
     "L8": "doğrulama: çevrilmeyen metin yerinden oynadı",
     "L9": "doğrulama: çeviride başka bir alfabeden harf karıştı",
+    "L10": "doğrulama: metin bir görselin üstüne yazıldı",
 }
 
 #: The losses a new request to the model can mend. The rest are drawn wrong, not translated wrong.
@@ -188,6 +190,14 @@ def _page_losses(source_page, page, page_data, index: int, source_markup: set[st
         }))
         losses.append(Loss("L7", index, f"{pairs} overlapping word pairs", owners))
 
+    over_figure = words_over_figures(page, drawn)
+    if over_figure:
+        owners = tuple(sorted({
+            block.id for x, y in over_figure
+            if (block := _block_at(page_data.blocks, x, y)) is not None
+        }))
+        losses.append(Loss("L10", index, f"{len(over_figure)} words drawn on a figure", owners))
+
     text = page.get_text()
     for match in _MARKUP.finditer(text):
         if match.group(0).casefold() not in source_markup:
@@ -224,6 +234,44 @@ def _block_at(blocks: Sequence[Block], x: float, y: float) -> Block | None:
         if b.x0 - 2 <= x <= b.x1 + 2 and b.y0 - 2 <= y <= b.y1 + 2:
             return block
     return None
+
+
+#: Share of the page an image must cover before it is the page's own background rather than a
+#: figure. A scan is one big image with the translation written over it by design.
+_FIGURE_SHARE = 0.85
+
+#: Share of a drawn word's box that must fall inside a figure before it is unreadable there.
+_ON_FIGURE_SHARE = 0.55
+
+
+def words_over_figures(page, drawn: Sequence[Sequence]) -> list[tuple[float, float]]:
+    """Centres of the drawn words that sit on a figure, for L10.
+
+    Found late and expensively: a Wikipedia page reached the site with 87 words of Turkish lying
+    across a photograph, and L7 - which only compares text against text - reported nothing. The
+    cause is geometric rather than linguistic (a block's bounding box wraps *around* a picture, so
+    the re-flowed translation runs straight over it), which is why it needs its own look at the
+    written page rather than another comparison of strings.
+    """
+    import pymupdf  # lazy, like `output_losses`: this module stays importable without it
+
+    page_area = max(1.0, page.rect.get_area())
+    figures = [
+        rect
+        for info in page.get_image_info()
+        if (rect := pymupdf.Rect(info["bbox"])).get_area() < _FIGURE_SHARE * page_area
+    ]
+    if not figures:
+        return []
+    found: list[tuple[float, float]] = []
+    for word in drawn:
+        box = pymupdf.Rect(word[:4])
+        for figure in figures:
+            overlap = box.intersect(figure)
+            if overlap.is_valid and overlap.get_area() > _ON_FIGURE_SHARE * box.get_area():
+                found.append(((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2))
+                break
+    return found
 
 
 def overlapping_words(

@@ -27,11 +27,12 @@ plus three descriptive measures:
 | **L7** | text drawn over text | Is one text drawn on top of another that the source kept apart? |
 | **L8** | untouched text moved | Did text nobody translated move? |
 | **L9** | garbled letters | Did a word come back mixed with another script or language? |
+| **L10** | text on a figure | Was a word drawn inside a picture instead of beside it? |
 | **D1** | below readability | Blocks set smaller than the readability floor |
 | **D2** | short, unchanged | Short blocks left as they were - for a human to judge |
 | **D3** | squeezed lines | Lines of one block forced into each other |
 
-L1–L9 are loss conditions: any occurrence means the run is not lossless. D1–D3 are descriptive.
+L1–L10 are loss conditions: any occurrence means the run is not lossless. D1–D3 are descriptive.
 They exist because "no losses found" once described a page where *no block fitted as it was* and
 everything was squeezed to 85% - true by the letter of the criteria, and not what a reader means.
 
@@ -115,7 +116,7 @@ Two pages changed in content; every other line of all 43 chunks is identical, co
 
 Final live run on the unseen paper (10 pages, 149 blocks, 7 workers, 740 s wall clock):
 
-| | L1 | L2 | L3 | L4 | L5 | L6 | L7 | L8 | L9 | D1 | D2 | D3 |
+| | L1 | L2 | L3 | L4 | L5 | L6 | L7 | L8 | L9 | L10 | D1 | D2 | D3 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | first measurement | 0 | 2 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 63 | 6 | 1 |
 | after the fixes | 0 | 2 | 0 | 0 | 0 | 0 | **0** | **0** | 1 | 65 | 7 | **0** |

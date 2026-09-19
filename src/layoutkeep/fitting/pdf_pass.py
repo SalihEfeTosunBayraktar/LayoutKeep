@@ -62,6 +62,15 @@ def fit_pdf_pass(
     from layoutkeep.core import tunables
 
     slack = float(tunables.get("write.box_slack_pt"))
+    # Before anything is measured: boxes a figure shares a band with are narrowed, so the text
+    # re-flowed into them cannot be drawn over the picture. Done here rather than in the writer
+    # because the fitting pass and the writer must see the same box - measuring against one and
+    # drawing in another is how a block ends up shrunk twice (see `_layout_rect`'s docstring).
+    from layoutkeep.fitting.figures import keep_page_off_figures
+
+    off_figure = sum(
+        keep_page_off_figures(page.blocks, page.images, clearance=slack) for page in doc.pages
+    )
     #: Absent when the setting is 0, so a run that does not want the block to grow pays nothing
     #: for looking.
     grant_limit = float(tunables.get("write.grant_room_pt"))
@@ -143,7 +152,12 @@ def fit_pdf_pass(
             if page_exp:
                 engine.reflow_column(page.blocks, page_exp, page_height=page_h)
 
-    return summarize(results) if results else None
+    summary = summarize(results) if results else None
+    if summary is not None:
+        # Reported so a run can show how many boxes had to step aside for a picture; a page of
+        # them means the fitting line's numbers were earned in narrower columns.
+        summary["off_figure"] = off_figure
+    return summary
 
 
 def _as_drawn(style, target_lang: str | None, cache: dict[tuple, str | None]):
