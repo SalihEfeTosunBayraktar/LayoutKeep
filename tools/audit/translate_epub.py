@@ -26,6 +26,7 @@ DEFAULT_WORKERS = 7
 
 def split_epub_chapters(src: Path, work: Path, chapters_per_chunk: int) -> list[tuple[int, Path]]:
     # EPUB sayfalarını/bölümlerini bağımsız parçalara böler / Splits EPUB pages/chapters into chunks
+    work.mkdir(parents=True, exist_ok=True)
     doc = read_epub(src)
     chunks: list[tuple[int, Path]] = []
     total_pages = len(doc.pages)
@@ -72,6 +73,12 @@ def translate_epub_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tu
 
     log_path = out.with_suffix(".log")
     log_path.write_text(proc.stdout + proc.stderr, encoding="utf-8")
+
+    if proc.returncode != 0 and "nothing translatable found" in proc.stdout + proc.stderr:
+        # Boş veya çevrilemez bölümü olduğu gibi korur / Keeps non-translatable chapter as is
+        import shutil
+        shutil.copyfile(chunk, out)
+        return out, 0, f"{elapsed:6.0f}s | nothing to translate - kept as is"
 
     lines = [
         line for line in (proc.stdout + proc.stderr).splitlines()
