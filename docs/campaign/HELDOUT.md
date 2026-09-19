@@ -15,3 +15,4 @@ The application as a user runs it: layout model on, verification on (`--verify-r
 | irs_p505 | dd52021 | 48 | 2144 | 0 | L2 2, L6 8, L8 2 | 0 / 2 / 0 / 0 / 0 / 8 / 0 / 2 / 0 | 509 | no | 71.6 |
 | arxiv_19145_v2 | aff28d6 | 20 | 489 | 0 | L2 7, L6 3, L7 6, L8 6 | 0 / 7 / 0 / 0 / 0 / 3 / 6 / 6 / 0 | 299 | no | 74.5 |
 | cookbook_1907 | a0f1a21 | 35 | 444 | 0 | L2 1, L6 1 | 0 / 1 / 0 / 0 / 0 / 1 / 0 / 0 / 0 | 129 | no | 15.0 |
+| mushrooms_1895_sample | 360fad5 | 41 | 264 | 0 | L2 1 | 0 / 1 / 0 / 0 / 0 / 0 / 0 / 0 / 0 | 34 | no | 8.4 |

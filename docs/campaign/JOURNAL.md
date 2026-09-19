@@ -1207,3 +1207,22 @@ Finished 35 chunks and merged into `cookbook_1907.tr.pdf` (35 pages) in **15.0 m
 - **L9**: 0
 - **D1 (readability floor)**: 129 blocks
 - **D3 (squeezed lines)**: 1 page
+
+## 2026-09-19 - held-out result: 1895 Mushrooms sample completed with 7 parallel workers
+
+1895 Mushrooms (*Our Edible Toadstools and Mushrooms*, 41 pages, 264 translatable blocks, commit `360fad5`):
+Finished 41 chunks and merged into `mushrooms_1895_sample.tr.pdf` (41 pages) in **8.4 minutes** of parallel wall time.
+
+**Loss Audit Results (264 blocks across 41 pages):**
+- **L1**: 0 (all 41 pages present and merged)
+- **L2**: 1 (one paragraph on Boletus preparation left untranslated)
+- **L3**: 0
+- **L4**: 0
+- **L5**: 0
+- **L6**: 0 (zero lost numbers)
+- **L7**: 0
+- **L8**: 0
+- **L9**: 0
+- **D1 (readability floor)**: 34 blocks
+- **D2 (botanical names kept as-is)**: 11 blocks (e.g. *Agaricus campestris*, *Amanita muscaria*)
+- **D3 (squeezed lines)**: 0
