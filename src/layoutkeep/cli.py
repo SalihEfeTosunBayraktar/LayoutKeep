@@ -89,16 +89,12 @@ def _build_provider(args: argparse.Namespace):
     else:
         from layoutkeep.providers.openai_compat import OpenAICompatProvider
 
-        if not args.model:
-            raise SystemExit(
-                "--model is required for the openai provider. "
-                "Run 'layoutkeep models --base-url ...' to see what the server has."
-            )
+        model_name = args.model or "google/gemma-4-e4b"
         provider = OpenAICompatProvider(
-            base_url=args.base_url, model=args.model, api_key=args.api_key,
+            base_url=args.base_url, model=model_name, api_key=args.api_key,
             timeout=args.timeout,
         )
-        model_id = f"{args.base_url}:{args.model}"
+        model_id = f"{args.base_url}:{model_name}"
 
     from layoutkeep.providers.protected import ProtectedProvider
 
@@ -500,7 +496,8 @@ def build_parser() -> argparse.ArgumentParser:
     insp.set_defaults(func=cmd_inspect)
 
     mdl = sub.add_parser("models", help="list the models an OpenAI-compatible server offers")
-    mdl.add_argument("--base-url", default="http://localhost:1234/v1",
+    # Windows IPv6 SynSent gecikmesini onlemek icin 127.0.0.1 / Use 127.0.0.1 to avoid Windows IPv6 timeout
+    mdl.add_argument("--base-url", default="http://127.0.0.1:1234/v1",
                      help="LM Studio defaults to port 1234, Ollama to 11434")
     mdl.add_argument("--api-key", default=None)
     mdl.set_defaults(func=cmd_models)
@@ -513,9 +510,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="source language code; 'auto' lets the model decide")
     tr.add_argument("-o", "--output", default=None)
     tr.add_argument("--provider", choices=["openai", "deepl", "fake"], default="openai")
-    tr.add_argument("--base-url", default="http://localhost:1234/v1",
+    tr.add_argument("--base-url", default="http://127.0.0.1:1234/v1",
                     help="OpenAI-compatible endpoint (LM Studio 1234, Ollama 11434)")
-    tr.add_argument("--model", default=None)
+    tr.add_argument("--model", default="google/gemma-4-e4b",
+                    help="model name (default: google/gemma-4-e4b)")
     tr.add_argument("--api-key", default=None,
                     help="optional; LM Studio and Ollama do not require a real key")
     tr.add_argument("--timeout", type=float, default=None, metavar="SECONDS",

@@ -25,7 +25,7 @@ from layoutkeep.ui.strings import UIStrings
 _KIND_FAKE_LABEL_FRAGMENT = "Test / Sahte Çevirici"
 _FAKE_PROVIDER_MODEL = "fake"
 _DEFAULT_NEW_PROFILE_NAME = "Yeni Sağlayıcı"
-_DEFAULT_NEW_BASE_URL = "http://localhost:1234/v1"
+_DEFAULT_NEW_BASE_URL = "http://127.0.0.1:1234/v1"
 _DEEPL_PROVIDER_DESCRIPTION = (
     "DeepL seçili. Base URL ve model gerekmez; anahtar hangi sunucuya gidileceğini "
     "kendisi belirler - ücretsiz anahtarlar ':fx' ile biter ve api-free.deepl.com "

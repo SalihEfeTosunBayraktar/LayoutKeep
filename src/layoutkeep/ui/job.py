@@ -17,8 +17,8 @@ class ProviderConfig:
     #: "deepl"  - DeepL's translation API. No model to choose; the key decides the host.
     #: "fake"   - the test provider, which does not translate.
     kind: str
-    base_url: str = "http://localhost:1234/v1"
-    model: str = ""
+    base_url: str = "http://127.0.0.1:1234/v1"
+    model: str = "google/gemma-4-e4b"
     api_key: str | None = None
     #: Per-request timeout override, in seconds. None (the default) means the worker computes
     #: an adaptive timeout per batch instead - see worker.py's `_batch_timeout`. This is an
