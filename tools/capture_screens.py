@@ -21,6 +21,10 @@ sys.path.insert(0, str(ROOT / "src"))
 # every glyph renders as a tofu box, which makes the captures worthless as design references.
 # Set QT_QPA_PLATFORM=offscreen explicitly if you are on a headless machine and accept that.
 os.environ.setdefault("LAYOUTKEEP_TUNABLES", str(Path(tempfile.mkdtemp()) / "tunables.json"))
+# The window's first-run timer opens the modal introduction, and this script has nobody to click
+# it away - the run sat until it was killed. The welcome screen is captured explicitly further
+# down, so the timer has nothing to do here.
+os.environ.setdefault("LAYOUTKEEP_NO_WELCOME", "1")
 
 from PySide6.QtWidgets import QApplication
 
@@ -138,6 +142,54 @@ def capture(theme_dark: bool) -> list[Path]:
     provider_dialog.grab().save(str(target))
     written.append(target)
     provider_dialog.hide()
+
+    # 7. the first-run introduction, page by page: it is the screen a new user meets first, and
+    # the only place the interface language and theme can be chosen before anything else.
+    from PySide6.QtCore import QEventLoop, QTimer
+
+    from layoutkeep.ui.welcome import WelcomeDialog
+
+    def settle(milliseconds: int = 250) -> None:
+        """Let Qt finish laying the page out before it is grabbed.
+
+        `processEvents()` alone was not enough: the captures came out with the header and the
+        buttons drawn and the page body blank, all five pages identical. A page is built and
+        shown on the way through the event loop, so the loop has to actually run.
+        """
+        loop = QEventLoop()
+        QTimer.singleShot(milliseconds, loop.quit)
+        loop.exec()
+
+    welcome = WelcomeDialog(window)
+    welcome.resize(760, 560)
+    welcome.show()
+    settle()
+    for index, page in enumerate(("hello", "first", "provider", "quality", "done")):
+        welcome._go(index)
+        settle()
+        target = OUT_DIR / f"07_welcome_{page}_{suffix}.png"
+        welcome.grab().save(str(target))
+        written.append(target)
+    welcome.hide()
+
+    # 8. the floating progress bar, following a run outside the main window
+    from layoutkeep.ui.floating_progress import FloatingProgress
+
+    bar = FloatingProgress()
+    bar.start_job("Introductory_Statistics.pdf", 55)
+    bar.set_phase("translating")
+    bar.set_progress(31, 55)
+    bar.show()
+    QApplication.processEvents()
+    target = OUT_DIR / f"08_floating_bar_{suffix}.png"
+    bar.grab().save(str(target))
+    written.append(target)
+    bar.finish(str(tmp / "Introductory_Statistics.out.pdf"))
+    QApplication.processEvents()
+    target = OUT_DIR / f"08_floating_bar_done_{suffix}.png"
+    bar.grab().save(str(target))
+    written.append(target)
+    bar.hide()
 
     window.close()
     return written
