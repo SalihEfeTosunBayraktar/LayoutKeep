@@ -7,6 +7,7 @@ E) k-means 8 iterasyon maliyeti ölçümü
 """
 import ast
 import os
+from pathlib import Path
 from _common import setup
 
 setup()
@@ -104,7 +105,7 @@ rng = np.random.default_rng(42)
 big = rng.integers(0, 255, size=(2000, 1500, 3), dtype=np.uint8)
 from layoutkeep.core.docir import BBox  # bos onemli degil
 
-sys_path = r"C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep\src"
+sys_path = str(Path(__file__).resolve().parents[2] / "src")  # proje kökü: betiğin kendi yeri
 if sys_path not in sys.path:
     import sys
     sys.path.insert(0, sys_path)

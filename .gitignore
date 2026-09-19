@@ -35,3 +35,6 @@ training/live_metrics.json
 docs/samples/academic_paper.pdf
 docs/samples/academic_paper.tr.pdf
 test_out/
+
+# Yerel ajan tanımları: repoya girmez, yalnız bu makinede çalışır.
+.claude/

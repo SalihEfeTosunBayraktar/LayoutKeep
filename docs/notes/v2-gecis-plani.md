@@ -3,7 +3,7 @@
 
 # Yeni Nesil Görsel Mizanpaj ve Kayıpsız Çeviri Mimarisi Geçiş Planı
 
-Bu plan, kullanıcının `/goal` komutu doğrultusunda [docs/YENI_MIMARI_VE_GECIS_PLANI.md](file:///c:/MyProjects/AntigravityProjects/AI_and_LLM/LayoutKeep/docs/YENI_MIMARI_VE_GECIS_PLANI.md) dokümanında belirlenen tüm fazları adım adım tamamlayarak, orijinal `LayoutKeep` projesini koruma altında tutarken izole `LayoutKeep_V2` çalışma alanında yeni nesil görsel mizanpaj (Visual Anchor + Glyph Fusion) sistemini kurmayı ve test etmeyi kapsar.
+Bu plan, kullanıcının `/goal` komutu doğrultusunda [docs/YENI_MIMARI_VE_GECIS_PLANI.md](../docs/YENI_MIMARI_VE_GECIS_PLANI.md) dokümanında belirlenen tüm fazları adım adım tamamlayarak, orijinal `LayoutKeep` projesini koruma altında tutarken izole `LayoutKeep_V2` çalışma alanında yeni nesil görsel mizanpaj (Visual Anchor + Glyph Fusion) sistemini kurmayı ve test etmeyi kapsar.
 
 ---
 
