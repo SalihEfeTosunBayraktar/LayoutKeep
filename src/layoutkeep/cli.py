@@ -257,8 +257,10 @@ def cmd_translate(args: argparse.Namespace) -> int:
             "tools/audit/format_matrix.py reproduces them."
         )
 
+    phases = _Phases()
     print(f"reading   {src}")
     doc = _read_document(src, _layout_classifier(args), _layout_detector(args))
+    phases.mark("read")
     doc.source_lang = args.from_lang
     doc.target_lang = args.to_lang
 
@@ -319,6 +321,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
             f"Is LM Studio (port 1234) or Ollama (port 11434) running with its server enabled?"
         ) from None
     elapsed = time.monotonic() - started
+    phases.mark("translate")
 
     stats = getattr(provider, "last_stats", None)
     if stats and (stats["protected"] or stats["skipped"]):
@@ -417,6 +420,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
 
     if src.suffix.lower() == ".pdf":
         fit_stats = _fit_pdf(doc, translated, provider, args)
+        phases.mark("fit")
         if fit_stats:
             total = sum(fit_stats.values())
             parts = " ".join(f"{k}={v}" for k, v in fit_stats.items() if v)
@@ -436,13 +440,15 @@ def cmd_translate(args: argparse.Namespace) -> int:
               f"{orphans[:5]}{'...' if len(orphans) > 5 else ''}")
 
     written = _write_document(doc, src, out)
+    phases.mark("write")
     if len(written) > 1:
         # An image target writes one file per page, so naming only `out` would understate it.
         print(f"wrote     {len(written)} files, {written[0]} .. {written[-1].name}")
     else:
         print(f"wrote     {out}")
 
-    _verify(doc, translated, src, out, provider, glossary, args)
+    _verify(doc, translated, src, out, provider, glossary, args, phases)
+    print(f"spent     {phases.line()}  (total {phases.total():.1f}s)")
 
     if args.save_project:
         proj = Path(args.save_project)
@@ -452,7 +458,35 @@ def cmd_translate(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _verify(doc: Document, translated, src: Path, out: Path, provider, glossary, args) -> None:
+
+class _Phases:
+    """Wall clock per phase, so "it felt slow" becomes a number to look at.
+
+    The stage that dominates is not obvious from the outside and is not the same for every
+    document: translation is the model's time, but fitting and writing are this program's, and on
+    a long book they grow with the page count. Every run now ends with the split.
+    """
+
+    def __init__(self) -> None:
+        self._marks: list[tuple[str, float]] = []
+        self._last = time.monotonic()
+
+    def mark(self, phase: str) -> None:
+        now = time.monotonic()
+        self._marks.append((phase, now - self._last))
+        self._last = now
+
+    def note(self, extra: dict[str, float]) -> None:
+        """Add phases measured elsewhere (the repair pass measures itself)."""
+        self._marks.extend(sorted(extra.items(), key=lambda item: item[1], reverse=True))
+
+    def line(self) -> str:
+        return " | ".join(f"{phase} {seconds:.1f}s" for phase, seconds in self._marks)
+
+    def total(self) -> float:
+        return sum(seconds for _phase, seconds in self._marks)
+
+def _verify(doc: Document, translated, src: Path, out: Path, provider, glossary, args, phases=None) -> None:
     """Check what was written, ask again for what a translation lost, flag what remains.
 
     The same pass the desktop worker runs (layoutkeep/verify.py). The output itself is checked
@@ -469,17 +503,24 @@ def _verify(doc: Document, translated, src: Path, out: Path, provider, glossary,
             glossary=glossary.terms if glossary else None,
         )
 
+    def write_document() -> None:
+        _write_document(doc, src, out)
+        if phases is not None:
+            phases.mark("write")
+
     report = verify_and_repair(
         doc,
         translated,
         target_lang=args.to_lang,
-        write=lambda: _write_document(doc, src, out),
+        write=write_document,
         source_pdf=src if pdf_to_pdf else None,
         output_pdf=out if pdf_to_pdf else None,
         ask_again=ask_again if args.verify_rounds > 0 else None,
         refit=(lambda again: _fit_pdf(doc, again, provider, args)) if src.suffix.lower() == ".pdf" else None,
         rounds=args.verify_rounds,
     )
+    if phases is not None:
+        phases.mark("verify")
     line = f"verify    {report.checked_blocks} blocks checked"
     if report.repaired:
         line += f", {report.repaired} mended by asking again - output written again"
