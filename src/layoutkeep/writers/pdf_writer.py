@@ -211,7 +211,14 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                         else 0.0
                     )
                     rect = _layout_rect(block.bbox, room, grant)
-                    _draw_block(page, rect, html, css, resolver.archive)
+                    _draw_block(
+                        page,
+                        rect,
+                        html,
+                        css,
+                        resolver.archive,
+                        own_bottom=block.bbox.y1 + float(tunables.get(_BOX_SLACK_KEY)),
+                    )
         # `garbage=4` dedupes identical objects: every block drawn in a given resolved font
         # embeds its own copy of that font's subset bytes (`insert_htmlbox`'s own font-loading
         # does not share a face across separate calls, even given the same `archive`), and since
@@ -580,6 +587,8 @@ def _draw_block(
     html: str,
     css: str,
     archive: pymupdf.Archive | None,
+    *,
+    own_bottom: float | None = None,
 ) -> None:
     """Draw one block, keeping it readable where that is possible and present where it is not.
 
@@ -598,6 +607,14 @@ def _draw_block(
     # Laid out on a scratch page first: `insert_htmlbox` can report a fit and draw only the first
     # lines (see `_laid_out_whole`), and on the real page there is no taking a draw back.
     attempts = [(rect, min_scale_setting()), (rect, 0)]
+    if own_bottom is not None and own_bottom > rect.y1 + 0.5:
+        # The block's own box, when the page's room below it measured negative and the writer had
+        # to shorten the box to stay off the next block. Measured on a recipe index: a 6.7pt line
+        # in its own 9pt box draws at 6.7pt, but in the 6.1pt box the (overlapping) block boxes
+        # left it, `insert_htmlbox` crushed it to 4.5pt - unreadable, and the next line's glyphs
+        # were never actually in the way of this one. Tried before any scale_low=0 fallback, so a
+        # block only takes this room when the alternative is unreadable text.
+        attempts.insert(1, (pymupdf.Rect(rect.x0, rect.y0, rect.x1, own_bottom), min_scale_setting()))
     attempts += [(pymupdf.Rect(rect.x0, rect.y0, rect.x1, rect.y1 + extra), 0) for extra in (0.5, 1.0, 2.0)]
     for box, scale_low in attempts:
         if _lays_out_whole(box, html, css, scale_low, archive):
