@@ -1189,3 +1189,21 @@ Previously abandoned unfinished after 3+ hours under sequential execution with n
 2. Graceful pass-through for non-translatable chunks (frontmatter/cover plates with no text) to avoid false aborts.
 3. UTF-8 standard console output/error reconfiguration preventing Windows `cp1254` Unicode crashes.
 4. Resumable checkpointing (`--resume`) ensuring zero lost progress across interrupted runs.
+
+## 2026-09-19 - held-out result: 1907 Cookbook completed with 7 parallel workers
+
+1907 Cookbook (*The 1907 Cook Book*, 35 pages, 444 translatable blocks, commit `a0f1a21`):
+Finished 35 chunks and merged into `cookbook_1907.tr.pdf` (35 pages) in **15.0 minutes** of parallel wall time.
+
+**Loss Audit Results (444 blocks across 35 pages):**
+- **L1**: 0 (all 35 pages present and merged)
+- **L2**: 1 (one recipe ingredient measurement left untranslated)
+- **L3**: 0
+- **L4**: 0
+- **L5**: 0
+- **L6**: 1 (one number altered in translation)
+- **L7**: 0
+- **L8**: 0
+- **L9**: 0
+- **D1 (readability floor)**: 129 blocks
+- **D3 (squeezed lines)**: 1 page
