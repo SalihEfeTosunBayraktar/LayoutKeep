@@ -79,6 +79,20 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="ui.floating_progress",
+        label="Yüzen ilerleme çubuğu (her zaman üstte)",
+        default=True,
+        kind="bool",
+        group="Arayüz",
+        help_text=(
+            "Çeviri başlarken ekranın üst-ortasına küçük, her zaman üstte duran bir ilerleme "
+            "kartı çıkar: belgenin adı, içinde bulunulan aşama, kaç parça bittiği ve yüzde. "
+            "Bitince yeşil \"Bitti\" hâline geçer ve çıktıyı açma / yeni çeviri düğmelerini "
+            "gösterir. Pencereyi küçültüp işi arkada sürdürmek için vardır; kapatılırsa "
+            "ilerleme yalnız ana penceredeki kartta görünür."
+        ),
+    ),
+    Tunable(
         key="translation.piecewise_max_pieces",
         label="Son çare: parçalara bölüp çevirme sınırı",
         default=12,

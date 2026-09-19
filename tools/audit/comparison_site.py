@@ -9,7 +9,7 @@ Sources come from `_artifacts/heldout/sources/`, translations from the recorded 
 (`<run>/<name>.tr.pdf` when a full document was assembled, else the per-chunk `out/t_*.pdf` in
 order) plus the newest live run in `_artifacts/heldout/live/`.
 
-    python tools/audit/comparison_site.py [--out docs/comparison] [--dpi 100] [--max-pages 14]
+    python tools/audit/comparison_site.py [--out docs/comparison] [--dpi 144] [--max-pages 8]
 
 Everything is written under the output directory: `index.html` plus `img/<document>/<page>_{a,b}.jpg`.
 No network, no CDN - the file opens from disk.
@@ -160,6 +160,26 @@ def collect(include_live: bool = True) -> list[Document]:
     return _campaign_documents() + (_live_documents() if include_live else [])
 
 
+def _save(pix, stem: Path) -> str:
+    """Write one page render, as WebP when Pillow is available.
+
+    Measured on the heaviest page (arXiv, formulas and figures): 168 dpi JPEG 191 KB, 168 dpi WebP
+    410 KB, 144 dpi WebP 313 KB. WebP buys the resolution that a zoom needs (text stays readable at
+    200% - checked by eye), so the defaults are 144 dpi at quality 80 with 8 pages per document,
+    which keeps the whole site around a third of the size a 168 dpi JPEG set would take. WebP needs
+    Pillow, which the OCR extra brings; without it the JPEG path is used and the site still works.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        pix.save(stem.with_suffix(".jpg"), jpg_quality=76)
+        return stem.with_suffix(".jpg").name
+    Image.frombytes("RGB", (pix.width, pix.height), pix.samples).save(
+        stem.with_suffix(".webp"), "WEBP", quality=80, method=4
+    )
+    return stem.with_suffix(".webp").name
+
+
 def render(document: Document, out_dir: Path, dpi: int, cap: int) -> list[dict]:
     """Write the before/after images for one document and return its page records."""
     folder = out_dir / "img" / document.name
@@ -172,17 +192,17 @@ def render(document: Document, out_dir: Path, dpi: int, cap: int) -> list[dict]:
             before = original[min(source_index, original.page_count - 1)].get_pixmap(
                 matrix=pymupdf.Matrix(zoom, zoom)
             )
-        before.save(folder / f"{page_number:04d}_a.jpg", jpg_quality=76)
+        before_name = _save(before, folder / f"{page_number:04d}_a")
         with pymupdf.open(output_path) as translated:
             after = translated[min(output_index, translated.page_count - 1)].get_pixmap(
                 matrix=pymupdf.Matrix(zoom, zoom)
             )
-        after.save(folder / f"{page_number:04d}_b.jpg", jpg_quality=76)
+        after_name = _save(after, folder / f"{page_number:04d}_b")
         records.append(
             {
                 "page": page_number + 1,
-                "before": f"img/{document.name}/{page_number:04d}_a.jpg",
-                "after": f"img/{document.name}/{page_number:04d}_b.jpg",
+                "before": f"img/{document.name}/{before_name}",
+                "after": f"img/{document.name}/{after_name}",
             }
         )
     return records
@@ -210,8 +230,8 @@ PAGE_TEMPLATE = """<!doctype html>
   section {{ padding:16px 20px 40px; }}
   h2 {{ font-size:16px; margin:4px 0 2px; }}
   .meta {{ color:var(--muted); font-size:13px; margin-bottom:12px; }}
-  .stage {{ position:relative; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#14171d;
-            touch-action:none; cursor:ew-resize; }}
+  .viewport {{ overflow:auto; max-height:82vh; border:1px solid var(--line); border-radius:10px; background:#14171d; }}
+  .stage {{ position:relative; width:100%; touch-action:none; cursor:ew-resize; }}
   .stage img {{ display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }}
   .stage .after {{ position:absolute; inset:0; }}
   .stage .before {{ position:relative; z-index:2; clip-path: inset(0 50% 0 0); }}
@@ -224,24 +244,38 @@ PAGE_TEMPLATE = """<!doctype html>
   .pages button {{ padding:5px 9px; border-radius:6px; border:1px solid var(--line); background:#151922; color:var(--ink); cursor:pointer; font:inherit; font-size:13px; }}
   .pages button.active {{ border-color:var(--accent); background:#1b2433; }}
   .hint {{ color:var(--muted); font-size:12px; margin-top:8px; }}
+  .zoom {{ display:flex; align-items:center; gap:8px; margin:10px 0 8px; }}
+  .zoom button {{ min-width:34px; padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:#151922;
+                  color:var(--ink); cursor:pointer; font:inherit; font-size:14px; }}
+  .zoom button:hover {{ border-color:var(--accent); }}
+  .zoom .level {{ min-width:52px; text-align:center; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }}
 </style>
 </head>
 <body>
 <header>
   <h1>LayoutKeep — orijinal ve çeviri, yan yana</h1>
-  <div class="sub">Ayırıcıyı sürükle (ya da ← → tuşları): solda orijinal, sağda çevrilmiş sayfa. {count} belge.</div>
+  <div class="sub">Ayırıcıyı sürükle (ya da ← → tuşları): solda orijinal, sağda çevrilmiş sayfa. Ctrl + tekerlek yakınlaştırır. {count} belge.</div>
 </header>
 <main>
   <nav id="docs"></nav>
   <section>
     <h2 id="title"></h2>
     <div class="meta" id="meta"></div>
-    <div class="stage" id="stage">
-      <img class="before" id="before" alt="orijinal sayfa">
-      <div class="after"><img id="after" alt="çevrilmiş sayfa"></div>
-      <div class="tag a">orijinal</div>
-      <div class="tag b">çeviri</div>
-      <div class="handle" id="handle"></div>
+    <div class="zoom">
+      <button id="zoom-out" title="Uzaklaştır (Ctrl -)">−</button>
+      <span class="level" id="zoom-level">100%</span>
+      <button id="zoom-in" title="Yakınlaştır (Ctrl +)">+</button>
+      <button id="zoom-fit" title="Genişliğe sığdır (0)">Sığdır</button>
+      <span class="hint">Ctrl + tekerlek de yakınlaştırır; yakınlaşınca sayfa kaydırılır.</span>
+    </div>
+    <div class="viewport" id="viewport">
+      <div class="stage" id="stage">
+        <img class="before" id="before" alt="orijinal sayfa">
+        <div class="after"><img id="after" alt="çevrilmiş sayfa"></div>
+        <div class="tag a">orijinal</div>
+        <div class="tag b">çeviri</div>
+        <div class="handle" id="handle"></div>
+      </div>
     </div>
     <div class="pages" id="pages"></div>
     <div class="hint">Görseller {dpi} dpi. Kaynak: _artifacts/heldout/{origin}.</div>
@@ -250,13 +284,19 @@ PAGE_TEMPLATE = """<!doctype html>
 <script>
 const DATA = {data};
 
-let current = 0, page = 0, dragging = false, ratio = 0.5;
+let current = 0, page = 0, dragging = false, ratio = 0.5, zoom = 1;
 const $ = (id) => document.getElementById(id);
 
 function setRatio(value) {{
   ratio = Math.min(1, Math.max(0, value));
   $("before").style.clipPath = `inset(0 ${{(1 - ratio) * 100}}% 0 0)`;
   $("handle").style.left = `${{ratio * 100}}%`;
+}}
+
+function setZoom(value) {{
+  zoom = Math.min(4, Math.max(0.25, value));
+  $("stage").style.width = (zoom * 100) + "%";
+  $("zoom-level").textContent = Math.round(zoom * 100) + "%";
 }}
 
 function showDocument(index) {{
@@ -291,9 +331,20 @@ const move = (event) => {{
 stage.addEventListener("pointerdown", (event) => {{ dragging = true; move(event); }});
 window.addEventListener("pointerup", () => {{ dragging = false; }});
 window.addEventListener("pointermove", (event) => {{ if (dragging) move(event); }});
+$("zoom-in").onclick = () => setZoom(zoom * 1.25);
+$("zoom-out").onclick = () => setZoom(zoom / 1.25);
+$("zoom-fit").onclick = () => setZoom(1);
+$("viewport").addEventListener("wheel", (event) => {{
+  if (!event.ctrlKey) return;  // plain wheel still scrolls the page
+  event.preventDefault();
+  setZoom(zoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+}}, {{ passive: false }});
 window.addEventListener("keydown", (event) => {{
   if (event.key === "ArrowLeft") showPage(Math.max(0, page - 1));
   if (event.key === "ArrowRight") showPage(Math.min(DATA[current].pages.length - 1, page + 1));
+  if (event.key === "+" || event.key === "=") setZoom(zoom * 1.25);
+  if (event.key === "-" || event.key === "_") setZoom(zoom / 1.25);
+  if (event.key === "0") setZoom(1);
 }});
 
 const nav = $("docs");
@@ -314,8 +365,8 @@ showDocument(0);
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "docs/comparison")
-    parser.add_argument("--dpi", type=int, default=92)
-    parser.add_argument("--max-pages", type=int, default=6)
+    parser.add_argument("--dpi", type=int, default=144)
+    parser.add_argument("--max-pages", type=int, default=8)
     parser.add_argument("--no-live", action="store_true")
     args = parser.parse_args()
 
@@ -347,7 +398,7 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
-    images = sum(1 for _ in (args.out / "img").rglob("*.jpg"))
+    images = sum(1 for pattern in ("*.webp", "*.jpg") for _ in (args.out / "img").rglob(pattern))
     print(f"\n{len(site)} belge, {images} görsel -> {args.out / 'index.html'}")
     return 0
 

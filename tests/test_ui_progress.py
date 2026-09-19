@@ -2,7 +2,25 @@
 
 from __future__ import annotations
 
+import pytest
+
 from layoutkeep.ui.progress import ProgressWidget
+from layoutkeep.ui.strings import UIStrings
+
+
+@pytest.fixture(autouse=True)
+def _turkish_labels():
+    """Assert Turkish labels deliberately instead of inheriting them.
+
+    These tests read Turkish text ("Geçen:", "Kalan:") but never asked for Turkish; they passed
+    only because whichever module ran before them happened to leave the language set. Running the
+    file alone, or after a module that restores English, failed. The interface still defaults to
+    English, so the language is set here and put back afterwards.
+    """
+    previous = UIStrings.get_language()
+    UIStrings.set_language("tr")
+    yield
+    UIStrings.set_language(previous)
 
 
 def test_set_progress_updates_bar_and_status(qtbot):

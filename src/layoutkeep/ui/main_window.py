@@ -7,9 +7,15 @@ yeni çeviri seçenekleri sunulur. Gözden geçirme editörü kaldırıldı (esk
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
+from layoutkeep.core import tunables
 from layoutkeep.ui.completion import CompletionWidget
+from layoutkeep.ui.floating_progress import FloatingProgress
 from layoutkeep.ui.header import HeaderBar
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.job_setup import JobSetupWidget
@@ -51,6 +57,11 @@ class MainWindow(QWidget):
         self._setup = JobSetupWidget()
         self._progress = ProgressWidget()
         self._completion = CompletionWidget()
+        #: Owned by this window (destroyed with it) but flagged as its own always-on-top tool
+        #: window, so it stays reachable while the main window is minimised. Parentless was tried
+        #: first and crashed the UI test suite: orphaned top-level widgets outlive the window that
+        #: created them, and the next global stylesheet application touches freed memory.
+        self._floating = FloatingProgress(self)
 
         self._stack.addWidget(self._setup)
         self._stack.addWidget(self._progress)
@@ -77,6 +88,10 @@ class MainWindow(QWidget):
         self._progress.cancel_requested.connect(self._cancel_job)
         self._progress.pause_requested.connect(self._pause_job)
         self._progress.resume_requested.connect(self._resume_job)
+        self._floating.restore_requested.connect(self._restore_from_floating)
+        self._floating.new_job_requested.connect(self._new_job_from_floating)
+        self._floating.open_output_requested.connect(self._open_output_from_floating)
+        self._floating.pause_toggled.connect(self._toggle_pause_from_floating)
 
     def _restore_theme(self) -> None:
         # Kayıtlı tema tercihini uygular / Applies saved theme preference
@@ -103,6 +118,7 @@ class MainWindow(QWidget):
         self._setup.retranslate_ui()
         self._progress.retranslate_ui()
         self._completion.retranslate_ui()
+        self._floating.retranslate_ui()
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         # Tema değiştiğinde QSS'i yeniler ve kaydeder / Refreshes QSS and saves on theme change
@@ -117,6 +133,7 @@ class MainWindow(QWidget):
         self._setup.apply_theme()
         self._completion.apply_theme()
         self._progress.apply_theme()
+        self._floating.apply_theme()
         self._header.set_active_step(self._stack.currentIndex() + 1)
 
     def _start_job(self, config: JobConfig) -> None:
@@ -143,13 +160,49 @@ class MainWindow(QWidget):
         self._worker.batch_timeout.connect(self._progress.set_batch_timeout)
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.failed.connect(self._on_failed)
+        # The summary bar reads the same signals as the card, so the two cannot disagree.
+        self._worker.progress.connect(self._floating.set_progress)
+        self._worker.status.connect(self._floating.set_phase)
+        self._worker.finished_ok.connect(self._floating.finish)
+        self._worker.failed.connect(self._floating.fail)
+        if bool(tunables.get("ui.floating_progress")):
+            self._floating.start_job(Path(config.input_path).name)
         self._worker.start()
+
+    def _restore_from_floating(self) -> None:
+        # Yüzen çubuktan ana pencereye döner / Comes back to the full window from the summary bar
+        self._floating.hide()
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def _new_job_from_floating(self) -> None:
+        # "Yeni çeviri": kurulum ekranına döner / Starts over from the setup screen
+        self._floating.hide()
+        self._return_to_setup()
+        self._restore_from_floating()
+
+    def _open_output_from_floating(self) -> None:
+        # Çıktı dosyasını sistem varsayılanıyla açar / Opens the output with the system default app
+        path = self._last_output_path or self._floating.output_path()
+        if path:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def _toggle_pause_from_floating(self) -> None:
+        # Yüzen çubuktaki duraklat/devam düğmesi / The bar's pause-resume toggle
+        if self._floating.is_paused():
+            self._pause_job()
+        else:
+            self._resume_job()
 
     def closeEvent(self, event) -> None:
         # Pencere kapanırken çalışan iş parçacığını güvenle durdurur / Safely stops worker on close
         if self._worker is not None and self._worker.isRunning():
             self._worker.cancel()
             self._worker.wait(1500)
+        # The bar is its own window: closing the application has to take it down too, or it would
+        # outlive the window it reports about.
+        self._floating.close()
         super().closeEvent(event)
 
     def _cancel_job(self) -> None:

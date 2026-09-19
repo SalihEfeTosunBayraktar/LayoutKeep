@@ -30,6 +30,25 @@ from layoutkeep.ui.theme import ThemeManager
 # ---------------------------------------------------------------------------
 
 
+#: What the worker announces as a phase, and the text a person should read. The keys travel
+#: over the `status` signal as short machine names ("writing output"), which used to reach the
+#: screen verbatim; mapping them in one place keeps the card and the floating bar agreeing.
+_PHASE_KEYS = {
+    "reading document": "STATUS_READING",
+    "translating": "STATUS_TRANSLATING",
+    "applying translation": "STATUS_FITTING",
+    "writing output": "STATUS_WRITING",
+    "verifying output": "STATUS_VERIFYING",
+    "cancelled": "STATUS_CANCELLED",
+}
+
+
+def format_phase(status: str) -> str:
+    """Turn a worker phase into display text, leaving anything already readable alone."""
+    key = _PHASE_KEYS.get(status.strip().lower())
+    return UIStrings.get(key) if key else status
+
+
 def format_progress_status(done: int, total: int) -> str:
     """İlerleme çubuğu yanındaki durum satırını formatlar / Formats status line."""
     pct = (done / total * 100) if total else 0.0
@@ -337,7 +356,7 @@ class ProgressWidget(QWidget):
         self._cancel_btn.setEnabled(True)
 
     def set_status(self, text: str) -> None:
-        self._status.setText(text)
+        self._status.setText(format_phase(text))
 
     def set_review_flags(self, flagged: int, done: int) -> None:
         """Show how many segments have been flagged so far.
