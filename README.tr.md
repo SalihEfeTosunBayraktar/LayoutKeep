@@ -126,6 +126,24 @@ onu okur, dolayısıyla neyin hazır olduğu konusunda ayrı düşemezler.
 Latin yazılar (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, …). Veri modeli bir `direction`
 alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uygulanmış değil.
 
+## Sonucun iyi çıkmasını ne belirler
+
+Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına göre, bu projenin gerçekten
+ölçtüğü sayılarla:
+
+| Etken | Ne yapıyor |
+|---|---|
+| **Belgenin türü** | EPUB düzeni CSS'te taşıdığı için %95+ sadakatle çıkar; ondan sonra dijital PDF gelir, çünkü metni kaynağın koyduğu yerdedir; taranmış sayfa kırılgandır — metin önce okunur, eski harflerin üzeri boyanır, çeviri yerine yazılır, yani OCR boru hattın içindedir |
+| **Tarama çözünürlüğü ve temizliği** | Temiz 300 dpi taramalar güvenilir okunur. Eğik, lekeli ya da düşük çözünürlüklü sayfalar OCR'da karakter kaybeder; kaybolan karakter kaybolan kelimedir: sayfayı içerik alanına kırpmak yoğun bir sayfada bir paragrafı yedi (artık eşikle korunuyor ve o vaka bir regresyon testi) |
+| **Modelin hedef dildeki becerisi** | *Metin* üzerindeki en büyük kaldıraç. Sayıları, adları ve listeleri sadakatle taşır; deyim ve terimlerde tökezler — "Vietnamese" için `việt語` çıktısı, dil *kodunu* sormaktan doğan karışık betik hatasıydı; bu yüzden istem artık dilin adını ve betiğini söylüyor |
+| **Dil çiftinin uzunluk davranışı** | İngilizce→Türkçe ortalamada **0.93x**, blok blok **0.64x–1.40x**. Kutusundan çok kısa çıkan blok, uydurma dolguyla doldurulmak yerine işaretlenir; uzun çıkan blok önce kısası istenerek, sonra küçültülerek, en sonunda işaretlenerek çözülür |
+| **Tablolar ve formlar** | En çok bayrak toplayan yerler ve sebebi yapısal: hücrede kaynağın kelimelerine yer var, daha uzun çıkan çeviriye yok. `--fit-mode reflow` (ölçümü sürüyor) bloğu küçültmek yerine altındakileri aşağı iter |
+| **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür: 7 işçiyle `-c 8192` istek başına ~1.2k token bırakır ve uzun bir paragraf taşar (hata, gövdesi okunana kadar "model bulunamadı" gibi göründü). Bu projenin koştuğu ayar 7 işçi için 32768 |
+
+Bunların hiçbiri koşudan gizlenmez: her biri ya sığdırma satırında
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), ya denetimde (L1–L10 kayıp, D1–D3 tanımlayıcı), ya da
+uygulamanın inceleme kuyruğunda görünür.
+
 **Gerçek belgeler bunları yaptığı için ayrıca ele alınanlar:** her açıda döndürülmüş metin, aynalı
 metin (sessizce düzeltilmek yerine tespit edilip işaretlenir), çeviri boyunca satır-içi işaretlerle
 taşınan kalın/italik parçalar, ve özgün yazı tipi hedef dili çizemediğinde metrik-uyumlu yazı tipi

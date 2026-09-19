@@ -128,6 +128,24 @@ both the application and the command line, so they cannot disagree about what is
 Latin scripts (Turkish, English, German, French, Spanish, …). The data model carries a `direction`
 field so right-to-left support can be added without a rewrite, but it is not implemented.
 
+## What decides how good a translation comes out
+
+The same settings produce very different results on different documents. In order of how much they
+move the outcome, with the numbers this project has actually measured:
+
+| Factor | What it does |
+|---|---|
+| **The document's kind** | An EPUB keeps its layout in CSS and comes out at 95%+ fidelity; a digital PDF is next, because its text is exactly where the source put it; a scanned page is the fragile one — text is recognised, the old letters are painted out, and the translation is written back, so OCR sits in the loop |
+| **Scan resolution and cleanliness** | Clean 300 dpi scans read reliably. Skewed, stained or low-resolution pages lose characters in OCR, and a lost character is a lost word: cropping a page to its content area once ate a whole paragraph on a dense page (threshold-guarded now, and the case is a regression test) |
+| **The model's skill in the target language** | The biggest lever on the *text*. The bundled flow reproduces numbers, names and lists faithfully and stumbles on idioms and terms — `việt語` for "Vietnamese" was an artefact of asking for a language *code* instead of a language *name*, which is why the prompt now names the language and its script |
+| **The language pair's length behaviour** | English→Turkish measures **0.93x** on average and **0.64x–1.40x per block**. A block that comes out far shorter than its box is flagged rather than padded with invented words; one that comes out longer is asked for again in shorter form, then shrunk, then flagged |
+| **Tables and forms** | The most flagged areas, for a structural reason: a cell has room for the source's words, not for a translation that runs longer. `--fit-mode reflow` (still being measured) lets a block push the ones under it down instead of shrinking |
+| **The model server's configuration** | A local model's context window is shared across its parallel slots: `-c 8192` with 7 workers leaves ~1.2k tokens per request, and a long paragraph overflows it (the failure read as "model not found" until the error body was opened). 32768 for 7 workers is what this project runs |
+
+Nothing here is hidden from a run: each factor shows up in the fitting line
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), in the audit (L1–L10 loss conditions, D1–D3
+descriptive ones) or in the review queue inside the application.
+
 **Also handled, because real documents do this:** rotated text at any angle, mirrored text
 (detected and flagged rather than silently un-mirrored), bold/italic runs carried through
 translation as inline markers, and metric-compatible font substitution when the original font
