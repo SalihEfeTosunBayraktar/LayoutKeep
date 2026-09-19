@@ -7,6 +7,11 @@ denetimlerimizle (L1–L10, D1–D3, `tools/audit/*`) yazılı.
 Tarih: 2026-09-20 · Kaynaklar: BabelDOC (ACL 2026 demo, arXiv 2605.10845, AGPLv3), mineru-translate
 (PyPI 0.1.2), ticari derlemeler (Doclingo, Lara Translate, Doctranslate, Bluente).
 
+> **Düzeltme (2026-09-20, aynı gün).** Bu raporun ilk sürümü "terim sözlüğü" ve "koşular arası
+> önbellek" satırlarını "yok" diye yazmıştı: yanlıştı. İkisi de kodda var (`providers/glossary.py`,
+> `providers/memory.py`, ikisinin de kendi testleri var); eksik olan, ikisinin de uygulamadan
+> erişilememesiydi. Satırlar düzeltildi, arayüz bağlantısı aynı gün yapıldı.
+
 ---
 
 ## 1. Bugün ne var (kısa envanter)
@@ -17,6 +22,8 @@ Tarih: 2026-09-20 · Kaynaklar: BabelDOC (ACL 2026 demo, arXiv 2605.10845, AGPLv
 | Kayıpsızlık denetimi | **L1–L10 + D1–D3**, hem uygulamada (`verify.py`) hem CLI'da, hem de kayıtlı koşularda (`tools/audit/lossless_audit.py`) |
 | Sığdırma | İki yönlü merdiven (kısalt → küçült → gerekirse büyüt), `fitting/`, ayarlanabilir eşikler |
 | Çeviri belleği | Aynı metni bir kez çevirme, tekrarları çoğunluk çevirisiyle birleştirme |
+| **Koşular arası bellek** | `providers/memory.py`: SQLite, (kaynak, diller, model) anahtarlı; CLI'da `--memory`, uygulamada ayar anahtarı (2026-09-20'de arayüze bağlandı) |
+| **Terim sözlüğü** | `providers/glossary.py`: JSON sözlük isteme eklenir, çıktıda kullanımı denetlenir; CLI'da `--glossary`, uygulamada ayar alanı (2026-09-20'de bağlandı) |
 | Sağlayıcılar | OpenAI uyumlu (LM Studio, bulut), DeepL |
 | Paralellik | Bölüm/parça bazlı paralel koşu, `.lkproj` kontrol noktası + `--resume` |
 | Arayüz | PySide6: kurulum, ilerleme (yüzen çubuk), tamamlanma, gelişmiş ayarlar, karşılama ekranı |
@@ -30,11 +37,11 @@ BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2) 
 | Özellik | Kimde var | Bizde | Değer |
 |---|---|---|---|
 | **Çift dilli çıktı** (kaynak+çeviri yan yana ya da almaşık sayfalar) | BabelDOC, mineru-translate, Doclingo, Lara | site var, **PDF yok** | Yüksek: inceleme akışının tamamı buna bakıyor |
-| **Terim sözlüğü (glossary) kısıtı** | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | yok | Yüksek: aynı terimin belge boyunca aynı çevrilmesi |
+| Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON, istem + çıktı denetimi) | Kalan: sözlüğü arayüzde düzenlemek, CSV/TSV kabul etmek, kullanılmayan terimi raporda göstermek |
 | **Otomatik terim çıkarımı** | BabelDOC | yok | Orta: sözlüğü elle doldurmak yerine aday listesi |
 | **Sayfa-ötesi bağlam** | BabelDOC | kısmi (`context_before/after`) | Orta: paragraf bölünmelerinde zamir/atıf tutarlılığı |
 | **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | kısmi (`--fit-mode reflow` deneysel) | Orta: D1'e düşen 801 blok (kitap koşusu) tam bu sınıf |
-| **Çeviri önbelleği** (koşular arası) | mineru-translate | belge içi var, koşular arası yok | Orta: aynı belgeyi yeniden çevirmek |
+| Çeviri önbelleği (koşular arası) | mineru-translate | **var** (SQLite bellek) | Kalan: arayüzde isabet oranını göstermek, sözlük değişince geçersiz kılmak (sözlük parmak izi anahtara eklendi) |
 | **Görsel/tablo içi metin çevirisi** | BabelDOC | yok (kilitli) | Düşük-orta: manga/infografik boru hattı |
 | **Kaynakça + dipnot yeniden kurma** | BabelDOC | blok olarak korunuyor, "yeniden kurma" yok | Düşük: akademik akış |
 | **Editör / sonradan düzeltme** | Doclingo, Lara, X-doc | yok (D6 akışı kaldırıldı) | Orta: "ilk geçiş + inceleme" vaadimizin devamı |
@@ -50,12 +57,10 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Kilidi kolay: aynı sayfayı iki
    kez yazıp sayfa boyutunu ikiye katlamak ya da sayfa sırasını değiştirmek; `pdf_writer` zaten
    sayfa bazlı. Ölçüm: çıktı sayfa sayısı = 2×kaynak (almaşık) ve L1–L10 bozulmuyor.
-2. **Terim sözlüğü**: CSV (kaynak,hedef) → istemde "bu terimleri aynen kullan" talimatı + çıktıda
-   doğrulama (terim geçtiyse çevirisi geçti mi?). Emek: düşük-orta. Ölçüm: sözlükteki her terim için
-   çıktıda hedef terimin bulunma oranı (hedef: %100, kaynak terim korunmuşsa uyarı).
-3. **Önbellek**: `--cache` dizini; parça metni → çeviri eşlemesi, koşular arası paylaşılır. Emek:
-   düşük (dedupe zaten var, diske yazmak kalıyor). Ölçüm: ikinci koşuda istek sayısının ~0'a
-   düşmesi.
+2. **Sözlüğü ve belleği arayüzün parçası yapmak** (2026-09-20'de başladı): sözlük dosyası ve
+   bellek anahtarı Gelişmiş Ayarlar'da, iş kurulurken okunuyor; kalan iş sözlüğü uygulamada
+   düzenlemek, CSV/TSV kabul etmek ve koşu özetinde "bellekten gelen" sayısını göstermek. Ölçüm:
+   sözlükteki her terimin çıktıda bulunma oranı (hedef %100) ve ikinci koşuda istek sayısı.
 4. **Örtüşme çözümü**: `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).

@@ -7,6 +7,7 @@ reimplements translation, fitting or I/O logic (see docs/CONTRACT.md, D1/D2).
 
 from __future__ import annotations
 
+import hashlib
 import threading
 import time
 from pathlib import Path
@@ -77,6 +78,40 @@ def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
     return write_any_document(doc, source, out)
 
 
+def load_glossary_terms(path: str | None) -> dict[str, str] | None:
+    """Read a JSON glossary, or None when no file is configured.
+
+    A broken file is not a reason to fail the job: it is reported by the caller and the run goes
+    on without the glossary, which is the same document the user would have got before.
+    """
+    if not path:
+        return None
+    from layoutkeep.providers.glossary import Glossary
+
+    try:
+        glossary = Glossary.load(path)
+    except (OSError, ValueError) as exc:
+        # A typo in a path or a hand-edited JSON file must not end a two-hour run before it
+        # starts; the caller reports it and the document is translated as it would have been.
+        raise GlossaryUnreadable(path, str(exc)) from exc
+    return glossary.terms or None
+
+
+class GlossaryUnreadable(Exception):
+    """The configured glossary file could not be read; the run continues without it."""
+
+
+def _glossary_fingerprint(terms: dict[str, str]) -> str:
+    """Short hash of a glossary, folded into the memory key.
+
+    WHY THIS EXISTS: the translation memory is keyed by (source, languages, model). A glossary
+    changes what the model is asked for, so a translation produced before the term policy existed
+    would otherwise be served straight back - the exact case the memory's own warning describes.
+    """
+    payload = chr(0).join(f"{k}={v}" for k, v in sorted(terms.items())).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:12]
+
+
 def _build_provider(config: JobConfig):
     if config.provider.kind == "fake":
         from layoutkeep.providers.fake import FakeProvider
@@ -105,14 +140,21 @@ def _build_provider(config: JobConfig):
     from layoutkeep.providers.dedupe import DedupeProvider
     from layoutkeep.providers.protected import ProtectedProvider
 
+    try:
+        terms = load_glossary_terms(config.glossary_path)
+    except GlossaryUnreadable:
+        terms = None  # the job runs without it; the settings dialog is where this is fixed
+    if terms:
+        model_id = f"{model_id}|gloss:{_glossary_fingerprint(terms)}"
+
     if not config.memory_path:
-        return ProtectedProvider(DedupeProvider(provider)), None
+        return ProtectedProvider(DedupeProvider(provider)), None, terms
 
     from layoutkeep.providers.cached import CachedProvider
     from layoutkeep.providers.memory import TranslationMemory
 
     memory = TranslationMemory(config.memory_path)
-    return ProtectedProvider(CachedProvider(DedupeProvider(provider), memory, model_id)), memory
+    return ProtectedProvider(CachedProvider(DedupeProvider(provider), memory, model_id)), memory, terms
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +196,7 @@ def _run_translation_loop(
     *,
     source_lang: str,
     target_lang: str,
+    glossary: dict[str, str] | None = None,
 ) -> list[Segment] | None:
     """Translate `segments` in batches; returns None if cancelled or a batch errored."""
     from layoutkeep.providers.batching import BatchProgress
@@ -211,6 +254,7 @@ def _run_translation_loop(
                 batch,
                 src_lang=source_lang,
                 tgt_lang=target_lang,
+                glossary=glossary,
                 on_progress=_sub_progress,
             )
         except TimeoutError:
@@ -369,7 +413,7 @@ class TranslationWorker(QThread):
             return
 
         total_chars = sum(len(s.source) for s in segments)
-        provider, memory = _build_provider(config)
+        provider, memory, glossary_terms = _build_provider(config)
         self.progress.emit(0, total)
         self.progress_detailed.emit(0, total, 0, total_chars, 0.0, "")
 
@@ -531,7 +575,7 @@ class TranslationWorker(QThread):
         from layoutkeep.fitting.pdf_pass import apply_scale, fit_pdf_pass
 
         if provider is None:
-            provider, _memory = _build_provider(config)
+            provider, _memory, glossary_terms = _build_provider(config)
 
         def retranslate(segment: Segment, budget: int) -> str:
             segment.max_len = budget
@@ -539,6 +583,7 @@ class TranslationWorker(QThread):
                 [segment],
                 src_lang=config.source_lang,
                 tgt_lang=config.target_lang,
+                glossary=glossary_terms,
             )
             return again[0].target if again and again[0].target else segment.target
 

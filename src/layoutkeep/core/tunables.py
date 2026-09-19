@@ -55,6 +55,37 @@ class Tunable:
 TUNABLES: tuple[Tunable, ...] = (
     # -- basic -------------------------------------------------------------
     Tunable(
+        key="translation.memory",
+        label="Çeviri belleği (koşular arası)",
+        default=True,
+        kind="bool",
+        group="Çeviri belleği",
+        help_text=(
+            "Aynı paragrafı bir kez çevirir ve bu makinedeki bir SQLite dosyasına yazar; belgeyi "
+            "yeniden çevirdiğinde ya da yinelenen başlık, dipnot ve künye satırlarında model "
+            "yeniden çağrılmaz. Kayıt, kaynak metin + dil çifti + model kimliğiyle anahtarlanır, "
+            "yani bir modelin çevirisi başka bir modele servis edilmez."
+        ),
+        warning=(
+            "Sözlüğü ya da istemi değiştirdiğinde eski çeviriler yine kullanılır (anahtar yalnız "
+            "kaynak metin, diller ve model): yeni bir terim politikası denemek istiyorsan bu "
+            "anahtarı kapatıp çevir, sonra açabilirsin."
+        ),
+    ),
+    Tunable(
+        key="translation.glossary_path",
+        label="Terim sözlüğü dosyası (JSON)",
+        default="",
+        kind="str",
+        group="Terim sözlüğü",
+        help_text=(
+            "{\"kaynak terim\": \"hedef terim\"} biçiminde düz bir JSON nesnesi. Dosya "
+            "verildiğinde sözlük her isteğin istemine eklenir ve çıktıda terimin gerçekten "
+            "kullanılıp kullanılmadığı denetlenir; kullanılmadıysa blok inceleme kuyruğuna düşer. "
+            "Boş bırakılırsa sözlük kullanılmaz."
+        ),
+    ),
+    Tunable(
         key="translation.workers",
         label="Paralel çeviri iş parçacığı (LM Studio yuva sayısı)",
         default=7,
@@ -484,6 +515,10 @@ def get(key: str) -> Any:
 def _coerce(spec: Tunable, value: Any) -> Any:
     if spec.kind == "bool":
         return bool(value)
+    if spec.kind == "str":
+        # A path is stored as typed (trimmed), never parsed as a number: the settings dialog
+        # writes every editor's value through here, and an empty path means "no glossary".
+        return str(value or "").strip()
     number = float(value)
     if spec.minimum is not None:
         number = max(spec.minimum, number)

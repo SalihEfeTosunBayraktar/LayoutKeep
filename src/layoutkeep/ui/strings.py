@@ -7,6 +7,9 @@ from __future__ import annotations
 
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     "tr": {
+        "TWEAKS_BROWSE": "Gözat…",
+        "TWEAKS_GLOSSARY_TIP": "JSON sözlük dosyası seç: {\"kaynak terim\": \"hedef terim\"}",
+        "TWEAKS_GLOSSARY_FILTER": "JSON sözlük (*.json);;Tüm dosyalar (*)",
         "WELCOME_SHOW": "Karşılamayı göster",
         "FLOAT_FOLD": "Küçült (sayfanın önünden çekil)",
         "FLOAT_EXPAND": "Geri büyüt",
@@ -138,6 +141,9 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Eksik Bilgi",
     },
     "en": {
+        "TWEAKS_BROWSE": "Browse…",
+        "TWEAKS_GLOSSARY_TIP": "Pick a JSON glossary file: {\"source term\": \"target term\"}",
+        "TWEAKS_GLOSSARY_FILTER": "JSON glossary (*.json);;All files (*)",
         "WELCOME_SHOW": "Show the welcome screen",
         "FLOAT_FOLD": "Fold away",
         "FLOAT_EXPAND": "Expand",
@@ -269,6 +275,9 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Incomplete Information",
     },
     "de": {
+        "TWEAKS_BROWSE": "Durchsuchen…",
+        "TWEAKS_GLOSSARY_TIP": "JSON-Glossardatei wählen: {\"Quellbegriff\": \"Zielbegriff\"}",
+        "TWEAKS_GLOSSARY_FILTER": "JSON-Glossar (*.json);;Alle Dateien (*)",
         "WELCOME_SHOW": "Begrüßung anzeigen",
         "FLOAT_FOLD": "Einklappen",
         "FLOAT_EXPAND": "Ausklappen",

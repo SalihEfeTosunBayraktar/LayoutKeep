@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from layoutkeep.core import capabilities
+from layoutkeep.core import capabilities, tunables
 from layoutkeep.ui.drop_zone import DropZoneWidget
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.job import JobConfig, ProviderConfig
@@ -408,6 +408,25 @@ class _JobSetupUiBuilder:
         self._start_btn.clicked.connect(self._emit_job)
 
 
+def _memory_path() -> str | None:
+    """Where the cross-run translation memory lives, or None when the switch is off.
+
+    Read at job start, not at import: the setting is meant to take effect on the next run
+    without restarting the application.
+    """
+    from layoutkeep.core.paths import data_dir
+
+    if not tunables.get("translation.memory"):
+        return None
+    return str(Path(data_dir()) / "memory.sqlite")
+
+
+def _glossary_path() -> str | None:
+    """The configured glossary file, or None. A path that no longer exists is ignored loudly."""
+    configured = str(tunables.get("translation.glossary_path") or "").strip()
+    return configured or None
+
+
 class JobSetupWidget(_JobSetupUiBuilder, QWidget):
     # Çeviri işi ayarlarını toplayıp job_ready sinyali yayan bileşen / Job setup widget
     job_ready = Signal(object)
@@ -584,6 +603,8 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             target_lang=self._target_lang.currentText(),
             provider=provider,
             page_range=page_range,
+            memory_path=_memory_path(),
+            glossary_path=_glossary_path(),
         )
         self.job_ready.emit(config)
 

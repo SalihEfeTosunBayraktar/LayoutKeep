@@ -37,5 +37,7 @@ class JobConfig:
     target_lang: str
     provider: ProviderConfig
     memory_path: str | None = None
+    #: JSON glossary file ({"source": "target"}), or None to translate without one.
+    glossary_path: str | None = None
     project_path: str | None = None
     page_range: str = ""

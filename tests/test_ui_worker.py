@@ -283,10 +283,10 @@ def test_the_gui_stack_protects_literals_like_the_cli_does(tmp_path) -> None:
     from layoutkeep.providers.protected import ProtectedProvider
     from layoutkeep.ui.worker import _build_provider
 
-    provider, _memory = _build_provider(_job(tmp_path))
+    provider, _memory, _glossary = _build_provider(_job(tmp_path))
     assert isinstance(provider, ProtectedProvider)
 
-    provider, _memory = _build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
+    provider, _memory, _glossary = _build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
     assert isinstance(provider, ProtectedProvider)
 
 
@@ -299,7 +299,7 @@ def test_the_adaptive_timeout_reaches_through_every_wrapper(tmp_path) -> None:
 
     job = _job(tmp_path, memory_path=str(tmp_path / "m.sqlite"))
     job.provider = ProviderConfig(kind="openai", base_url="http://localhost:1234/v1", model="x")
-    provider, _memory = _build_provider(job)
+    provider, _memory, _glossary = _build_provider(job)
 
     _set_provider_timeout(provider, 42.0)
 

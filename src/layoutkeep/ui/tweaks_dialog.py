@@ -13,14 +13,19 @@ exists to catch.
 
 from __future__ import annotations
 
+from typing import Any
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -43,18 +48,84 @@ _LABEL_WIDTH = 210
 _FIELD_WIDTH = 300
 
 
-def _editor_for(spec: tunables.Tunable) -> QSpinBox | QDoubleSpinBox:
-    # Türüne uygun düzenleyici üretir / Builds the editor matching the tunable's type
+def _editor_for(spec: tunables.Tunable) -> QWidget:
+    """Türüne uygun düzenleyici üretir / Builds the editor matching the tunable's type.
+
+    Four kinds, not two: a switch (the translation memory) and a file path (the glossary) are
+    settings the same way the numbers are, and they belong on the same page with the same help
+    text - not in a second dialog the user has to find.
+    """
+    value = tunables.get(spec.key)
+    if spec.kind == "bool":
+        check = QCheckBox()
+        check.setChecked(bool(value))
+        return check
+    if spec.kind == "str":
+        line = QLineEdit(str(value or ""))
+        line.setPlaceholderText("…")
+        return line
+    box: QSpinBox | QDoubleSpinBox
     if spec.kind == "int":
-        box: QSpinBox | QDoubleSpinBox = QSpinBox()
+        box = QSpinBox()
         box.setRange(int(spec.minimum or 0), int(spec.maximum or 10_000))
     else:
         box = QDoubleSpinBox()
         box.setDecimals(2)
         box.setSingleStep(0.05)
         box.setRange(float(spec.minimum or 0.0), float(spec.maximum or 10_000.0))
-    box.setValue(tunables.get(spec.key))
+    box.setValue(value)
     return box
+
+
+def _editor_value(editor: QWidget) -> Any:
+    """The editor's current value, whichever kind of editor it is."""
+    if isinstance(editor, QCheckBox):
+        return editor.isChecked()
+    if isinstance(editor, QLineEdit):
+        return editor.text().strip()
+    if isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+        return editor.value()
+    return None
+
+
+def _set_editor_value(editor: QWidget, value: Any) -> None:
+    """Put a value back into an editor of any kind (used by Reset)."""
+    if isinstance(editor, QCheckBox):
+        editor.setChecked(bool(value))
+    elif isinstance(editor, QLineEdit):
+        editor.setText(str(value or ""))
+    elif isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+        editor.setValue(float(value) if isinstance(editor, QDoubleSpinBox) else int(value))
+
+
+def _editor_holder(editor: QWidget, spec: tunables.Tunable) -> tuple[QWidget, QWidget]:
+    """The editor, plus a "Browse" companion when the tunable is a path.
+
+    Returns (holder, focus_widget): the holder goes into the form, the focus widget is what the
+    caption's width is measured against.
+    """
+    if spec.kind != "str":
+        return editor, editor
+    holder = QWidget()
+    row = QHBoxLayout(holder)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(6)
+    line = editor
+    row.addWidget(line, 1)
+    browse = QPushButton(UIStrings.TWEAKS_BROWSE)
+    browse.setToolTip(UIStrings.TWEAKS_GLOSSARY_TIP)
+    browse.clicked.connect(lambda: _pick_file(line))
+    row.addWidget(browse, 0)
+    return holder, line
+
+
+def _pick_file(line: QLineEdit) -> None:
+    """Choose a glossary file; the filter matches what `Glossary.load` accepts."""
+    chosen, _ = QFileDialog.getOpenFileName(
+        line, UIStrings.TWEAKS_BROWSE, line.text().strip(), UIStrings.TWEAKS_GLOSSARY_FILTER
+    )
+    if chosen:
+        line.setText(chosen)
 
 
 class TweaksDialog(QDialog):
@@ -68,7 +139,7 @@ class TweaksDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(UIStrings.TWEAKS_TITLE)
         self.setMinimumWidth(620)
-        self._editors: dict[str, QSpinBox | QDoubleSpinBox] = {}
+        self._editors: dict[str, QWidget] = {}
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -129,6 +200,7 @@ class TweaksDialog(QDialog):
                 form.addRow(heading)
             editor = _editor_for(spec)
             self._editors[spec.key] = editor
+            field, _focus = _editor_holder(editor, spec)
 
             caption = QLabel(spec.help_text)
             caption.setProperty("class", "muted")
@@ -137,7 +209,7 @@ class TweaksDialog(QDialog):
             cell = QVBoxLayout()
             cell.setSpacing(4)
             cell.setContentsMargins(0, 0, 0, 8)
-            cell.addWidget(editor)
+            cell.addWidget(field)
             cell.addWidget(caption)
             if spec.warning:
                 warn = QLabel(spec.warning)
@@ -200,7 +272,9 @@ class TweaksDialog(QDialog):
     def apply_values(self) -> None:
         """Store every editor's value and persist. Out-of-range values are clamped."""
         for key, editor in self._editors.items():
-            tunables.set_value(key, editor.value())
+            value = _editor_value(editor)
+            if value is not None:
+                tunables.set_value(key, value)
         tunables.save()
         self.applied.emit()
 
@@ -212,5 +286,5 @@ class TweaksDialog(QDialog):
         tunables.reset_all()
         tunables.save()
         for key, editor in self._editors.items():
-            editor.setValue(tunables.get(key))
+            _set_editor_value(editor, tunables.get(key))
         self.applied.emit()
