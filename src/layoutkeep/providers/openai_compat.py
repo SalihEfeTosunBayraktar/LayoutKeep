@@ -21,6 +21,7 @@ import time
 from collections import Counter
 
 from layoutkeep.core.docir import Segment
+from layoutkeep.core.langs import english_name, script_note
 from layoutkeep.providers._http_compat import OpenAIHTTPTransport
 from layoutkeep.providers.base import TranslationProvider
 from layoutkeep.providers.batching import (
@@ -434,8 +435,13 @@ def _build_messages(
         for seg in segments
     ]
     system_lines = [
-        f"You are a professional translator from {src_lang} to {tgt_lang}.",
+        f"You are a professional translator from {english_name(src_lang)} to {english_name(tgt_lang)}.",
         "Input is a JSON array of segments, each with an id and text to translate.",
+        (
+            f"Write every translation entirely in {english_name(tgt_lang)}: its own spelling, its "
+            "own grammar, its own script. Do not leave the source language's words in place and do "
+            "not answer in a third language." + script_note(tgt_lang)
+        ),
         (
             "context_before and context_after are given ONLY as context - never translate "
             "them and never include them in your output."

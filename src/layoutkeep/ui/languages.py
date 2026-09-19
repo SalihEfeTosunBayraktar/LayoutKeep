@@ -8,6 +8,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox
 
+from layoutkeep.core.langs import ENGLISH_NAMES
+
 # Dünyada en yaygın kullanılan diller ve Türkçe adları / Widely used languages & Turkish names
 LANG_DEFINITIONS: list[tuple[str, str]] = [
     ("tr", "Türkçe"),
@@ -45,7 +47,7 @@ LANG_DEFINITIONS: list[tuple[str, str]] = [
 #: not a translation gap, it is a language nobody asked to read.
 _NAMES: dict[str, dict[str, str]] = {
     "tr": dict(LANG_DEFINITIONS),
-    "en": {'tr': 'Turkish', 'en': 'English', 'de': 'German', 'fr': 'French', 'es': 'Spanish', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian', 'zh': 'Chinese', 'ja': 'Japanese', 'ko': 'Korean', 'ar': 'Arabic', 'az': 'Azerbaijani', 'nl': 'Dutch', 'pl': 'Polish', 'uk': 'Ukrainian', 'hi': 'Hindi', 'fa': 'Persian', 'el': 'Greek', 'cs': 'Czech', 'ro': 'Romanian', 'hu': 'Hungarian', 'sv': 'Swedish', 'no': 'Norwegian', 'da': 'Danish', 'fi': 'Finnish', 'id': 'Indonesian', 'vi': 'Vietnamese', 'he': 'Hebrew'},
+    "en": dict(ENGLISH_NAMES),
     "de": {'tr': 'Türkisch', 'en': 'Englisch', 'de': 'Deutsch', 'fr': 'Französisch', 'es': 'Spanisch', 'it': 'Italienisch', 'pt': 'Portugiesisch', 'ru': 'Russisch', 'zh': 'Chinesisch', 'ja': 'Japanisch', 'ko': 'Koreanisch', 'ar': 'Arabisch', 'az': 'Aserbaidschanisch', 'nl': 'Niederländisch', 'pl': 'Polnisch', 'uk': 'Ukrainisch', 'hi': 'Hindi', 'fa': 'Persisch', 'el': 'Griechisch', 'cs': 'Tschechisch', 'ro': 'Rumänisch', 'hu': 'Ungarisch', 'sv': 'Schwedisch', 'no': 'Norwegisch', 'da': 'Dänisch', 'fi': 'Finnisch', 'id': 'Indonesisch', 'vi': 'Vietnamesisch', 'he': 'Hebräisch'},
 }
 

@@ -535,3 +535,37 @@ def test_items_written_one_per_line_instead_of_a_list_are_read():
     not inside a list. The log said "Extra data at character 392", and both translations were lost."""
     reply = '{"id": "b1", "text": "Daha hızlı ve verimli."}\n{"id": "b2", "text": "Güvenlik"}'
     assert _parse_reply(reply) == {"b1": "Daha hızlı ve verimli.", "b2": "Güvenlik"}
+
+
+def test_the_prompt_names_the_language_and_its_script() -> None:
+    """"from en to tr" makes the model guess; the guess came back with Chinese inside Vietnamese.
+
+    Measured on arXiv 2507.03009's appendix, whose table lists 56 language names: asked for `tr`,
+    gemma-4-e4b answered `Urdu, Ukraynaca, Việt語, Galce` - the one loss the held-out campaign has
+    not closed (L9). The prompt now names the language and, when it is not written in Latin
+    letters, the script to write it in.
+    """
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _build_messages
+
+    segment = Segment(block_id="p0#0", source="Water boils at 100 degrees.")
+    system = _build_messages([segment], "en", "vi", None)[0]["content"]
+    assert "English to Vietnamese" in system
+    assert "entirely in Vietnamese" in system
+
+    chinese = _build_messages([segment], "en", "zh", None)[0]["content"]
+    assert "Chinese characters" in chinese, "a non-Latin target must say which script to write in"
+
+    latin = _build_messages([segment], "en", "tr", None)[0]["content"]
+    assert "Turkish" in latin
+    assert "writing system" not in latin, "Turkish needs no script note"
+
+
+def test_an_unknown_language_code_is_still_sent_as_it_came() -> None:
+    """A code nobody listed must not become "None" in the prompt."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _build_messages
+
+    segment = Segment(block_id="p0#0", source="Hello.")
+    system = _build_messages([segment], "en", "xx", None)[0]["content"]
+    assert "to xx" in system
