@@ -1145,3 +1145,24 @@ with every fix. The Sherlock Holmes EPUB was stopped unfinished after about thre
 estimated 10-16 (581,282 characters through one sequential connection); the CLI keeps no partial
 result, so the EPUB path has no measurement. The table in `docs/campaign/HELDOUT.md` holds every
 source that finished.
+
+## 2026-09-18 / 2026-09-19 - scaling to 7 parallel workers and arXiv 19145 v2 results
+
+The translation system was scaled to match LM Studio's 7 parallel slots:
+1. Added central `translation.workers` tunable in `src/layoutkeep/core/tunables.py` (default: 7, range: 1-32).
+2. Updated `tools/audit/translate_book.py` and `tools/audit/translate_epub.py` to default to 7 workers, reading from `tunables`.
+3. Updated repair and campaign runners (`tools/audit/repair_book.py`, `tools/audit/run_campaign.sh`, `_artifacts/heldout/run_heldout2.sh`) to use 7 workers.
+
+**arXiv 2609.19145 v2 (post-fixes re-run):**
+Completed 20 chunks (489 blocks) in 74.5 minutes:
+- **L1**: 0 (zero lost pages, down from 1)
+- **L2**: 7
+- **L3**: 0
+- **L4**: 0
+- **L5**: 0
+- **L6**: 3
+- **L7**: 6
+- **L8**: 6
+- **L9**: 0
+- **D1**: 299 review flags
+Compared to the initial run at `bad981a` (L1 1), L1 is completely eliminated (0 lost pages).
