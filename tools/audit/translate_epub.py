@@ -118,6 +118,12 @@ def merge_epub_chunks(parts: list[Path], src_epub: Path, out_epub: Path) -> int:
 
 
 def main() -> int:
+    # Windows konsolunda Unicode/Türkçe kodlama hatalarını önler / Prevent Windows console Unicode encoding errors
+    if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     # Komut satırı giriş noktası / CLI entry point for parallel EPUB runner
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="source EPUB path")
