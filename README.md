@@ -64,9 +64,13 @@ they were. The source document and the translated output are in
 |---|---|---|
 | ![Setup screen](docs/screenshots/01_setup_light.png) | ![Progress screen](docs/screenshots/02_progress_light.png) | ![Provider settings](docs/screenshots/06_provider_settings_light.png) |
 
-| First run explains itself | Follow a long run without the window | The same bar when it finishes |
+| First run explains itself | Step by step | What decides quality |
 |---|---|---|
-| ![Welcome screen](docs/screenshots/07_welcome_first_light.png) | ![Floating progress bar](docs/screenshots/08_floating_bar_dark.png) | ![Floating progress bar, finished](docs/screenshots/08_floating_bar_done_dark.png) |
+| ![Welcome screen](docs/screenshots/07_welcome_hello_light.png) | ![First translation, three steps](docs/screenshots/07_welcome_first_light.png) | ![What decides quality](docs/screenshots/07_welcome_quality_light.png) |
+
+| Glossary and translation memory | Where the numbers live | Follow a long run without the window |
+|---|---|---|
+| ![Settings](docs/screenshots/04_settings_basic_light.png) | ![Advanced settings](docs/screenshots/05_settings_advanced_light.png) | ![Floating progress bar](docs/screenshots/08_floating_bar_light.png) |
 
 The interface is English by default and ships Turkish and German; the choice is in the header
 and is remembered — and the welcome screen, which explains the pipeline, the provider choice and
