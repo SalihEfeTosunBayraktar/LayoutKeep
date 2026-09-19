@@ -141,6 +141,8 @@ def _campaign_documents() -> list[Document]:
     for run in sorted(RUNS.iterdir()):
         if not run.is_dir():
             continue
+        if not _publishable(run):
+            continue  # a source that must not be republished (see NOT_PUBLISHABLE)
         source = _source_for(run, mapping)
         if source is None or source.suffix.lower() != ".pdf":
             continue  # posters and epubs are covered by their own format's run, or not at all
@@ -170,6 +172,18 @@ def _campaign_documents() -> list[Document]:
     return documents
 
 
+#: Runs whose pages must not leave this machine. The user handed this book over for testing and it
+#: is a commercial textbook: the site publishes page images, so republishing them would infringe on
+#: it. The translation stays on disk, the site simply does not show it.
+NOT_PUBLISHABLE = frozenset({"ross_stats"})
+
+
+def _publishable(run: Path) -> bool:
+    """False for a run recorded from a source that must not be republished."""
+    stem = run.name.split("_")
+    return not any("_".join(stem[:index]) in NOT_PUBLISHABLE for index in range(1, len(stem) + 1))
+
+
 def _live_documents(runs: int = 8, per_run: int = 4) -> list[Document]:
     """The newest live runs: the freshest code, run against a real model, chunk by chunk.
 
@@ -177,7 +191,11 @@ def _live_documents(runs: int = 8, per_run: int = 4) -> list[Document]:
     new pages on the site, and a handful of re-runs is exactly what a fix produces.
     """
     documents: list[Document] = []
-    newest = sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)[-runs:]
+    newest = [
+        run
+        for run in sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)
+        if run.is_dir() and _publishable(run)
+    ][-runs:]
     head = _head_commit()
     for run in newest:
         sources = sorted((run / "src").glob("chunk_*.pdf")) if (run / "src").exists() else []

@@ -93,11 +93,11 @@ def load_glossary_terms(path: str | None) -> dict[str, str] | None:
     except (OSError, ValueError) as exc:
         # A typo in a path or a hand-edited JSON file must not end a two-hour run before it
         # starts; the caller reports it and the document is translated as it would have been.
-        raise GlossaryUnreadable(path, str(exc)) from exc
+        raise GlossaryUnreadableError(path, str(exc)) from exc
     return glossary.terms or None
 
 
-class GlossaryUnreadable(Exception):
+class GlossaryUnreadableError(Exception):
     """The configured glossary file could not be read; the run continues without it."""
 
 
@@ -142,7 +142,7 @@ def _build_provider(config: JobConfig):
 
     try:
         terms = load_glossary_terms(config.glossary_path)
-    except GlossaryUnreadable:
+    except GlossaryUnreadableError:
         terms = None  # the job runs without it; the settings dialog is where this is fixed
     if terms:
         model_id = f"{model_id}|gloss:{_glossary_fingerprint(terms)}"
@@ -426,6 +426,7 @@ class TranslationWorker(QThread):
             total_chars,
             source_lang=config.source_lang,
             target_lang=config.target_lang,
+            glossary=glossary_terms,
         )
         if translated is None:
             return

@@ -15,7 +15,7 @@ from layoutkeep.core import tunables
 from layoutkeep.providers.memory import TranslationMemory
 from layoutkeep.ui.job import JobConfig, ProviderConfig
 from layoutkeep.ui.worker import (
-    GlossaryUnreadable,
+    GlossaryUnreadableError,
     _build_provider,
     _glossary_fingerprint,
     load_glossary_terms,
@@ -58,7 +58,7 @@ def test_a_broken_glossary_file_does_not_stop_the_job(tmp_path):
     broken = tmp_path / "broken.json"
     broken.write_text("{not json", encoding="utf-8")
 
-    with pytest.raises(GlossaryUnreadable):
+    with pytest.raises(GlossaryUnreadableError):
         load_glossary_terms(str(broken))
 
     # and the job builder swallows that, so the run goes ahead without a glossary
