@@ -44,6 +44,7 @@ from layoutkeep.core.docir import BBox, Block, Document, Span, Style
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
 from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, resolve_font
+from layoutkeep.fitting.growth import free_below, may_grow
 from layoutkeep.fitting.room import room_below
 
 #: `insert_htmlbox`'s own line-height/padding model is not pixel-identical to the tight glyph
@@ -104,6 +105,30 @@ _SUBSET_TAG_RE = re.compile(r"^[A-Z]{6}\+")
 _FONT_LOAD_ERRORS = (TTLibError, OSError, ValueError, KeyError, AssertionError)
 
 
+def _clearing_reaches(kept: Block, changed: Block) -> bool:
+    """Would clearing `changed` erase a glyph of `kept`?
+
+    Redaction removes every glyph its box touches, so the question is asked of the kept block's
+    own lines, not of the union box it was read with. A footer block holding a footnote and the
+    URL beside it has a union box that covers the footnote's - but neither of its lines touches
+    the footnote, and redrawing it moved the URL's first row 82pt left, over the footnote, which
+    is how arXiv 2507.03009 came back with a word pair drawn over another (L7) that the source
+    never had.
+
+    A block with no measured lines falls back to its box: better to redraw one block needlessly
+    than to let a redaction eat its text. The box is also grown by a point first - a redaction
+    takes whole glyphs, and a glyph's own box can stick out of its line's by a fraction. Touching
+    edges are not a reach: a footer's footnote sits one point above the URL's second row, and
+    counting that as a hit redrew the URL and moved it over the footnote again.
+    """
+    area = _rect(changed.bbox)
+    area = pymupdf.Rect(area.x0, area.y0, area.x1 + 1.0, area.y1 + 1.0)
+    lines = [line for line in kept.lines if line.bbox is not None]
+    if not lines:
+        return not (_rect(kept.bbox) & area).is_empty
+    return any(not (_rect(line.bbox) & area).is_empty for line in lines)
+
+
 def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None:
     """Render `doc` (read from `src_path`, possibly with translations applied) to `out_path`."""
     with pymupdf.open(str(src_path)) as pdf:
@@ -128,7 +153,7 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             while grew:
                 grew = False
                 for candidate in list(waiting):
-                    if any(_rect(candidate.bbox).intersects(_rect(c.bbox)) for c in blocks):
+                    if any(_clearing_reaches(candidate, c) for c in blocks):
                         blocks.append(candidate)
                         waiting.remove(candidate)
                         grew = True
@@ -141,10 +166,12 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             for block in blocks:
                 resolver.register(page, block)
             kept = [b for b in page_data.blocks if not b.translatable]
-            page_blocks.append((page, blocks, kept, page_data.scanned, page_data.blocks))
+            page_blocks.append(
+                (page, blocks, kept, page_data.scanned, page_data.blocks, page_data.images)
+            )
         resolver.finalize()
 
-        for page, blocks, kept, scanned, everything in page_blocks:
+        for page, blocks, kept, scanned, everything, pictures in page_blocks:
             if scanned:
                 # A searchable scan also carries an invisible OCR text layer over the image. Left
                 # in place, the output looks translated and searches, copies and reads aloud in
@@ -173,7 +200,17 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                     html = f"<p>{_block_html(block, resolver)}</p>"
                     css = _css_for_block(block, resolver)
                     room = room_below(block, everything, float(tunables.get(_BOX_SLACK_KEY)))
-                    rect = _layout_rect(block.bbox, room)
+                    # A block the pipeline actually translated may use the room the page has under
+                    # it (`fitting/growth.py`) - the fitting pass measured against exactly this.
+                    # A block kept as it was is drawn in its own box: its text is where the source
+                    # put it, and more room could re-wrap a line and move it (L8). A running header,
+                    # title or page number keeps its one-line box for the same reason.
+                    grant = (
+                        free_below(block, everything, obstacles=pictures)
+                        if not _unchanged(block) and may_grow(block)
+                        else 0.0
+                    )
+                    rect = _layout_rect(block.bbox, room, grant)
                     _draw_block(page, rect, html, css, resolver.archive)
         # `garbage=4` dedupes identical objects: every block drawn in a given resolved font
         # embeds its own copy of that font's subset bytes (`insert_htmlbox`'s own font-loading
@@ -281,9 +318,17 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
 
 def _unchanged(block: Block) -> bool:
     """The written text is the source exactly - letter case included, since a change of case is
-    a change on the page. Markers and whitespace are not compared."""
+    a change on the page. Markers and whitespace are not compared.
+
+    A block with no `source_text` was never translated: the pipeline records the original only
+    when a segment came back translated (`apply_segments`), so an empty one means the text on the
+    block is still the source - the batch it was in failed, or it was never sent. Reading that as
+    "changed" redrew those blocks in a substitute face for nothing, and a redrawn block is laid
+    out from its own box's left edge: arXiv 2507.03009's footer URL came back 82pt left of where
+    the source set it, over the footnote beside it (L7).
+    """
     if not block.source_text:
-        return False
+        return True
 
     def plain(text: str) -> str:
         return " ".join(re.sub(r"</?\d+>", "", text).split())
@@ -591,7 +636,9 @@ def _laid_out_whole(drawn: str, html: str) -> bool:
     return comparable(expected) in comparable(drawn)
 
 
-def _layout_rect(bbox: BBox, room_below: float | None = None) -> pymupdf.Rect:
+def _layout_rect(
+    bbox: BBox, room_below: float | None = None, grant_below: float = 0.0
+) -> pymupdf.Rect:
     """The box `insert_htmlbox` is given for a block, which is not quite the box the reader
     measured.
 
@@ -610,11 +657,16 @@ def _layout_rect(bbox: BBox, room_below: float | None = None) -> pymupdf.Rect:
     slack = float(tunables.get(_BOX_SLACK_KEY))
     rect = _rect(bbox)
     # Below, only as much as the page has free (`fitting.room`): paragraphs set close together have
-    # none, and the slack drew the last line of one over the first line of the next.
+    # none, and the slack drew the last line of one over the first line of the next. `grant_below`
+    # is the room the page really has under the block (`fitting.growth`), which the fitting pass
+    # measured against - the same number, or the two disagree and the text is shrunk twice.
     below = slack if room_below is None else min(slack, room_below)
     # Never shorter than a sliver: a box the next block starts right below the top of is still
     # given a line's worth of height, and its text shrinks rather than vanishing.
-    bottom = max(rect.y1 + below, rect.y0 + min(rect.height, _MIN_DRAW_HEIGHT))
+    bottom = max(
+        rect.y1 + below + max(0.0, grant_below),
+        rect.y0 + min(rect.height, _MIN_DRAW_HEIGHT),
+    )
     return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, bottom)
 
 

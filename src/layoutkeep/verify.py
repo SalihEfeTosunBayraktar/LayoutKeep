@@ -235,18 +235,51 @@ def overlapping_words(
     `same_block=True` counts lines of one block squeezed into each other - text forced into a box
     far too small, typically recognition noise from a decorative advert.
 
-    `as_in` is the source page's words: a pair whose two words both stand where the source set them
-    is the source's own typesetting, not something drawn over it - an equation's superscript over
-    its subscript (held-out arXiv 2609.19145, 11 such pairs on one untouched equation).
+    `as_in` is the source page's words. An overlap the source page already has is the source's own
+    typesetting, not something drawn over it, and is not counted: an equation's superscript over
+    its subscript (held-out arXiv 2609.19145, 11 such pairs on one untouched equation), and a
+    footnote set inside the box of the line it belongs to (arXiv 2507.03009, where a footnote box
+    sits inside a footer's - translating one and not the other redrew a word over a word that had
+    always been there).
+
+    A pair is judged against the source by *position*, not by text: each drawn word is matched to
+    the source word standing where it stands, whatever that word says, and the pair counts only
+    when the two source words did not overlap each other.
     """
     import pymupdf
 
+    source_boxes: list[pymupdf.Rect] = [pymupdf.Rect(w[:4]) for w in (as_in or [])]
     as_set: dict[str, list[tuple[float, float]]] = {}
     for word in as_in or []:
         as_set.setdefault(word[4], []).append((word[0], word[1]))
 
+    def source_overlapped(a: pymupdf.Rect, b: pymupdf.Rect) -> bool:
+        """Were the source words at `a` and `b` already drawn over each other?
+
+        Each drawn word must also lie *inside* the source word standing where it is: a word drawn
+        over a glyph, wider than the box it covers, is new text laid over existing text however
+        much the two source boxes overlapped. Without that, a translation drawn across an equation
+        would be excused by the equation's own overlapping superscript and subscript.
+        """
+        if not source_boxes:
+            return False
+        first = _at(source_boxes, a)
+        second = _at(source_boxes, b)
+        if first is None or second is None:
+            return False
+        if not (_inside(a, first) and _inside(b, second)):
+            return False
+        inter = first & second
+        if inter.is_empty:
+            return False
+        smaller = min(first.get_area(), second.get_area())
+        return smaller > 0 and inter.get_area() / smaller > _OVERLAP_SHARE
+
     def untouched(word) -> bool:
-        return any(abs(x - word[0]) <= 1.0 and abs(y - word[1]) <= 1.0 for x, y in as_set.get(word[4], ()))
+        return any(
+            abs(x - word[0]) <= 1.0 and abs(y - word[1]) <= 1.0
+            for x, y in as_set.get(word[4], ())
+        )
 
     # Only legible words count: text under _LEGIBLE_PT tall is already below the readability floor,
     # and two such scraps touching is not one text drawn over another.
@@ -271,16 +304,47 @@ def overlapping_words(
                 continue
             smaller = min(a.get_area(), b.get_area())
             if smaller > 0 and inter.get_area() / smaller > _OVERLAP_SHARE:
+                if source_overlapped(a, b):
+                    continue
                 pairs += 1
                 involved += [((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2), ((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2)]
     return pairs, involved
 
 
+def _at(boxes: list, rect) -> object | None:
+    """The source box that covers `rect`'s centre, if any - the word that stood here."""
+    centre = ((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
+    for box in boxes:
+        if box.x0 - 2 <= centre[0] <= box.x1 + 2 and box.y0 - 2 <= centre[1] <= box.y1 + 2:
+            return box
+    return None
+
+
+#: Share of a drawn word that must lie inside the source word standing where it is, before the
+#: pair can be excused as the source's own typesetting. A translation drawn over a glyph spills
+#: out of it (measured: a 50pt word over a 38pt equation glyph, 57% contained); a word the source
+#: set there is inside its own box by definition.
+_INSIDE_SHARE = 0.8
+
+
+def _inside(drawn, source) -> bool:
+    """Is `drawn` mostly within `source`? A word that spills out of it is not the word that was there."""
+    inter = drawn & source
+    if inter.is_empty:
+        return False
+    area = drawn.get_area()
+    return area > 0 and inter.get_area() / area >= _INSIDE_SHARE
+
+
 def kept_text_moved(source_page, output_page, page_data) -> list:
-    """Source text runs that no translated block covers, and that are not where they were.
+    """Text the pipeline did not translate that is not where it was.
 
     Nothing the pipeline did not translate should move. Think Python's Figure 3.1 did - redaction
     elsewhere on the page shifted 8 of its 11 labels.
+
+    Compared word by word. A run split differently by the renderer - the source's `OCR` plus a
+    superscript `4` come back as one word `OCR4`, on arXiv 2507.03009's comparison table - is the
+    same text in the same place, and reading it as a move said damaged where nothing had.
     """
     import pymupdf
 
@@ -292,9 +356,9 @@ def kept_text_moved(source_page, output_page, page_data) -> list:
 
     def runs(page) -> list[tuple[str, pymupdf.Rect]]:
         return [
-            (s["text"].strip(), pymupdf.Rect(s["bbox"]))
-            for b in page.get_text("dict")["blocks"] if b["type"] == 0
-            for line in b["lines"] for s in line["spans"] if s["text"].strip()
+            (word[4].strip(), pymupdf.Rect(word[:4]))
+            for word in page.get_text("words")
+            if word[4].strip()
         ]
 
     out = runs(output_page)
@@ -302,7 +366,7 @@ def kept_text_moved(source_page, output_page, page_data) -> list:
     for text, rect in runs(source_page):
         if any(r.intersects(rect) for r in changed):
             continue
-        # Half a line of the run's own height: a kept block redrawn because a neighbour's clearing
+        # Half a word of the run's own height: a kept block redrawn because a neighbour's clearing
         # reached it lands a point or two off (NIST's author names, 2-3 pt), which is not damage;
         # Figure 3.1's labels dropped 10-11 pt, a whole line.
         tolerance = max(1.0, rect.height / 2)

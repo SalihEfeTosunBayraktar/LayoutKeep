@@ -111,7 +111,9 @@ def test_char_budget_callback_is_used_when_provided():
         return 7
 
     fit_segment(
-        _segment("too long"),
+        # Long enough to be worth compressing: a text under `_MIN_SHORTEN_CHARS` has no shorter
+        # form worth a request, so the ladder does not start (see the test below).
+        _segment("this is far too long to fit in the box"),
         STYLE,
         BOX,
         measure,
@@ -119,6 +121,29 @@ def test_char_budget_callback_is_used_when_provided():
         char_budget=char_budget,
     )
     assert seen_budget["value"] == 7
+
+
+def test_a_text_too_short_to_compress_is_not_asked_for_a_shorter_rendering():
+    """Measured on arXiv 2507.03009 page 5: the ladder spent rounds asking "Ücretli" (7
+    characters) for 4 and "✓" (1) for 2 - targets no reply can meet, each one a round trip
+    that risked replacing a correct translation. A short overflowing block is flagged instead."""
+    calls = []
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return False, scale_low
+
+    result = fit_segment(
+        _segment("Ücretli"),
+        STYLE,
+        BOX,
+        measure,
+        retranslate=lambda segment, max_len: calls.append(max_len) or "Ücrt",
+        char_budget=lambda style, bbox, scale: 4,
+    )
+
+    assert calls == []
+    assert result.layer is FitLayer.OVERFLOW
+    assert result.needs_review is True
 
 
 def test_measure_is_called_with_scale_low_as_keyword():
@@ -409,3 +434,131 @@ def test_a_shorter_rendering_that_drops_a_number_is_not_accepted():
         retranslate=lambda segment, max_len: "Terimler CNSS kaynagindan, 6 Nisan 2015.",
     )
     assert "4009" in result.text
+
+
+# -- the shrink direction: a fit held only by shrinking wants fewer words -------------------------
+
+
+def _shrinking_measure(full_at: int, shrunk_at: int):
+    """Fits at full size up to `full_at` characters, and at the floor up to `shrunk_at`."""
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        if len(text) <= full_at:
+            return True, 1.0
+        if len(text) <= shrunk_at:
+            return True, scale_low
+        return False, scale_low
+
+    return measure
+
+
+def test_a_fit_that_needed_a_hard_shrink_asks_for_a_shorter_rendering():
+    """Measured on arXiv 2507.03009 page 5: 42 of 70 blocks fitted only shrunk and stayed there,
+    because `measure` said "fits" and nothing ever asked for a rendering that fits at full size."""
+    calls = []
+    long_target = "x" * 60
+
+    def retranslate(segment, max_len):
+        calls.append(max_len)
+        return "y" * 20  # fits at full size
+
+    result = fit_segment(
+        _segment(long_target),
+        STYLE,
+        BOX,
+        _shrinking_measure(full_at=25, shrunk_at=80),
+        retranslate=retranslate,
+        char_budget=lambda style, bbox, scale: 30 if scale >= 1.0 else 20,
+    )
+
+    assert result.layer is FitLayer.RETRANSLATED
+    assert result.text == "y" * 20
+    assert result.scale == 1.0, "the replacement fits at full size - no shrink left to report"
+    assert calls == [30], "asked once, for the box's own budget at full size"
+
+
+def test_a_shrunk_fit_is_kept_when_no_shorter_rendering_fits_better():
+    def retranslate(segment, max_len):
+        return "z" * 55  # still needs the same shrink
+
+    result = fit_segment(
+        _segment("x" * 60),
+        STYLE,
+        BOX,
+        _shrinking_measure(full_at=25, shrunk_at=80),
+        retranslate=retranslate,
+        char_budget=lambda style, bbox, scale: 30,
+    )
+
+    assert result.layer is FitLayer.SHRUNK
+    assert result.text == "x" * 60, "the correct translation is not replaced by a worse one"
+
+
+def test_a_comfortable_shrink_is_left_alone():
+    """A 4% shrink is not worth a request: the threshold is the setting, not zero."""
+    calls = []
+
+    def measure(text, style, bbox, scale_low, rotation=0.0):
+        return True, 0.99
+
+    result = fit_segment(
+        _segment("x" * 60),
+        STYLE,
+        BOX,
+        measure,
+        retranslate=lambda segment, max_len: calls.append(max_len) or "y" * 20,
+        char_budget=lambda style, bbox, scale: 30,
+    )
+
+    assert calls == []
+    assert result.layer is FitLayer.SHRUNK
+
+
+def test_the_shrink_ladder_can_be_turned_off():
+    from layoutkeep.core import tunables
+
+    tunables.set_value("fit.shorten_below_scale", 0.0)
+    try:
+        calls = []
+        result = fit_segment(
+            _segment("x" * 60),
+            STYLE,
+            BOX,
+            _shrinking_measure(full_at=25, shrunk_at=80),
+            retranslate=lambda segment, max_len: calls.append(max_len) or "y" * 20,
+            char_budget=lambda style, bbox, scale: 30,
+        )
+        assert calls == []
+        assert result.layer is FitLayer.SHRUNK
+    finally:
+        tunables.reset("fit.shorten_below_scale")
+
+
+def test_a_shorter_rendering_that_loses_a_number_is_refused():
+    """Same rule as the overflow direction: a compression that drops a figure is a different
+    text, not the same text made shorter."""
+    source = "The tolerance is 0.3 mm on the shaft and the housing"
+    result = fit_segment(
+        Segment(block_id="b1", source=source, target="x" * 60),
+        STYLE,
+        BOX,
+        _shrinking_measure(full_at=25, shrunk_at=80),
+        retranslate=lambda segment, max_len: "Mil ve yatak için tolerans uygundur",  # "0.3" gone
+        char_budget=lambda style, bbox, scale: 30,
+    )
+
+    assert result.layer is FitLayer.SHRUNK
+    assert result.text == "x" * 60
+
+
+def test_a_shorter_rendering_that_is_the_source_is_refused_here_too():
+    result = fit_segment(
+        Segment(block_id="b1", source="x" * 60, target="x" * 60),
+        STYLE,
+        BOX,
+        _shrinking_measure(full_at=25, shrunk_at=80),
+        retranslate=lambda segment, max_len: segment.source,
+        char_budget=lambda style, bbox, scale: 30,
+    )
+
+    assert result.layer is FitLayer.SHRUNK

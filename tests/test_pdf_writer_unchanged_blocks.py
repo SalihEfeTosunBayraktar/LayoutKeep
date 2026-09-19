@@ -13,9 +13,18 @@ from pathlib import Path
 
 import pymupdf
 
-from layoutkeep.core.docir import apply_segments, segments_from_document
+from layoutkeep.core.docir import (
+    BBox,
+    Block,
+    BlockRole,
+    Line,
+    Span,
+    Style,
+    apply_segments,
+    segments_from_document,
+)
 from layoutkeep.readers.pdf_reader import read_pdf
-from layoutkeep.writers.pdf_writer import write_pdf
+from layoutkeep.writers.pdf_writer import _clearing_reaches, _rect, write_pdf
 
 
 def _page(path: Path) -> None:
@@ -102,3 +111,37 @@ def test_a_kept_block_reached_through_another_kept_block_is_not_lost(tmp_path: P
     write_pdf(read, src, out)
     with pymupdf.open(out) as result:
         assert "113publ283" in result[0].get_text()
+
+def _block(block_id: str, *boxes: tuple[float, float, float, float], text: str = "x") -> Block:
+    lines = [
+        Line(spans=[Span(text=text, bbox=BBox(*box), style=Style())], bbox=BBox(*box)) for box in boxes
+    ]
+    return Block(id=block_id, role=BlockRole.BODY, bbox=lines[0].bbox.union(lines[-1].bbox), lines=lines)
+
+
+def test_clearing_is_judged_against_the_lines_not_the_union_box() -> None:
+    """arXiv 2507.03009's footer: a footnote, and the URL set around it.
+
+        (388,756)-(526,765)   https://platform.openai.com/docs/api-
+        (306,766)-(381,775)   reference/chat/create
+        (319,755)-(338,765)   1See:
+
+    The URL block's box is the union of its two rows and covers the footnote's box, so the old
+    rule redrew it - and a redrawn block is laid out from its own box's left edge, which put the
+    first row 82pt left of where the source set it, straight over the footnote: L7, a pair of
+    words drawn over each other that the source page never had. The footnote's clearing reaches
+    neither row, so there is nothing to redraw.
+    """
+    url = _block("url", (388.0, 756.0, 526.0, 765.0), (306.0, 766.0, 381.0, 775.0))
+    note = _block("note", (319.0, 755.0, 338.0, 765.0))
+
+    assert _rect(url.bbox).intersects(_rect(note.bbox)), "the union boxes do overlap - that is the trap"
+    assert not _clearing_reaches(url, note)
+    assert _clearing_reaches(note, url), "the footnote sits inside the URL block's box after all"
+
+
+def test_a_block_with_no_measured_lines_is_still_protected_by_its_box() -> None:
+    """Nothing measured: a needless redraw costs typography, a skipped one costs the text."""
+    bare = Block(id="bare", role=BlockRole.BODY, bbox=BBox(100.0, 100.0, 200.0, 120.0), lines=[])
+    changed = _block("changed", (150.0, 110.0, 250.0, 130.0))
+    assert _clearing_reaches(bare, changed)

@@ -18,7 +18,7 @@ import pymupdf
 import pytest
 from PIL import Image
 
-from layoutkeep.core.docir import Document
+from layoutkeep.core.docir import Document, apply_segments, segments_from_document
 from layoutkeep.readers.pdf_reader import read_pdf
 from layoutkeep.writers.pdf_writer import write_pdf
 from tests.test_pdf_reader_scanned import PAGE_H_PT, PAGE_W_PT, build_scanned_pdf
@@ -37,11 +37,17 @@ def _ink(page: pymupdf.Page, clip: pymupdf.Rect | None = None) -> int:
 
 
 def _replace_text(doc: Document, replacement: str = STAND_IN) -> None:
-    """Stand in for the translation step without needing a provider."""
-    for _page, block in doc.iter_blocks():
-        for line_index, line in enumerate(block.lines):
-            for span_index, span in enumerate(line.spans):
-                span.text = replacement if (line_index == 0 and span_index == 0) else ""
+    """Stand in for the translation step without needing a provider.
+
+    Through the pipeline's own door: `apply_segments` records the block's original in
+    `source_text` before overwriting it. A test that replaces the text by hand leaves that empty,
+    and the writer then has no way to tell the block apart from one the provider never returned -
+    which it is right to leave as it was set.
+    """
+    segments = segments_from_document(doc)
+    for seg in segments:
+        seg.target = replacement
+    apply_segments(doc, segments)
 
 
 @pytest.fixture(scope="module")

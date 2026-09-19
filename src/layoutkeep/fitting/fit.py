@@ -82,6 +82,39 @@ CharBudgetFn = Callable[[Style, BBox, float], int]
 #: leaving ordinary variation alone.
 MIN_FILL = 0.75
 
+#: A fit that only holds because the type was shrunk this far is a fit the box did not really
+#: have. Measured on arXiv 2507.03009 page 5 (gemma-4-e4b): 42 of 70 blocks fitted only shrunk -
+#: 23 of them prose at 9.4pt in a 220pt column, from 517 to 1138 characters of source - and the
+#: shrink direction is where they stayed, because `measure` said "fits" and nothing ever asked
+#: for a rendering that fits at full size. A translation that needs 15% less type is a
+#: translation that wants fewer words.
+HEAVY_SHRINK = 0.95
+_HEAVY_SHRINK_KEY = "fit.shorten_below_scale"
+
+#: Below this many characters a text is too short to compress usefully. The ladder spent 14
+#: requests on that same table page asking "Ücretli" (7 characters) for 4 and "✓" (1) for 2 -
+#: targets no reply can meet, so each one burned a round trip and risked replacing a correct
+#: translation with a worse one.
+_MIN_SHORTEN_CHARS = 24
+
+#: A target at or above this share of the current text is not worth asking for: the model would
+#: have to cut almost nothing, and a re-rendering of the same length is a different translation
+#: with no gain.
+_SHORTEN_HEADROOM = 0.95
+
+#: How many attempts the "fits only shrunk" case gets. Two, not `MAX_RETRANSLATE_ROUNDS`: one
+#: request usually overshoots the budget and the second lands inside it, while a third would
+#: triple the request count of every shrunk block on a dense page - and a shrunk block is
+#: already readable, so the prize is smaller than on an overflow.
+_SHRUNK_ATTEMPTS = 2
+
+
+def heavy_shrink_setting() -> float:
+    """The scale below which a fit counts as "only held by shrinking", as set right now."""
+    from layoutkeep.core import tunables
+
+    return float(tunables.get(_HEAVY_SHRINK_KEY))
+
 #: How many re-translation rounds a segment may take, in each direction, before the engine
 #: gives up and returns the best attempt so far. "Iterate until it looks like the original"
 #: needs a hard bound: every round is a provider round-trip, and a model that keeps ignoring
@@ -134,6 +167,13 @@ def fit_segment(
     text = even_leaders(segment.source, segment.target)
     fits, scale = measure(text, style, bbox, scale_low=min_scale, rotation=rotation)
     if fits:
+        # A fit that only holds because the type was shrunk hard is a fit the box did not have;
+        # a shorter rendering that fits at full size is the better answer (see HEAVY_SHRINK).
+        if scale < heavy_shrink_setting():
+            shortened = _try_shorten(segment, text, scale, style, bbox, measure, retranslate,
+                                     char_budget, min_scale, rotation)
+            if shortened is not None:
+                return shortened
         layer = FitLayer.AS_IS if scale >= 1.0 else FitLayer.SHRUNK
         expanded = _try_expand(
             segment, text, layer, scale, style, bbox, measure, retranslate, char_budget,
@@ -144,7 +184,16 @@ def fit_segment(
     # -- direction 1: too long -> ask for shorter, iterating while it still overflows ----
     if retranslate is not None:
         budget = char_budget(style, bbox, min_scale) if char_budget else int(len(text) * min_scale)
+        # The box's own budget is an average-advance estimate and can over-state what fits (the
+        # text in hand is proof: it does not fit at `min_scale`). When it does, the target is
+        # taken from that proof instead, so the request always asks for strictly less than the
+        # text that just failed - asking to keep the same length buys nothing.
+        budget = min(budget, max(_MIN_SHORTEN_CHARS, int(len(text) * min_scale)))
         for _round_no in range(max_rounds):
+            # A text too short to compress has no shorter form worth a request: the table page's
+            # "Ücretli" (7 characters) was asked for 4, three rounds over, and "✓" (1) for 2.
+            if len(text) < _MIN_SHORTEN_CHARS or budget >= len(text):
+                break
             shorter = retranslate(segment, budget)
             if not shorter or shorter == text or _is_source(segment, shorter):
                 break
@@ -207,6 +256,56 @@ def _is_source(segment: Segment, reply: str) -> bool:
         # shorter; it is a different text (NIST glossary: "CNSSI 4009" came back as "CNSS").
         or drops_numbers(segment.source, reply)
     )
+
+
+def _try_shorten(
+    segment: Segment,
+    text: str,
+    scale: float,
+    style: Style,
+    bbox: BBox,
+    measure: MeasureFn,
+    retranslate: RetranslateFn | None,
+    char_budget: CharBudgetFn | None,
+    min_scale: float,
+    rotation: float,
+) -> FitResult | None:
+    """The text fits, but only because the type was shrunk hard: ask for one that fits at full size.
+
+    Returns a `RETRANSLATED` result when a shorter rendering fits at a better scale than the
+    current one, else None and the caller keeps its shrunk fit.
+
+    Two properties matter. The candidate must fit at a scale better than what we already have -
+    a shorter text that still needs the same shrink is not an improvement, and a shorter text
+    that only fits shrunk *more* would be a regression. And the candidate must not lose the
+    source's numbers, for the same reason the overflow direction refuses one: a compression that
+    drops a figure is a different text, not the same text made shorter.
+
+    Only the shrink case reaches this. An overflow has its own ladder above, and the two never
+    run for the same segment.
+    """
+    if retranslate is None or char_budget is None:
+        return None
+    if len(text) < _MIN_SHORTEN_CHARS:
+        return None
+
+    budget = char_budget(style, bbox, 1.0)
+    if budget <= 0 or budget >= _SHORTEN_HEADROOM * len(text):
+        return None
+
+    for _round_no in range(_SHRUNK_ATTEMPTS):
+        shorter = retranslate(segment, budget)
+        if not shorter or shorter == text or _is_source(segment, shorter):
+            return None
+        fits, new_scale = measure(shorter, style, bbox, scale_low=min_scale, rotation=rotation)
+        if fits and new_scale > scale:
+            return FitResult(layer=FitLayer.RETRANSLATED, scale=new_scale, text=shorter)
+        # Not an improvement: the reply was still too long for the box at full size. Target
+        # strictly less than what it actually produced, which is the only thing we learned.
+        budget = max(_MIN_SHORTEN_CHARS, min(budget, len(shorter) - 1))
+        if budget >= _SHORTEN_HEADROOM * len(text):
+            return None
+    return None
 
 
 def _try_expand(

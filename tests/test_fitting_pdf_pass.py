@@ -133,11 +133,13 @@ class TestFitPdfPass:
 
     def test_on_fitted_receives_fit_verdict_fields(self, monkeypatch):
         def fake_measure(text, style, bbox, scale_low, rotation=0.0):
-            return (len(text) <= 2), 1.0
+            return (len(text) <= 15), 1.0
 
         monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", fake_measure)
         doc = _doc_with_block()
-        seg = _segment("b1", "abc")  # fits as-is
+        # Long enough to be worth compressing when it does not fit: a text under
+        # `_MIN_SHORTEN_CHARS` never reaches the ladder (see test_fitting_fit).
+        seg = _segment("b1", "a much longer translation than the box can hold at any size")
         fitted: list[object] = []
 
         fit_pdf_pass(

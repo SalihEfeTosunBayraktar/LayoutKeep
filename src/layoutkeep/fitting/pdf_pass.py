@@ -17,11 +17,16 @@ from collections.abc import Callable
 
 from layoutkeep.core.docir import BBox, Block, Document, Segment
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
+from layoutkeep.fitting.growth import free_below, may_grow
 from layoutkeep.fitting.measure import TextMeasurer
 from layoutkeep.fitting.room import room_below
 
 #: (segment, max_len) -> replacement translation, wired to the real provider by the caller.
 Retranslate = Callable[[Segment, int], str]
+
+#: Below this rotation a block is drawn horizontally, with `insert_htmlbox` - and only that path
+#: can use the room granted below a block (see `fitting/growth.py`).
+_ROTATION_EPS = 0.01
 
 
 def fit_pdf_pass(
@@ -53,9 +58,13 @@ def fit_pdf_pass(
     # 0.93-1.12x an honest EN->TR run produces). See the `char_budget` argument below.
     from_scan = {b.id: page.scanned for page, b in doc.iter_blocks()}
     page_of = {b.id: page.blocks for page, b in doc.iter_blocks()}
+    drawn_of = {b.id: page.images for page, b in doc.iter_blocks()}
     from layoutkeep.core import tunables
 
     slack = float(tunables.get("write.box_slack_pt"))
+    #: Absent when the setting is 0, so a run that does not want the block to grow pays nothing
+    #: for looking.
+    grant_limit = float(tunables.get("write.grant_room_pt"))
     measurers: dict[tuple, TextMeasurer | None] = {}
     drawn_fonts: dict[tuple, str | None] = {}
     results = []
@@ -75,15 +84,26 @@ def fit_pdf_pass(
             return _m.char_budget(style, bbox, scale)
 
         # Measured against the room the writer will actually draw in: the slack below is only what
-        # the page has free (`fitting.room`), so a box with less is measured that much shorter.
+        # the page has free (`fitting.room`), plus the room the page genuinely has under the block
+        # (`fitting.growth`) - which is what lets a translation take the second line it needs
+        # instead of being shrunk to the floor or flagged. A rotated block is drawn by the
+        # `TextWriter` path, which has no such room, so it is measured as before.
         page_blocks = page_of.get(seg.block_id, [])
         missing = slack - room_below(block, page_blocks, slack)
+        grant = (
+            free_below(block, page_blocks, limit=grant_limit, obstacles=drawn_of.get(seg.block_id, ()))
+            if abs(block.rotation) <= _ROTATION_EPS and grant_limit > 0 and may_grow(block)
+            else 0.0
+        )
         measured_box = (
             BBox(
                 block.bbox.x0, block.bbox.y0, block.bbox.x1,
-                max(block.bbox.y0 + min(block.bbox.height, 6.0), block.bbox.y1 - missing),
+                max(
+                    block.bbox.y0 + min(block.bbox.height, 6.0),
+                    block.bbox.y1 - missing + grant,
+                ),
             )
-            if missing > 0 else block.bbox
+            if missing > 0 or grant > 0 else block.bbox
         )
         result = fit_segment(
             seg,
