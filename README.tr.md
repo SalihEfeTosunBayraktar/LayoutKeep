@@ -178,6 +178,12 @@ Dosyayı bırak, dilleri ve sağlayıcıyı seç, başlat. Sağlayıcı uç nokt
 yönetilir: sürükleyerek sıralanır, birini diğerinin üstüne bırakınca grup olur, sağ tıkla silinir
 ve **Test Et** kaydetmeden dener.
 
+Uzun belgelerde **yüzen ilerleme çubuğu** çıkar: her şeyin üstünde duran küçük, çerçevesiz bir
+pencere; hangi belgenin çevrildiğini, hangi aşamada olduğunu, kaç parçanın bittiğini ve yüzdeyi
+gösterir. Sürükleyip taşıyabilir, `—` düğmesiyle minik bir hapa indirebilir, *Pencereye dön* ile
+tam pencereye geçebilirsin. İş bitince yeşile döner; çıktıyı açmayı ve yeni çeviri başlatmayı sunar.
+Gelişmiş ayarlardaki `ui.floating_progress` ile kapatılır.
+
 ### Komut satırı
 
 Bir belgeyi çevirmeden okuyucunun onu nasıl anladığını görmek için:

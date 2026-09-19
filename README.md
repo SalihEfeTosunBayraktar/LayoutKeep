@@ -179,6 +179,13 @@ Three steps: choose the document and format, watch the translation, then open th
 (or start another job). A packaged build is produced with `packaging/layoutkeep_onefile.spec` —
 see [`docs/PACKAGING.md`](docs/PACKAGING.md).
 
+Long documents get a **floating progress bar**: a small, frameless window that stays on top of
+everything else, showing which document is being translated, which phase it is in, how many
+segments are done and the percentage. Drag it anywhere, fold it down to a pill with the `—` button,
+or use *Back to window* to return to the full window. When the run ends it turns green and offers
+the output and a fresh start. Turn it off with the `ui.floating_progress` entry in the advanced
+settings.
+
 ### Command line
 
 See how the reader understood a document before translating anything:
