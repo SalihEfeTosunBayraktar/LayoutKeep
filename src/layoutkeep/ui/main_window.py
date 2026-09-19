@@ -7,6 +7,7 @@ yeni çeviri seçenekleri sunulur. Gözden geçirme editörü kaldırıldı (esk
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, QUrl
@@ -25,6 +26,19 @@ from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 from layoutkeep.ui.welcome import WelcomeDialog
 from layoutkeep.ui.worker import TranslationWorker
+
+
+def _welcome_is_wanted() -> bool:
+    """Whether a first run may open the introduction.
+
+    Not in an automated session. A modal dialog with nobody to click it is an infinite hang, and
+    both the test suite and any scripted launch land there: the application opens off screen, the
+    timer fires, and the process waits forever. `LAYOUTKEEP_NO_WELCOME=1` says so explicitly for
+    anything the off-screen check does not cover.
+    """
+    if os.environ.get("LAYOUTKEEP_NO_WELCOME"):
+        return False
+    return QApplication.platformName() != "offscreen"
 
 
 class MainWindow(QWidget):
@@ -232,7 +246,7 @@ class MainWindow(QWidget):
 
     def _maybe_show_welcome(self) -> None:
         """First run only: the introduction, unless it has already been dismissed."""
-        if bool(self._settings.value("welcome_shown", False, type=bool)):
+        if not _welcome_is_wanted() or bool(self._settings.value("welcome_shown", False, type=bool)):
             return
         self.show_welcome()
 

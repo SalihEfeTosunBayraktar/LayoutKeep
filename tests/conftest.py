@@ -20,9 +20,33 @@ at a temporary directory is what actually isolates them.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator
+
 import pytest
 
 pytest.importorskip("PySide6")
+
+#: Tests must never open the modal welcome screen: there is nobody to dismiss it, and the session
+#: waits in `exec()` forever.
+ENV_NO_WELCOME = "LAYOUTKEEP_NO_WELCOME"
+
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _no_first_run_dialog() -> Iterator[None]:
+    """The introduction is modal, and a test session has nobody to click it away.
+
+    Found the hard way: the suite sat at 89% for fifteen minutes with a PySide6 event loop
+    waiting for input, because a test constructed the main window and the first-run timer fired.
+    """
+    previous = os.environ.get(ENV_NO_WELCOME)
+    os.environ[ENV_NO_WELCOME] = "1"
+    yield
+    if previous is None:
+        os.environ.pop(ENV_NO_WELCOME, None)
+    else:
+        os.environ[ENV_NO_WELCOME] = previous
 
 
 @pytest.fixture(autouse=True)
@@ -155,6 +179,7 @@ def _no_installed_layout_model(tmp_path_factory: pytest.TempPathFactory):
     import os
 
     from layoutkeep.ocr.layout_detector import ENV_MODEL
+
 
     previous = os.environ.get(ENV_MODEL)
     os.environ[ENV_MODEL] = str(tmp_path_factory.mktemp("no_layout_model") / "absent.onnx")

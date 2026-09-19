@@ -577,6 +577,13 @@ class TranslationWorker(QThread):
 
         if provider is None:
             provider, _memory, glossary_terms = _build_provider(config)
+        else:
+            # The worker already built a provider (the normal path); the fit pass still needs the
+            # glossary, because a shorter rendering asked for here must obey the same terms.
+            try:
+                glossary_terms = load_glossary_terms(config.glossary_path)
+            except GlossaryUnreadableError:
+                glossary_terms = None
 
         def retranslate(segment: Segment, budget: int) -> str:
             segment.max_len = budget

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from layoutkeep.ui import welcome_text
+from layoutkeep.ui import main_window, welcome_text
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.welcome import WelcomeDialog
 
@@ -92,6 +92,9 @@ def test_the_window_asks_for_the_introduction_only_until_it_has_been_seen(qtbot,
     qtbot.addWidget(window)
     shown: list[str] = []
     monkeypatch.setattr(window, "show_welcome", lambda: shown.append("shown"))
+    # The session switch that keeps the suite from opening the modal screen would also keep this
+    # test from exercising the once-only rule, so the wanted path is put back for these calls.
+    monkeypatch.setattr(main_window, "_welcome_is_wanted", lambda: True)
 
     window._maybe_show_welcome()
     assert shown == ["shown"]
