@@ -1,0 +1,356 @@
+"""Build the side-by-side comparison site: every held-out document, original against translation.
+
+The measurement pages say what the audit found; this one lets a person look. Each document becomes
+a page of the site with a draggable divider over the two renderings of the same page - the original
+and what came out of the pipeline - so a reader can see for themselves whether a page kept its
+layout, its figures and its meaning.
+
+Sources come from `_artifacts/heldout/sources/`, translations from the recorded campaign runs
+(`<run>/<name>.tr.pdf` when a full document was assembled, else the per-chunk `out/t_*.pdf` in
+order) plus the newest live run in `_artifacts/heldout/live/`.
+
+    python tools/audit/comparison_site.py [--out docs/comparison] [--dpi 100] [--max-pages 14]
+
+Everything is written under the output directory: `index.html` plus `img/<document>/<page>_{a,b}.jpg`.
+No network, no CDN - the file opens from disk.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+import pymupdf
+
+ROOT = Path(__file__).resolve().parents[2]
+SOURCES = ROOT / "_artifacts/heldout/sources"
+RUNS = ROOT / "_artifacts/heldout/runs"
+LIVE = ROOT / "_artifacts/heldout/live"
+RUN_SCRIPT = ROOT / "_artifacts/heldout/run_heldout.sh"
+
+
+def _run_sources() -> dict[str, str]:
+    """Which file each run translated, taken from the campaign's own script.
+
+    The run names and the source file names do not match (`arxiv_19113` is
+    `arxiv_2609.19113.pdf`, `cookbook_1907` is `archive_cookbook_1907.pdf`), and the mapping only
+    exists in the script that launched the runs. Reading it here means a run added to the campaign
+    shows up on the site without a second list to keep in step.
+    """
+    if not RUN_SCRIPT.exists():
+        return {}
+    mapping: dict[str, str] = {}
+    for line in RUN_SCRIPT.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"(?:pdf|single|\(\s*single)\s+(\S+)\s+(\S+)\.(pdf|epub|png|jpg)", line)
+        if match:
+            mapping[match.group(1)] = f"{match.group(2)}.{match.group(3)}"
+    return mapping
+
+
+def _source_for(run: Path, mapping: dict[str, str]) -> Path | None:
+    named = mapping.get(run.name)
+    if named and (SOURCES / named).exists():
+        return SOURCES / named
+    for candidate in (SOURCES / f"{run.name}.pdf", SOURCES / f"{run.name}_full.pdf"):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+@dataclass
+class Document:
+    """One sample: page by page, where its original is and what came out for it, plus the audit."""
+
+    name: str
+    title: str
+    pairs: list[tuple[Path, int, Path, int]]  # (original pdf, page, translation pdf, page)
+    losses: str = ""
+    note: str = ""
+    origin: str = ""
+
+
+def _translation_pdfs(run: Path) -> list[Path]:
+    """The translated pages in order: the assembled document if there is one, else the chunks."""
+    assembled = sorted(run.glob("*.tr.pdf"))
+    if assembled:
+        return [assembled[0]]
+    return sorted(run.glob("out/t_*.pdf"))
+
+
+def _sample_pages(total: int, cap: int) -> list[int]:
+    """Which pages to show: the first, then evenly spread, never more than `cap`."""
+    if total <= cap:
+        return list(range(total))
+    step = (total - 1) / (cap - 1)
+    return sorted({round(i * step) for i in range(cap)})
+
+
+def _loss_summary(run: Path) -> str:
+    report = run / "audit.json"
+    if not report.exists():
+        return ""
+    try:
+        data = json.loads(report.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return ""
+    counts = data.get("counts", {})
+    if not counts:
+        return ""
+    return ", ".join(f"{kind} {value}" for kind, value in sorted(counts.items()))
+
+
+def _campaign_documents() -> list[Document]:
+    documents: list[Document] = []
+    mapping = _run_sources()
+    for run in sorted(RUNS.iterdir()):
+        if not run.is_dir():
+            continue
+        source = _source_for(run, mapping)
+        if source is None or source.suffix.lower() != ".pdf":
+            continue  # posters and epubs are covered by their own format's run, or not at all
+        translated = _translation_pdfs(run)
+        if not translated:
+            continue
+        with pymupdf.open(source) as original:
+            original_pages = original.page_count
+        pairs: list[tuple[Path, int, Path, int]] = []
+        for path in translated:
+            with pymupdf.open(path) as chunk:
+                for index in range(chunk.page_count):
+                    pairs.append((source, min(len(pairs), original_pages - 1), path, index))
+        documents.append(
+            Document(
+                name=run.name,
+                title=run.name.replace("_", " "),
+                pairs=pairs,
+                losses=_loss_summary(run),
+                origin=f"sources/{source.name} + runs/{run.name}",
+            )
+        )
+    return documents
+
+
+def _live_documents(runs: int = 2, per_run: int = 4) -> list[Document]:
+    """The newest live runs: the freshest code, run against a real model, chunk by chunk."""
+    documents: list[Document] = []
+    newest = sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)[-runs:]
+    for run in newest:
+        sources = sorted((run / "src").glob("chunk_*.pdf")) if (run / "src").exists() else []
+        outputs = sorted((run / "out").glob("t_*.pdf")) if (run / "out").exists() else []
+        for index, (source, output) in enumerate(list(zip(sources, outputs, strict=False))[:per_run]):
+            with pymupdf.open(output) as chunk:
+                pairs = [(source, page, output, page) for page in range(chunk.page_count)]
+            documents.append(
+                Document(
+                    name=f"{run.name}_{index}",
+                    title=f"{run.name} parça {index}",
+                    pairs=pairs,
+                    note="en güncel kod, gerçek model",
+                    origin=f"live/{run.name}",
+                )
+            )
+    return documents
+
+
+def collect(include_live: bool = True) -> list[Document]:
+    return _campaign_documents() + (_live_documents() if include_live else [])
+
+
+def render(document: Document, out_dir: Path, dpi: int, cap: int) -> list[dict]:
+    """Write the before/after images for one document and return its page records."""
+    folder = out_dir / "img" / document.name
+    folder.mkdir(parents=True, exist_ok=True)
+    zoom = dpi / 72
+    records: list[dict] = []
+    for page_number in _sample_pages(len(document.pairs), cap):
+        source_path, source_index, output_path, output_index = document.pairs[page_number]
+        with pymupdf.open(source_path) as original:
+            before = original[min(source_index, original.page_count - 1)].get_pixmap(
+                matrix=pymupdf.Matrix(zoom, zoom)
+            )
+        before.save(folder / f"{page_number:04d}_a.jpg", jpg_quality=76)
+        with pymupdf.open(output_path) as translated:
+            after = translated[min(output_index, translated.page_count - 1)].get_pixmap(
+                matrix=pymupdf.Matrix(zoom, zoom)
+            )
+        after.save(folder / f"{page_number:04d}_b.jpg", jpg_quality=76)
+        records.append(
+            {
+                "page": page_number + 1,
+                "before": f"img/{document.name}/{page_number:04d}_a.jpg",
+                "after": f"img/{document.name}/{page_number:04d}_b.jpg",
+            }
+        )
+    return records
+
+
+PAGE_TEMPLATE = """<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LayoutKeep - orijinal / çeviri karşılaştırması</title>
+<style>
+  :root {{ color-scheme: dark; --ink:#e8eaed; --muted:#9aa0a6; --line:#2b2f36; --accent:#4c8dff; }}
+  * {{ box-sizing: border-box; }}
+  body {{ margin:0; font:15px/1.5 system-ui, "Segoe UI", sans-serif; background:#0f1115; color:var(--ink); }}
+  header {{ padding:18px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#0f1115f2; backdrop-filter:blur(6px); z-index:5; }}
+  h1 {{ font-size:18px; margin:0 0 4px; }}
+  .sub {{ color:var(--muted); font-size:13px; }}
+  main {{ display:grid; grid-template-columns: 260px 1fr; gap:0; min-height: calc(100vh - 74px); }}
+  nav {{ border-right:1px solid var(--line); padding:12px; overflow:auto; max-height: calc(100vh - 74px); }}
+  nav button {{ display:block; width:100%; text-align:left; margin:0 0 6px; padding:8px 10px; border:1px solid var(--line);
+                border-radius:8px; background:#151922; color:var(--ink); cursor:pointer; font:inherit; }}
+  nav button.active {{ border-color:var(--accent); background:#1b2433; }}
+  nav button small {{ display:block; color:var(--muted); font-size:11px; }}
+  section {{ padding:16px 20px 40px; }}
+  h2 {{ font-size:16px; margin:4px 0 2px; }}
+  .meta {{ color:var(--muted); font-size:13px; margin-bottom:12px; }}
+  .stage {{ position:relative; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#14171d;
+            touch-action:none; cursor:ew-resize; }}
+  .stage img {{ display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }}
+  .stage .after {{ position:absolute; inset:0; }}
+  .stage .before {{ position:relative; z-index:2; clip-path: inset(0 50% 0 0); }}
+  .handle {{ position:absolute; top:0; bottom:0; left:50%; width:2px; background:var(--accent); z-index:3; }}
+  .handle::after {{ content:""; position:absolute; top:50%; left:50%; width:34px; height:34px; margin:-17px 0 0 -17px;
+                    border-radius:50%; border:2px solid var(--accent); background:#0f1115cc; }}
+  .tag {{ position:absolute; top:10px; padding:3px 8px; border-radius:6px; font-size:12px; background:#0f1115cc; z-index:4; }}
+  .tag.a {{ left:10px; }} .tag.b {{ right:10px; }}
+  .pages {{ display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 0; }}
+  .pages button {{ padding:5px 9px; border-radius:6px; border:1px solid var(--line); background:#151922; color:var(--ink); cursor:pointer; font:inherit; font-size:13px; }}
+  .pages button.active {{ border-color:var(--accent); background:#1b2433; }}
+  .hint {{ color:var(--muted); font-size:12px; margin-top:8px; }}
+</style>
+</head>
+<body>
+<header>
+  <h1>LayoutKeep — orijinal ve çeviri, yan yana</h1>
+  <div class="sub">Ayırıcıyı sürükle (ya da ← → tuşları): solda orijinal, sağda çevrilmiş sayfa. {count} belge.</div>
+</header>
+<main>
+  <nav id="docs"></nav>
+  <section>
+    <h2 id="title"></h2>
+    <div class="meta" id="meta"></div>
+    <div class="stage" id="stage">
+      <img class="before" id="before" alt="orijinal sayfa">
+      <div class="after"><img id="after" alt="çevrilmiş sayfa"></div>
+      <div class="tag a">orijinal</div>
+      <div class="tag b">çeviri</div>
+      <div class="handle" id="handle"></div>
+    </div>
+    <div class="pages" id="pages"></div>
+    <div class="hint">Görseller {dpi} dpi. Kaynak: _artifacts/heldout/{origin}.</div>
+  </section>
+</main>
+<script>
+const DATA = {data};
+
+let current = 0, page = 0, dragging = false, ratio = 0.5;
+const $ = (id) => document.getElementById(id);
+
+function setRatio(value) {{
+  ratio = Math.min(1, Math.max(0, value));
+  $("before").style.clipPath = `inset(0 ${{(1 - ratio) * 100}}% 0 0)`;
+  $("handle").style.left = `${{ratio * 100}}%`;
+}}
+
+function showDocument(index) {{
+  current = index; page = 0;
+  const doc = DATA[index];
+  $("title").textContent = doc.title;
+  $("meta").textContent = [doc.pages.length + " sayfa", doc.losses, doc.note].filter(Boolean).join(" · ");
+  $("pages").replaceChildren(...doc.pages.map((record, i) => {{
+    const button = document.createElement("button");
+    button.textContent = record.page;
+    button.onclick = () => showPage(i);
+    return button;
+  }}));
+  [...$("docs").children].forEach((child, i) => child.classList.toggle("active", i === index));
+  showPage(0);
+}}
+
+function showPage(index) {{
+  page = index;
+  const record = DATA[current].pages[index];
+  $("before").src = record.before;
+  $("after").src = record.after;
+  [...$("pages").children].forEach((child, i) => child.classList.toggle("active", i === index));
+}}
+
+const stage = $("stage");
+const move = (event) => {{
+  const box = stage.getBoundingClientRect();
+  const x = (event.touches ? event.touches[0].clientX : event.clientX) - box.left;
+  setRatio(x / box.width);
+}};
+stage.addEventListener("pointerdown", (event) => {{ dragging = true; move(event); }});
+window.addEventListener("pointerup", () => {{ dragging = false; }});
+window.addEventListener("pointermove", (event) => {{ if (dragging) move(event); }});
+window.addEventListener("keydown", (event) => {{
+  if (event.key === "ArrowLeft") showPage(Math.max(0, page - 1));
+  if (event.key === "ArrowRight") showPage(Math.min(DATA[current].pages.length - 1, page + 1));
+}});
+
+const nav = $("docs");
+DATA.forEach((doc, index) => {{
+  const button = document.createElement("button");
+  button.innerHTML = `${{doc.title}}<small>${{doc.pages.length}} sayfa</small>`;
+  button.onclick = () => showDocument(index);
+  nav.append(button);
+}});
+setRatio(0.5);
+showDocument(0);
+</script>
+</body>
+</html>
+"""
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=ROOT / "docs/comparison")
+    parser.add_argument("--dpi", type=int, default=92)
+    parser.add_argument("--max-pages", type=int, default=6)
+    parser.add_argument("--no-live", action="store_true")
+    args = parser.parse_args()
+
+    documents = collect(include_live=not args.no_live)
+    if not documents:
+        print("no documents found under _artifacts/heldout", file=sys.stderr)
+        return 1
+
+    site: list[dict] = []
+    for document in documents:
+        pages = render(document, args.out, args.dpi, args.max_pages)
+        print(f"{document.name:32} {len(pages):3} sayfa")
+        site.append(
+            {
+                "title": document.title,
+                "losses": document.losses,
+                "note": document.note,
+                "pages": pages,
+            }
+        )
+
+    args.out.mkdir(parents=True, exist_ok=True)
+    (args.out / "index.html").write_text(
+        PAGE_TEMPLATE.format(
+            data=json.dumps(site, ensure_ascii=False),
+            count=len(site),
+            dpi=args.dpi,
+            origin="sources + runs + live",
+        ),
+        encoding="utf-8",
+    )
+    images = sum(1 for _ in (args.out / "img").rglob("*.jpg"))
+    print(f"\n{len(site)} belge, {images} görsel -> {args.out / 'index.html'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

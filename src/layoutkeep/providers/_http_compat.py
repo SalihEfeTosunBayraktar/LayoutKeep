@@ -84,6 +84,10 @@ class OpenAIHTTPTransport:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.reasoning_effort = reasoning_effort
+        #: How many HTTP calls this run made. The cost of a translation is dominated by
+        #: per-request overhead, so this is the number to look at when a job feels slow: fewer
+        #: requests for the same segments is the only real speed-up a local model offers.
+        self.requests = 0
 
     def headers(self) -> dict[str, str]:
         """Authorization + Content-Type. Sends a placeholder key when `api_key is None`
@@ -105,6 +109,7 @@ class OpenAIHTTPTransport:
     def execute_http_post(self, req: urllib.request.Request, timeout: float) -> dict:
         """POST `req` and return the decoded JSON body. Raises whatever urllib raises -
         callers translate connection-level errors into RuntimeError with a usable message."""
+        self.requests += 1
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
 

@@ -268,7 +268,7 @@ def run_batches(
         return []
 
     adaptive = max_segments == ADAPTIVE
-    size = AdaptiveBatchSize() if adaptive else None
+    size = AdaptiveBatchSize(start=int(tunables.get("batch.adaptive_start_segments"))) if adaptive else None
     fixed_cap: int | None = None if adaptive else max_segments  # type: ignore[assignment]
 
     chars_total = sum(_content_chars(s) for s in segments)

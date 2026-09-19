@@ -98,6 +98,29 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="batch.adaptive_start_segments",
+        label="İlk istekte kaç segment",
+        default=4,
+        kind="int",
+        section=ADVANCED,
+        group="Parti ve istek",
+        minimum=1,
+        maximum=20,
+        help_text=(
+            "Uyarlanabilir parti boyutunun başlangıcı. Sağlayıcı her başarılı yanıtta bir artırır, "
+            "bozuk yanıtta o boyutu tavan yapıp geri çekilir; yani yüksek başlangıç yalnızca "
+            "zayıf modellerde bir istek harcar."
+        ),
+        warning=(
+            "Ölçüldü (gemma-4-e4b, 8192 bağlam, 16 segmentlik arXiv sayfası, "
+            "`tools/audit/batch_ab.py`): 1'den başlamak 16 istek / 96.6 sn, 4'ten başlamak "
+            "15 istek / 91.0 sn. Kazanç küçük çıktı - çünkü isteği asıl sınırlayan şey segment "
+            "sayısı değil karakter bütçesi (`DEFAULT_BATCH_CHARS`), yani tavan çoğu istekte hiç "
+            "bağlamıyor. Yüksek başlangıcın bedeli de yok: bozuk yanıtta sağlayıcı tavanı düşürüp "
+            "aynı segmentleri daha küçük istekle tekrar dener."
+        ),
+    ),
+    Tunable(
         key="batch.chunk_size",
         label="Parti boyutu (iptal/duraklat aralığı)",
         default=20,

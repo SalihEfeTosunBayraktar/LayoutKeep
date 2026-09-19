@@ -94,6 +94,14 @@ inside it), rebuilt from the current output by
 comparison of something the pipeline no longer does. The file itself is
 [`docs/comparison.html`](docs/comparison.html) if you would rather open it from a clone.
 
+**[And the wider comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — the same draggable divider over
+**every held-out sample**: arXiv papers, two IRS instruction books, a NASA scan, a PLOS article,
+two Wikipedia articles, a Gutenberg novel, two Internet Archive scans, a WPA poster and the
+newest live runs. Each document carries what the audit measured on it, so a page that lost
+something says so beside the page itself. Generated from source and output by
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) — pages are chosen evenly
+across a document, never retouched.
+
 Translation is under a fifth of the wall clock. **Fitting the translation back into boxes that
 were set for English is the expensive part** — it is where a language that runs longer than the
 source gets paid for, and where those 37 review flags come from. Writing the PDF is cheap here but

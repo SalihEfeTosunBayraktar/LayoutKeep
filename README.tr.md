@@ -86,11 +86,18 @@ yeniden kurulabilir.
 
 ![Süre nereye gidiyor](docs/images/bench_10_pages.png)
 
-**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe,
-sürüklediğiniz bir ayırıcının altında. Kendi kendine yeten tek bir dosya (görseller içinde
+**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe, üzerinde sürüklediğiniz bir ayırıcıyla.
+Kendi kendine yeten tek bir dosya (görseller içinde
 taşınıyor) ve güncel çıktıdan
 [`tools/make_comparison_page.py`](tools/make_comparison_page.py) ile yeniden üretiliyor; yani
 boru hattının artık yapmadığı bir şeyi gösteremez.
+
+**[Ve daha geniş karşılaştırma](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — aynı ayırıcı, **tüm held-out örnekleri** üzerinde:
+arXiv makaleleri, iki IRS talimat kitabı, bir NASA taraması, bir PLOS makalesi, iki Wikipedia
+maddesi, bir Gutenberg romanı, iki Internet Archive taraması, bir WPA afişi ve en yeni canlı
+koşular. Her belgenin yanında denetimin o belge için ölçtüğü sonuç yazılı; bir sayfa bir şey
+kaybettiyse, bunu sayfanın yanında söylüyor. Kaynak ve çıktıdan
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) ile üretilir.
 
 Çeviri, geçen sürenin beşte birinden az. **Asıl pahalı kısım, çevirinin İngilizce için
 ayarlanmış kutulara geri sığdırılması** — kaynaktan uzun bir dilin bedeli orada ödeniyor ve o 37
