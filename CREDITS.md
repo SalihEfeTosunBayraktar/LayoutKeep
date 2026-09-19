@@ -90,6 +90,29 @@ use and are not redistributed here — the model file lives on the machine that 
 llama.cpp, vLLM, OpenRouter, Groq, OpenAI). None of them are affiliated with this project, and
 using one is subject to that provider's own terms.
 
+## Compared with, and read alongside
+
+The layout-preserving translation field is not empty, and this project's roadmap is written against
+what is already out there rather than as if it were:
+
+- **[BabelDOC](https://github.com/funstory-ai/BabelDOC)** (AGPLv3) and its ancestor
+  [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate) — an intermediate-representation
+  pipeline with dual-page bilingual output, glossaries and terminology extraction. Its paper
+  ([arXiv 2605.10845](https://arxiv.org/abs/2605.10845), ACL 2026 demo) contains the feature table
+  this project measured itself against in [`docs/FEATURE-ROADMAP.md`](docs/FEATURE-ROADMAP.md).
+  One of its held-out samples is a document from that project, and it is credited as such on the
+  comparison site.
+- **[mineru-translate](https://pypi.org/project/mineru-translate/)** (Apache-2.0) — layout JSON from
+  the MinerU parser, then re-render; its overlap-resolution cascade (shrink → compress leading →
+  push down) is the design this project's fitting ladder is heading towards.
+- **Commercial document translators** (Doclingo, Lara Translate, Doctranslate, DeepL, Google
+  Translate) — for the comparison of what they do and do not preserve, per the roundups in the
+  roadmap's sources. None of their output is used here, and no claim is made about their internals.
+
+What this project has that the list above does not: a **page-by-page loss audit against the source**
+(L1–L10, `verify.py`), review flags that carry their reason into the application, and a comparison
+site built from held-out samples by the same generator that ships with the code.
+
 ## Practice
 
 The working rules this project is held to — say what you measured, do not report a failing test
