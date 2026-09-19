@@ -253,7 +253,19 @@ class OpenAICompatProvider(TranslationProvider):
         return self._transport.execute_http_post(req, timeout=self._request_timeout)
 
     def _chat(self, messages: list[dict[str, str]]) -> str:
-        return self._transport.chat(self.model, messages, timeout=self._request_timeout)
+        """Ask the server once. A request that did not fit the context is a batch-size failure.
+
+        Raising `BatchTooLargeError` is what lets the batching layer cut the batch down (and, for
+        a single oversized segment, ask for its sentences one by one) instead of losing the chunk.
+        """
+        try:
+            return self._transport.chat(self.model, messages, timeout=self._request_timeout)
+        except RuntimeError as error:
+            if _is_context_overflow(str(error)):
+                raise BatchTooLargeError(
+                    "istek modelin bağlam penceresine sığmadı / request exceeds the model's context"
+                ) from error
+            raise
 
     def _try_repair(self, broken_reply: str) -> str | None:
         return try_repair_reply(self._chat, broken_reply)
@@ -340,6 +352,26 @@ def _marker_repair_messages(
         {"role": "system", "content": "\n".join(system_lines)},
         {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
     ]
+
+
+#: What a server says when the request did not fit the model's context window. LM Studio answers
+#: a request over the limit with HTTP 500 and "Context size has been exceeded" inside the body -
+#: which the transport then reported as "Model ... bulunamadı veya yüklenmedi", sending the user to
+#: look for a model that was loaded and answering. Measured on the first chunk of an 841-page
+#: textbook that hit it: one segment too large for an 8192-token window.
+_CONTEXT_MARKERS = (
+    "context size",
+    "context length",
+    "maximum context",
+    "context window",
+    "too many tokens",
+    "reduce the length",
+)
+
+
+def _is_context_overflow(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in _CONTEXT_MARKERS)
 
 
 #: An opening, closing or self-closing tag with a name - any name, in any script.

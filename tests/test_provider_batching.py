@@ -284,3 +284,51 @@ def test_run_batches_reports_current_batch_size_via_progress():
 
     # adaptive, starting at 1: first batch is size 1, growing afterwards.
     assert [p.batch_size for p in progress] == [1, 2]
+
+
+def test_a_segment_too_large_for_the_context_is_cut_and_asked_piece_by_piece() -> None:
+    """Measured on an 841-page textbook: one 4-page chunk died after 410s with the server
+    answering "Context size has been exceeded", reported to the user as "model not found or not
+    loaded" - a message about a model that was loaded and answering. One segment can be too large
+    for an 8192-token window; cutting it at its own sentence boundaries is the same last resort
+    `retry_untranslated` uses for a segment that comes back unchanged.
+    """
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.batching import BatchTooLargeError, run_batches
+
+    long_text = " ".join(f"This is sentence number {n} of the paragraph." for n in range(1, 13))
+    segment = Segment(block_id="p0#0", source=long_text)
+
+    def translate_batch(batch):
+        if len(batch) == 1 and len(batch[0].source) > 100:
+            raise BatchTooLargeError("context")
+        return [
+            Segment(block_id=item.block_id, source=item.source, target=f"TR[{item.source}]")
+            for item in batch
+        ]
+
+    result = run_batches([segment], 2000, translate_batch)
+    assert len(result) == 1
+    target = result[0].target
+    assert target and not result[0].needs_review
+    assert target.count("TR[") >= 2, "the segment should have been asked for in pieces"
+    assert "sentence number 1" in target and "sentence number 12" in target
+
+
+def test_a_segment_that_cannot_be_cut_is_flagged_not_lost() -> None:
+    """Nothing to cut (a table cell, a heading): flag it and say why, do not fail the chunk."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.batching import BatchTooLargeError, run_batches
+
+    def translate_batch(batch):
+        raise BatchTooLargeError("context")
+
+    result = run_batches(
+        [Segment(block_id="p0#0", source="small"), Segment(block_id="p0#1", source="twin")],
+        2000,
+        translate_batch,
+        max_segments=1,
+    )
+    assert [segment.block_id for segment in result] == ["p0#0", "p0#1"]
+    assert all(segment.needs_review for segment in result)
+    assert all(segment.target == "" for segment in result)

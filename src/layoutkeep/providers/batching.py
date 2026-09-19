@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
+from layoutkeep.providers.split import pieces, reassemble
 
 #: Default character budget per request - mostly a safety net against one pathologically long
 #: paragraph blowing out a request's latency, not the main lever (see `AdaptiveBatchSize`).
@@ -232,6 +233,45 @@ class BatchProgress:
 ProgressCallback = Callable[[BatchProgress], None]
 
 
+
+def _translate_pieces(batch: list[Segment], translate_batch) -> list[Segment] | None:
+    """A single segment the model cannot fit in one request: ask for its sentences one by one.
+
+    Measured on a 841-page statistics textbook: one 4-page chunk died after 410 seconds with
+    LM Studio answering HTTP 500 `Context size has been exceeded`, and the error the user saw was
+    "Model 'google/gemma-4-e4b' bulunamadı veya yüklenmedi" - a message about downloading a model
+    that was loaded and working. The request was one segment too large for an 8192-token window.
+
+    Cutting it and asking per piece is the same last resort `retry_untranslated` uses for a
+    segment that comes back unchanged (`providers/split.py`); here it is reached because the
+    request could not be sent at all. Returns None when the text does not cut into usable pieces,
+    and the caller keeps its usual behaviour.
+    """
+    if len(batch) != 1:
+        return None
+    segment = batch[0]
+    cut = pieces(
+        segment.source,
+        max_pieces=int(tunables.get("translation.piecewise_max_pieces")),
+    )
+    if not cut:
+        return None
+    replies: list[str] = []
+    for piece in cut:
+        asked = replace(segment, source=piece.text, context_before="", context_after="", target="")
+        answered = translate_batch([asked])
+        if not answered or not answered[0].target.strip():
+            return None
+        replies.append(answered[0].target)
+    return [
+        replace(
+            segment,
+            target=reassemble(replies, cut),
+            needs_review=False,
+            review_reason="",
+        )
+    ]
+
 def run_batches(
     segments: Sequence[Segment],
     max_chars: int,
@@ -294,10 +334,22 @@ def run_batches(
                 size.record_failure(len(batch))
                 continue
             # Can't shrink any further (fixed cap, uncapped, or already down to one segment):
-            # nothing left to try smaller, so this behaves like any other batch failure.
-            if not any_success:
-                raise
-            batch_result = [_review_copy(seg) for seg in batch]
+            # one segment too large for the model's context is still worth translating - cut it
+            # at its own sentence boundaries and ask for the pieces.
+            rescued = _translate_pieces(batch, translate_batch)
+            if rescued is not None:
+                batch_result = rescued
+            else:
+                # Never fatal, not even as the first batch: this exception means "this request
+                # was too big", not "the server is down", so the run keeps the segments it can
+                # and flags the one it cannot fit. Measured on a 841-page textbook: one
+                # impossible segment killed a 4-page chunk after 410 seconds.
+                batch_result = [
+                    _review_copy(
+                        seg, "blok modelin bağlamına sığmadı / segment exceeds the model's context"
+                    )
+                    for seg in batch
+                ]
         except Exception:  # see docstring: only swallowed once something is already saved
             if not any_success:
                 raise
@@ -327,7 +379,7 @@ def run_batches(
     return results
 
 
-def _review_copy(seg: Segment) -> Segment:
+def _review_copy(seg: Segment, reason: str = "") -> Segment:
     """What a segment becomes when its whole batch failed to translate: flagged, not dropped,
     never filled with the source text."""
     return Segment(
@@ -340,6 +392,6 @@ def _review_copy(seg: Segment) -> Segment:
         confidence=seg.confidence,
         needs_review=True,
         # K1: sebepsiz needs_review editor'de aciklamasiz kalir / review must say why
-        review_reason="partinin tamamı çevrilemedi / whole batch failed to translate",
+        review_reason=reason or "partinin tamamı çevrilemedi / whole batch failed to translate",
         from_memory=False,
     )
