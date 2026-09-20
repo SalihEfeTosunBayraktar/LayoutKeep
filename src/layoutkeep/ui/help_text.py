@@ -21,6 +21,9 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "2. Kaynak ve hedef dili seç; ardından sağlayıcıyı (yerel LM Studio ya da bulut).\n"
                 "3. Çeviriyi başlat. Uzun belgelerde iş bölümlere ayrılır ve her bölüm bittiğinde "
                 "diske yazılır; pencereyi kapatsan bile kaldığın yerden sürdürebilirsin.\n\n"
+                "Uzun koşularda pencereyi arkaya atabilirsin: başlıktaki ▤ düğmesi pencereyi "
+                "gizler, ilerleme yüzen çubukta devam eder; çubuktaki “Pencereye dön” geri "
+                "getirir.\n\n"
                 "İş bittiğinde üç şey elinde olur: çevrilmiş dosya, `.lkproj` çalışma dosyası "
                 "(yeniden yazmak için) ve kayıpsızlık denetiminin özeti."
             ),
@@ -112,6 +115,9 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "cloud endpoint).\n"
                 "3. Start it. Long documents are split into parts and each finished part is "
                 "written to disk, so a closed window costs nothing.\n\n"
+                "For a long run you can put the window away: the ▤ button in the header hides it "
+                "and the progress continues in the floating bar; “Back to window” on the bar "
+                "brings it back.\n\n"
                 "When it finishes you have three things: the translated file, the `.lkproj` "
                 "working file, and the lossless audit summary."
             ),
