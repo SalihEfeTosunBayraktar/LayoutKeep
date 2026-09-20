@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/"><strong>Çevrilmiş bir belgeyi yan yana görün →</strong></a><br>
+  <a href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep/releases/latest"><strong>Uygulamayı indirin (Windows, tek dosya) →</strong></a><br>
   <sub>Akademik bir makalenin on sayfası, İngilizce ve Türkçe, sürüklenebilir bir ayırıcı altında.</sub>
 </p>
 

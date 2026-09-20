@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/"><strong>See a translated document side by side →</strong></a><br>
+  <a href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep/releases/latest"><strong>Download the app (Windows, single file) →</strong></a><br>
   <sub>Ten pages of an academic paper, English and Turkish, under a divider you drag.</sub>
 </p>
 
