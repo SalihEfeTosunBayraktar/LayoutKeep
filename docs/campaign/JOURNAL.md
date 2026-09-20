@@ -1541,3 +1541,80 @@ Housekeeping done: three detached worktrees left inside `_artifacts/heldout/` (`
 `code_epub`, `audit_bad981a`, ~60 MB each, clean, all at commits this branch already contains)
 were removed with `git worktree remove`. The V2 clone also holds 10 untracked sample files under
 `docs/`; they stay where they are.
+
+## 2026-09-20 — gece: kullanıcının üç şikâyeti ve ölçümleri
+
+**1) "Bariz daha büyük font"** — ölçüm bunu çürüttü: `tools/audit/type_drift.py` (yeni) kayıtlı
+koşularda büyümüş blok bulamadı (irs 0, cookbook 0, arxiv 0, wikipedia 4). İlk ölçümüm "12pt'ye
+büyümüş" diyordu; eşleştirme hatasıydı — karşılaştırdığı kaynak satır 10pt'lik başka bir satırdı,
+bloğun kendi stili 12pt'ydi (kaynakla aynı). Probe artık bloğun kendi kaydıyla karşılaştırıyor.
+
+**2) Kırılan (okunamaz) satırlar** — gerçek sorun buymuş: 29 blok 5pt'nin altına inmiş.
+Kök neden: `room_below` birkaç punto negatif çıkınca yazar kutuyu kısaltıyor, 6.7pt'lik bir dizin
+satırı 4.5pt'ye düşüyordu. Çözüm: yazar, taban ölçeği tutmadığında bloğun **kendi kutusunu** da
+deniyor. Aynı koşu (`rewrite_run` ile, model yok) önce/sonra: okunamaz 12 → 2, küçültülmüş 84 → 6,
+hizası değişmiş 4 → 0; bedeli bir sayfada sıkışan satır (D3 1 → 2). Denenip geri alınan hipotez:
+kutuyu sağdaki boşluğa genişletmek (12 → 12, etkisiz; kısıt genişlik değil yükseklikti).
+
+**3) "Sayı/başlık hizalamaları kaybolmuş"** — `type_drift` 14 hiza değişikliği buldu (IRS formu).
+Tek tek bakıldığında bunlar tablonun **dikey sayı şeritleri**: kaynakta her sayı kendi satırında,
+8pt genişliğinde, 56 satırlık bir blok. Yazıcı da her sayıyı kendi satırına koyuyor, yani görsel
+sonuç aynı; flag probe'un hiza çıkarımından geliyor. Görünür bir bozulma bulunmadı ve **kanıtsız
+düzeltme yazılmadı** - kayıt burada duruyor.
+
+**4) Sözlük ve bellek** — araştırma sırasında ikisinin de yalnız komut satırında olduğu çıktı
+(`--glossary` arayüzde yok, `memory_path` boş). Aynı gece arayüze bağlandı (Gelişmiş Ayarlar),
+sözlük parmak izi bellek anahtarına katıldı. `docs/FEATURE-ROADMAP.md` bu yanlış iddiayı düzeltti.
+
+**5) Telif** — sitede telifli ders kitabının (Ross) sayfa görüntüleri yayındaydı; üreticiye
+`NOT_PUBLISHABLE` listesi eklendi, site yeniden üretildi, düzeltme `main`e push edildi.
+
+**6) 220 sayfalık kitap** — 55/55, 106 dakika, `ross_stats.tr.pdf`. Denetim: L1=1, L2=2, L6=4,
+L7=1, L8=1, L10=1; D1=801, D2=163. Koşu bugünkü son düzeltmelerden önceki kodla yapıldı (L7/L10=1
+o sınıftan). Sitede yayınlanmıyor (telif).
+
+## 2026-09-20 — gece 2: L10'un yarısı ölçüm hatasıymış
+
+**Yeniden çevirim bitti** (5 belge, ~2 saat): printing_press 19 parça, photosynthesis 33,
+arxiv_19145 20, mushrooms 41, cookbook 35. Ardından L10 taraması tuhaf bir tablo verdi:
+Wikipedia'nın ikisi 13 → 0 (düzeldi) ama arxiv 25 → 26, mushrooms 124 → 128, cookbook 182 → 126
+(nedeyse hiç değişmedi).
+
+**Kök neden: aracın kendisi.** İki ayrı yanlış-pozitif sınıfı vardı:
+
+1. **Taranmış sayfalar.** Cookbook'un sayfalarında görsel *döşemeli*: iki tam-sayfa katman + basılı
+   satırların üzerinde bir düzine yama; hiçbiri tek başına sayfanın %6'sından büyük. Araç her
+   görseli ayrı değerlendirdiği için "tarama" sayılmıyordu ve sayfadaki **her kelime** görselin
+   üstünde görünüyordu (126 kelime). Ölçüm: sayfadaki görsellerin **birleşimi** %100 → kural artık
+   birleşime bakıyor (`union_area`, x-şeritli tarama). cookbook 126 → **0**, mushrooms 128 → **0**,
+   kitap 6 → **0**.
+2. **Grafiğin kendi etiketleri.** arXiv sayfasındaki 26 kelime, kaynağın kendi çubuk grafiğinin
+   değerleri ve kategori adları; kaynak sayfa 28 tanesini sayıyor. Bunlar bizim kaybımız değil,
+   grafiğin *içeriği*. Araç artık kaynağın o görsel üzerinde zaten yazdığı kelimeleri çıkarıp
+   **net** sayıyı bildiriyor: arxiv 26 → **0**.
+
+**Aynı iki kural çekirdeğe de girdi** (`verify.words_over_figures`): NIST dergisi koşusunda L10
+8 sayfa diyordu, düzeltmeden sonra **0**.
+
+**Gerçek kalan:** Wikipedia'nın iki sayfası — kaynakta fotoğrafın çevresinden akan satırlar,
+çeviride fotoğrafın üstüne biniyordu; `fitting/figures.py` düzeltmesiyle yeniden çevirimde
+**13 → 0**. Yani "L10 düzeldi" iddiası yalnız bu iki sayfa için doğruydu ve öyle kalıyor.
+
+**Yeni kaynaklar (NIST, kamu malı):** `nist_jres_v98n1` (8 parça, 158 blok) L2=1, L6=1, D1=54 —
+ikisi de inceleme kuyruğunda; L7=L10=0. `nist_ir6643_vapor_pressure` (6 parça, 29 blok, tarama)
+L2–L10 = **0**, D1 = 0. L1 yalnız "--chunks" kısmi koşu olduğu için 1 (denetim artık
+"(partial run)" diye işaretliyor).
+
+## 2026-09-20 — gece 3: reflow modunun ölçümü (varsayılan değişmedi)
+
+`--fit-mode reflow` şimdiye kadar yalnız bir bayraktı ve **arayüz onu hiç kullanmıyordu** (sabit
+STRICT). Ölçtüm, çünkü D1'in ("çeviri kutuya sığmadı") tamamı bu modun çözmeyi vaat ettiği sınıf:
+
+| koşu | parça | D1 strict | D1 reflow | L kaybı |
+|---|---|---|---|---|
+| NIST dergisi | 4 (114 blok) | 52 | **0** | L1-L10 aynı |
+| IRS formu | 4 (69/101 blok) | 15 | **0** | **L7 0 -> 1** (aşağı itilen blok hareketsiz metne bindi) |
+
+Sonuç: reflow "sığmadı" bayraklarını tamamen kaldırıyor ama akışkan olmayan formlarda gerçek kayıp
+üretebiliyor. **Varsayılan strict kaldı**; mod artık `fitting.reflow` ayarı (Gelişmiş Ayarlar'da iki
+ölçümü yazan uyarısıyla) ve hem CLI hem arayüz aynı ayarı okuyor — eskiden ikisi ayrı davranıyordu.

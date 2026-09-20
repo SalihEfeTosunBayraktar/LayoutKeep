@@ -79,6 +79,7 @@ Saying which documents those findings came from is part of the finding:
 | `gutenberg_1661_sherlock` | [Project Gutenberg](https://www.gutenberg.org/) | Public domain |
 | `archive_cookbook_1907`, `archive_mushrooms_1895` | [Internet Archive](https://archive.org/) scans | Public domain (pre-1930 US publication) |
 | `wpa_poster_mathematics` | [Library of Congress](https://www.loc.gov/) WPA posters | Public domain |
+| `nist_jres_v98n1`, `nist_ir6643_vapor_pressure` | [NIST Technical Series Publications](https://nvlpubs.nist.gov/) | US government work, public domain. Added 2026-09-20: the first is a dense digital journal issue (text layer, figures, equations), the second is a scan with almost no text layer and is used to exercise the OCR path |
 
 The model used to test the pipeline locally is **Gemma** (`google/gemma-4-e4b`, quantised GGUF)
 served by [LM Studio](https://lmstudio.ai/). Its weights are used under Google's Gemma terms of

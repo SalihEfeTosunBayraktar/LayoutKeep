@@ -138,6 +138,43 @@ The honest summary: **on the pages measured, nothing is lost or drawn over, and 
 findings are either flagged for review by design or are language-quality issues in the model, not
 in the layout.**
 
+### 4.1 The night of 2026-09-20: a criterion that was measuring itself
+
+The `L10` check ("text drawn over a figure") was added because a Wikipedia page reached the site
+with 87 words of Turkish lying across a photograph, and no criterion looked for it. It then
+reported numbers that turned out to be mostly its own mistake, and finding that out is worth
+recording:
+
+| run | reported | actually ours | why the rest was not |
+|---|---|---|---|
+| cookbook_1907 | 182 | **0** | the page's images are *tiled*: the scan twice plus a dozen patches over the printed lines, none above 6% of the page alone. Every word sits on the scan by design |
+| mushrooms_1895_sample | 124 | **0** | the same |
+| the 220-page statistics book | 6 | **0** | the same |
+| arxiv_19145 | 25 | **0** | the words are the source's own bar-chart labels (values and category names drawn on the plot); the source page counts 28 of them |
+| wikipedia_printing_press | 13 | **13** | real: lines that wrap *around* a photograph in the source were re-flowed across it |
+| wikipedia_photosynthesis | 13 | **13** | real, same cause |
+
+The fix for the real cases is in `fitting/figures.py`: the block's box is narrowed away from the
+figures it would otherwise cover, in the fitting pass, so that measurement and drawing share one
+box. Measured by re-translating the two documents with the real model: **13 → 0 on both**. The two
+false-positive classes are now handled in the criterion itself (`verify.words_over_figures`):
+images are judged by the area their *union* covers, and a word drawn where the source already had
+one over that figure is the figure's content, not text that strayed onto it.
+
+### 4.2 Two sources added the same night
+
+Both are US government works (public domain) from the NIST Technical Series, chosen for what they
+stress rather than for their size:
+
+| source | pages | blocks | L1 | L2 | L6 | L7 | L10 | D1 | notes |
+|---|---|---|---|---|---|---|---|---|---|
+| `nist_jres_v98n1` (dense digital journal, figures and equations) | 8 of 157 | 158 | 1\* | 1 | 1 | 0 | **0** | 54 | \*a `--chunks 8` smoke run, so the merged output has fewer pages than the source by design; the audit marks it `(partial run)` |
+| `nist_ir6643_vapor_pressure` (scan, almost no text layer) | 6 of 61 | 29 | 1\* | 0 | 0 | 0 | **0** | 0 | the OCR path, on a source with no text layer to fall back on |
+
+The two flagged blocks on the journal issue are a sentence the model returned untranslated and one
+number it dropped; both are in the review queue with their page and text, which is what the queue
+is for.
+
 ## 5. Reproducing any of it
 
 ```bash
