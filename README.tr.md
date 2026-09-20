@@ -180,6 +180,7 @@ Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına gör
 | **Modelin hedef dildeki becerisi** | *Metin* üzerindeki en büyük kaldıraç. Sayıları, adları ve listeleri sadakatle taşır; deyim ve terimlerde tökezler — "Vietnamese" için `việt語` çıktısı, dil *kodunu* sormaktan doğan karışık betik hatasıydı; bu yüzden istem artık dilin adını ve betiğini söylüyor |
 | **Dil çiftinin uzunluk davranışı** | İngilizce→Türkçe ortalamada **0.93x**, blok blok **0.64x–1.40x**. Kutusundan çok kısa çıkan blok, uydurma dolguyla doldurulmak yerine işaretlenir; uzun çıkan blok önce kısası istenerek, sonra küçültülerek, en sonunda işaretlenerek çözülür |
 | **Tablolar ve formlar** | En çok bayrak toplayan yerler ve sebebi yapısal: hücrede kaynağın kelimelerine yer var, daha uzun çıkan çeviriye yok. `--fit-mode reflow` (ölçümü sürüyor) bloğu küçültmek yerine altındakileri aşağı iter |
+| **Sayfa aralığı** | Aralık **çıktıyı** da daraltır: 40-60 seçerseniz çıktı o 21 sayfayı içerir; kaydedilen proje ise belgenin tamamını saklar (inceleme geri kalanı görebilsin ve yeniden dışa aktarma sessizce kısalamasın diye). |
 | **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür. Paralellik varsayılan **2**'dir; 7 işçiyle `-c 8192` istek başına ~1.2k token bırakır ve uzun bir paragraf taşar (hata, gövdesi okunana kadar "model bulunamadı" gibi göründü). Bu projenin koştuğu ayar 7 işçi için 32768 |
 
 Bunların hiçbiri koşudan gizlenmez: her biri ya sığdırma satırında

@@ -25,7 +25,11 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "gizler, ilerleme yüzen çubukta devam eder; çubuktaki “Pencereye dön” geri "
                 "getirir.\n\n"
                 "İş bittiğinde üç şey elinde olur: çevrilmiş dosya, `.lkproj` çalışma dosyası "
-                "(yeniden yazmak için) ve kayıpsızlık denetiminin özeti."
+                "(yeniden yazmak için) ve kayıpsızlık denetiminin özeti.\n\n"
+                "Sayfa aralığı: yalnız seçtiğin sayfalar çevrilir ve çıktı yalnız o sayfaları "
+                "içerir; kaydedilen `.lkproj` ise belgenin tamamını saklar, böylece inceleme "
+                "ekranında geri kalanı da görürsün ve yeniden dışa aktarma belgeyi sessizce "
+                "kısaltmaz."
             ),
         },
         "provider": {
@@ -120,7 +124,10 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "and the progress continues in the floating bar; “Back to window” on the bar "
                 "brings it back.\n\n"
                 "When it finishes you have three things: the translated file, the `.lkproj` "
-                "working file, and the lossless audit summary."
+                "working file, and the lossless audit summary.\n\n"
+                "Page range: only the pages you select are translated, and the output holds only "
+                "those pages; the saved `.lkproj` keeps the whole document, so the review screen "
+                "still shows the rest and re-exporting cannot silently shorten it."
             ),
         },
         "provider": {

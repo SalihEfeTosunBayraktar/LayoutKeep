@@ -189,6 +189,23 @@ sonunda duraklat/iptal kontrol edilir, sonuçlar **belge sırasına göre** birl
 iş parçası kendi sağlayıcı zincirini alır (dedupe önbelleği ve bellek bağlantısı paylaşılırsa yarış
 olurdu). Üç yeni test: eşzamanlılık gerçekten >1, tek işçide sıralı, çıktı belge sırasında.
 
+### 5.12 Sayfa aralığı çıktıyı daraltmıyordu
+
+**Belirti (kullanıcı bildirimi):** 841 sayfalık kitapta aralık seçildi; çıktı yine **tüm kitap**
+geldi — *"ama sadece seçtiğim aralığı çıktı vermesi gerekmez mi, neden tüm kitabı vermiş"*.
+**Ölçüm:** Çıktı PDF'inde 841 sayfa, 194'ünde Türkçe (%23 — seçilen aralık), gerisi İngilizce.
+Motor aralığı **yalnız çeviriye** uyguluyordu; çıktı, kaynağın tamamının kopyasıydı.
+**Kök neden:** Bu bilinçli bir karardı ve yazılıydı: bir zamanlar aralık belgeden sayfa **silerek**
+uygulanmış, proje yalnız seçili sayfaları saklayınca inceleme kaybolmuş ve yeniden dışa aktarma
+sessizce kısalmıştı (CONTRACT.md, D5). Doğru çözüm aralığı **ikiye ayırmaktı**: yazılan kopyaya
+uygula, kaydedilen projede tüm sayfaları tut.
+**İkinci kök neden (ölçümle çıktı):** İlk denemede belge içinden sayfaları düşürmek yetmedi —
+çıktı yine 841 sayfa geldi, çünkü PDF yazıcısı sayfaları **kaynak dosyadan** çiziyor. Yazıcıya
+kaynağın dilimi verildi; dilimdeki sayfalar 0..n yeniden numaralandı ki doğrulama sayfa N'i N ile
+karşılaştırsın, proje ise özgün numaraları korusun (kopyalar `deepcopy`).
+**Çözüm:** `_output_document` + `_source_slice`; arayüzde aralık seçilince ne olacağı yazıyor
+(RANGE_HINT, tr/en/de). 11 yeni test + eski D5 testi yeni sözleşmeye çevrildi.
+
 ### 5.11 Ayar ekranındaki ölü anahtar
 
 **Belirti (kullanıcı isteği):** *"uygulamanın arayüzüne bağlanmamış ayarları bul ve uygulamaya bağla."*
