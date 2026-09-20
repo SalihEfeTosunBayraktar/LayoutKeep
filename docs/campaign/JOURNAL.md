@@ -2126,3 +2126,20 @@ EN çevirisiyle büyüyor, bu yüzden 43%'lük ezilme yalnız bu yönde görün�
 Hedefteki beklenen etki: TR -> EN'de `shrunk` tablosu aşağı iner (merdiven artık gerçekten
 fikir isteyebiliyor). Bunu kanıtlamak için gerçek model koşusu gerekli — makine boşaldığında
 `tr_tck_5237` yeniden koşulup `type_map.py` ile karşılaştırılacak.
+
+## Gece nöbeti: yeni açık test kaynakları indirildi (henüz koşulmadı)
+
+Üç kaynak `_artifacts/heldout/incoming/` altına indirildi, koşusuna sıra bekliyor; lisans notu
+jurnale alındı (klasör .gitignore içinde, içerik burada):
+
+- **arXiv 2601.00135** - Chow/Lim/Mudgal, "Generalised Fermat equations in dense variables over
+  finite fields and rings", 24 sayfa, dip dizi formüllü. **CC BY 4.0** (abs sayfasındaki license
+  ikonu doğrulandı) - yayınlanabilir.
+- **arXiv 2609.06115** - Varshalovich "Quantum Theory of Angular Momentum" e-sürümü, 408 sayfa,
+  **CC-BY 4.0** (abs sayfasında beyan). Uzun-kitap kampanyası adayı, tek geceye sığmaz.
+- **Gutenberg #56464** (Turkish Literature, 620 kB EPUB) ve **#64807** (Turkish fairy tales,
+  2,2 MB EPUB) - ABD'de kamu malı; şiir/drama düzeni, uzun cümleler, imgalı EPUB testleri.
+
+Öncelik sırası: önce önbellek düzeltmesini kanıtlamak için tr_tck_5237 yeniden koşusu, sonra bu
+kaynaklar. Eski kural sürüyor: Ross kitabı, basılı yasal kodların taramaları, IRS formları
+NOT_PUBLISHABLE.
