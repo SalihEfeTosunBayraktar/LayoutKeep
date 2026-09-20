@@ -1872,3 +1872,30 @@ comparison), so it is recorded here as the next candidate rather than patched bl
 Still open from the same scan, and genuinely unexplained: the 16 *inflated* blocks on
 `arxiv_19145_r2` are all equation fragments (`'= Cafter(s) -Cbefore(s)'` at 1.37x,
 `'N D <-N D -nD s1,s2.'` at 1.62x), so the inflated set is the formula path, not prose.
+
+### Follow-up: the three symptoms are one cause
+
+A span-level size histogram of one page settles it (`src/chunk_0013.pdf` against `out/t_0013.pdf`,
+3196 -> 3266 characters):
+
+| size | source | output |
+|---|---|---|
+| 10.8-11.0 pt (body) | 91.6% | 14.8% |
+| 9.2-9.4 pt | - | 57.5% |
+| 8.0 pt | 194 chars | 157 chars, plus new 8.7 and 9.1 runs |
+| 5.8-6.0 pt | 43 chars | 35 chars |
+
+The body shrinking from ~11 to ~9.3 pt is the fitting ladder doing its job on a longer Turkish text
+and is expected. What is not expected is the small end moving *up*: runs set at 8.0 pt reappear at
+8.7-9.1 pt, and that is why `type_drift.py` counts "inflated" blocks at 1.33-1.62x on this
+document - they are the small equation and marker runs drawn at the block's larger size, not prose
+that grew.
+
+So the glued footnote marker, the inflated equation fragments and the grown 8.0 pt runs are one
+limitation seen three ways: **the writer gives a block a single style, so a run that was smaller
+than its block - a superscript marker, a formula fragment, a footnote reference - is drawn at the
+block's size.** The reader is doing nothing wrong, the translations are faithful to a source whose
+text layer carries the marker touching the following word, and the fitting ladder is not the
+culprit. A fix means carrying per-run sizes from the reader through the fitting pass to the writer,
+which is a design change with its own A/B (`type_drift.py` plus the written-page size histogram
+above), so it is queued rather than patched blind.
