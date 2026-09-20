@@ -1572,3 +1572,35 @@ sözlük parmak izi bellek anahtarına katıldı. `docs/FEATURE-ROADMAP.md` bu y
 **6) 220 sayfalık kitap** — 55/55, 106 dakika, `ross_stats.tr.pdf`. Denetim: L1=1, L2=2, L6=4,
 L7=1, L8=1, L10=1; D1=801, D2=163. Koşu bugünkü son düzeltmelerden önceki kodla yapıldı (L7/L10=1
 o sınıftan). Sitede yayınlanmıyor (telif).
+
+## 2026-09-20 — gece 2: L10'un yarısı ölçüm hatasıymış
+
+**Yeniden çevirim bitti** (5 belge, ~2 saat): printing_press 19 parça, photosynthesis 33,
+arxiv_19145 20, mushrooms 41, cookbook 35. Ardından L10 taraması tuhaf bir tablo verdi:
+Wikipedia'nın ikisi 13 → 0 (düzeldi) ama arxiv 25 → 26, mushrooms 124 → 128, cookbook 182 → 126
+(nedeyse hiç değişmedi).
+
+**Kök neden: aracın kendisi.** İki ayrı yanlış-pozitif sınıfı vardı:
+
+1. **Taranmış sayfalar.** Cookbook'un sayfalarında görsel *döşemeli*: iki tam-sayfa katman + basılı
+   satırların üzerinde bir düzine yama; hiçbiri tek başına sayfanın %6'sından büyük. Araç her
+   görseli ayrı değerlendirdiği için "tarama" sayılmıyordu ve sayfadaki **her kelime** görselin
+   üstünde görünüyordu (126 kelime). Ölçüm: sayfadaki görsellerin **birleşimi** %100 → kural artık
+   birleşime bakıyor (`union_area`, x-şeritli tarama). cookbook 126 → **0**, mushrooms 128 → **0**,
+   kitap 6 → **0**.
+2. **Grafiğin kendi etiketleri.** arXiv sayfasındaki 26 kelime, kaynağın kendi çubuk grafiğinin
+   değerleri ve kategori adları; kaynak sayfa 28 tanesini sayıyor. Bunlar bizim kaybımız değil,
+   grafiğin *içeriği*. Araç artık kaynağın o görsel üzerinde zaten yazdığı kelimeleri çıkarıp
+   **net** sayıyı bildiriyor: arxiv 26 → **0**.
+
+**Aynı iki kural çekirdeğe de girdi** (`verify.words_over_figures`): NIST dergisi koşusunda L10
+8 sayfa diyordu, düzeltmeden sonra **0**.
+
+**Gerçek kalan:** Wikipedia'nın iki sayfası — kaynakta fotoğrafın çevresinden akan satırlar,
+çeviride fotoğrafın üstüne biniyordu; `fitting/figures.py` düzeltmesiyle yeniden çevirimde
+**13 → 0**. Yani "L10 düzeldi" iddiası yalnız bu iki sayfa için doğruydu ve öyle kalıyor.
+
+**Yeni kaynaklar (NIST, kamu malı):** `nist_jres_v98n1` (8 parça, 158 blok) L2=1, L6=1, D1=54 —
+ikisi de inceleme kuyruğunda; L7=L10=0. `nist_ir6643_vapor_pressure` (6 parça, 29 blok, tarama)
+L2–L10 = **0**, D1 = 0. L1 yalnız "--chunks" kısmi koşu olduğu için 1 (denetim artık
+"(partial run)" diye işaretliyor).
