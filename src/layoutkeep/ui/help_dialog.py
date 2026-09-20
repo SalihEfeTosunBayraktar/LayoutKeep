@@ -55,6 +55,10 @@ class HelpDialog(QDialog):
         self._body.setOpenExternalLinks(True)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        # Qt ships no translation catalog here, so a standard button stays English in a Turkish
+        # window (seen by driving the built exe). The text comes from the same place as every
+        # other label instead.
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText(UIStrings.CLOSE_BTN)
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
 

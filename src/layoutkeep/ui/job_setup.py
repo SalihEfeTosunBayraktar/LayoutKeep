@@ -387,6 +387,11 @@ class _JobSetupUiBuilder:
         )
         self._provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
         self._start_btn.setText(UIStrings.START_TRANSLATION_BTN)
+        # These two were read once at construction and never again, so they stayed in whatever
+        # language the window was built in. Seen by driving the built exe: an English dual-output
+        # hint sitting in a Turkish window next to Turkish labels.
+        self._dual_hint.setText(UIStrings.DUAL_HINT)
+        self._range_hint.setText(UIStrings.RANGE_HINT)
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_mode.setItemText(0, UIStrings.RANGE_ALL)
         self._range_mode.setItemText(1, UIStrings.RANGE_CUSTOM)
