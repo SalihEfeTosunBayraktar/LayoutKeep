@@ -1715,11 +1715,12 @@ closest language that has one, behind a visible note. All sixteen chapters were 
 The same evening, the day's measurements, for the record:
 
 - **The book finished**: 106/106 chunks, the full audit **L1=0, L2=48, L3=1, L4=0, L5=0, L6=120,
-  L7=2, L8=3, L9=5, L10=0, D1=2,155, D2=273, D3=39** over 12,647 blocks; the 424 pages were joined
-  into one local PDF (73.9 MB, copyrighted, never published).
+  L7=2, L8=3, L9=5, L10=0, D1=2,155, D2=273, D3=39** over 12,647 blocks; all 106 chunks were joined
+  into **one local PDF of the whole book, 841 pages** (72 MB, copyrighted, never published).
 - **A new held-out source ran**: Project Gutenberg #31061 (Cajori, A History of Mathematics, 556
-  pages, public domain) - 6 chunks, 24 pages, 11.4 minutes; it is now on the comparison site, which
-  went from 24 documents/288 images to **25/304**.
+  pages, public domain) - 6 chunks, 24 pages, 11.4 minutes; **every real loss zero: L2-L10 = 0**
+  (L1=1 only because the run is a 24-page slice of a 556-page book), D1=31 of 185 blocks. It is now
+  on the comparison site, which went from 24 documents/288 images to **25/304**.
 - **The instruments that stayed**: `fit_probe.py` and `fit_ab.py` (both model-free), the L3 label
   correction, and the review-reason split that reached the completion screen in 0.9.7.
 - Releases today: **v0.9.1 through v0.9.7**, each verified by downloading the asset and comparing its
