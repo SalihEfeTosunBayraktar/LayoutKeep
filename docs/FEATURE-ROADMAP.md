@@ -37,7 +37,7 @@ BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2) 
 | Özellik | Kimde var | Bizde | Değer |
 |---|---|---|---|
 | **Çift dilli çıktı** (kaynak+çeviri yan yana ya da almaşık sayfalar) | BabelDOC, mineru-translate, Doclingo, Lara | site var, **PDF yok** | Yüksek: inceleme akışının tamamı buna bakıyor |
-| Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON, istem + çıktı denetimi) | Kalan: sözlüğü arayüzde düzenlemek, CSV/TSV kabul etmek, kullanılmayan terimi raporda göstermek |
+| Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON **veya CSV/TSV**, istem + çıktı denetimi, uygulama içi tablo düzenleyici) | Kalan: sözlük dışa aktarma, otomatik terim adayları |
 | **Otomatik terim çıkarımı** | BabelDOC | yok | Orta: sözlüğü elle doldurmak yerine aday listesi |
 | **Sayfa-ötesi bağlam** | BabelDOC | kısmi (`context_before/after`) | Orta: paragraf bölünmelerinde zamir/atıf tutarlılığı |
 | **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | kısmi (`--fit-mode reflow` deneysel) | Orta: D1'e düşen 801 blok (kitap koşusu) tam bu sınıf |
@@ -57,15 +57,16 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Kilidi kolay: aynı sayfayı iki
    kez yazıp sayfa boyutunu ikiye katlamak ya da sayfa sırasını değiştirmek; `pdf_writer` zaten
    sayfa bazlı. Ölçüm: çıktı sayfa sayısı = 2×kaynak (almaşık) ve L1–L10 bozulmuyor.
-2. **Sözlüğü ve belleği arayüzün parçası yapmak** (2026-09-20'de başladı): sözlük dosyası ve
-   bellek anahtarı Gelişmiş Ayarlar'da, iş kurulurken okunuyor; kalan iş sözlüğü uygulamada
-   düzenlemek, CSV/TSV kabul etmek ve koşu özetinde "bellekten gelen" sayısını göstermek. Ölçüm:
-   sözlükteki her terimin çıktıda bulunma oranı (hedef %100) ve ikinci koşuda istek sayısı.
+2. ~~Sözlüğü ve belleği arayüzün parçası yapmak~~ **yapıldı (2026-09-20)**: sözlük dosyası ve bellek
+   anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
+   farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
+   bellek isabeti. Kalan: otomatik terim adayları ve sözlüğü dışa aktarma.
 4. **Örtüşme çözümü**: `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
-5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (uygulamada
-   "terimler" sekmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen sözlükle örtüşmesi.
+5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (sözlük
+   düzenleyicisine "belgeden öner" düğmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen
+   sözlükle örtüşmesi.
 6. **Küçük editör**: inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazma. Emek:
    yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri bozulmadan.
 7. **Sayfa-ötesi bağlam**: parça sınırında önceki parçanın son 2 bloğunu isteme eklemek. Emek:
