@@ -452,6 +452,16 @@ def cmd_translate(args: argparse.Namespace) -> int:
     else:
         print(f"wrote     {out}")
 
+    if getattr(args, "dual", None) and src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf":
+        # Composing runs *after* the translated PDF is written and *before* verification, so the
+        # audit keeps checking the single-language output (its page pairing stays valid) and the
+        # bilingual file is a separate artifact beside it.
+        from layoutkeep.writers.dual_pdf import compose_dual
+
+        dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
+        composed = compose_dual(src, out, dual_path, args.dual)
+        print(f"dual      {dual_path} ({composed} pages, mode={args.dual})")
+
     _verify(doc, translated, src, out, provider, glossary, args, phases)
     print(f"spent     {phases.line()}  (total {phases.total():.1f}s)")
 
@@ -666,6 +676,16 @@ def build_parser() -> argparse.ArgumentParser:
                     help="after writing, check the output for losses and ask the model again "
                          "for lost text up to N times; what remains is flagged for review "
                          "(0 checks and flags without asking again)")
+    tr.add_argument(
+        "--dual",
+        choices=["side", "alternate"],
+        default=None,
+        metavar="MODE",
+        help=(
+            "Ayrıca çift dilli bir PDF yaz: 'side' her sayfada kaynak solda çeviri sağda, "
+            "'alternate' her kaynak sayfadan sonra çevirisi. Çevrilmiş PDF ve denetim değişmez."
+        ),
+    )
     tr.add_argument("--fit-mode", choices=["strict", "reflow"], default=None,
                     help="strict keeps the original boxes; reflow lets blocks grow (PDF only)")
     tr.add_argument("--memory", default=None, metavar="PATH",

@@ -144,3 +144,49 @@ def test_a_range_is_read_the_same_way_however_it_is_written(tmp_path, spec: str)
 
     with pymupdf.open(config.output_path) as written:
         assert written.page_count == 1
+
+
+def _epub_job(tmp_path: Path, **overrides) -> JobConfig:
+    sys.path.insert(0, str(Path(__file__).parent / "fixtures"))
+    import build_epub_fixture
+
+    source = tmp_path / "sample.epub"
+    build_epub_fixture.build_sample_epub(source)
+    defaults = {
+        "input_path": str(source),
+        "output_path": str(tmp_path / "sample.out.epub"),
+        "source_lang": "en",
+        "target_lang": "tr",
+        "provider": ProviderConfig(kind="fake"),
+    }
+    defaults.update(overrides)
+    return JobConfig(**defaults)
+
+
+def test_an_epub_range_also_narrows_the_output(tmp_path) -> None:
+    """The range is not a PDF-only feature: the EPUB and DOCX writers walk `doc.pages` too, so the
+    subset document they are handed is what they write. Asserted on the written archive because
+    that is what the reader actually gets."""
+    import zipfile
+
+    config = _epub_job(tmp_path, page_range="1")
+    TranslationWorker(config).run()
+
+    with zipfile.ZipFile(config.output_path) as zf:
+        chapter_text = {
+            name: zf.read(name).decode("utf-8")
+            for name in zf.namelist()
+            if name.endswith(".xhtml")
+        }
+    joined = " ".join(chapter_text.values())
+    assert "chap2" not in joined.lower() or "second chapter" not in joined.lower(), (
+        "the output should not carry the page the range left out"
+    )
+
+
+def test_an_epub_project_still_keeps_every_page(tmp_path) -> None:
+    config = _epub_job(tmp_path, page_range="1")
+    TranslationWorker(config).run()
+
+    project = load_project(Path(config.output_path).with_suffix(".lkproj"))
+    assert len(project.pages) == 2, "the project must keep the page the range left out"
