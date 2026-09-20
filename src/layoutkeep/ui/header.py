@@ -37,6 +37,7 @@ class HeaderBar(QFrame):
     # Üst gezinti ve durum çubuğu / Top navigation and status bar
     #: The settings button next to the theme toggle was clicked.
     tweaks_requested = Signal()
+    help_requested = Signal()
     theme_toggled = Signal(bool)
     ui_language_changed = Signal(str)
 
@@ -110,6 +111,7 @@ class HeaderBar(QFrame):
         main_layout.addWidget(steps_holder)
         main_layout.addStretch(1)
         main_layout.addWidget(self._ui_lang_combo)
+        main_layout.addWidget(self._help_btn)
         main_layout.addWidget(self._tweaks_btn)
         main_layout.addWidget(self._theme_btn)
 
@@ -179,8 +181,13 @@ class HeaderBar(QFrame):
             self._ui_lang_combo.setCurrentIndex(idx_lang)
         self._ui_lang_combo.currentIndexChanged.connect(self._on_lang_combo_changed)
 
+        self._help_btn = QPushButton("?")
+        self._help_btn.setToolTip(UIStrings.HELP_TITLE)
+        self._help_btn.clicked.connect(self.help_requested.emit)
+
         self._tweaks_btn = QPushButton()
         self._tweaks_btn.setToolTip(UIStrings.TWEAKS_MENU)
+        self._help_btn.setToolTip(UIStrings.HELP_TITLE)
         self._tweaks_btn.clicked.connect(self.tweaks_requested.emit)
 
         self._theme_btn = QPushButton()
