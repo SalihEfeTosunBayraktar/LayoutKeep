@@ -18,6 +18,11 @@ out/
 gloss.json
 *.epub
 !tests/fixtures/rich_book.epub
+
+# A source document must never sit in the repository root again: the arXiv paper that lived there
+# was 10 MB, the largest tracked file in the repository, and its licence never allowed
+# redistribution. Sources live under _artifacts/heldout/sources/, which is ignored as a whole.
+/*.pdf
 _artifacts/
 *.spec.bak
 layoutkeep_crash.log
@@ -36,5 +41,12 @@ docs/samples/academic_paper.pdf
 docs/samples/academic_paper.tr.pdf
 test_out/
 
-# Yerel ajan tanımları: repoya girmez, yalnız geliştiricinin makinesinde çalışır.
+# Yerel ajan tanımları: repoya girmez, yalnız bu makinede çalışır.
 .claude/
+
+# Telifli kaynakların sayfa görüntüleri: ölçüm için üretildiler, yayınlanamazlar.
+# Bu klasörlerdeki jpg'ler yerelde kalır; NASA (kamu malı) klasörü hariç.
+tests/layout_eval/2026-09-16_e2e_translation/*.jpg
+tests/layout_eval/2026-09-16_heron_pure/*.jpg
+tests/layout_eval/*/run.log
+tests/layout_eval/2026-09-16_e2e_translation/**/*.jpg
