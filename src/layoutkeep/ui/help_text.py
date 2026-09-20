@@ -36,9 +36,10 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "Bulut (OpenAI uyumlu ya da DeepL): daha güçlü modeller, daha hızlı; metin "
                 "sağlayıcıya gider ve genelde ücretlidir.\n\n"
                 "Yerel sunucuda iki ayar önemlidir: bağlam penceresi ve paralel yuva sayısı. Bağlam "
-                "penceresi yuvalara bölünür: 7 işçiyle 8192'lik pencere istek başına ~1.2k token "
-                "bırakır ve uzun paragraflar taşar. LM Studio'da 32768 vererek istek başına ~4.7k "
-                "token elde edilir. Taşma artık ölümcül değil (parça cümle sınırından bölünür) ama "
+                "penceresi yuvalara bölünür: paralellik varsayılan 2'dir ve 8192'lik pencere istek başına "
+                "~4k token bırakır; işçiyi 7'ye çıkarırsanız (sunucuda 7 yuva varsa) istek başına "
+                "~1.2k kalır ve uzun paragraflar taşar. LM Studio'da -c 32768 ile 7 işçi rahat "
+                "çalışır (istek başına ~4.7k token). Taşma artık ölümcül değil (parça cümle sınırından bölünür) ama "
                 "yavaşlatır."
             ),
         },
@@ -130,9 +131,10 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "Cloud (OpenAI-compatible or DeepL): stronger models, faster; the text goes to the "
                 "provider and usually costs money.\n\n"
                 "Two server settings matter locally: the context window and the number of parallel "
-                "slots. The window is divided across slots, so 7 workers on an 8192 window leave "
-                "about 1.2k tokens per request and long paragraphs overflow. Loading with 32768 "
-                "gives about 4.7k per request. An overflow is no longer fatal (the segment is cut "
+                "slots. Parallelism defaults to 2, and an 8192 window leaves about 4k tokens per "
+                "request; raising the workers to 7 (when the server really has 7 slots) leaves "
+                "about 1.2k per request and long paragraphs overflow. Loading with -c 32768 keeps "
+                "seven workers comfortable (about 4.7k per request). An overflow is no longer fatal (the segment is cut "
                 "at sentence boundaries), but it is slower."
             ),
         },

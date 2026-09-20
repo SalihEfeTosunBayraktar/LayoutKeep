@@ -89,13 +89,18 @@ TUNABLES: tuple[Tunable, ...] = (
     Tunable(
         key="translation.workers",
         label="Paralel çeviri iş parçacığı (LM Studio yuva sayısı)",
-        default=7,
+        default=2,
         kind="int",
         minimum=1,
         maximum=32,
         help_text=(
-            "LM Studio veya yerel sunucunun paralel istek (slot) kapasitesine göre "
-            "aynı anda çalıştırılacak eşzamanlı çeviri işçisi sayısı."
+            "Aynı anda gönderilecek çeviri isteği sayısı. Sunucunun yuva (slot) kapasitesi kadar "
+            "artırılabilir; LM Studio'da 7 yuva için bağlamı -c 32768 ile açmak gerekir."
+        ),
+        warning=(
+            "Varsayılan 2'dir: tek bir yerel GPU'da yedi eşzamanlı istek, bağlam penceresini "
+            "bölüşerek istek başına daha az token bırakır ve küçük modellerde kaliteyi düşürebilir. "
+            "Sunucu yuvaları ve VRAM elveriyorsa yükseltin."
         ),
     ),
     Tunable(

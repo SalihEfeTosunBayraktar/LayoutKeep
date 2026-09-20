@@ -55,7 +55,8 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
             ),
             "bullets": (
                 "Yerel (LM Studio): ücretsiz ve çevrimdışı. Model bu makinede koşar, bağlam penceresi "
-                "paralel yuvalara bölünür — 7 işçi için -c 32768 önerilir, yoksa uzun istekler taşar.\n"
+                "paralel yuvalara bölünür — paralellik varsayılan 2; işçiyi 7'ye çıkaracaksanız "
+                "-c 32768 verin, yoksa uzun istekler taşar.\n"
                 "Bulut (OpenAI uyumlu ya da DeepL): hızlı ve güçlü, API anahtarı ve internet ister; "
                 "ücret sağlayıcının fiyatlandırmasına bağlıdır.\n"
                 "Sağlayıcı ayarlarından uç nokta ekleyip “Test Et” ile anahtarı kaydetmeden denersin."
@@ -140,8 +141,8 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
             "lead": "Two routes, the same pipeline — only the translator differs:",
             "bullets": (
                 "Local (LM Studio): free and offline. The model runs on this machine, and its context "
-                "window is shared across parallel slots — use -c 32768 for 7 workers, or long requests "
-                "overflow.\n"
+                "window is shared across parallel slots — parallelism defaults to 2; if you raise it "
+                "to 7, load with -c 32768, or long requests overflow.\n"
                 "Cloud (OpenAI-compatible or DeepL): fast and strong, needs an API key and a "
                 "connection; cost follows the provider's pricing.\n"
                 "In provider settings you add an endpoint and test the key with “Test” before saving."

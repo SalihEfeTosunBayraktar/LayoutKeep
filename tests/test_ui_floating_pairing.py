@@ -16,7 +16,7 @@ from layoutkeep.ui.main_window import MainWindow
 
 
 @pytest.fixture
-def window(qtbot) -> MainWindow:  # noqa: ANN001 - pytestqt's fixture
+def window(qtbot) -> MainWindow:
     w = MainWindow()
     qtbot.addWidget(w)
     return w

@@ -49,7 +49,12 @@ _MAX_BATCH_TIMEOUT_S = 900.0
 
 
 def _batch_timeout(chars: int, *, is_first: bool, chars_per_second: float | None) -> float:
-    base = _FIRST_BATCH_BASE_TIMEOUT_S if is_first else _WARM_BATCH_BASE_TIMEOUT_S
+    # The first batch pays for a cold model load, and how long that takes is a property of the
+    # machine, not of this code - so it is a setting (`timeout.first_batch_s`), with the constant
+    # as the fallback. It used to be a declared-but-unread switch: visible in the dialog, wired to
+    # nothing.
+    first = tunables.get("timeout.first_batch_s")
+    base = float(first if is_first and first else _FIRST_BATCH_BASE_TIMEOUT_S if is_first else _WARM_BATCH_BASE_TIMEOUT_S)
     rate = chars_per_second or _DEFAULT_CHARS_PER_SECOND
     estimate = base + chars / rate
     return max(_MIN_BATCH_TIMEOUT_S, min(_MAX_BATCH_TIMEOUT_S, estimate))

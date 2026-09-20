@@ -80,7 +80,7 @@ class _OverlapProvider:
         self.peak = 0
         self.lock = threading.Lock()
 
-    def translate(self, segments, **kwargs):  # noqa: ANN001, ANN003 - the provider interface
+    def translate(self, segments, **kwargs):
         with self.lock:
             self.in_flight += 1
             self.peak = max(self.peak, self.in_flight)
