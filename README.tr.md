@@ -170,22 +170,22 @@ okuyan yardım ekranı, ve her gelişmiş ayarın altında yanlış olduğunda n
 
 ## Sonucun iyi çıkmasını ne belirler
 
-Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına göre, bu projenin gerçekten
-ölçtüğü sayılarla:
+Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına göre:
 
 | Etken | Ne yapıyor |
 |---|---|
-| **Belgenin türü** | EPUB düzeni CSS'te taşıdığı için %95+ sadakatle çıkar; ondan sonra dijital PDF gelir, çünkü metni kaynağın koyduğu yerdedir; taranmış sayfa kırılgandır — metin önce okunur, eski harflerin üzeri boyanır, çeviri yerine yazılır, yani OCR boru hattın içindedir |
-| **Tarama çözünürlüğü ve temizliği** | Temiz 300 dpi taramalar güvenilir okunur. Eğik, lekeli ya da düşük çözünürlüklü sayfalar OCR'da karakter kaybeder; kaybolan karakter kaybolan kelimedir: sayfayı içerik alanına kırpmak yoğun bir sayfada bir paragrafı yedi (artık eşikle korunuyor ve o vaka bir regresyon testi) |
-| **Modelin hedef dildeki becerisi** | *Metin* üzerindeki en büyük kaldıraç. Sayıları, adları ve listeleri sadakatle taşır; deyim ve terimlerde tökezler — "Vietnamese" için `việt語` çıktısı, dil *kodunu* sormaktan doğan karışık betik hatasıydı; bu yüzden istem artık dilin adını ve betiğini söylüyor |
-| **Dil çiftinin uzunluk davranışı** | İngilizce→Türkçe ortalamada **0.93x**, blok blok **0.64x–1.40x**. Kutusundan çok kısa çıkan blok, uydurma dolguyla doldurulmak yerine işaretlenir; uzun çıkan blok önce kısası istenerek, sonra küçültülerek, en sonunda işaretlenerek çözülür |
-| **Tablolar ve formlar** | En çok bayrak toplayan yerler ve sebebi yapısal: hücrede kaynağın kelimelerine yer var, daha uzun çıkan çeviriye yok. `--fit-mode reflow` (ölçümü sürüyor) bloğu küçültmek yerine altındakileri aşağı iter |
-| **Sayfa aralığı** | Aralık **çıktıyı** da daraltır: 40-60 seçerseniz çıktı o 21 sayfayı içerir; kaydedilen proje ise belgenin tamamını saklar (inceleme geri kalanı görebilsin ve yeniden dışa aktarma sessizce kısalamasın diye). |
-| **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür. Paralellik varsayılan **2**'dir; 7 işçiyle `-c 8192` istek başına ~1.2k token bırakır ve uzun bir paragraf taşar (hata, gövdesi okunana kadar "model bulunamadı" gibi göründü). Bu projenin koştuğu ayar 7 işçi için 32768 |
+| **Belgenin türü** | EPUB düzeni CSS'te taşır; dijital PDF metni tam kaynağın koyduğu yerde tutar; taranmış sayfa OCR'ı boru hattın içine sokar ve kırılgan olan odur |
+| **Tarama çözünürlüğü ve temizliği** | Temiz 300 dpi güvenilir okunur; kaybolan karakter kaybolan kelimedir |
+| **Modelin hedef dildeki becerisi** | *Metin* üzerindeki en büyük kaldıraç — sayılar, adlar ve listeler geçer, deyim ve terimlerde tökezler |
+| **Dil çiftinin uzunluk davranışı** | İngilizce→Türkçe ortalamada 0.93x, blok blok 0.64x–1.40x; aynı paragraf her yönde farklı yer ister |
+| **Tablolar ve formlar** | En çok bayrak toplayan yerler ve sebebi yapısal: hücrede kaynağın kelimelerine yer var, daha uzun çeviriye yok |
+| **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür; paralellik varsayılan 2 |
+| **Terim sözlüğü ve çeviri belleği** | Terim listesi sözcükleri sabitler; bellek tekrar eden dizeyi her yerde aynı tutar |
 
-Bunların hiçbiri koşudan gizlenmez: her biri ya sığdırma satırında
-(`as_is=50 shrunk=9 expanded=2 overflow=3`), ya denetimde (L1–L10 kayıp, D1–D3 tanımlayıcı), ya da
-uygulamanın inceleme kuyruğunda görünür.
+Her etken koşunun okunabilir bir yerinde görünür: sığdırma satırı
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), denetim (L1–L10) ya da uygulamanın inceleme kuyruğu.
+Ölçümlü sürüm — tarama çözünürlüğü vakaları, bağlam penceresi hikâyesi, blok blok sayılar ve her
+birinin nereden geldiği — [`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md) içinde.
 
 **Gerçek belgeler bunları yaptığı için ayrıca ele alınanlar:** her açıda döndürülmüş metin, aynalı
 metin (sessizce düzeltilmek yerine tespit edilip işaretlenir), çeviri boyunca satır-içi işaretlerle
@@ -292,26 +292,6 @@ Bayraklar `.lkproj` dosyasına yazılır ve komut satırı skor tablosunda sayı
 
 Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
 [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) içindedir.
-
-## Çevirinin kalitesini ne belirler
-
-Bunların hiçbiri garanti değil ve hiçbiri teori değil: aşağıdakiler, elde tutulan koşuların
-gerçekten değiştiği faktörlerdir; her satır nerede görüldüğünü söylüyor.
-
-| faktör | neyi değiştirir | nerede görüldü |
-|---|---|---|
-| **Modelin dil becerisi** | En büyük tek faktör. Yerel 4B bir modelle öncü bir model deyimlerde yakın değil; `03_Kaggle_Colab/` altındaki ince ayar tam bunun için var. | Kampanyanın model karşılaştırmaları ve model değişene kadar hepsi tek bir fixture'da çıkan `L9` (bozuk harf) bulguları |
-| **Dijital metin mi, tarama mı** | Dijital PDF kendi yazı tiplerini, boyutlarını ve koordinatlarını taşır, stiller korunur. Tarama OCR'dan geçer: tanıma hataları metne karışır (`L9`) ve kutular yaklaşıktır, sığdırmanın eli daha zayıftır. | IRS formu ve NASA raporu (tarama) ile arXiv ve NIST sayıları (dijital) karşılaştırması |
-| **Tarama çözünürlüğü** | Kabaca 200 dpi altında OCR küçük puntoyu ve üst simgeleri kaybetmeye başlar; yanlış karakter, yanlış çeviridir. | `nist_ir6643_vapor_pressure` bu yolu sınamak için var; site 144 dpi'yi ağırlık için kullanır, kalite için değil |
-| **Belge türü** | Düz metin geniş kutulara akar; formun kutuları tam bir satır yüksekliğinde ve yoğundur, sığdırma merdiveni orada ezer (`D1`); formüller, kod ve figürler bilerek dokunulmadan bırakılır. | `D1` 841 sayfalık istatistik kitabında 2.155, düz metin örneklerinde 0 — aynı motor, farklı belge |
-| **Kaynağın kendi düzeni** | Dar kolonlar, üst üste binen kutular ve figürün etrafına sarılan metin, çevirinin kullanabileceği yeri daraltır. | `fitting/figures.py`'deki figür farkındalı daraltma; o gelmeden önce bir fotoğrafın üstünde 87 kelime Türkçe ölçülmüştü |
-| **Çeviri yönü** | Türkçe ile İngilizce simetrik değil: eklemeli Türkçe, İngilizcenin kısaldığı yerde uzar; aynı paragraf her yönde farklı yer ister. | TR→EN kampanyası aynı planı iki yönde koşuyor (`tr_plan_12` ve `sbb_development_plan_12_en`) |
-| **Terim sözlüğü ve çeviri belleği** | Terim listesi sözcükleri sabitler; bellek, tekrar eden bir dizenin her yerde aynı çevrilmesini sağlar ve onu ikinci kez ödemezsiniz. | Uygulamadaki `GLOSSARY_SUGGEST` ve yeniden koşuda ilk parçaların 229 sn yerine 21 sn'de bitmesini sağlayan bellek isabetleri |
-| **Seçtiğiniz ayarlar** | Kayıpsız mod, tekrar birleştirme, dedupe, parça parça onarım ve model zaman aşımı hız ile sadakat arasında takas yapar; varsayılanlar kayıpsız olanlardır. | `docs/KAYIPSIZ_MOD_DURUM.md` ve her düğmenin maliyetini söyleyen gelişmiş ayar açıklamaları |
-
-Dürüst özet: **çevirinin okunaklı olup olmadığına model karar verir, düzenin ayakta kalıp
-kalmadığına belge karar verir, ikisinin de doğru olup olmadığına denetim karar verir.** Yardım
-ekranındaki `L1`–`L10` kriterleri aynı listenin diğer ucudur.
 
 ## Ayarlama
 

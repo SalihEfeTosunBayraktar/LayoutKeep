@@ -174,21 +174,23 @@ setting that says what goes wrong if it is wrong.
 ## What decides how good a translation comes out
 
 The same settings produce very different results on different documents. In order of how much they
-move the outcome, with the numbers this project has actually measured:
+move the outcome:
 
 | Factor | What it does |
 |---|---|
-| **The document's kind** | An EPUB keeps its layout in CSS and comes out at 95%+ fidelity; a digital PDF is next, because its text is exactly where the source put it; a scanned page is the fragile one — text is recognised, the old letters are painted out, and the translation is written back, so OCR sits in the loop |
-| **Scan resolution and cleanliness** | Clean 300 dpi scans read reliably. Skewed, stained or low-resolution pages lose characters in OCR, and a lost character is a lost word: cropping a page to its content area once ate a whole paragraph on a dense page (threshold-guarded now, and the case is a regression test) |
-| **The model's skill in the target language** | The biggest lever on the *text*. The bundled flow reproduces numbers, names and lists faithfully and stumbles on idioms and terms — `việt語` for "Vietnamese" was an artefact of asking for a language *code* instead of a language *name*, which is why the prompt now names the language and its script |
-| **The language pair's length behaviour** | English→Turkish measures **0.93x** on average and **0.64x–1.40x per block**. A block that comes out far shorter than its box is flagged rather than padded with invented words; one that comes out longer is asked for again in shorter form, then shrunk, then flagged |
-| **Tables and forms** | The most flagged areas, for a structural reason: a cell has room for the source's words, not for a translation that runs longer. `--fit-mode reflow` (still being measured) lets a block push the ones under it down instead of shrinking |
-| **The page range** | A range narrows the *output* too: choosing 40-60 produces a file with those 21 pages, while the saved project keeps the whole document (so the reviewer can still see the rest, and re-exporting cannot silently shorten it). |
-| **The model server's configuration** | A local model's context window is shared across its parallel slots. Parallelism defaults to **2**; `-c 8192` with 7 workers leaves ~1.2k tokens per request, and a long paragraph overflows it (the failure read as "model not found" until the error body was opened). 32768 for 7 workers is what this project runs |
+| **The document's kind** | An EPUB keeps its layout in CSS; a digital PDF keeps its text exactly where the source put it; a scanned page runs OCR in the loop and is the fragile one |
+| **Scan resolution and cleanliness** | Clean 300 dpi reads reliably; a lost character is a lost word |
+| **The model's skill in the target language** | The biggest lever on the *text* — numbers, names and lists come through, idioms and terms are where it stumbles |
+| **The language pair's length behaviour** | English→Turkish measures 0.93x on average and 0.64x–1.40x per block, so the same paragraph needs different room in each direction |
+| **Tables and forms** | The most flagged areas, for a structural reason: a cell has room for the source's words, not for a longer translation |
+| **The model server's configuration** | A local model's context window is shared across its parallel slots; parallelism defaults to 2 |
+| **The glossary and the translation memory** | A term list pins the vocabulary; the memory keeps a repeated string identical everywhere |
 
-Nothing here is hidden from a run: each factor shows up in the fitting line
-(`as_is=50 shrunk=9 expanded=2 overflow=3`), in the audit (L1–L10 loss conditions, D1–D3
-descriptive ones) or in the review queue inside the application.
+Every factor shows up somewhere a run can be read: the fitting line
+(`as_is=50 shrunk=9 expanded=2 overflow=3`), the audit (L1–L10) or the review queue inside the
+application. The measured version — the scan-resolution cases, the context-window story, the
+per-block numbers and where each one comes from — is in
+[`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md).
 
 **Also handled, because real documents do this:** rotated text at any angle, mirrored text
 (detected and flagged rather than silently un-mirrored), bold/italic runs carried through
@@ -308,26 +310,6 @@ OCR güveni düşük                               (low OCR confidence)
   of a font on every call, so a document with thousands of blocks builds thousands of duplicate
   subsets; `garbage=4` collapses them at save, but the work is already spent. 10 pages write in
   1.3 s each, 100 pages in 7.0 s each. Measured in [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
-
-## What decides the quality of a translation
-
-None of this is a guarantee, and none of it is theory: these are the factors the held-out runs
-actually moved with, and each row names where it was seen.
-
-| factor | what it changes | where it showed up |
-|---|---|---|
-| **The model's language ability** | The single largest factor. A local 4B model and a frontier model are not close on idiom; the fine-tuning work in `03_Kaggle_Colab/` exists for exactly this. | The campaign's per-model comparisons, and the `L9` (garbled letters) findings that were all on a fixture until the model changed |
-| **Digital text or a scan** | A digital PDF carries its own fonts, sizes and coordinates, so styles survive. A scan goes through OCR: recognition errors enter as text (`L9`), and boxes are approximate, so fitting has less to work with. | The IRS form and the NASA report (scans) against the arXiv and NIST issues (digital) |
-| **Scan resolution** | Below roughly 200 dpi the OCR starts losing small type and superscripts, and a wrong character is a wrong translation. | `nist_ir6643_vapor_pressure` exists to exercise this path; the site renders at 144 dpi for weight, not for quality |
-| **The document type** | Prose re-flows into generous boxes; a form's boxes are exactly one line tall and dense, which is where the fitting ladder has to squeeze (`D1`); formulae, code and figures are deliberately left alone. | `D1` is 2,155 on the 841-page statistics book and 0 on the prose-heavy samples — the same engine, different document |
-| **The source's own layout** | Narrow columns, overlapping boxes and text that wraps around figures all narrow the room a translation can use. | The figure-aware narrowing in `fitting/figures.py`, measured at 87 words of Turkish on a photograph before it existed |
-| **Language direction** | Turkish and English are not symmetric: agglutinative Turkish expands where English contracts, so the same paragraph needs different room in each direction. | The TR→EN campaign runs both directions over the same plan (`tr_plan_12` and `sbb_development_plan_12_en`) |
-| **The glossary and the translation memory** | A term list pins the vocabulary; the memory keeps a repeated string translated the same way everywhere, and skips paying for it twice. | `GLOSSARY_SUGGEST` in the app, and the memory hits that made a re-run's first chunks finish in 21 s instead of 229 s |
-| **The settings you choose** | Lossless mode, repeat unification, dedupe, piecewise repair and the model timeout all trade speed for fidelity; the defaults are the lossless ones. | `docs/KAYIPSIZ_MOD_DURUM.md`, and the advanced-settings captions that say what each knob costs |
-
-The honest summary: **the model decides whether the translation reads well, the document decides
-whether the layout survives, and the audit decides whether either is true.** The `L1`–`L10`
-criteria in the help screen are the same list, from the other end.
 
 ## Tuning it
 
