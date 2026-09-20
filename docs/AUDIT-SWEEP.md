@@ -48,4 +48,4 @@ olacak şekilde: listenin başı bir sonraki hatanın arandığı yerdir.
 | `arxiv_2510_03959` | temiz | 0 büyümüş, 0 küçülmüş, 0 hizası değişmiş, 0 okunamaz boyutta | toplam 0 kelime gorselin ustunde |
 | `arxiv_2605_18014` | temiz | 0 büyümüş, 3 küçülmüş, 0 hizası değişmiş, 0 okunamaz boyutta | toplam 0 kelime gorselin ustunde |
 | `fresh_p05_grant` | temiz | 0 büyümüş, 8 küçülmüş, 0 hizası değişmiş, 1 okunamaz boyutta | toplam 0 kelime gorselin ustunde |
-| `ross_stats_full` | temiz | 1 büyümüş, 29 küçülmüş, 3 hizası değişmiş, 13 okunamaz boyutta | toplam 0 kelime gorselin ustunde |
+| `ross_stats_full` | temiz | 1 büyümüş, 32 küçülmüş, 3 hizası değişmiş, 15 okunamaz boyutta | toplam 0 kelime gorselin ustunde |

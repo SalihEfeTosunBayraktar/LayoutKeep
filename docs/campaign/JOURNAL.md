@@ -1655,3 +1655,30 @@ of finding, so it got the full treatment:
 - The remaining sweep rows are the known classes: `hizası değişmiş` on runs made before the
   justify fix, `L2` on bibliographies, `L6` on table numbers. Three runs are clean: `wpa_poster`,
   `arxiv_2510_03959`, `arxiv_2605_18014`.
+
+## 2026-09-20 - the leading step, and what the overflow blocks actually need
+
+The largest review-flag class on the book is "the translation did not fit, shrinking was not
+enough" (1,130 of 6,014 blocks in the first 42 chunks; D1=1,130). The roadmap's next lever is the
+ladder, so the ladder got a new leading step: when the box does not fit even at the readability
+floor, try tighter leading (1.0x, then 0.92x) *before* asking the model for a shorter text. It
+costs no model round-trip, keeps the type at or above the floor, and never touches the words.
+
+Measured with `tools/audit/fit_probe.py` (new instrument: re-runs the fitting pass over a recorded
+run's saved translations - `rewrite_run.py` re-runs the writer and cannot see a fitting change):
+
+| run | overflow blocks | rescued by 1.0x leading | need more than 0.65x |
+|---|---|---|---|
+| ross_stats_full (20 chunks) | 158 | 20 (13%) | 138 |
+| cookbook_1907 | 29 | 0 | 29 |
+| arxiv_19145 | 47 | 0 | - |
+| irs_p505 | 61 | 0 | - |
+
+So the step is a real but modest win, and it is a *safe* one: it only changes blocks that are
+flagged today, and on three of the four runs it changes nothing at all.
+
+The measurement also answers the bigger question. The 138 blocks that no leading rescues are not
+short of lines, they are short of **box**: `room_below` can shorten a block's measured box to 6pt
+to keep it off the next block, and nothing fits in 6pt. Their fix is the box (the reflow/room
+work), not the ladder - which is why the next lever is roadmap item 4, and why this step was left
+where it does no harm.
