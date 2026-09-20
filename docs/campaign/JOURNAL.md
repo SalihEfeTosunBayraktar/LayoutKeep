@@ -1680,7 +1680,8 @@ the style with the target language's substitute font already resolved. The two f
 different metrics, and with the pass's own font **no block is rescued**: instrumented over six
 chunks, `_try_tighten` was called 14 times and fitted 0, and the written-page A/B (`fit_ab.py`,
 20 chunks) came back identical in both arms - D1=627, D3=0, every L the same. A step that changes
-nothing is dead weight, so it came back out (branch `fit-tighten` left unmerged); the two
+nothing is dead weight, so it came back out (the attempt is commit `bbf5958` on the unmerged
+branch `fit-tighten`); the two
 instruments stayed. Lesson for the next measurement: **use the pass's own style, not the block's**,
 or the probe answers a question the engine never asks.
 
