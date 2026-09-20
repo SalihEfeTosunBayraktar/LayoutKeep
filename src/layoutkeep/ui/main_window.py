@@ -14,6 +14,7 @@ from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
+from layoutkeep import __version__
 from layoutkeep.core import tunables
 from layoutkeep.ui.completion import CompletionWidget
 from layoutkeep.ui.floating_progress import FloatingProgress
@@ -252,8 +253,17 @@ class MainWindow(QWidget):
         show_help(self)
 
     def _maybe_show_welcome(self) -> None:
-        """First run only: the introduction, unless it has already been dismissed."""
-        if not _welcome_is_wanted() or bool(self._settings.value("welcome_shown", False, type=bool)):
+        """The introduction on a first run - and again after an update.
+
+        The version matters: with a bare boolean, installing a new build left the flag set and the
+        user saw nothing at all, which reads as "the update did not happen". Storing the version
+        the screen was shown for makes an update greet the reader once, the way a release should.
+        """
+        if not _welcome_is_wanted():
+            return
+        shown = bool(self._settings.value("welcome_shown", False, type=bool))
+        seen_version = str(self._settings.value("welcome_shown_version", ""))
+        if shown and seen_version == __version__:
             return
         self.show_welcome()
 

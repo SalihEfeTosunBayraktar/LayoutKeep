@@ -273,6 +273,26 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
 
     Tunable(
+        key="translation.protect_romans",
+        label="Romen rakamlarını koru (xiii, IV)",
+        default=True,
+        kind="bool",
+        section=ADVANCED,
+        group="Korunan değerler",
+        help_text=(
+            "Ön sayfalardaki sayfa numaraları ve bölüm işaretleri (xiii, IV, vii) modele hiç "
+            "gösterilmeden korunur ve yerine aynen geri konur. Model bunları bir sayı değil bir "
+            "sözcük olarak gördüğü için çevirebiliyor: istatistik kitabının içindekiler "
+            "sayfasındaki 'xiii', 'on üç' olarak dönmüştü."
+        ),
+        warning=(
+            "Kapatmak, Romen rakamına benzeyen her şeyi modele bırakır. Açıkken bile iki "
+            "karakterden kısa olanlar (i, v, x) ve mm/cm/ml gibi birimler korunmaz: gereğinden "
+            "geniş koruma, çevresindeki cümlenin çevirisini bozar."
+        ),
+    ),
+
+    Tunable(
         key="fitting.reflow",
         label="Sığdırma: blokları aşağı iterek büyüt (reflow)",
         default=False,

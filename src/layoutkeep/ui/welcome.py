@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from layoutkeep import __version__
 from layoutkeep.ui import welcome_text
 from layoutkeep.ui.settings import app_settings
 from layoutkeep.ui.strings import UIStrings
@@ -199,7 +200,11 @@ class WelcomeDialog(QDialog):
         self._refresh_navigation()
 
     def _finish(self) -> None:
-        app_settings().setValue("welcome_shown", True)
+        settings = app_settings()
+        settings.setValue("welcome_shown", True)
+        # Which version it was shown for: a new build greets the user again rather than looking
+        # like nothing happened after an update.
+        settings.setValue("welcome_shown_version", __version__)
         self.accept()
 
     def _refresh_navigation(self) -> None:

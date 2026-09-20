@@ -25,6 +25,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from layoutkeep.core import tunables
+
+#: The setting that decides whether the Roman-numeral rule is in force.
+PROTECT_ROMANS_KEY = "translation.protect_romans"
+
 #: Marker for a protected literal. Distinct from the numeric style markers (`<0>`), so the two
 #: can coexist in one segment without either parser mistaking the other's tokens.
 _TOKEN = "{}"
@@ -67,6 +72,17 @@ DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("url", r"\bhttps?://[^\s<>\"']+\b"),
     # arXiv publication id: arXiv:2609.19145v1
     ("arxiv", r"\barXiv:\d{4}\.\d{4,5}(?:v\d+)?\b"),
+    # A Roman numeral doing a number's job: a front-matter page number (xiii), a part marker (IV).
+    # Measured on the statistics book: the running head's "xiii" came back as "on üç", because to a
+    # model it is a word, not a number - and a page number is a fact, not prose.
+    #
+    # Two characters or more, and the units that are valid Roman numerals are excluded by name:
+    # "mm" is two thousand to a numeral parser and a millimetre to everyone else, and a lone "i"
+    # is an English word. Over-protection degrades the sentence around the token, so this stays
+    # narrow on purpose.
+    ("roman", (r"(?i:\b(?!(?:mm|cm|ml|cd|dc|md|mi|lm|dm)\b)(?=[mdclxvi])"
+               r"m{0,4}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})"
+               r"(?<=[mdclxvi]{2})\b)")),
 )
 
 
@@ -98,8 +114,23 @@ def is_data_only(text: str) -> bool:
     return not re.search(r"[^\W\d_]", stripped, re.UNICODE)
 
 
-def protect(text: str, patterns: tuple[tuple[str, str], ...] = DEFAULT_PATTERNS) -> Protection:
+def patterns_in_force() -> tuple[tuple[str, str], ...]:
+    """The rows of `DEFAULT_PATTERNS` that apply now, honouring the settings a user can change.
+
+    WHY THIS EXISTS: every protection narrows what the model sees, and that trade is a per-document
+    judgement - the Roman-numeral rule was added after a measured loss ("xiii" came back as "on
+    üç"), but a user translating a book whose prose is full of Roman numerals may want it off. The
+    table stays the source of truth; this decides which of its rows are active.
+    """
+    if tunables.get(PROTECT_ROMANS_KEY):
+        return DEFAULT_PATTERNS
+    return tuple((name, pattern) for name, pattern in DEFAULT_PATTERNS if name != "roman")
+
+
+def protect(text: str, patterns: tuple[tuple[str, str], ...] | None = None) -> Protection:
     """Replace protected literals with tokens, returning the text and how to restore it."""
+    if patterns is None:
+        patterns = patterns_in_force()
     literals: dict[int, str] = {}
     kinds: dict[int, str] = {}
     combined = re.compile(
