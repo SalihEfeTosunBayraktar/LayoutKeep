@@ -2099,3 +2099,30 @@ Two things this leaves on the table, worth doing rather than forgetting:
    (`tests/test_translate_book_retry.py`, four tests, no model server involved). A chunk that fails
    twice is still a real failure and is reported as one, and the tool was re-run over the finished
    document afterwards to prove the edit did not break the runner (`merged 50 chunks -> 198 pages`).
+
+## Gece nöbeti: kısaltma merdiveni neden hiç istek atmıyor (TR -> EN)
+
+`fit.shorten_below_scale` (`_SHRUNK_ATTEMPTS = 2`) yolunun ölçümü iki aletle yapıldı:
+`type_map.py` (kutu başına boy kümesi) ve manuel bir `fit_segment` tekrar koşusu — hiç model yok.
+
+**Ölçüm (tr_tck_5237, TR -> EN):** 1.701 blok · as_is 1.169, shrunk 374, overflow 158.
+374 shrunk'un 362'si kutusunun tam-boy karakter bütçesinin ÜZERİNDE — yani kısaltma isteği
+atılması gereken halde atılmamış. **retranslate yalnızca overflow'da çağrılmış** (514 çağrının
+tamamı overflow bloklarından). Kapılar doğru: `_MIN_SHORTEN_CHARS` 34 kutuyu düşürüyor,
+headroom kapısı yalnız 8, `would_ask` (soru sorulmalıydı) **156-237 kutu** — hiçbiri sorulmamış.
+
+**Kök neden: çeviri belleği kısaltma isteğini aynı uzunlukta yanıtlıyor.** `TranslationMemory`
+anahtarı yalnız `source src tgt model` — `max_len` anahtarın parçası değil. Merdiven
+"X karakterden kısa yaz" diye soruyor, önbellek orijinal uzunlukta cevap veriyor, `fit_segment`
+"aynı metin geldi" görüp merdiveni bırakıyor. TR sadece hedef dil olduğundan Türkçe kaynaklar
+EN çevirisiyle büyüyor, bu yüzden 43%'lük ezilme yalnız bu yönde görünüyor.
+
+**Düzeltmeler (ölçülü):**
+1. `providers/cached.py`: önbellek isabeti isteğin `max_len`'ini ihlal ediyorsa servis edilmez,
+   istek iç sağlayıcıya gider (`tests/test_provider_cached.py`, 3 senaryo).
+2. `providers/dedupe.py`: kapsamlı istek, ortak cevap bütçesinden uzunsa kendi isteğiyle modele
+   gider — aynı kural önbelleğe de uygulandı (`tests/test_provider_dedupe.py`).
+
+Hedefteki beklenen etki: TR -> EN'de `shrunk` tablosu aşağı iner (merdiven artık gerçekten
+fikir isteyebiliyor). Bunu kanıtlamak için gerçek model koşusu gerekli — makine boşaldığında
+`tr_tck_5237` yeniden koşulup `type_map.py` ile karşılaştırılacak.
