@@ -125,6 +125,13 @@ _NUMBER_WORDS: dict[str, dict[str, int]] = {
         "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12,
         "zwanzig": 20, "dreißig": 30, "vierzig": 40, "fünfzig": 50, "sechzig": 60,
         "siebzig": 70, "achtzig": 80, "neunzig": 90, "hundert": 100, "tausend": 1000,
+        # German fuses the multiplier into the word ("zweitausend" for 2000) where English and
+        # French keep it separate ("two thousand", "deux mille"): without these, a page count or a
+        # year written the fused way was invisible to the checker and a lost number went unreported.
+        "einhundert": 100, "eintausend": 1000, "zweihundert": 200, "dreihundert": 300,
+        "vierhundert": 400, "fünfhundert": 500, "sechshundert": 600, "siebenhundert": 700,
+        "achthundert": 800, "neunhundert": 900, "zweitausend": 2000, "dreitausend": 3000,
+        "viertausend": 4000, "fünftausend": 5000, "zehntausend": 10000, "hunderttausend": 100000,
     },
     "fr": {
         "zéro": 0, "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6,
