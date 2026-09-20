@@ -187,7 +187,7 @@ def _publishable(run: Path) -> bool:
 #: A run name carries how it was produced, not which document it is: `cookbook_1907_r2` is the
 #: second re-run of `cookbook_1907`, and `fresh_pdfmt_r6_2` is the third chunk of the sixth
 #: revision of `fresh_pdfmt`.
-_RUN_SUFFIX = re.compile(r"(?:_r\d+)?(?:_\d+)?$")
+_RUN_SUFFIX = re.compile(r"(?:_r\d+)(?:_\d+)?$")
 
 
 def _base_name(name: str) -> str:
@@ -247,7 +247,7 @@ def collect(include_live: bool = True) -> list[Document]:
     """
     live = _live_documents() if include_live else []
     fresh = {document.name for document in live}
-    campaign = [document for document in _campaign_documents() if _base_name(document.name) not in fresh]
+    campaign = [document for document in _campaign_documents() if document.name not in fresh]
     return live + campaign
 
 

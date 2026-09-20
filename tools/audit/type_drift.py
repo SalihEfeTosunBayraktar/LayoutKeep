@@ -26,7 +26,7 @@ import pymupdf
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from layoutkeep.core.docir import Block, load_project  # noqa: E402
+from layoutkeep.core.docir import Block, load_project
 
 #: A block drawn this much larger than its own style stands out against the page.
 INFLATED = 1.20
@@ -68,12 +68,36 @@ def _alignment_of(lines: list[pymupdf.Rect]) -> str:
     return "mixed"
 
 
+def _source_lines(page: pymupdf.Page, box: pymupdf.Rect) -> list[pymupdf.Rect]:
+    """The source page's own lines inside a box - what the block looked like before translation."""
+    found: list[pymupdf.Rect] = []
+    for raw in page.get_text("dict").get("blocks", []):
+        if raw.get("type") != 0:
+            continue
+        for line in raw.get("lines", []):
+            if not [span for span in line.get("spans", []) if span.get("text", "").strip()]:
+                continue
+            rect = pymupdf.Rect(line["bbox"])
+            if box.contains(pymupdf.Point((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)):
+                found.append(rect)
+    return found
+
+
 def drift(source: Path, output: Path, project: Path) -> dict[str, list[tuple]]:
-    """Compare one written page against the styles the pipeline recorded for it."""
+    """Compare one written page against the source page it was made from.
+
+    The alignment check compares the *drawn* lines with the *source* page's own lines at the same
+    place, not with the reader's inferred `align` attribute. The first version used the attribute
+    and reported fourteen alignment changes on an IRS form that were nothing of the kind: the
+    flagged blocks were the table's vertical number strips (fifty-six single-number lines in an
+    eight-point-wide box), where the inference says "left" and every line is one glyph wide, so
+    left and right cannot be told apart and the page looks identical either way.
+    """
     document = load_project(project)
     page_data = document.pages[0]
     result: dict[str, list[tuple]] = {"inflated": [], "shrunk": [], "alignment": [], "floor": []}
-    with pymupdf.open(output) as written_doc:
+    with pymupdf.open(source) as source_doc, pymupdf.open(output) as written_doc:
+        source_page = source_doc[0]
         page = written_doc[0]
         for block in page_data.blocks:
             if not block.text.strip() or abs(block.rotation) > 0.1:
@@ -93,9 +117,11 @@ def drift(source: Path, output: Path, project: Path) -> dict[str, list[tuple]]:
                 result["shrunk"].append(row)
             if drawn < FLOOR_PT:
                 result["floor"].append(row)
-            drawn_alignment = _alignment_of([rect for _, rect in lines])
-            if block.align in ("left", "right", "center") and drawn_alignment not in (block.align, "mixed"):
-                result["alignment"].append((block.align, drawn_alignment, block.text[:38]))
+            box = pymupdf.Rect(block.bbox.x0, block.bbox.y0, block.bbox.x1, block.bbox.y1)
+            was = _alignment_of(_source_lines(source_page, box))
+            now = _alignment_of([rect for _, rect in lines])
+            if was in ("left", "right") and now in ("left", "right") and was != now:
+                result["alignment"].append((was, now, block.text[:38]))
     return result
 
 
