@@ -1899,3 +1899,30 @@ text layer carries the marker touching the following word, and the fitting ladde
 culprit. A fix means carrying per-run sizes from the reader through the fitting pass to the writer,
 which is a design change with its own A/B (`type_drift.py` plus the written-page size histogram
 above), so it is queued rather than patched blind.
+
+### The readability floor splits by direction, and one whole direction is a real loss
+
+`type_drift.py --verbose` prints the ratio between the size drawn and the size the reader recorded,
+and that ratio separates two things the headline count ("N blocks below the readability floor")
+lumps together:
+
+- **EN -> TR: faithful.** Every flagged block on `arxiv_19145_r2` is at ratio **1.0** - `'Yll'`,
+  `'Gkomp ↓'`, `'Gl Aşağı'`, a bibliography line. These are source-tiny runs (figure labels, a
+  reference in small type) drawn exactly as the reader measured them. Nothing was lost; the
+  criterion is describing the document, not the translation.
+- **TR -> EN: a real loss.** On the three Turkish documents the same criterion is reporting blocks
+  squeezed to **0.26-0.65 of their size** - `'Article 134- (1) Anyone who violates ...'` at 0.27,
+  `'Child abortion (6) If a woman becomes ...'` at 0.26, `'Each spouse is responsible for their
+  own ...'` at 0.37. A Turkish article translated into English is long enough that the fitting
+  ladder runs to the bottom of its range, and what comes out is unreadable while still being on
+  the page.
+
+So "61 unreadable blocks" on the arXiv document is not a defect and "13" on the civil code is not
+the same thing as "13" on the penal code: read the ratio, not the count. The standing rule about
+checking what a criterion counts applies to this one as well.
+
+**Next, queued:** (1) why TR -> EN squeezes to 0.26 when EN -> TR never does - is the shorten /
+retranslate path in the fitting pass firing for the legal documents, and if it fires, why does the
+result still not fit; the per-chunk logs differ (`tr_tck_smoke` reports `shrunk=15 overflow=22`
+while `tr_tck_5237`'s chunks report no fitting line at all). (2) The inline-size design from the
+entry above, which owns the inflated 8.0 pt runs and the glued superscript marker.
