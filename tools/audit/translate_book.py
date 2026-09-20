@@ -79,6 +79,11 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
         command.append("--preserve-references")
     if getattr(args, "fit_mode", None):
         command += ["--fit-mode", args.fit_mode]
+    if getattr(args, "memory", None):
+        # The translation memory is what makes a rerun cheap: segments the application (or an
+        # earlier run) already translated never reach the model. Without this flag a long book
+        # starts from zero every time, which is what made the 841-page rerun look impossible.
+        command += ["--memory", str(args.memory)]
     started = time.time()
     proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
     elapsed = time.time() - started
@@ -166,7 +171,29 @@ def main() -> int:
         "--fit-mode", default=None, choices=["strict", "reflow"],
         help="forward the CLI's fitting mode; omit to use the application's default",
     )
+    parser.add_argument(
+        "--memory",
+        default=None,
+        help=(
+            "SQLite çeviri belleği. Verilmezse uygulamanın kendi belleği kullanılır "
+            "(%APPDATA%\\LayoutKeep\\memory.sqlite) — daha önce çevrilmiş segmentler modele hiç "
+            "gitmez. 'none' ile kapatılır."
+        ),
+    )
     args = parser.parse_args()
+
+    # Default to the application's own translation memory. It is the difference between a rerun
+    # costing hours and a rerun costing minutes, and a long book is always a rerun (interrupted,
+    # or continued the next day) - so opting in by hand was the wrong default.
+    if args.memory is None:
+        from layoutkeep.core.paths import data_dir
+
+        candidate = Path(data_dir()) / "memory.sqlite"
+        args.memory = str(candidate) if candidate.exists() else ""
+        if args.memory:
+            print(f"translation memory: {args.memory}", flush=True)
+    elif str(args.memory).lower() == "none":
+        args.memory = ""
 
     work = args.work
     (work / "src").mkdir(parents=True, exist_ok=True)
