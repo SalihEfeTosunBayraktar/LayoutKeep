@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System One decision models — Laya, Jev and the alternatives, measured</title>
+<style>
+  :root {
+    --ink: var(--foreground, #1a1d21); --muted: var(--muted-foreground, #5c6370);
+    --card: var(--card, #ffffff); --line: var(--border, #e3e6ea); --accent: var(--accent, #3b6ef5);
+    --good: #1f9d55; --warn: #c9761b; --bad: #c0392b;
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 4px 2px 28px; font: 14px/1.55 system-ui, "Segoe UI", sans-serif; color: var(--ink); background: transparent; }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 26px 0 8px; }
+  h3 { font-size: 14px; margin: 18px 0 6px; }
+  p, li { max-width: 78ch; }
+  .sub { color: var(--muted); margin: 0 0 6px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 4px; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .win { color: var(--good); font-weight: 600; }
+  .lose { color: var(--bad); }
+  .mid { color: var(--warn); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+  .bars { margin: 6px 0 2px; }
+  .bar { display: grid; grid-template-columns: 150px 1fr 74px; align-items: center; gap: 8px; margin: 3px 0; font-size: 13px; }
+  .bar .track { background: var(--line); border-radius: 5px; height: 14px; overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 5px; background: var(--accent); }
+  .bar .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .kpi { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .kpi small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+  code { font: 12px/1.4 ui-monospace, Consolas, monospace; background: color-mix(in srgb, var(--line) 55%, transparent); padding: 1px 5px; border-radius: 5px; }
+  .src { font-size: 12px; color: var(--muted); }
+  ol.tight li, ul.tight li { margin: 3px 0; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>System One decision models: what they are, what they cost, where we can use them</h1>
+<p class="sub">Research note for our local projects, 2026-09-20. Every number below is quoted from a
+named source — vendor pages are marked as vendor numbers, and the independent measurement is
+marked as such. Nothing here is estimated.</p>
+
+<div class="grid2">
+  <div class="card"><div class="kpi">33–38 ms<small>one typed question, Laya on a GPU (vendor)</small></div></div>
+  <div class="card"><div class="kpi">$0.042 / MTok<small>Jev input tokens; output free (vendor pricing)</small></div></div>
+  <div class="card"><div class="kpi">2.2 GB<small>Laya English checkpoint, measured independently</small></div></div>
+  <div class="card"><div class="kpi">0.59 vs 0.97<small>Laya vs Jev, micro accuracy, independent run</small></div></div>
+</div>
+
+<h2>1. The two things called "Laya"</h2>
+<p>The repository you sent is <strong>not</strong> a chat assistant. It is a
+<strong>non-autoregressive decision engine</strong>: you give it a state (text, email, ticket, JSON)
+and typed questions, and it answers in a single forward pass with a calibrated probability. It never
+generates text, so there is nothing to parse and nothing to hallucinate. Three question primitives:
+<code>choice</code> (pick one of these), <code>score</code> (where on this ordered scale),
+<code>noul</code> (probability that this is true).</p>
+<p>Three checkpoints ship with it: <code>laya</code> (ModernBERT-large, 421M, 512 tokens, English),
+<code>laya-multilingual</code> (mmBERT-base, 322M, 1024 tokens, 100+ languages) and
+<code>laya-typed-decisions</code>; a <code>Router</code> detects the script and language in under
+0.5 ms and picks the right one. Apache-2.0, <code>pip install laya</code>. The technique descends
+from the author's own March 2025 paper (arXiv:2503.23303) and RLCD training — reinforcement learning
+against strictly proper scoring rules, which is what makes the confidence numbers mean something.</p>
+<p class="src">Sources: repo README, Hugging Face model card, PyPI page.</p>
+
+<h2>2. The alternative you named: Jev, by TypeSafe</h2>
+<p>Jev is the same idea as a hosted frontier model — announced 2026-09-14, weights not published,
+early access via a waitlist, and reachable through OpenRouter's decisions endpoint. It is the
+accuracy ceiling in every independent comparison, and it is closed, hosted, and priced per token.
+For a local-first project that is a data-egress decision, not just a cost one.</p>
+
+<h2>3. The numbers, with their sources</h2>
+
+<h3>Speed and cost (vendor numbers)</h3>
+<table>
+  <tr><th>metric</th><th class="num">Jev (hosted)</th><th class="num">Laya (self-hosted)</th><th class="num">ordinary LLM</th></tr>
+  <tr><td>end-to-end response</td><td class="num">70–500 ms</td><td class="num">33–38 ms (1 Q, GPU)</td><td class="num">3–329 s</td></tr>
+  <tr><td>batched</td><td class="num">~1,500 ms (10 Q, serial)</td><td class="num">156 ms (10 Q) · 721 ms (50 Q)</td><td class="num">—</td></tr>
+  <tr><td>on CPU, preloaded</td><td class="num">—</td><td class="num">193–464 ms</td><td class="num">—</td></tr>
+  <tr><td>input cost</td><td class="num">$0.042 / MTok</td><td class="num">$0.00 self-hosted</td><td class="num">$0.20–$10 / MTok</td></tr>
+  <tr><td>output cost</td><td class="num">free (no strings)</td><td class="num">free (no strings)</td><td class="num">~5× the input price</td></tr>
+</table>
+<p class="src">Sources: TypeSafe announcement (Sep 14, 2026) for Jev and the LLM column; Laya README,
+model card and PyPI page for Laya. The 7–10 s figure is what a <em>cold</em> Laya costs on every
+language switch without <code>preload=True</code> — measured 7.4 s on CPU, 10.3 s on a T4.</p>
+
+<h3>Accuracy on one shared suite — and this is the important table</h3>
+<p>An independent run (<code>jabr/classifier-benchmark</code>, 8 tasks, 78 cases) measured four open
+models against Jev on the same questions. The suite's own control reproduced its published results
+exactly, which is what makes the rest trustworthy. Vendor numbers sit next to them for contrast.</p>
+
+<table>
+  <tr><th>model</th><th>what it is</th><th class="num">size</th><th class="num">micro acc.</th><th class="num">macro acc.</th><th class="num">ms / case</th></tr>
+  <tr><td>Jev <span class="pill">hosted, closed</span></td><td>frontier System One</td><td class="num">—</td><td class="num win">0.974</td><td class="num">0.972</td><td class="num">~302</td></tr>
+  <tr><td>Bonsai-27B <span class="pill">1-bit</span></td><td>27B chat model at ~1 bit/weight</td><td class="num">3.5 GB</td><td class="num">0.885</td><td class="num">0.881</td><td class="num lose">1,682</td></tr>
+  <tr><td>GLiNER2-large</td><td>DeBERTa-v3-large NLI classifier</td><td class="num">1.8 GB</td><td class="num">0.795</td><td class="num">0.785</td><td class="num">66</td></tr>
+  <tr><td>Von-1.0</td><td>ModernBERT-large NLI classifier</td><td class="num">1.5 GB</td><td class="num">0.769</td><td class="num">0.750</td><td class="num">47</td></tr>
+  <tr><td>Laya</td><td>ModernBERT-large + decision head</td><td class="num">2.2 GB</td><td class="num lose">0.590</td><td class="num">0.591</td><td class="num win">30</td></tr>
+</table>
+
+<div class="bars">
+  <div class="bar"><span>Jev (hosted)</span><span class="track"><span class="fill" style="width:97.4%"></span></span><span class="v">0.974</span></div>
+  <div class="bar"><span>Bonsai-27B 1-bit</span><span class="track"><span class="fill" style="width:88.5%"></span></span><span class="v">0.885</span></div>
+  <div class="bar"><span>GLiNER2-large</span><span class="track"><span class="fill" style="width:79.5%"></span></span><span class="v">0.795</span></div>
+  <div class="bar"><span>Von-1.0</span><span class="track"><span class="fill" style="width:76.9%"></span></span><span class="v">0.769</span></div>
+  <div class="bar"><span>Laya</span><span class="track"><span class="fill" style="width:59.0%"></span></span><span class="v">0.590</span></div>
+</div>
+<p class="src">Source: <em>Three Jev clones and a 27B</em> (independent, 2026-09-20), one Mac mini M4
+Pro, 24 GB. Caveat from the authors: 78 cases is small, each task holds 8–15, so one answer swings a
+task. Laya's own card reports 0.838 in-task macro and 0.651 zero-shot — the gap between 0.838 and
+0.590 is the gap between "measured on its own tasks" and "measured on someone else's".</p>
+
+<h3>Where Laya is strong, where it is weak</h3>
+<div class="grid2">
+  <div class="card">
+    <h3 style="margin-top:0">Strong</h3>
+    <ul class="tight">
+      <li>Speed: 30 ms/case measured; the fastest thing in the comparison by 1.5×.</li>
+      <li>Router: <strong>45 of 51 languages</strong> usable, versus 23 for the English-only checkpoint — and it detects non-Latin script in &lt;0.5 ms, before any forward pass.</li>
+      <li>Fine-tuning is the product: base checkpoints are near chance zero-shot on typed decisions (0.36 / 0.35 against a 0.318 random baseline); the fine-tuned checkpoint reaches <strong>0.766</strong>, above Jev's published 0.727.</li>
+      <li>Fine-tune cost: ~4–5 h on 2×T4 (a free Kaggle session) for 4 epochs over ~30k questions.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Weak — read this before planning</h3>
+    <ul class="tight">
+      <li>Yes/no (<code>noul</code>) is the weak primitive: 0.5–0.7 on the independent suite, "coin-flip territory" on questions like <em>does this contain a credential</em>.</li>
+      <li>Ordinal <code>score</code> is weakest of all (SST-5 0.372 in the vendor's own numbers).</li>
+      <li>The English checkpoint <strong>collapses on non-Latin scripts</strong> — Khmer scored 0.000 accuracy at 0.952 confidence, so confidence gating cannot save you. Route, or pick deliberately.</li>
+      <li>512 tokens per question, English on the base checkpoint; calibration is measured on their data, not ours.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>4. Where it can go in our projects</h2>
+<table>
+  <tr><th>use</th><th>model</th><th>what it replaces</th><th>cost</th><th>gain</th></tr>
+  <tr>
+    <td><strong>LayoutKeep: language &amp; script detection</strong></td>
+    <td>Laya router (multilingual)</td>
+    <td>heuristic detection</td>
+    <td>~1.7–2.2 GB, 33–464 ms per document, no fine-tune</td>
+    <td class="win">the pipeline's first and most corrupting decision; 45/51 languages and a probability attached</td>
+  </tr>
+  <tr>
+    <td><strong>LayoutKeep: document-type routing</strong></td>
+    <td>Laya <code>choice</code>, fine-tuned on our runs</td>
+    <td>the profile we pick by hand today</td>
+    <td>4–5 h Kaggle fine-tune + our labelled runs</td>
+    <td>scanned form vs legal text vs article decide how a page is treated</td>
+  </tr>
+  <tr>
+    <td><strong>LayoutKeep: review-flag triage</strong></td>
+    <td>GLiNER2 or Bonsai-1bit, <em>not</em> Laya</td>
+    <td>a human reading every flag</td>
+    <td>1.8–3.5 GB; 66 ms or 1.7 s per flag</td>
+    <td class="win">yes/no is exactly where Laya is weak and the classifiers are strong; our flags are a batch job, so 1.7 s is fine</td>
+  </tr>
+  <tr>
+    <td><strong>General: triage, guardrails, moderation</strong></td>
+    <td>Laya presets (<code>triage_questions()</code>, <code>guard_questions()</code>, <code>moderation_questions()</code>)</td>
+    <td>a chat model asked to "decide"</td>
+    <td>$0, local, 33 ms</td>
+    <td>injection/jailbreak and routing decisions become typed and auditable</td>
+  </tr>
+</table>
+
+<h2>5. What it costs us, honestly</h2>
+<ul class="tight">
+  <li><strong>VRAM is the real bill.</strong> The standing rule here is one model in the LM Studio
+      server at a time; Laya is a second process, and on this 8 GB laptop GPU it competes with the
+      translator. CPU is the honest default for it (193–464 ms preloaded, 7–10 s per switch if not).</li>
+  <li><strong>Preload, or don't bother.</strong> Without <code>Router(preload=True)</code> every
+      language switch reloads a checkpoint; that is the 7–10 s figure, not 33 ms.</li>
+  <li><strong>Zero-shot is not enough for the domain decisions.</strong> Language detection is a
+      general capability and can be used as-is. Document-type routing and flag triage need a
+      fine-tune on our own runs — which is the work, not the model.</li>
+  <li><strong>The repository is two days old.</strong> The method is a year old and published; the
+      packaging is not. Pin a version, keep it optional, and never let it become load-bearing before
+      it has passed a measured test on our own documents.</li>
+</ul>
+
+<h2>6. The plan I would actually run</h2>
+<ol class="tight">
+  <li><strong>Spike 1 — language detection (a day).</strong> Run <code>laya-multilingual</code> over
+      the first page of every held-out document and compare its answer with the language we know is
+      right. Acceptance: it agrees on all of them, and reports the script for the non-Latin ones
+      (the pipeline's known weak spot). No fine-tune, no integration — a script and a table.</li>
+  <li><strong>Spike 2 — flag triage (a day).</strong> Run GLiNER2 and Bonsai-1bit over the flagged
+      blocks of two recorded runs, with our own labels from the audits. Acceptance: better than the
+      heuristic on the same blocks, at a cost we can afford per run.</li>
+  <li><strong>Only then decide.</strong> If spike 1 lands, it goes behind a setting
+      (<code>detect.language_model = heuristic | laya</code>) with the heuristic as the default. If
+      spike 2 lands, the same shape. Nothing ships that we have not measured on our own pages.</li>
+</ol>
+
+<h2>Sources</h2>
+<ul class="tight src">
+  <li>TypeSafe, <em>Introducing System One Models and Jev</em> — typesafe.ai/blog/introducing-system-one-models-and-jev (pricing, latency, RLCD).</li>
+  <li><em>Three Jev clones and a 27B</em> — ayourtch-llm.github.io/apchat-blog (the independent suite: 78 cases, M4 Pro, GLiNER2 control).</li>
+  <li>Laya — github.com/NandhaKishorM/laya · huggingface.co/convaiinnovations/laya · pypi.org/project/laya (checkpoints, router numbers, fine-tune cost, limitations).</li>
+  <li>arXiv:2503.23303 — the paper the method descends from.</li>
+  <li>Benchmark suite: github.com/jabr/classifier-benchmark.</li>
+</ul>
+
+</body>
+</html>
