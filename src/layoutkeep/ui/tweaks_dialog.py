@@ -116,7 +116,25 @@ def _editor_holder(editor: QWidget, spec: tunables.Tunable) -> tuple[QWidget, QW
     browse.setToolTip(UIStrings.TWEAKS_GLOSSARY_TIP)
     browse.clicked.connect(lambda: _pick_file(line))
     row.addWidget(browse, 0)
+    if spec.key == "translation.glossary_path":
+        # The file is a list of term pairs, not a line of JSON to type: the editor opens the same
+        # file this field points at and writes it back.
+        edit = QPushButton(UIStrings.GLOSSARY_EDIT)
+        edit.setToolTip(UIStrings.GLOSSARY_TABLE_TIP)
+        edit.clicked.connect(lambda: _edit_glossary(line))
+        row.addWidget(edit, 0)
     return holder, line
+
+
+def _edit_glossary(line: QLineEdit) -> None:
+    """Open the glossary editor and keep the path field in step with what it saved."""
+    from layoutkeep.ui.glossary_dialog import GlossaryDialog
+
+    dialog = GlossaryDialog(line.window())
+    if dialog.exec():
+        configured = str(tunables.get("translation.glossary_path") or "").strip()
+        if configured:
+            line.setText(configured)
 
 
 def _pick_file(line: QLineEdit) -> None:
