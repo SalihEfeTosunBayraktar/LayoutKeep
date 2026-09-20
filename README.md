@@ -29,6 +29,11 @@ OpenAI-compatible cloud endpoint. Your documents never have to leave your machin
 
 ---
 
+> **Where the code on this branch stands.** `main` carries the last reviewed release; the
+> campaign that produced the screenshots, the comparison site and the roadmap below lives on
+> `feature/lossless-campaign-continuation` and has not been merged here on purpose. The documents
+> and images are published; the code they were produced with is reviewed before it is released.
+
 ## Why this is hard, and what this project actually promises
 
 Fully automatic layout-preserving translation does not exist — not here, not in any commercial
