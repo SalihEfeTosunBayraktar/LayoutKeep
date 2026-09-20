@@ -32,6 +32,7 @@ import string
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pymupdf
 from fontTools import subset as ft_subset
@@ -46,6 +47,9 @@ from layoutkeep.fitting.fit import min_scale_setting
 from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, resolve_font
 from layoutkeep.fitting.growth import free_below, may_grow
 from layoutkeep.fitting.room import room_below
+
+if TYPE_CHECKING:  # numpy is imported where it is used: writing a PDF does not need it
+    import numpy as np
 
 #: `insert_htmlbox`'s own line-height/padding model is not pixel-identical to the tight glyph
 #: bbox `pdf_reader.py` measures, so even untouched text can be a point or two taller than its
@@ -391,6 +395,30 @@ def _cover_scanned_blocks(
 _SCAN_IMAGE_COVERAGE = 0.9
 
 
+def _scan_pixels(pixmap: pymupdf.Pixmap) -> np.ndarray:
+    """The scan's pixels as an H x W x 3 uint8 array.
+
+    WHY THIS EXISTS: the whitening pass once rebuilt the buffer with a hard-coded three channels,
+    and a page whose scan image carries alpha died on `cannot reshape array of size 32770400 into
+    shape (3425, 2392, 3)` - the scanned Eleventh Development Plan, whose page image measures
+    `n=4, alpha=1`. PyMuPDF *keeps* an alpha channel across a `csRGB` conversion, so converting
+    first and reshaping afterwards is not enough. The chunk wrote nothing, the document was a chunk
+    short and the merge refused to build a document with a hole. Alpha is dropped first
+    (`Pixmap(pix, 0)` measured to give `n=3, alpha=0`), the reshape uses the pixmap's own component
+    count, and the last guard covers a source that still refuses to give its alpha up.
+    """
+    if pixmap.alpha:
+        pixmap = pymupdf.Pixmap(pixmap, 0)
+    if pixmap.n != 3:
+        pixmap = pymupdf.Pixmap(pymupdf.csRGB, pixmap)
+    import numpy as np  # local, like the rest of this module: numpy is not needed to write a PDF
+
+    pixels = np.frombuffer(pixmap.samples, np.uint8).reshape(pixmap.height, pixmap.width, pixmap.n).copy()
+    if pixels.shape[2] != 3:
+        pixels = pixels[:, :, :3]
+    return pixels
+
+
 def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, float]]) -> bool:
     """Remove the ink inside `rects` from the page's scanned image itself. True if it did.
 
@@ -436,9 +464,7 @@ def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, flo
 
     document = page.parent
     pixmap = pymupdf.Pixmap(document, scan["xref"])
-    if pixmap.alpha or pixmap.n != 3:
-        pixmap = pymupdf.Pixmap(pymupdf.csRGB, pixmap) if pixmap.n != 3 else pymupdf.Pixmap(pixmap, 0)
-    pixels = np.frombuffer(pixmap.samples, np.uint8).reshape(pixmap.height, pixmap.width, 3).copy()
+    pixels = _scan_pixels(pixmap)
 
     x0, y0, x1, y1 = scan["bbox"]
     sx, sy = pixmap.width / (x1 - x0), pixmap.height / (y1 - y0)

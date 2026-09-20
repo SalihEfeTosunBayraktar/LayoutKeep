@@ -2048,3 +2048,49 @@ not. `main_window.changeEvent` watches `WindowStateChange` and hands the run to 
 window is minimized (`if self.isMinimized() or not self.isVisible()`, `main_window.py:127`). The exe
 was launched with `-WindowStyle Minimized`, so the bar was doing exactly its job, and both launches
 told the same story because both used the same launch flag. Launch it normally and the window stays.
+
+## The scan that carried alpha, and the chunk that could never be written
+
+The TR -> EN campaign finished at 23:25 with `tr_plan_11 exit=1`, and its log said why in one line:
+`1 chunk(s) produced no output; not merging a document with holes`. Refusing to merge a document with
+a hole is the right behaviour - and it left one document unfinished.
+
+Forty-nine of the fifty chunks were on disk. The hole was chunk 0000, which had neither an output nor
+a `.lkproj` progress marker, so `--resume` retried it - and it failed again, in 11-12 seconds, every
+time. Its own log ends on three lines that are not a Python traceback:
+
+    'created' timestamp out of range; ignoring top bytes
+    'created' timestamp seems very low; regarding as unix timestamp
+    cannot reshape array of size 32770400 into shape (3425, 2392, 3)
+
+The failure sits below Python: `faulthandler` produced no native traceback either, and the chunk's
+entire stderr is captured into that log, so nothing was being swallowed. The numbers are the clue:
+32,770,400 = 2392 x 3425 x 4, and 2392 x 3425 is exactly the page - a four-component buffer was being
+reshaped into three.
+
+The line is in `writers/pdf_writer.py`. The whitening pass rebuilds the scanned image's pixel buffer
+with a hard-coded three channels, while the guard above it converted the colour space only when
+`pixmap.n != 3`. Measured on that page's image: `Pixmap(doc, xref)` gives `n=4, alpha=1`, and
+`Pixmap(csRGB, pixmap)` **keeps** the alpha, so the buffer stayed four components wide. Dropping alpha
+first was measured to give `n=3, alpha=0`, and `csRGB` after it w*h*3 bytes.
+
+Fixed by dropping alpha before the colour conversion and reshaping on the pixmap's own component
+count, and the conversion now lives in `_scan_pixels` so it can be tested on its own
+(`tests/test_pdf_writer_scan_alpha.py`). The test was **proved red** by putting the base's logic back
+inside the helper: `ValueError: cannot reshape array of size 192 into shape (6,8,3)` - the same defect
+on a smaller page.
+
+Then the real thing, with the fix in place: `[50/50] ok chunk 0000 ... wrote out/t_0000.pdf` and
+**`merged 50 chunks -> tr_plan_11.en.pdf (198 pages)`**. The Eleventh Development Plan is whole, and it
+is a publishable source (state publication, no third-party rights), so it can go on the comparison
+site with the others.
+
+Two things this leaves on the table, worth doing rather than forgetting:
+
+1. **The failure was undiagnosable from the campaign log for a while.** One line, `exit=1`, and a
+   chunk log whose last lines are library noise. The tool already writes the chunk's whole stderr to
+   `out/t_NNNN.log`; what was missing was any hint of *where* the chunk died. A failing chunk should
+   leave the stage it died in - the reader, the model, the fitting pass or the writer - in its log.
+2. **A chunk that fails after eleven hours of a campaign gets no automatic second try.** `--resume`
+   covers it, but only if someone notices the document was not merged. A single in-run retry would
+   have finished this document at 23:00 with nobody watching.
