@@ -2088,9 +2088,11 @@ site with the others.
 Two things this leaves on the table, worth doing rather than forgetting:
 
 1. **The failure was undiagnosable from the campaign log for a while.** One line, `exit=1`, and a
-   chunk log whose last lines are library noise. The tool already writes the chunk's whole stderr to
-   `out/t_NNNN.log`; what was missing was any hint of *where* the chunk died. A failing chunk should
-   leave the stage it died in - the reader, the model, the fitting pass or the writer - in its log.
+   chunk log whose last lines are library noise. **Done the same night:** `translate_book.py` now
+   names the stage a failing chunk died in (`died after 'review'`), read from the pipeline's own stage
+   lines by `_stage_reached` - `tests/test_translate_book_stage.py` keeps the real log tail from this
+   incident as its fixture, and its end-to-end test was **proved red** by disabling the branch (the
+   base's tail is the `retry … | fitting … | review …` line this campaign printed).
 2. **A chunk that fails after eleven hours of a campaign gets no automatic second try.** `--resume`
    covers it, but only if someone notices the document was not merged. **Done the same night:**
    `translate_book.py` retries each failed chunk once, sequentially, through `_retry_failed`

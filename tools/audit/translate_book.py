@@ -57,6 +57,26 @@ def split_pages(src: Path, work: Path, pages_per_chunk: int) -> list[tuple[int, 
     return chunks
 
 
+#: The stages `layoutkeep translate` prints, in order. A chunk that dies leaves its log ending at the
+#: last stage it reached, and that is what tells a reader whether the reader, the model, the fitting
+#: pass or the writer is at fault. A failing chunk used to report only `exit=1` plus its interesting
+#: lines, and placing tonight's failure (the writer, below Python, with no traceback) took a dozen
+#: steps - from the campaign log's one line to the reshape that named the channel count.
+_STAGES = (
+    "reading", "segments", "estimate", "provider", "protect", "retry", "translated", "memory",
+    "length", "fitting", "review", "wrote",
+)
+
+
+def _stage_reached(log: str) -> str:
+    """The last stage the chunk reached, for a failure message. `unknown` if it never started."""
+    for line in reversed(log.splitlines()):
+        head = line.strip().split(" ", 1)[0]
+        if head in _STAGES:
+            return head
+    return "unknown"
+
+
 def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[Path, int, str]:
     """Run one `layoutkeep translate` for one chunk. Returns (output, returncode, tail)."""
     if out.exists() and args.resume:
@@ -100,6 +120,13 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
         line for line in (proc.stdout + proc.stderr).splitlines()
         if any(token in line for token in _INTERESTING)
     ]
+    if proc.returncode != 0:
+        # Name the stage it died in: it is the difference between "the writer" and a hunt through a
+        # log whose last lines belong to a library.
+        return out, proc.returncode, (
+            f"{elapsed:6.0f}s | died after '{_stage_reached(proc.stdout + proc.stderr)}' | "
+            + " | ".join(lines[-3:])
+        )
     return out, proc.returncode, f"{elapsed:6.0f}s | " + " | ".join(lines[-4:])
 
 
