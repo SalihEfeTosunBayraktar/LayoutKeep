@@ -598,6 +598,10 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
         self._range_input.setVisible(index == 1)
         self._range_hint.setVisible(index == 1)
 
+    def input_path(self) -> str:
+        """The file the screen is pointed at - the document a glossary suggestion reads."""
+        return self._input_path.text().strip()
+
     def _emit_job(self) -> None:
         # Doğrulamadan sonra job_ready sinyali yayar / Validates and emits job_ready signal
         kind = getattr(self._provider_config, "kind", None) or "openai"

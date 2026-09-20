@@ -98,7 +98,9 @@ def _set_editor_value(editor: QWidget, value: Any) -> None:
         editor.setValue(float(value) if isinstance(editor, QDoubleSpinBox) else int(value))
 
 
-def _editor_holder(editor: QWidget, spec: tunables.Tunable) -> tuple[QWidget, QWidget]:
+def _editor_holder(
+    editor: QWidget, spec: tunables.Tunable, document_path: str = ""
+) -> tuple[QWidget, QWidget]:
     """The editor, plus a "Browse" companion when the tunable is a path.
 
     Returns (holder, focus_widget): the holder goes into the form, the focus widget is what the
@@ -121,16 +123,17 @@ def _editor_holder(editor: QWidget, spec: tunables.Tunable) -> tuple[QWidget, QW
         # file this field points at and writes it back.
         edit = QPushButton(UIStrings.GLOSSARY_EDIT)
         edit.setToolTip(UIStrings.GLOSSARY_TABLE_TIP)
-        edit.clicked.connect(lambda: _edit_glossary(line))
+        edit.clicked.connect(lambda: _edit_glossary(line, document_path))
         row.addWidget(edit, 0)
     return holder, line
 
 
-def _edit_glossary(line: QLineEdit) -> None:
+def _edit_glossary(line: QLineEdit, document_path: str = "") -> None:
     """Open the glossary editor and keep the path field in step with what it saved."""
     from layoutkeep.ui.glossary_dialog import GlossaryDialog
 
     dialog = GlossaryDialog(line.window())
+    dialog.set_document(document_path or None)
     if dialog.exec():
         configured = str(tunables.get("translation.glossary_path") or "").strip()
         if configured:
@@ -153,11 +156,14 @@ class TweaksDialog(QDialog):
 
     applied = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, document_path: str = "") -> None:
         super().__init__(parent)
         self.setWindowTitle(UIStrings.TWEAKS_TITLE)
         self.setMinimumWidth(620)
         self._editors: dict[str, QWidget] = {}
+        # The job's input, so the glossary editor can offer terms the document repeats. Empty when
+        # the dialog is opened outside a job - the suggestion button stays off.
+        self._document_path = document_path
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -218,7 +224,7 @@ class TweaksDialog(QDialog):
                 form.addRow(heading)
             editor = _editor_for(spec)
             self._editors[spec.key] = editor
-            field, _focus = _editor_holder(editor, spec)
+            field, _focus = _editor_holder(editor, spec, self._document_path)
 
             caption = QLabel(spec.help_text)
             caption.setProperty("class", "muted")

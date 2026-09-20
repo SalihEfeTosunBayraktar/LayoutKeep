@@ -340,7 +340,7 @@ class MainWindow(QWidget):
         # Gelişmiş ayarlar penceresini açar / Opens the advanced settings dialog
         from layoutkeep.ui.tweaks_dialog import TweaksDialog
 
-        dialog = TweaksDialog(self)
+        dialog = TweaksDialog(self, document_path=self._setup.input_path())
         dialog.welcome_requested.connect(self.show_welcome)
         dialog.exec()
 

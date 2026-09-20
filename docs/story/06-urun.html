@@ -92,7 +92,10 @@
 <h2>6.6 Çift dilli PDF</h2>
 <p><strong>İstenen:</strong> karşılaştırma sitesi kaynak ↔ çeviri yan yana gösteriyor, ama PDF çıktısında yok.</p>
 <p><code>--dual side|alternate</code> (ve arayüzde bir kutu): <code>side</code> her sayfada solda kaynak sağda çeviri (sayfa genişliği 2×), <code>alternate</code> her kaynak sayfadan sonra çevirisi (sayfa sayısı 2×). Tasarım kararı <strong>boru hattına dokunmamak</strong>: birleştirme, iki bitmiş dosyadan sonradan yapılır, çünkü denetim kaynak sayfa N'i çıktı sayfa N ile eşler ve çift dilli bir belge bu eşlemeyi bozar. Böylece çevrilmiş PDF ve <code>audit.json</code> aynen kalır; çift dilli dosya onların yanına yazılır. Yarıda kalan koşuda yalnız iki belgenin de sahip olduğu sayfalar birleştirilir ve sayı bildirilir. Plan ve ölçüm: <code>docs/DUAL-OUTPUT-PLAN.md</code>.</p>
-<h2>6.7 Sürümler ve yayın akışı</h2>
+<h2>6.7 Sözlük: terim adayları belgeden</h2>
+<p><strong>Yol haritasının 5. maddesi.</strong> Sözlük, boru hattının en güçlü kalite kolu (terim istemde zorlanır ve çıktıda denetlenir), ama elle doldurmak belgeyi okuyup tekrarları fark etmek demek — bir makinenin işi. <code>core/terms.py</code> belgede <strong>tekrar eden</strong> öbekleri bulur: 1-3 kelimelik, işlev sözcüğüyle başlamayan/bitmeyen, en az N kez geçen, sayı olmayan. Sıralama sıklık × uzunluk.</p>
+<p>Bu bir <strong>sıklık kuralı</strong>, anlama değil — docstring bunu açıkça yazar. Sonuç, düzenleyicide <strong>boş hedef hücreleriyle</strong> açılan bir listedir; çevirileri insan yazar ve hiçbir şey kullanıcı kaydetmeden bir koşuya girmez. Sözlükte zaten olan terim önerilmez. 9 test; ikisi gerçek bir PDF sayfası üzerinden düzenleyiciyle konuşur.</p>
+<h2>6.8 Sürümler ve yayın akışı</h2>
 <p>Uygulama <strong>tek dosya</strong> olarak yayınlanır (<code>LayoutKeep.exe</code>, ~173 MB, onefile), GitHub Releases üzerinden. Yayın akışı:</p>
 <ol><li><code>pyproject.toml</code> + <code>__init__.py</code> sürümü artırılır.</li><li><code>PyInstaller packaging/layoutkeep_onefile.spec --noconfirm --clean</code> ile derlenir.</li><li>Tam test süiti koşar.</li><li>Etiket + release; <strong>indirilen dosyanın SHA-256'sı yerel derlemeyle karşılaştırılır</strong>.</li></ol>
 <p>Yayınlanan sürümler ve her birinin getirdiği şey:</p>
@@ -109,7 +112,7 @@
 <tr><td>0.9.5</td><td>Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır</td></tr>
 </tbody>
 </table>
-<h2>6.8 Karşılaştırma sitesi</h2>
+<h2>6.9 Karşılaştırma sitesi</h2>
 <p><strong>İstenen:</strong> <em>"orijinal kaynakları ve çevrilmiş hallerini yan yana kıyaslayabileceğim bir slider web sitesi, tüm örnekler için."</em></p>
 <p>Site <code>docs/comparison/</code> altında üretilir ve GitHub Pages'te yayınlanır:</p>
 <ul><li><strong>Tek belge görüntüleyici</strong>: solda orijinal, sağda çeviri, ortada sürüklenebilir ayırıcı;</li></ul>
@@ -121,12 +124,12 @@
 <ul><li><strong>Telif kuralı</strong>: yalnız açık lisanslı/kamu malı kaynaklar yayınlanır; telifli olanlar</li></ul>
 <p>(<code>NOT_PUBLISHABLE</code>) yalnız kullanıcının diskinde kalır.</p>
 <p>Görseller tek belge başına yüklenir (tembel): toplam 49 MB'lık arşiv, ziyaretçi başına ~1 MB'lık trafik demektir. NASA belgesinin 6997×3163'lük render'ları 3200px'e indirildi (10,4 MB → 1,9 MB) — zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.</p>
-<h2>6.9 GitHub Pages: açılış sayfası ve bağlantılar</h2>
+<h2>6.10 GitHub Pages: açılış sayfası ve bağlantılar</h2>
 <ul><li><strong>Kök</strong> (<code>/LayoutKeep/</code>): açılış sayfası — indirme, karşılaştırma sitesi ve hikâye bağlantıları.</li><li><strong><code>/docs/comparison/</code></strong>: karşılaştırma sitesi.</li><li><strong><code>/docs/story/</code></strong>: bu belge (çok sayfalı).</li><li><strong>Eski adres</strong> (<code>docs/comparison.html</code>): 4,4 MB'lık tek dosyalık eski sayfa, paylaşılmış</li></ul>
 <p>bağlantılar kırılmasın diye <strong>yönlendirmeye</strong> dönüştürüldü.</p>
 <ul><li><strong>README'ler</strong> (EN/TR): indirme bağlantısı <code>releases/latest</code> üzerinden; vitrin düğmeleri güncel</li></ul>
 <p>siteye bakar; "bu daldaki kodun durumu" notu iki dilde de kalıcıdır (bir push onu silmişti, geri konuldu ve iki tarafta tutuluyor).</p>
-<h2>6.10 Ölçek: bugünkü sayılar</h2>
+<h2>6.11 Ölçek: bugünkü sayılar</h2>
 <table>
 <thead><tr>
 <th></th>

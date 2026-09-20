@@ -14,6 +14,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -53,6 +54,13 @@ class GlossaryDialog(QDialog):
         self._remove_btn = QPushButton(UIStrings.GLOSSARY_REMOVE)
         self._load_btn = QPushButton(UIStrings.GLOSSARY_LOAD)
         self._save_btn = QPushButton(UIStrings.GLOSSARY_SAVE)
+        self._suggest_btn = QPushButton(UIStrings.GLOSSARY_SUGGEST)
+        self._suggest_btn.setToolTip(UIStrings.GLOSSARY_SUGGEST_TIP)
+        self._suggest_btn.setEnabled(False)
+        self._suggest_btn.clicked.connect(self._suggest)
+        self._status = QLabel("")
+        self._status.setProperty("class", "muted")
+        self._status.setWordWrap(True)
         self._add_btn.clicked.connect(self._add_row)
         self._remove_btn.clicked.connect(self._remove_row)
         self._load_btn.clicked.connect(self._load)
@@ -71,6 +79,7 @@ class GlossaryDialog(QDialog):
         row = QHBoxLayout()
         row.addWidget(self._add_btn)
         row.addWidget(self._remove_btn)
+        row.addWidget(self._suggest_btn)
         row.addStretch(1)
         row.addWidget(self._load_btn)
         row.addWidget(self._save_btn)
@@ -79,6 +88,7 @@ class GlossaryDialog(QDialog):
         layout.addWidget(self._caption)
         layout.addWidget(self._table, 1)
         layout.addLayout(row)
+        layout.addWidget(self._status)
         layout.addWidget(buttons)
 
         self._load_from_configured_path()
@@ -119,6 +129,49 @@ class GlossaryDialog(QDialog):
         row = self._table.currentRow()
         if row >= 0:
             self._table.removeRow(row)
+
+    def set_document(self, path: str | Path | None) -> None:
+        """The document to draw suggestions from (the job's input). Without one the button is off.
+
+        Optional on purpose: the editor is also opened from the settings screen, where no job is
+        in flight and there is nothing to read.
+        """
+        self._document = Path(path) if path else None
+        self._suggest_btn.setEnabled(self._document is not None and self._document.exists())
+
+    def _suggest(self) -> None:
+        """Fill the table with terms the document repeats, targets left for the person to write.
+
+        This is a list to edit, never a glossary applied silently: the extraction is a frequency
+        rule (core/terms.py), so its output is a suggestion with an empty translation column, and
+        nothing enters a run until the user saves it.
+        """
+        if self._document is None or not self._document.exists():
+            self._status.setText(UIStrings.GLOSSARY_SUGGEST_NONE)
+            return
+        self._status.setText(UIStrings.GLOSSARY_SUGGEST_READING)
+        QApplication.processEvents()
+        try:
+            from layoutkeep.core.terms import suggest_from_document
+            from layoutkeep.writers.converter import read_any_document
+
+            document = read_any_document(self._document)
+            found = suggest_from_document(document, limit=25, exclude=set(self.terms()))
+        except Exception as error:  # noqa: BLE001 - a suggestion that fails (a corrupt
+            # file, an unsupported format) must not take the editing session down with it.
+            self._status.setText(f"{type(error).__name__}: {error}")
+            return
+        existing = {source.strip().casefold() for source in self.terms()}
+        added = 0
+        for candidate in found:
+            if candidate.phrase.casefold() in existing:
+                continue
+            self._append(candidate.phrase, "")
+            added += 1
+        if added:
+            self._status.setText(UIStrings.GLOSSARY_SUGGEST_ADDED.format(count=added))
+        else:
+            self._status.setText(UIStrings.GLOSSARY_SUGGEST_EMPTY)
 
     def _load(self) -> None:
         chosen, _ = QFileDialog.getOpenFileName(

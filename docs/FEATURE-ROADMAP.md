@@ -89,9 +89,12 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    kayıtlı çevirileri yeniden yazar — model gerekmez, A/B aynı girdiyle yapılır. **Not:** bu
    değişiklik `fitting/`'i etkilediği için çalışan bir koşu sürerken yapılmaz (her parça yeni
    süreç başlatır → parçalar arası tutarsızlık olur).
-5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (sözlük
-   düzenleyicisine "belgeden öner" düğmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen
-   sözlükle örtüşmesi.
+5. ~~Otomatik terim adayları~~ **yapıldı (2026-09-20)**: `core/terms.py` (sıklık kuralı, dürüstçe
+   "anlama değil tekrar" diye yazılı) + sözlük düzenleyicisinde **"Belgeden öner"** düğmesi
+   (kurulumdaki dosyayı okur, adayları boş hedef hücreleriyle ekler, hedef sütununu insan yazar).
+   Dışlama kuralı: sözlükte zaten olan terim önerilmez. 9 test. Kalan: adayları çok dilli
+   stopword listeleriyle iyileştirmek ve terim adaylarını **önizlemeli** göstermek (şu an
+   doğrudan satır ekliyor).
 6. **Küçük editör**: inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazma. Emek:
    yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri bozulmadan.
 7. **Sayfa-ötesi bağlam**: parça sınırında önceki parçanın son 2 bloğunu isteme eklemek. Emek:

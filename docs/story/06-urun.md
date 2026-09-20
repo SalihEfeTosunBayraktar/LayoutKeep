@@ -88,7 +88,19 @@ Böylece çevrilmiş PDF ve `audit.json` aynen kalır; çift dilli dosya onları
 Yarıda kalan koşuda yalnız iki belgenin de sahip olduğu sayfalar birleştirilir ve sayı bildirilir.
 Plan ve ölçüm: `docs/DUAL-OUTPUT-PLAN.md`.
 
-## 6.7 Sürümler ve yayın akışı
+## 6.7 Sözlük: terim adayları belgeden
+
+**Yol haritasının 5. maddesi.** Sözlük, boru hattının en güçlü kalite kolu (terim istemde zorlanır
+ve çıktıda denetlenir), ama elle doldurmak belgeyi okuyup tekrarları fark etmek demek — bir
+makinenin işi. `core/terms.py` belgede **tekrar eden** öbekleri bulur: 1-3 kelimelik, işlev
+sözcüğüyle başlamayan/bitmeyen, en az N kez geçen, sayı olmayan. Sıralama sıklık × uzunluk.
+
+Bu bir **sıklık kuralı**, anlama değil — docstring bunu açıkça yazar. Sonuç, düzenleyicide
+**boş hedef hücreleriyle** açılan bir listedir; çevirileri insan yazar ve hiçbir şey kullanıcı
+kaydetmeden bir koşuya girmez. Sözlükte zaten olan terim önerilmez. 9 test; ikisi gerçek bir PDF
+sayfası üzerinden düzenleyiciyle konuşur.
+
+## 6.8 Sürümler ve yayın akışı
 
 Uygulama **tek dosya** olarak yayınlanır (`LayoutKeep.exe`, ~173 MB, onefile), GitHub Releases
 üzerinden. Yayın akışı:
@@ -108,7 +120,7 @@ Yayınlanan sürümler ve her birinin getirdiği şey:
 | 0.9.4 | **Uygulama istekleri paralel gönderiyor** (dalga dalga, belge sırasında birleşir) |
 | 0.9.5 | Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır |
 
-## 6.8 Karşılaştırma sitesi
+## 6.9 Karşılaştırma sitesi
 
 **İstenen:** *"orijinal kaynakları ve çevrilmiş hallerini yan yana kıyaslayabileceğim bir slider
 web sitesi, tüm örnekler için."*
@@ -129,7 +141,7 @@ Görseller tek belge başına yüklenir (tembel): toplam 49 MB'lık arşiv, ziya
 trafik demektir. NASA belgesinin 6997×3163'lük render'ları 3200px'e indirildi (10,4 MB → 1,9 MB) —
 zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
 
-## 6.9 GitHub Pages: açılış sayfası ve bağlantılar
+## 6.10 GitHub Pages: açılış sayfası ve bağlantılar
 
 - **Kök** (`/LayoutKeep/`): açılış sayfası — indirme, karşılaştırma sitesi ve hikâye bağlantıları.
 - **`/docs/comparison/`**: karşılaştırma sitesi.
@@ -140,7 +152,7 @@ zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
   siteye bakar; "bu daldaki kodun durumu" notu iki dilde de kalıcıdır (bir push onu silmişti,
   geri konuldu ve iki tarafta tutuluyor).
 
-## 6.10 Ölçek: bugünkü sayılar
+## 6.11 Ölçek: bugünkü sayılar
 
 | | Değer |
 |---|---|
