@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LayoutKeep — layout-preserving document translation</title>
+<meta name="description" content="LayoutKeep translates PDF, EPUB and DOCX documents while keeping their layout: the same boxes, the same figures, the same page breaks. Compare source and translation page by page.">
+<link rel="canonical" href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/">
+<style>
+  :root {
+    --bg: #14161b;
+    --card: #1c2028;
+    --border: #2a3038;
+    --text: #e8ecf1;
+    --muted: #98a2b3;
+    --accent: #4c9aff;
+    --accent-text: #08121f;
+    --ok: #57d9a3;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8fb; --card: #ffffff; --border: #dde3ea;
+      --text: #1a1f27; --muted: #5b6675; --accent: #1d6fd6; --accent-text: #ffffff; --ok: #0f9d63;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 4rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.9rem, 5vw, 3rem); line-height: 1.15; margin: 0 0 .6rem; letter-spacing: -.02em; }
+  h1 span { color: var(--accent); }
+  .lede { font-size: 1.15rem; color: var(--muted); max-width: 44rem; margin: 0 0 2rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 3rem; }
+  a.button {
+    display: inline-block; padding: .8rem 1.4rem; border-radius: 10px; text-decoration: none;
+    background: var(--accent); color: var(--accent-text); font-weight: 600;
+  }
+  a.ghost {
+    display: inline-block; padding: .8rem 1.4rem; border-radius: 10px; text-decoration: none;
+    border: 1px solid var(--border); color: var(--text);
+  }
+  .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem 1.3rem; }
+  .card h2 { font-size: 1rem; margin: 0 0 .4rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .shot { margin: 3rem 0 0; }
+  .shot img { width: 100%; border: 1px solid var(--border); border-radius: 14px; display: block; }
+  .shot figcaption { color: var(--muted); font-size: .9rem; margin-top: .6rem; }
+  footer { color: var(--muted); font-size: .9rem; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.2rem; }
+  code { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: .1rem .35rem; font-size: .9em; }
+  .ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<main>
+  <h1>LayoutKeep keeps the <span>layout</span>.<br>The words change, the page does not.</h1>
+  <p class="lede">
+    A local-first translator for PDF, EPUB and DOCX that works on the document's own layout model:
+    every text box keeps its position and its size, figures stay where they were, tables keep their
+    rows, and what does not fit is flagged for review instead of being silently crushed.
+  </p>
+
+  <div class="cta">
+    <a class="button" href="docs/comparison/">Open the page-by-page comparison →</a>
+    <a class="ghost" href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep#readme">Read the README</a>
+    <a class="ghost" href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep/releases/latest">Download the app</a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Compare, don't take our word</h2>
+      <p>Every measured document is published with its source and its translation side by side under a
+      draggable divider — plus the audit numbers the checker produced for it.</p>
+    </div>
+    <div class="card">
+      <h2>Runs on your machine</h2>
+      <p>Point it at LM Studio or any OpenAI-compatible endpoint. No document leaves the computer
+      unless the endpoint you chose is remote.</p>
+    </div>
+    <div class="card">
+      <h2>Losses are reported</h2>
+      <p>Ten loss criteria and three fit criteria are checked after writing: a dropped number, a
+      moved block, text over a figure — each one lands in a review queue, not in silence.</p>
+    </div>
+    <div class="card">
+      <h2>Open sources, published pages</h2>
+      <p>The comparison set is public-domain or openly licensed (NIST, NASA, PLOS, Wikipedia,
+      Project Gutenberg). Copyrighted test documents stay on the author's disk.</p>
+    </div>
+  </div>
+
+  <figure class="shot">
+    <img src="docs/screenshots/07_welcome_first_light.png" alt="The first-run screen of the LayoutKeep desktop app" loading="lazy">
+    <figcaption>The desktop application explains itself on first run — in Turkish, English or German.</figcaption>
+  </figure>
+
+  <footer>
+    <p class="ok">LayoutKeep is in active development. The comparison site shows the current engine's
+    output on documents it was not tuned for.</p>
+    <p><a href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep">github.com/SalihEfeTosunBayraktar/LayoutKeep</a></p>
+  </footer>
+</main>
+</body>
+</html>
