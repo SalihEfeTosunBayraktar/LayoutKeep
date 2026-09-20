@@ -148,7 +148,7 @@ def main() -> int:
     for key, label in (
         ("L1", "same pages"),
         ("L2", "left untranslated"),
-        ("L3", "dropped by writer"),
+        ("L3", "text not on the page"),
         ("L4", "off the page"),
         ("L5", "markup leaked"),
         ("L6", "numbers lost"),

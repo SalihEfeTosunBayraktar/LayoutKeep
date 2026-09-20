@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from layoutkeep.core import tunables  # noqa: E402
 
 LABELS = [
-    ("L1", "same pages"), ("L2", "left untranslated"), ("L3", "dropped by writer"),
+    ("L1", "same pages"), ("L2", "left untranslated"), ("L3", "text not on the page"),
     ("L4", "off the page"), ("L5", "markup leaked"), ("L6", "numbers lost"),
     ("L7", "text over text"), ("L8", "untouched moved"), ("L9", "garbled letters"),
     ("D1", "below readability"), ("D2", "short, unchanged"), ("D3", "squeezed lines"),
