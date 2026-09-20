@@ -13,7 +13,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from layoutkeep.core import tunables
+from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import (
     Document,
     apply_segments,
@@ -585,7 +585,9 @@ def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
         seg.target = result.text
         if result.needs_review:
             seg.needs_review = True
-            seg.review_reason = result.review_reason or "çeviri kutuya sığmadı, küçültme yetmedi"
+            seg.review_reason = review.sentence(result.review_reason) or (
+                "çeviri kutuya sığmadı, küçültme yetmedi"
+            )
             block.needs_review = True
             block.review_reason = seg.review_reason
         _apply_scale(block, result.scale)

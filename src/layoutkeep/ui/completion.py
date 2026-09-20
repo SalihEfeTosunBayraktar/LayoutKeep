@@ -191,6 +191,11 @@ class CompletionWidget(QFrame):
         ]
         if flagged:
             lines.append(UIStrings.COMPLETION_FLAGGED.format(count=flagged))
+            # How many of those are the box rather than the text: a different problem, and one no
+            # rephrasing fixes, so the screen must not let the two look alike.
+            crushed = int(self._stats.get("flagged_box_crushed", 0) or 0)
+            if crushed:
+                lines.append(UIStrings.COMPLETION_FLAGGED_BOX.format(count=crushed))
         lines += self._verification_lines()
         self._stats_label.setText("\n".join(lines))
         self._stats_title.setVisible(True)

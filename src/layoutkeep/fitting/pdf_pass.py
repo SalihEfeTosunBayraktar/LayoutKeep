@@ -139,13 +139,11 @@ def fit_pdf_pass(
         )
         crushed = measured_box.height <= min(block.bbox.height, _MIN_BOX_HEIGHT_PT) + 0.01
         if result.needs_review and missing > 0 and crushed:
-            # The box, not the text: `room_below` shortened it to keep clear of the next block,
-            # and a box that lost half its height is why nothing fits (measured: the flags on the
-            # book are mostly these, crushed to 6pt where no text fits at any size). The front-end
-            # shows this reason instead of its own "shrinking was not enough".
-            result.review_reason = (
-                "kutu sonraki bloğa değmesin diye kısaltıldı; metin bu kutuya sığmıyor"
-            )
+            # A key, not a sentence: the front-ends turn it into the interface's language (the
+            # same split `ui.progress.format_phase` uses for phase names), and the completion
+            # screen counts it. A box shortened to its floor has nothing to draw in - no text fits
+            # in six points - and that is a different problem from a translation that is too long.
+            result.review_reason = "box_crushed"
         if on_fitted is not None:
             on_fitted(seg, block, result)
         results.append(result)

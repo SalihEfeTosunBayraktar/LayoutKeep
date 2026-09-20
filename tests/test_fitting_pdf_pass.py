@@ -193,7 +193,8 @@ class TestReviewReasons:
 
         assert seen, "the block must reach the engine"
         assert seen[0].needs_review, seen[0]
-        assert "kutu" in seen[0].review_reason, seen[0].review_reason
+        # The engine reports a key; the front-ends own the words (see core/review.py).
+        assert seen[0].review_reason == "box_crushed", seen[0].review_reason
 
     def test_an_ordinary_overflow_keeps_the_generic_reason(self) -> None:
         """A block with room below it is a text problem, and must not claim otherwise."""

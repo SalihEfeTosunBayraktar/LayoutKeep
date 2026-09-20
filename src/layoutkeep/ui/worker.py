@@ -16,7 +16,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 
-from layoutkeep.core import tunables
+from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import (
     Document,
     Segment,
@@ -288,6 +288,10 @@ class TranslationWorker(QThread):
         self._pause_event.set()
         #: Wall clock at the start of _run, for the completion screen's total time.
         self._started_at: float | None = None
+        #: Flags whose cause is the box rather than the text (core.review.BOX_CRUSHED), counted
+        #: for the completion screen - a user reading "N need review" deserves to know how many
+        #: of them are a layout problem no amount of rephrasing would fix.
+        self._box_crushed = 0
 
     def pause(self) -> None:
         """Ask the loop to stop at the next chunk boundary.
@@ -544,6 +548,7 @@ class TranslationWorker(QThread):
             "segments_total": total,
             "segments_done": done,
             "segments_flagged": flagged,
+            "flagged_box_crushed": self._box_crushed,
             "chars": chars,
             "elapsed_s": elapsed,
             "chars_per_second": (chars / elapsed) if elapsed > 0 else 0.0,
@@ -587,7 +592,13 @@ class TranslationWorker(QThread):
             seg.target = result.text
             if result.needs_review:
                 seg.needs_review = True
-                seg.review_reason = result.review_reason or "çeviri kutuya sığmadı, küçültme yetmedi"
+                if result.review_reason == review.BOX_CRUSHED:
+                    # The box, not the text: say so in the interface's own language, and count it
+                    # for the completion screen (the engine reports a key, the UI owns the words).
+                    seg.review_reason = UIStrings.get("REVIEW_BOX_CRUSHED")
+                    self._box_crushed += 1
+                else:
+                    seg.review_reason = "çeviri kutuya sığmadı, küçültme yetmedi"
                 block.needs_review = True
                 block.review_reason = seg.review_reason
             apply_scale(block, result.scale)
