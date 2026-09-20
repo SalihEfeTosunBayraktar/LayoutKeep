@@ -4,6 +4,10 @@
 [`NandhaKishorM/laya`](https://github.com/NandhaKishorM/laya), and can it be integrated into our
 local projects — LayoutKeep or generally?*
 
+> **The fuller version of this note, with every number and its source, is the web report
+> [`system-one-models.html`](system-one-models.html)** — measured accuracy, latency and cost for
+> Laya, Jev and the open alternatives, plus the plan. This file is the short repo-native summary.
+
 ## What it is
 
 Laya is a **multilingual, non-autoregressive "System 1" decision engine**: it does not generate
