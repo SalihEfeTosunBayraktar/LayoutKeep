@@ -229,20 +229,11 @@ def _build_provider(config: JobConfig):
 
 
 def _timeout_error_message(base_url: str, timeout: float) -> str:
-    return (
-        f"Sunucu ({base_url}) {timeout:.0f} saniye içinde yanıt vermedi.\n"
-        "Büyük bir yerel model yüklenmesi dakikalar sürebilir; sunucu tamamen hazır "
-        "olduktan sonra tekrar deneyin, ya da Sağlayıcı Ayarları'ndan zaman aşımını "
-        "elle yükseltin."
-    )
+    return UIStrings.get("ERROR_TIMEOUT").format(url=base_url, s=f"{timeout:.0f}")
 
 
 def _connection_error_message(base_url: str, exc: Exception) -> str:
-    return (
-        f"{base_url} adresine ulaşılamıyor: {exc}\n"
-        "LM Studio (1234 portu) veya Ollama (11434 portu) sunucusunun çalıştığından "
-        "ve sunucu modunun etkin olduğundan emin olun."
-    )
+    return UIStrings.get("ERROR_CONNECTION").format(url=base_url, exc=exc)
 
 
 def _compute_batch_timeout(
@@ -360,7 +351,7 @@ class TranslationWorker(QThread):
         segments = self._filter_segments(doc, config)
         total = len(segments)
         if total == 0:
-            self.failed.emit("Belgede çevrilebilir metin bulunamadı.")
+            self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return
 
         total_chars = sum(len(s.source) for s in segments)
@@ -436,7 +427,7 @@ class TranslationWorker(QThread):
         unified = unify_repeats(translated, config.target_lang)
         if unified["rewritten"]:
             self.status.emit(
-                f"{unified['rewritten']} tekrarlanan segment aynı kaynak için tek çeviriye getirildi"
+                UIStrings.get("STATUS_REPEATS_UNIFIED").format(n=unified["rewritten"])
             )
 
         # PDF: translated text must fit its original boxes, exactly like the CLI fits it
@@ -598,7 +589,7 @@ class TranslationWorker(QThread):
                     seg.review_reason = UIStrings.get("REVIEW_BOX_CRUSHED")
                     self._box_crushed += 1
                 else:
-                    seg.review_reason = "çeviri kutuya sığmadı, küçültme yetmedi"
+                    seg.review_reason = UIStrings.get("REVIEW_FIT_FAILED")
                 block.needs_review = True
                 block.review_reason = seg.review_reason
             apply_scale(block, result.scale)
