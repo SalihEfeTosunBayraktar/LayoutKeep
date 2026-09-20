@@ -312,7 +312,7 @@ class _JobSetupUiBuilder:
         grid.addWidget(self._range_label, 3, 0)
         grid.addLayout(range_row, 3, 1, 1, 2)
         grid.addWidget(self._range_hint, 5, 1, 1, 2)
-        self._dual_label = _icon_label("file-type", UIStrings.DUAL_LABEL)
+        self._dual_label = _icon_label("layers", UIStrings.DUAL_LABEL)
         grid.addWidget(self._dual_label, 6, 0)
         dual_row = QHBoxLayout()
         dual_row.addWidget(self._dual_mode)
