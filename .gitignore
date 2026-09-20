@@ -18,6 +18,11 @@ out/
 gloss.json
 *.epub
 !tests/fixtures/rich_book.epub
+
+# A source document must never sit in the repository root again: the arXiv paper that lived there
+# was 10 MB, the largest tracked file in the repository, and its licence never allowed
+# redistribution. Sources live under _artifacts/heldout/sources/, which is ignored as a whole.
+/*.pdf
 _artifacts/
 *.spec.bak
 layoutkeep_crash.log

@@ -1780,3 +1780,21 @@ not a verdict.
 The two readings that do survive a look are real and already known: the fit ladder squeezing dense
 translations toward the readability floor (D1), and single-line headings in narrow boxes. Both are
 the box/room problem, not a type-size bug.
+
+## The tidy pass
+
+The owner asked for the repository to be cleaned of clutter. The inventory found three things
+worth more than tidiness:
+
+- **`arxiv_2605.18014v1.pdf` was tracked, in the repository root, at 10.4 MB** — the largest file
+  the repository carried, and an arXiv paper whose licence never allowed redistribution. It is now
+  under `_artifacts/heldout/sources/` and out of git, and `/*.pdf` is ignored so a source can never
+  land in the root again.
+- **The NASA page images were still 6997x3163 and 2.5 MB each** — the cap the comparison site's own
+  notes describe (3200 px, quality 76) had been applied to the *generator's defaults* but never to
+  the files themselves. Re-encoded: **9 MB -> 1 MB** across the four, still sharp at zoom.
+- **`tools/comparison_page.html` was dead** — a 16 KB hand-made page from before
+  `comparison_site.py` existed, referenced by nothing. Removed. `docs/comparison.html` stays: it is
+  a redirect with a canonical link, so addresses shared before the viewer moved still land on the
+  current site — and the GitHub About link now points at the landing page, which opens the story,
+  the viewer and the releases.

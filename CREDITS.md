@@ -78,6 +78,7 @@ Saying which documents those findings came from is part of the finding:
 | Source | Where it comes from | Terms |
 |---|---|---|
 | `arxiv_2609.19113`, `arxiv_2609.19145` | [arXiv](https://arxiv.org/) | arXiv's non-exclusive licence; downloaded for measurement only |
+| `arxiv_2605.18014v1` | [arXiv](https://arxiv.org/) | Same terms. It sat in the repository root as a 10 MB tracked file until the tidy pass on 2026-09-20 moved it under `_artifacts/heldout/sources/` and out of git — the largest file the repository was carrying, and one whose licence never allowed redistribution |
 | `irs_i1040gi`, `irs_p505` | United States Internal Revenue Service | US government work, public domain |
 | `nasa_ntrs_19750007530` | [NASA Technical Reports Server](https://ntrs.nasa.gov/) | US government work, public domain |
 | `plos_pone_0235750` | [PLOS ONE](https://journals.plos.org/plosone/) | CC BY 4.0 |
