@@ -64,79 +64,87 @@
 <nav class="story-nav">
   <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <span class='here'>3</span> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>3. Measurement discipline: how the numbers are produced, and how measurement itself was wrong</h1>
-<p>The lesson this project repeats most: <strong>a wrong measurement is worse than no measurement.</strong> A wrong number is not ignored — it produces a correction that has to be corrected, burns human hours, and after a while makes the claim of "lossless" untrustworthy. This chapter first describes what measurement is here, then the four times it was wrong.</p>
-<h2>3.1 Ten loss kinds, three quality thresholds</h2>
-<p><code>verify.py</code> counts these criteria on every run. The rule: <strong>every criterion is either zero or has a written reason.</strong></p>
+</nav><h1>3. Messdisziplin: wie die Zahlen entstehen, und wie die Messung selbst falsch lag</h1>
+<p>Die Lehre, die dieses Projekt am häufigsten wiederholt: <strong>eine falsche Messung ist schlimmer als keine Messung.</strong> Eine falsche Zahl wird nicht ignoriert — sie erzeugt eine Korrektur, die korrigiert werden muss, verbrennt Arbeitsstunden und macht nach einer Weile die Behauptung „verlustfrei" unglaubwürdig. Dieses Kapitel beschreibt zuerst, was Messung hier bedeutet, dann die vier Male, in denen sie falsch lag.</p>
+<h2>3.1 Zehn Verlustarten, drei Qualitätsschwellen</h2>
+<p><code>verify.py</code> zählt diese Kriterien bei jedem Lauf. Die Regel: <strong>jedes Kriterium ist entweder null oder hat einen geschriebenen Grund.</strong></p>
 <table>
 <thead><tr>
 <th>Code</th>
-<th>What it counts</th>
-<th>How it is measured</th>
+<th>Was gezählt wird</th>
+<th>Wie es gemessen wird</th>
 </tr></thead>
 <tbody>
-<tr><td><strong>L1</strong></td><td>Page count differs</td><td>The page counts of the source and output PDFs</td></tr>
-<tr><td><strong>L2</strong></td><td>Left untranslated, or in another language</td><td>The words on the output page are compared against the source's language</td></tr>
-<tr><td><strong>L3</strong></td><td>Text not on the page</td><td>A block in the DocIR cannot be found in the output</td></tr>
-<tr><td><strong>L4</strong></td><td>Text past the page edge</td><td>A word box outside the page rectangle</td></tr>
-<tr><td><strong>L5</strong></td><td>Markup leaked</td><td>A <code>&lt;…&gt;</code> pattern in the output</td></tr>
-<tr><td><strong>L6</strong></td><td>Numbers lost in translation</td><td>The source's set of numbers is looked for in the output</td></tr>
-<tr><td><strong>L7</strong></td><td>Text drawn over other text</td><td>Word boxes overlapping</td></tr>
-<tr><td><strong>L8</strong></td><td>Untouched text moved</td><td>A block that stayed as it was in the source, elsewhere in the output</td></tr>
-<tr><td><strong>L9</strong></td><td>Letters from another script mixed in</td><td>Example: <code>Việt語</code> — Latin and CJK in one word</td></tr>
-<tr><td><strong>L10</strong></td><td>Text drawn over a figure</td><td>A word box intersecting an image box</td></tr>
-<tr><td><strong>D1</strong></td><td>Below the readability floor</td><td>Blocks whose type size went below the 0.85 scale</td></tr>
-<tr><td><strong>D2</strong></td><td>Short blocks left unchanged</td><td>Blocks shorter than three words that were not translated</td></tr>
-<tr><td><strong>D3</strong></td><td>Text squeezed in its box</td><td>The space between words collapsed to zero</td></tr>
+<tr><td><strong>L1</strong></td><td>Seitenzahl weicht ab</td><td>Die Seitenzahlen von Quell- und Ausgabe-PDF</td></tr>
+<tr><td><strong>L2</strong></td><td>Nicht übersetzt oder in anderer Sprache</td><td>Die Wörter der Ausgabeseite werden mit der Sprache der Quelle verglichen</td></tr>
+<tr><td><strong>L3</strong></td><td>Text nicht auf der Seite</td><td>Ein Block der DocIR ist in der Ausgabe nicht zu finden</td></tr>
+<tr><td><strong>L4</strong></td><td>Text über den Seitenrand hinaus</td><td>Eine Wortbox außerhalb des Seitenrechtecks</td></tr>
+<tr><td><strong>L5</strong></td><td>Auszeichnung durchgesickert</td><td>Ein <code>&lt;…&gt;</code>-Muster in der Ausgabe</td></tr>
+<tr><td><strong>L6</strong></td><td>Zahlen in der Übersetzung verloren</td><td>Die Zahlenmenge der Quelle wird in der Ausgabe gesucht</td></tr>
+<tr><td><strong>L7</strong></td><td>Text über anderen Text gezeichnet</td><td>Wortboxen, die sich überlappen</td></tr>
+<tr><td><strong>L8</strong></td><td>Unberührter Text verschoben</td><td>Ein Block, der wie in der Quelle blieb, steht in der Ausgabe woanders</td></tr>
+<tr><td><strong>L9</strong></td><td>Buchstaben einer anderen Schrift eingemischt</td><td>Beispiel: <code>Việt語</code> — Latein und CJK in einem Wort</td></tr>
+<tr><td><strong>L10</strong></td><td>Text über eine Abbildung gezeichnet</td><td>Eine Wortbox schneidet eine Bildbox</td></tr>
+<tr><td><strong>D1</strong></td><td>Unter der Lesbarkeitsschwelle</td><td>Blöcke, deren Schriftgröße unter die 0,85-Skala fiel</td></tr>
+<tr><td><strong>D2</strong></td><td>Kurze Blöcke unverändert gelassen</td><td>Blöcke kürzer als drei Wörter, die nicht übersetzt wurden</td></tr>
+<tr><td><strong>D3</strong></td><td>Text in seiner Box zusammengedrückt</td><td>Der Abstand zwischen Wörtern ist auf null gefallen</td></tr>
 </tbody>
 </table>
-<p>L criteria are <strong>losses</strong>, D criteria are <strong>quality</strong>: an L violation means "something was lost" and is not acceptable; a D finding means "something got worse" and is counted, reported, and fixed where possible. The book run's final table (220 pages, 4,491 translatable blocks): <strong>L1=1, L2=2, L3=0, L4=0, L5=0, L6=4, L7=1, L8=1, L9=0, L10=0, D1=801, D2=163, D3=0.</strong> The single L1 is deliberate (the bibliography page at the end of the book was left out of the output), the two L2s are bibliography rows, and the 801 D1s are long translations being shrunk — all of them with a reason.</p>
-<h2>3.2 The audit tools</h2>
-<p><code>tools/audit/</code> holds 56 tools; the ones used most:</p>
-<ul><li><code>lossless_audit.py</code> — sweeps a run directory and produces the L1–L10 + D1–D3 table (<code>audit.json</code>).</li><li><code>type_drift.py</code> — compares the <strong>typography</strong> of the written page against the style the reader</li></ul>
-<p>recorded: blocks that grew (did a heading get bigger), blocks that shrank (the fitting ladder), blocks whose alignment changed, blocks that fell to an unreadable size.</p>
-<ul><li><code>text_over_image.py</code> — deepens L10 only (see 3.3, the first wrong measurement).</li><li><code>side_by_side.py</code> — produces the four-panel visual comparison (original | old | new | model).</li><li><code>comparison_site.py</code> — turns every run into one site with a slider (that is the published site).</li><li><code>translate_book.py</code> / <code>translate_epub.py</code> — chunked, multi-worker live run drivers.</li><li><code>rewrite_run.py</code>, <code>repair_book.py</code> — rewrite or mend an existing output with the current engine.</li><li><code>live_check.py</code>, <code>format_matrix.py</code>, <code>translation_completeness.py</code> — measurements for format</li></ul>
-<p>pairs and translation completeness.</p>
-<p>The tools share a rule: <strong>the output is machine-readable</strong> (JSON) and <strong>carries no claim</strong>, only numbers.</p>
-<h2>3.3 Measurement itself was wrong four times</h2>
-<h3>Case A: L10's false positives — half the numbers were a measurement bug</h3>
-<p>L10 means "text drawn over a figure". The first implementation counted a loss whenever a word box intersected an image box. The results were: cookbook <strong>182</strong>, mushrooms <strong>124</strong>, the book <strong>6</strong>, arXiv <strong>25</strong> — that is, it looked as if every document had text on its figures.</p>
-<p>Looking one by one, two bugs appeared:</p>
-<ol><li><strong>Full-page and tiled scan images.</strong> In a scanned document the whole page is one image; every</li></ol>
-<p>word on top of it counted as "over a figure". The rule was fixed: if the <strong>union</strong> of the image areas covers essentially the whole page (≥100%), L10 does not apply.</p>
-<ol><li><strong>The source's own graphic labels.</strong> The axis labels inside an arXiv paper's chart were already</li></ol>
-<p>in the source; the translation preserved them, and they were counted as "lost". The rule was fixed: a word the <strong>source also wrote</strong> is not an L10 loss.</p>
-<p>The corrected measurement: cookbook 182→<strong>0</strong>, mushrooms 124→<strong>0</strong>, book 6→<strong>0</strong>, arXiv 25→<strong>0</strong> (all false positives). On the Wikipedia runs 13/13 were <strong>real</strong> — and the re-translation brought them to <strong>0</strong>. So the fix both removed the false positives and kept catching the real case. The same rule moved into the core (<code>verify.words_over_figures</code>); on the NIST journal L10 went 8→0.</p>
-<h3>Case B: "obviously bigger type" — a measurement bug, not a code bug</h3>
-<p>The user reported "in some examples the type is obviously bigger". The first measurement had matched each written line against the source line <strong>of the nearest height</strong>. On a form, every label sits in the same height band as its value — a 10-point label was "compared" against its 12-point neighbour, and a correct page looked inflated. The measurement was rewritten to match the style and geometry the reader <strong>recorded for that block</strong> (<code>type_drift.py</code>); the result: <strong>no block grew.</strong> The problem was not in the code but in the measurement — and that was only understood by auditing the measuring tool itself.</p>
-<h3>Case C: alignment flags — reading past the column boundary</h3>
-<p>For a while <code>type_drift</code> said "alignment changed" for 4 blocks on arXiv. Looking block by block, the source was <strong>justified</strong> (every line 72→540, last line short) while the output was flush left with a ragged right edge — a real loss, but <strong>its cause was not where it was expected</strong>: the writer already supported <code>text-align: justify</code> (blocks are drawn as HTML boxes), and what was missing was <strong>the reader never producing "justify"</strong> (it only produced left/right/center).</p>
-<p>The fix needed two distinguishing rules: straight left edges <strong>and</strong> a short last line <strong>and</strong> the last line's <strong>left edge</strong> level with the body. Without the third, a centred heading also read as "justify" (its lines shorten too, but its last line starts in the middle) — the NASA cover heading was drifting off centre for exactly that reason, and a test caught it. The indent rule added in the same session was too broad as well: a centred block's first line (its longest) starts at the left and must not be mistaken for an indent.</p>
-<p><strong>Result:</strong> 19 alignment tests + 218 reader/layout tests green; two old tests converted to the new contract, four new ones added (ragged flush-left stays "left", a centred short line is not justify, two right-aligned lines stay right). <strong>In a real run the same day:</strong> on the book's re-translated chunks, 26 of 70 long body blocks were read as "justify" and <code>type_drift</code>'s alignment flag came out 0 — the fix was verified from the measurement all the way to the drawn page.</p>
-<h3>Case D: the probe answered a question the engine never asks (2026-09-20)</h3>
-<p>The book's largest review-flag class was "the translation did not fit its box" (1,130 of 6,014 blocks in 42 chunks). A <strong>leading step</strong> was added to the ladder: when the box does not fit even at the readability floor, tighten the lines before asking the model. The step worked — it passed its tests in a synthetic box.</p>
-<p>The measurement was made twice and <strong>the two disagreed</strong>:</p>
-<ul><li><em>The probe</em> (measuring over a recorded run's translations): <strong>20</strong> of 158 overflowing blocks are</li></ul>
-<p>rescued.</p>
-<ul><li><em>The instrumented pass</em> (the function wrapped and counted): over 6 chunks the step was called</li></ul>
-<p><strong>14 times and fitted 0</strong>.</p>
-<ul><li><em>The written-page A/B</em> (20 chunks, two arms): <strong>identical</strong> — D1=627, D3=0, every L the same.</li></ul>
-<p>The difference was one line: the probe measured with <code>block.dominant_style()</code>, while the pass measures with <code>_as_drawn(…)</code> — the style with the target language's <strong>substitute font</strong> already resolved. The two fonts have different metrics, and the probe was answering a question the engine never asks.</p>
-<p><strong>Result:</strong> the step was reverted (the branch was never merged; the attempt stays in the journal as <code>bbf5958</code>). The rule "a change the measurement does not show comes back out" saved an <em>idea</em> here, not just a probe. The two instruments (<code>fit_probe.py</code>, <code>fit_ab.py</code>) stayed; neither spends a model call.</p>
-<p><strong>The next lever came out of the same measurement:</strong> the 138 blocks no leading rescues are not short of lines, they are short of <strong>box</strong> — <code>room_below</code> crushes a block's measured box to 6pt to keep it clear of the next one, and nothing fits in 6pt. So the real work is overlap/room handling (roadmap item 4), not the ladder.</p>
-<h2>3.4 The rules of the measurement infrastructure</h2>
-<p>What these four cases produced, and what is now written down:</p>
-<ol><li><strong>The measuring tool is itself tested.</strong> <code>text_over_image.py</code>'s fix was verified by re-running it</li></ol>
-<p>over old runs: it kept catching the real case (Wikipedia 13/13) and dropped the false positives (cookbook, mushrooms, book, arXiv).</p>
-<ol><li><strong>A measurement is cross-checked against the source's own data.</strong> Something called a "loss" that</li></ol>
-<p>the source also wrote is not a loss (the arXiv chart labels).</p>
-<ol><li><strong>A number that came out wrong is written down together with the corrected one.</strong> Phrases like</li></ol>
-<p>"182 → 0" are deliberate in this repository: hiding that the old number was wrong would take away the trust the new one needs.</p>
-<ol><li><strong>When a probe and the pipeline disagree, the pipeline is instrumented.</strong> A probe measuring a</li></ol>
-<p>change must use the inputs the engine uses (style included: the pass measures with <code>_as_drawn</code>, not with the block's style). The right move on a disagreement is to wrap the function under test and count — not to fix the probe.</p>
-<ol><li><strong>A default is off when a loss is proven.</strong> <code>reflow</code> took D1 from 52 to 0 on NIST but took L7</li></ol>
-<p>from 0 to 1 on the IRS form; the gain depends on the document while the loss is a losslessness violation — so the mode exists, but it is not the default.</p><p class="pager"><a href="02-mimari.html">← voriges Kapitel</a> · <a href="04-hatalar.html">nächstes Kapitel →</a></p>
+<p>L-Kriterien sind <strong>Verluste</strong>, D-Kriterien sind <strong>Qualität</strong>: ein L-Verstoß heißt „etwas ist verloren" und ist nicht akzeptabel; ein D-Befund heißt „etwas ist schlechter geworden" und wird gezählt, berichtet und nach Möglichkeit behoben. Die Abschlusstabelle des Buchlaufs (220 Seiten, 4.491 übersetzbare Blöcke): <strong>L1=1, L2=2, L3=0, L4=0, L5=0, L6=4, L7=1, L8=1, L9=0, L10=0, D1=801, D2=163, D3=0.</strong> Das einzelne L1 ist beabsichtigt (die Literaturseite am Ende des Buchs blieb aus der Ausgabe heraus), die zwei L2 sind Literaturzeilen, und die 801 D1 sind verkleinerte lange Übersetzungen — alle mit einem Grund.</p>
+<h2>3.2 Die Prüfwerkzeuge</h2>
+<p><code>tools/audit/</code> enthält 56 Werkzeuge; die meistgenutzten:</p>
+<ul><li><code>lossless_audit.py</code> — durchsucht ein Laufverzeichnis und erzeugt die Tabelle L1–L10 + D1–D3</li></ul>
+<p>(<code>audit.json</code>).</p>
+<ul><li><code>type_drift.py</code> — vergleicht die <strong>Typografie</strong> der geschriebenen Seite mit dem Stil, den der Leser</li></ul>
+<p>aufgezeichnet hat: gewachsene Blöcke (wurde eine Überschrift größer), verkleinerte Blöcke (die Einpass-Leiter), Blöcke mit geänderter Ausrichtung, Blöcke in unlesbarer Größe.</p>
+<ul><li><code>text_over_image.py</code> — vertieft nur L10 (siehe 3.3, die erste falsche Messung).</li><li><code>side_by_side.py</code> — erzeugt den vierteiligen visuellen Vergleich (Original | alt | neu | Modell).</li><li><code>comparison_site.py</code> — verwandelt jeden Lauf in eine Seite mit Schieberegler (das ist die</li></ul>
+<p>veröffentlichte Seite).</p>
+<ul><li><code>translate_book.py</code> / <code>translate_epub.py</code> — Treiber für geteilte, mehrmals parallel laufende</li></ul>
+<p>Live-Läufe.</p>
+<ul><li><code>rewrite_run.py</code>, <code>repair_book.py</code> — eine vorhandene Ausgabe mit dem aktuellen Motor neu schreiben</li></ul>
+<p>oder heilen.</p>
+<ul><li><code>live_check.py</code>, <code>format_matrix.py</code>, <code>translation_completeness.py</code> — Messungen für Formatpaare und</li></ul>
+<p>Übersetzungsvollständigkeit.</p>
+<p>Die Werkzeuge teilen eine Regel: <strong>die Ausgabe ist maschinenlesbar</strong> (JSON) und <strong>trägt keine Behauptung</strong>, nur Zahlen.</p>
+<h2>3.3 Die Messung selbst lag viermal falsch</h2>
+<h3>Fall A: die Fehlalarme von L10 — die Hälfte der Zahlen war ein Messfehler</h3>
+<p>L10 heißt „Text über eine Abbildung gezeichnet". Die erste Umsetzung zählte einen Verlust, sobald eine Wortbox eine Bildbox schnitt. Die Ergebnisse: cookbook <strong>182</strong>, mushrooms <strong>124</strong>, das Buch <strong>6</strong>, arXiv <strong>25</strong> — es sah aus, als hätte jedes Dokument Text auf seinen Abbildungen.</p>
+<p>Beim Nachsehen zeigten sich zwei Fehler:</p>
+<ol><li><strong>Ganzseitige und gekachelte Scan-Bilder.</strong> In einem gescannten Dokument ist die ganze Seite ein</li></ol>
+<p>Bild; jedes Wort darauf zählte als „über einer Abbildung". Die Regel wurde korrigiert: deckt die <strong>Vereinigung</strong> der Bildflächen praktisch die ganze Seite (≥100%), gilt L10 nicht.</p>
+<ol><li><strong>Die Grafikbeschriftungen der Quelle selbst.</strong> Die Achsenbeschriftungen in der Grafik einer</li></ol>
+<p>arXiv-Arbeit standen schon in der Quelle; die Übersetzung erhielt sie, und sie wurden als „verloren" gezählt. Die Regel wurde korrigiert: ein Wort, das <strong>die Quelle auch geschrieben hat</strong>, ist kein L10-Verlust.</p>
+<p>Die korrigierte Messung: cookbook 182→<strong>0</strong>, mushrooms 124→<strong>0</strong>, Buch 6→<strong>0</strong>, arXiv 25→<strong>0</strong> (alles Fehlalarme). Bei den Wikipedia-Läufen waren 13/13 <strong>echt</strong> — und die Neuübersetzung brachte sie auf <strong>0</strong>. Die Korrektur beseitigte also die Fehlalarme und fing den echten Fall weiterhin. Dieselbe Regel wanderte in den Kern (<code>verify.words_over_figures</code>); im NIST-Journal ging L10 von 8 auf 0.</p>
+<h3>Fall B: „offensichtlich größere Schrift" — ein Messfehler, kein Codefehler</h3>
+<p>Der Nutzer meldete „in manchen Beispielen ist die Schrift offensichtlich größer". Die erste Messung hatte jede geschriebene Zeile mit der Quellzeile <strong>der nächstgelegenen Höhe</strong> verglichen. In einem Formular sitzt jedes Label in derselben Höhenlage wie sein Wert — ein 10-Punkt-Label wurde mit seinem 12-Punkt-Nachbarn „verglichen", und eine korrekte Seite sah aufgeblasen aus. Die Messung wurde neu geschrieben, sodass sie gegen den Stil und die Geometrie prüft, die der Leser <strong>für diesen Block aufgezeichnet hat</strong> (<code>type_drift.py</code>); das Ergebnis: <strong>kein Block ist gewachsen.</strong> Das Problem lag nicht im Code, sondern in der Messung — und das wurde erst verstanden, als das Messwerkzeug selbst geprüft wurde.</p>
+<h3>Fall C: Ausrichtungsmarken — über die Spaltengrenze hinaus gelesen</h3>
+<p>Eine Zeit lang meldete <code>type_drift</code> für 4 Blöcke in arXiv „Ausrichtung geändert". Block für Block betrachtet war die Quelle <strong>im Blocksatz</strong> (jede Zeile 72→540, letzte Zeile kurz), während die Ausgabe linksbündig mit ausgefranstem rechten Rand war — ein echter Verlust, aber <strong>seine Ursache lag nicht dort, wo sie erwartet wurde</strong>: der Schreiber unterstützte <code>text-align: justify</code> bereits (Blöcke werden als HTML-Boxen gezeichnet), und was fehlte, war <strong>der Leser, der nie „justify" erzeugte</strong> (er erzeugte nur left/right/center).</p>
+<p>Die Korrektur brauchte zwei unterscheidende Regeln: gerade linke Ränder <strong>und</strong> eine kurze letzte Zeile <strong>und</strong> die <strong>linke Kante</strong> der letzten Zeile auf Höhe des Textkörpers. Ohne die dritte las auch eine zentrierte Überschrift als „justify" (ihre Zeilen werden ebenfalls kürzer, aber ihre letzte Zeile beginnt in der Mitte) — die NASA-Titelüberschrift driftete genau deshalb aus der Mitte, und ein Test fing es. Die in derselben Sitzung hinzugefügte Einrückungsregel war ebenfalls zu breit: die erste Zeile eines zentrierten Blocks (seine längste) beginnt links und darf nicht als Einrückung gelten.</p>
+<p><strong>Ergebnis:</strong> 19 Ausrichtungstests + 218 Leser-/Layout-Tests grün; zwei alte Tests auf den neuen Vertrag umgestellt, vier neue hinzugefügt (ausgefranst linksbündig bleibt „left", eine zentrierte kurze Zeile ist kein Blocksatz, zwei rechtsbündige Zeilen bleiben rechts). <strong>Im echten Lauf am selben Tag:</strong> in den neu übersetzten Teilen des Buchs wurden 26 von 70 langen Textblöcken als „justify" gelesen, und die Ausrichtungsmarke von <code>type_drift</code> kam auf 0 — die Korrektur wurde von der Messung bis zur gezeichneten Seite belegt.</p>
+<h3>Fall D: die Sonde beantwortete eine Frage, die der Motor nie stellt (20.09.2026)</h3>
+<p>Die größte Prüfmarkenklasse des Buchs war „die Übersetzung passte nicht in ihre Box" (1.130 von 6.014 Blöcken in 42 Teilen). Der Leiter wurde ein <strong>Zeilenabstandsschritt</strong> hinzugefügt: passt die Box auch an der Lesbarkeitsschwelle nicht, den Zeilenabstand enger setzen, bevor das Modell gefragt wird. Der Schritt funktionierte — er bestand seine Tests in einer synthetischen Box.</p>
+<p>Die Messung wurde zweimal gemacht und <strong>die beiden widersprachen sich</strong>:</p>
+<ul><li><em>Die Sonde</em> (Messung über die Übersetzungen eines aufgezeichneten Laufs): <strong>20</strong> von 158</li></ul>
+<p>überlaufenden Blöcken werden gerettet.</p>
+<ul><li><em>Der instrumentierte Durchlauf</em> (die Funktion umhüllt und gezählt): über 6 Teile wurde der Schritt</li></ul>
+<p><strong>14 Mal aufgerufen und passte 0 Mal</strong>.</p>
+<ul><li><em>Das A/B auf der geschriebenen Seite</em> (20 Teile, zwei Arme): <strong>identisch</strong> — D1=627, D3=0, jedes L</li></ul>
+<p>gleich.</p>
+<p>Der Unterschied war eine Zeile: die Sonde maß mit <code>block.dominant_style()</code>, während der Durchlauf mit <code>_as_drawn(…)</code> misst — dem Stil, in dem die <strong>Ersatzschrift</strong> der Zielsprache bereits aufgelöst ist. Die beiden Schriften haben verschiedene Metriken, und die Sonde beantwortete eine Frage, die der Motor nie stellt.</p>
+<p><strong>Ergebnis:</strong> der Schritt wurde zurückgenommen (der Zweig wurde nie zusammengeführt; der Versuch bleibt als <code>bbf5958</code> im Journal). Die Regel „eine Änderung, die die Messung nicht zeigt, kommt heraus" rettete hier eine <em>Idee</em>, nicht nur eine Sonde. Die beiden Instrumente (<code>fit_probe.py</code>, <code>fit_ab.py</code>) blieben; keines kostet einen Modellaufruf.</p>
+<p><strong>Der nächste Hebel kam aus derselben Messung:</strong> Den 138 Blöcken, die kein Zeilenabstand rettet, fehlen keine Zeilen, sondern <strong>Box</strong> — <code>room_below</code> drückt die gemessene Box eines Blocks auf 6pt, um ihn vom nächsten freizuhalten, und in 6pt passt nichts. Die eigentliche Arbeit ist also der Umgang mit Überlappungen und Platz (Roadmap Punkt 4), nicht die Leiter.</p>
+<h2>3.4 Die Regeln der Messinfrastruktur</h2>
+<p>Was diese vier Fälle hervorgebracht haben und was nun geschrieben steht:</p>
+<ol><li><strong>Das Messwerkzeug wird selbst getestet.</strong> Die Korrektur von <code>text_over_image.py</code> wurde geprüft,</li></ol>
+<p>indem sie über alte Läufe erneut lief: sie fing den echten Fall weiter (Wikipedia 13/13) und ließ die Fehlalarme fallen (cookbook, mushrooms, Buch, arXiv).</p>
+<ol><li><strong>Eine Messung wird gegen die eigenen Daten der Quelle geprüft.</strong> Etwas als „Verlust" zu</li></ol>
+<p>bezeichnen, das die Quelle selbst geschrieben hat, ist kein Verlust (die arXiv-Grafikbeschriftungen).</p>
+<ol><li><strong>Eine Zahl, die falsch herauskam, wird zusammen mit der korrigierten geschrieben.</strong> Formulierungen</li></ol>
+<p>wie „182 → 0" sind in diesem Repository Absicht: zu verbergen, dass die alte Zahl falsch war, würde das Vertrauen kosten, das die neue braucht.</p>
+<ol><li><strong>Wenn Sonde und Pipeline sich widersprechen, wird die Pipeline instrumentiert.</strong> Eine Sonde, die</li></ol>
+<p>eine Änderung misst, muss die Eingaben des Motors benutzen (den Stil eingeschlossen: der Durchlauf misst mit <code>_as_drawn</code>, nicht mit dem Stil des Blocks). Der richtige Schritt bei einem Widerspruch ist, die getestete Funktion zu umhüllen und zu zählen — nicht, die Sonde zu reparieren.</p>
+<ol><li><strong>Eine Voreinstellung bleibt aus, wenn ein Verlust bewiesen ist.</strong> <code>reflow</code> brachte D1 von 52 auf 0</li></ol>
+<p>im NIST-Journal, aber L7 von 0 auf 1 im IRS-Formular; der Gewinn hängt vom Dokument ab, während der Verlust ein Verstoß gegen die Verlustfreiheit ist — deshalb existiert der Modus, ist aber nicht die Voreinstellung.</p><p class="pager"><a href="02-mimari.html">← voriges Kapitel</a> · <a href="04-hatalar.html">nächstes Kapitel →</a></p>
 <footer>
   Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>

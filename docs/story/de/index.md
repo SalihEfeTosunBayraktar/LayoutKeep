@@ -47,9 +47,9 @@ Produkt, dann die ehrlichen Grenzen und die Quellen.
 | 7 | [Ehrliche Grenzen und Lehren](../en/07-sinirlar.html) | Was heute nicht funktioniert, die Roadmap, acht Lehren |
 | 8 | [Externe Quellen und Zitate](../en/08-kaynaklar.html) | Rolle und Lizenz jeder Abhängigkeit, der rechtliche Status der Testquellen |
 
-Die Kapitel 1–8 liegen auf Englisch vor; die türkischen Originale stehen unter [`../`](../). Eine
-Übersetzung ins Deutsche entsteht nach und nach — ein Kapitel ohne Übersetzung zeigt an dieser Stelle
-sichtbar das englische Original.
+Alle Kapitel liegen auf Deutsch vor; die englische Fassung steht unter [`../en/`](../en/), das
+türkische Original unter [`../`](../). Fehlt eine Übersetzung, zeigt die Seite hinter einem sichtbaren
+Hinweis die nächstliegende Sprache (Englisch vor Türkisch).
 
 Die Markdown-Dateien liegen im Repository: `docs/story/01-problem.md` … `docs/story/08-kaynaklar.md`
 (Englisch unter `docs/story/en/`).
