@@ -141,6 +141,28 @@ both the application and the command line, so they cannot disagree about what is
 Latin scripts (Turkish, English, German, French, Spanish, …). The data model carries a `direction`
 field so right-to-left support can be added without a rewrite, but it is not implemented.
 
+## Terms, memory, and the review queue
+
+Three things decide whether a long document reads as one document rather than as a pile of pages,
+and all three are in the application (and on the command line):
+
+- **A glossary** — a JSON file of `{"source term": "target term"}` pairs. It is added to every
+  request *and* checked afterwards: a term the model did not use puts its block in the review
+  queue with the reason. Advanced Settings has a table editor for it (`--glossary` on the CLI).
+- **A translation memory** — a SQLite file keyed by (source text, language pair, model identity).
+  Running the same document again costs almost nothing, repeated running headers and footnotes are
+  translated once, and the key carries a fingerprint of the glossary, so changing the term policy
+  cannot be answered from entries written before it. The completion screen reports how much came
+  from memory. `--memory` on the CLI; on by default in the application.
+- **The review queue** — every flag carries why it was raised (a block that did not fit, a term
+  that was not used, a sentence the model returned unchanged), so the list is a work list and not a
+  score. `## Review flags` below lists the reasons.
+
+The application also explains itself in place: a five-page welcome screen on the first run (with the
+interface language and the theme selectable there), a `?` button in the header opening a help
+screen whose criteria list is read from the checker's own code, and a caption under every advanced
+setting that says what goes wrong if it is wrong.
+
 ## What decides how good a translation comes out
 
 The same settings produce very different results on different documents. In order of how much they

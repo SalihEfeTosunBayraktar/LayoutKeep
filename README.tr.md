@@ -139,6 +139,27 @@ onu okur, dolayısıyla neyin hazır olduğu konusunda ayrı düşemezler.
 Latin yazılar (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, …). Veri modeli bir `direction`
 alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uygulanmış değil.
 
+## Terimler, bellek ve inceleme kuyruğu
+
+Uzun bir belgenin sayfa yığını gibi değil de tek bir belge gibi okunmasını üç şey belirler; üçü de
+uygulamada (ve komut satırında) var:
+
+- **Terim sözlüğü** — `{"kaynak terim": "hedef terim"}` çiftlerinden oluşan bir JSON dosyası. Her
+  isteğe eklenir *ve* sonrasında denetlenir: modelin kullanmadığı terim, bloğunu gerekçesiyle
+  inceleme kuyruğuna düşürür. Gelişmiş Ayarlar'da tablo hâlinde düzenleyicisi var (CLI'da
+  `--glossary`).
+- **Çeviri belleği** — (kaynak metin, dil çifti, model kimliği) ile anahtarlanmış bir SQLite
+  dosyası. Aynı belgeyi yeniden çevirmek neredeyse bedava; tekrarlanan üstbilgi ve dipnotlar bir kez
+  çevrilir; anahtar sözlüğün parmak izini taşır, yani terim politikası değişince eski kayıtlardan
+  cevap gelmez. Tamamlanma ekranı ne kadarının bellekten geldiğini yazar (CLI'da `--memory`,
+  uygulamada varsayılan açık).
+- **İnceleme kuyruğu** — her bayrak neden konduğunu taşır (sığmayan blok, kullanılmayan terim,
+  çevrilmeden dönen cümle); liste bir puan değil, yapılacaklar listesidir.
+
+Uygulama ayrıca kendini yerinde anlatır: ilk açılışta beş sayfalık karşılama ekranı (arayüz dili ve
+tema oradan seçilir), başlıktaki `?` düğmesiyle açılan ve kriterleri **denetimin kendi kodundan**
+okuyan yardım ekranı, ve her gelişmiş ayarın altında yanlış olduğunda ne bozulduğunu yazan açıklama.
+
 ## Sonucun iyi çıkmasını ne belirler
 
 Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına göre, bu projenin gerçekten
