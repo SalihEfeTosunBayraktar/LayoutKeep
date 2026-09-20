@@ -34,10 +34,46 @@ class Glossary:
 
     @classmethod
     def load(cls, path: str | Path) -> Glossary:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            raise TypeError(f"glossary file {path!r} must contain a JSON object of term mappings")
-        return cls({str(k): str(v) for k, v in data.items()})
+        """Read a glossary from JSON, or from a two-column CSV/TSV file.
+
+        CSV as well as JSON because a glossary usually starts life as a spreadsheet: translators
+        and reviewers already keep term lists in one, and asking them to convert it by hand is a
+        reason not to use the feature. The format is decided by the first non-empty character - a
+        `{` means JSON, anything else is read as delimited text.
+        """
+        source = Path(path)
+        text = source.read_text(encoding="utf-8-sig")
+        stripped = text.lstrip()
+        if stripped.startswith(("{", "[")):
+            data = json.loads(text)
+            if not isinstance(data, dict):
+                raise TypeError(
+                    f"glossary file {path!r} must contain a JSON object of term mappings"
+                )
+            return cls({str(k): str(v) for k, v in data.items()})
+        return cls(cls._read_delimited(text))
+
+    @staticmethod
+    def _read_delimited(text: str) -> dict[str, str]:
+        """Two columns per row, tab or comma or semicolon separated, header optional."""
+        import csv
+        import io
+
+        sample = " ".join(line for line in text.splitlines() if line.strip())[:2048]
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=",	;")
+        except csv.Error:
+            dialect = csv.excel
+        rows = list(csv.reader(io.StringIO(text), dialect))
+        pairs: dict[str, str] = {}
+        for index, row in enumerate(rows):
+            cells = [cell.strip() for cell in row]
+            if len(cells) < 2 or not cells[0]:
+                continue
+            if index == 0 and cells[0].casefold() in {"source", "kaynak", "quellbegriff"}:
+                continue  # a header row, not a term
+            pairs[cells[0]] = cells[1]
+        return pairs
 
     def terms_in(self, text: str) -> list[tuple[str, str]]:
         """Return the (source_term, target_term) pairs that occur as whole words in `text`."""
