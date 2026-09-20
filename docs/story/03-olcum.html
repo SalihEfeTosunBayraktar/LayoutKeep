@@ -104,6 +104,15 @@
 <p><code>type_drift</code> bir süre arXiv'da 4 blok için "hizası değişmiş" dedi. Blok blok bakıldığında kaynak <strong>iki yana yaslı</strong> (her satır 72→540, son satır kısa), çıktı ise sola yaslı ve sağ kenarı tırtıklı çıkıyordu — yani gerçek bir kayıp vardı ama <strong>sebebi beklenen yerde değildi</strong>: yazıcı <code>text-align: justify</code>'ı zaten destekliyordu (bloklar HTML kutusuyla çiziliyor), eksik olan <strong>okuyucunun hiç "justify" üretmemesiydi</strong> (yalnız left/right/center üretiyordu).</p>
 <p>Düzeltme iki ayırt edici kural gerektirdi: sol kenarlar düz <strong>ve</strong> son satır kısa <strong>ve</strong> son satırın <strong>sol kenarı</strong> gövdeyle aynı. Üçüncüsü olmadan ortalanmış bir başlık da "justify" okunuyordu (onun satırları da kısalır, ama son satır ortadan başlar) — NASA kapak başlığı tam olarak bu yüzden merkezden kayıyordu, ve test yakaladı. Aynı oturumda eklenen girinti kuralı da fazla genişti: ortalanmış bir bloğun ilk satırı (en uzun satır) solda başlar, "girinti" sanılmamalıydı.</p>
 <p><strong>Sonuç:</strong> 19 hizalama testi + 218 okuyucu/layout testi yeşil; iki eski test yeni sözleşmeye çevrildi, dört yeni test eklendi (tırtıklı flush-left "left" kalır, ortalanmış kısalma justify sayılmaz, sağa yaslı iki satır sağ kalır). <strong>Aynı gün gerçek koşuda:</strong> kitabın yeniden çevrilen parçalarında 70 uzun gövde bloğunun 26'sı "justify" okundu ve <code>type_drift</code> hizalama bayrağı 0 çıktı — düzeltme ölçümden çizilmiş sayfaya kadar doğrulandı.</p>
+<h3>Üçüncü vaka: sonda, geçişin sormadığı soruyu yanıtladı (2026-09-20)</h3>
+<p>Kitapta en büyük inceleme bayrağı sınıfı "çeviri kutuya sığmadı" (42 parçada 6.014 bloğun 1.130'u). Merdivene bir <strong>satır aralığı adımı</strong> eklendi: kutu okunabilirlik tabanında bile sığmıyorsa, modele sormadan önce satırları sıkılaştır. Adım çalışıyordu — sentetik bir kutuda testleri geçti.</p>
+<p>Ölçüm iki kez yapıldı ve <strong>ikisi farklı cevap verdi</strong>:</p>
+<ul><li><em>Sonda</em> (kayıtlı koşunun çevirileri üzerinde ölçüm): 158 taşan bloğun <strong>20'si</strong> kurtuluyor.</li><li><em>Enstrümanlı geçiş</em> (fonksiyon sarmalanıp sayıldı): 6 parçada adım **14 kez çağrıldı, 0 kez</li></ul>
+<p>sığdırdı**.</p>
+<ul><li><em>Yazılmış sayfa A/B'si</em> (20 parça, iki kol): <strong>birebir aynı</strong> — D1=627, D3=0, tüm L aynı.</li></ul>
+<p>Fark tek bir satırdı: sonda <code>block.dominant_style()</code> ile ölçüyordu, geçiş ise <code>_as_drawn(...)</code> ile — hedef dilin <strong>ikame fontu</strong> çözülmüş stil. İki fontun metrikleri farklı ve sonda, motorun hiç sormadığı bir soruyu yanıtlıyordu.</p>
+<p><strong>Sonuç:</strong> adım geri alındı (dal birleştirilmedi, girişim <code>bbf5958</code> olarak jurnalde duruyor). Ölçüm göstermiyorsa değişiklik geri alınır kuralı burada bir <em>sondayı</em> değil, bir <em>fikri</em> kurtardı. İki enstrüman (<code>fit_probe.py</code>, <code>fit_ab.py</code>) kaldı; ikisi de model harcamıyor.</p>
+<p><strong>Sıradaki kol da bu ölçümden çıktı:</strong> kurtulmayan 138 bloğun derdi satır değil <strong>kutu</strong> — <code>room_below</code> bir bloğun ölçülen kutusunu sonraki bloğa değmemek için 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Yani asıl iş örtüşme/yer açma (yol haritası 4), merdiven değil.</p>
 <h2>3.4 Ölçüm altyapısının kuralları</h2>
 <p>Bu üç vakadan çıkan ve artık yazılı olan kurallar:</p>
 <ol><li><strong>Ölçüm aracının kendisi test edilir.</strong> <code>text_over_image.py</code>'nin düzeltmesi, eski koşular</li></ol>
@@ -112,6 +121,8 @@
 <p>yazdığı bir şeyse kayıp değildir (arXiv grafik etiketleri).</p>
 <ol><li><strong>Yanlış çıkan bir sayı, düzeltilmiş sayıyla birlikte yazılır.</strong> Bu depoda "182 → 0" gibi</li></ol>
 <p>ifadeler bilinçli: eski sayının yanlış olduğunu gizlemek, yeni sayıya duyulan güveni de götürürdü.</p>
+<ol><li><strong>Sonda ile boru hattı anlaşmazsa, boru hattı enstrümanlanır.</strong> Bir değişikliği ölçen sonda</li></ol>
+<p>motorun kullandığı girdileri kullanmalı (stil dahil: geçiş <code>_as_drawn</code> ile ölçer, blok stiliyle değil). Anlaşmazlıkta doğru hamle, test edilen fonksiyonu sarmalayıp saymaktır — sondayı düzeltmek değil.</p>
 <ol><li><strong>Varsayılan, kanıtlanmış kayıp varsa kapalıdır.</strong> <code>reflow</code> modu NIST'te D1'i 52→0 yaptı ama</li></ol>
 <p>IRS'te L7'yi 0→1 yaptı; kazanç belgeye bağlı, kayıp kayıpsızlık ihlali — o yüzden mod var, varsayılan değil.</p><p class="pager"><a href="02-mimari.html">← önceki bölüm</a> · <a href="04-hatalar.html">sonraki bölüm →</a></p>
 <footer>
