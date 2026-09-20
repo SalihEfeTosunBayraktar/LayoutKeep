@@ -50,20 +50,20 @@ def format_phase(status: str) -> str:
 
 
 def format_progress_status(done: int, total: int) -> str:
-    """İlerleme çubuğu yanındaki durum satırını formatlar / Formats status line."""
+    """İlerleme çubuğu yanındaki durum satırını biçimlendirir / Formats the status line."""
     pct = (done / total * 100) if total else 0.0
-    return f"{done}/{total} segment çevrildi (%{pct:.1f})"
+    return UIStrings.get("PROGRESS_SEGMENTS").format(done=done, total=total, pct=f"{pct:.1f}")
 
 
 def format_memory_stats_text(hits: int, total: int) -> str:
-    """TM isabet oranını yüzde olarak formatlar / Formats TM hit rate as a percent."""
+    """TM isabet oranını biçimlendirir / Formats the memory hit rate."""
     rate = hits / total if total else 0.0
-    return f"TM isabet: {hits}/{total} ({rate:.0%})"
+    return UIStrings.get("PROGRESS_MEMORY_HITS").format(hits=hits, total=total, rate=f"{rate:.0%}")
 
 
 def format_batch_timeout_text(seconds: float) -> str:
-    """Batch üst sınır metnini formatlar / Formats batch upper-bound text."""
-    return f"Beklenen üst sınır: {seconds:.0f}s"
+    """Batch üst sınır metnini biçimlendirir / Formats the batch upper-bound text."""
+    return UIStrings.get("PROGRESS_BATCH_LIMIT").format(s=f"{seconds:.0f}")
 
 
 def format_chars_label_text(done_chars: int, total_chars: int) -> str:
@@ -341,7 +341,7 @@ class ProgressWidget(QWidget):
         self._bar.setValue(0)
         self._status.setText(UIStrings.PROGRESS_STARTING)
         self._time_info.setText(f"{UIStrings.PROGRESS_ELAPSED} 00:00")
-        self._eta.setText(f"{UIStrings.PROGRESS_REMAINING} Hesaplanıyor…")
+        self._eta.setText(f"{UIStrings.PROGRESS_REMAINING} {UIStrings.get('ETA_CALCULATING')}")
         self._segments_card.set_value(f"0 / {total_segments}" if total_segments else "0 / ?")
         self._model_card.set_value("—")
         self._extra_info.setText("")

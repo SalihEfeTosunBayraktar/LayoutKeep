@@ -50,6 +50,20 @@ def _no_first_run_dialog() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _language_back_to_english():
+    """The interface language is global state; no test may leak it into the next one.
+
+    WHY THIS EXISTS: a test that pinned German left it set, and the next file's pause-button
+    assertion ("Duraklat") failed with "Pause" - a leak that reads as a broken widget rather than
+    as a stray global.
+    """
+    yield
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+
+
+@pytest.fixture(autouse=True)
 def _no_modal_dialogs(monkeypatch):
     """Answer every message box instead of showing one.
 
