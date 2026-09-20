@@ -46,6 +46,7 @@ sonra hatalar, sonra model kararları, sonra ürün, sonra dürüst sınırlar v
 | 8 | [Dış kaynaklar ve atıflar](story/08-kaynaklar.md) | Her bağımlılığın rolü ve lisansı, test kaynaklarının hukuki durumu |
 
 Markdown dosyaları depoda: `docs/story/01-problem.md` … `docs/story/08-kaynaklar.md`.
+Bu hikâye **üç dilde** yayınlanır: Türkçe asıl (`docs/story/`), İngilizce (`docs/story/en/`), Almanca (`docs/story/de/`); her sayfanın tepesindeki şeritten dil değiştirilir. Çevirisi henüz olmayan bir bölüm, en yakın dile düşer (önce İngilizce) ve bunu görünür bir notla söyler.
 
 ---
 
