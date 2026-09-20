@@ -179,6 +179,14 @@ class _JobSetupUiBuilder:
         self._range_input = QLineEdit()
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_input.hide()
+        # What the range means for the OUTPUT, said where the range is chosen: a range used to
+        # narrow only the translation while the output stayed the whole book, and that surprise
+        # is what this line exists to prevent.
+        self._range_hint = QLabel(UIStrings.RANGE_HINT)
+        self._range_hint.setObjectName("rangeHint")
+        self._range_hint.setProperty("class", "muted")
+        self._range_hint.setWordWrap(True)
+        self._range_hint.hide()
 
         self._init_provider_controls()
 
@@ -293,6 +301,7 @@ class _JobSetupUiBuilder:
         grid.addLayout(langs_row, 2, 1, 1, 2)
         grid.addWidget(self._range_label, 3, 0)
         grid.addLayout(range_row, 3, 1, 1, 2)
+        grid.addWidget(self._range_hint, 5, 1, 1, 2)
         grid.addWidget(self._provider_label, 4, 0)
         grid.addWidget(self._provider_profile_combo, 4, 1)
         grid.addWidget(self._provider_btn, 4, 2)
@@ -570,6 +579,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
     def _on_range_mode_changed(self, index: int) -> None:
         # Aralık modu değiştiğinde özel aralık kutusunu gösterir/gizler / Shows/hides custom range input
         self._range_input.setVisible(index == 1)
+        self._range_hint.setVisible(index == 1)
 
     def _emit_job(self) -> None:
         # Doğrulamadan sonra job_ready sinyali yayar / Validates and emits job_ready signal

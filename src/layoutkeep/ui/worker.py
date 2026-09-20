@@ -7,9 +7,11 @@ reimplements translation, fitting or I/O logic (see docs/CONTRACT.md, D1/D2).
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -82,6 +84,63 @@ def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
     from layoutkeep.writers.converter import write_any_document
 
     return write_any_document(doc, source, out)
+
+
+def _output_document(doc: Document, config) -> tuple[Document, set[int] | None]:
+    """What the range promises, made true: the written file holds the selected pages.
+
+    WHY THIS EXISTS: a page range used to narrow only what was *translated*, so choosing
+    "40-60" produced a translation of those pages inside a copy of the whole book - reported as
+    "shouldn't it output only the range I selected?". The project still keeps every page (the
+    reviewer needs the rest, and re-exporting must not silently shorten the document), so the
+    range is applied to a copy used for writing, not to the document that is saved.
+
+    Sayfa aralığı artık çıktıyı da daraltır; kaydedilen proje belgenin tamamını korur.
+    """
+    if not (config.page_range and doc.pages):
+        return doc, None
+
+    from layoutkeep.core.range_helper import filter_document_by_pages, parse_page_range
+
+    selected = parse_page_range(config.page_range, len(doc.pages))
+    if len(selected) >= len(doc.pages):
+        return doc, None
+
+    subset = filter_document_by_pages(doc, selected)
+    # The verification pass pairs source page N with output page N through `source_ref`, so the
+    # kept pages are renumbered to their position inside the slice. They are deep-copied first:
+    # filter_document_by_pages shares the Page objects with the project's document, and
+    # renumbering those in place would corrupt the saved project.
+    pages = []
+    for index, page in enumerate(subset.pages):
+        copied = copy.deepcopy(page)
+        copied.source_ref = str(index)
+        pages.append(copied)
+    return replace(subset, pages=pages), selected
+
+
+def _source_slice(src: Path, selected: set[int], destination: Path) -> Path | None:
+    """The selected pages of the source, as their own PDF, so verification compares like with like.
+
+    A subset output cannot be checked against the full source: page 1 of the output is not page 1
+    of the book, and every loss rule would read the wrong pair.
+    """
+    if src.suffix.lower() != ".pdf":
+        return None
+    import pymupdf
+
+    with pymupdf.open(str(src)) as source:
+        out = pymupdf.open()
+        try:
+            for number in sorted(selected):
+                if 1 <= number <= source.page_count:
+                    out.insert_pdf(source, from_page=number - 1, to_page=number - 1)
+            if out.page_count in (0, source.page_count):
+                return None
+            out.save(str(destination))
+        finally:
+            out.close()
+    return destination
 
 
 def load_glossary_terms(path: str | None) -> dict[str, str] | None:
@@ -385,9 +444,23 @@ class TranslationWorker(QThread):
         apply_segments(doc, translated)
 
         self.status.emit("writing output")
-        _write_document(doc, src, out)
-
-        verification = self._verify(doc, translated, src, out, config, provider)
+        output_doc, range_pages = _output_document(doc, config)
+        slice_path = None
+        if range_pages is not None:
+            slice_path = _source_slice(src, range_pages, out.with_suffix(".range-src.pdf"))
+            self.status.emit(f"output holds the selected {len(range_pages)} pages")
+        # The PDF writer renders *from the source file*, page by page, so a range is only honoured
+        # when the writer is handed the sliced source: dropping pages from the document alone left
+        # the whole book in the output (the pages the range left out simply went untouched).
+        write_source = slice_path or src
+        try:
+            _write_document(output_doc, write_source, out)
+            verification = self._verify(
+                output_doc, translated, write_source, out, config, provider, source_slice=slice_path
+            )
+        finally:
+            if slice_path is not None:
+                slice_path.unlink(missing_ok=True)
 
         project_path = config.project_path or str(out.with_suffix(".lkproj"))
         save_project(doc, project_path)
@@ -397,14 +470,29 @@ class TranslationWorker(QThread):
         self.job_stats.emit(stats)
         self.finished_ok.emit(project_path)
 
-    def _verify(self, doc, translated, src: Path, out: Path, config: JobConfig, provider=None):
+    def _verify(
+        self,
+        doc,
+        translated,
+        src: Path,
+        out: Path,
+        config: JobConfig,
+        provider=None,
+        source_slice: Path | None = None,
+    ):
         """The CLI's verification pass (layoutkeep/verify.py): check what was written, ask again
-        for what a translation lost, flag the rest - so the review queue shows every loss."""
+        for what a translation lost, flag the rest - so the review queue shows every loss.
+
+        `source_slice` is the selected pages of the source when the output holds a page range:
+        the pass pairs source page N with output page N, and a subset output has to be checked
+        against the matching subset of the source, not against the whole book.
+        """
         from layoutkeep.providers.retry import retry_untranslated
         from layoutkeep.verify import verify_and_repair
 
         self.status.emit("verifying output")
         pdf_to_pdf = src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf"
+        compare_against = source_slice or (src if pdf_to_pdf else None)
 
         def ask_again(again) -> int:
             return retry_untranslated(
@@ -416,8 +504,8 @@ class TranslationWorker(QThread):
             translated,
             target_lang=config.target_lang,
             write=lambda: _write_document(doc, src, out),
-            source_pdf=src if pdf_to_pdf else None,
-            output_pdf=out if pdf_to_pdf else None,
+            source_pdf=compare_against,
+            output_pdf=out if compare_against is not None else None,
             ask_again=ask_again if provider is not None else None,
             refit=(
                 (lambda again: self._fit_pdf_pass(doc, again, config, provider))

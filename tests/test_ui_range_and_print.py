@@ -47,14 +47,17 @@ def test_job_setup_range_selection(qtbot, tmp_path, monkeypatch):
     assert received_config[0].page_range == "1-5, 8"
 
 
-def test_a_page_range_narrows_translation_without_shrinking_the_document(tmp_path):
-    """Selecting pages 1-2 must not throw pages 3-15 away.
+def test_a_page_range_narrows_both_the_translation_and_the_output(tmp_path):
+    """Selecting pages 1-2: the output holds those two pages, the project holds all fifteen.
 
-    The range was applied by rebuilding the Document from the selected pages only. The exported
-    PDF looked right - it is written into a copy of the source, so it kept all 15 pages - but the
-    saved project held just the 2 selected ones. The reviewer could then neither see nor correct
-    any other page, and re-exporting from that project produced a 2-page document from a 15-page
-    source, silently (CONTRACT.md, D5).
+    Two opposite mistakes have been made here, and the test now pins both halves. First the range
+    rebuilt the Document from the selected pages only: the output looked right (it is written into
+    a copy of the source, so it kept all 15 pages) while the saved project held just 2, so the
+    reviewer could not see or correct the rest and re-exporting silently produced a 2-page document
+    (CONTRACT.md, D5). Then, to protect the project, the range narrowed only the *translation* -
+    and a run over a 841-page book with a range selected handed back a copy of the whole book with
+    a few pages translated, reported as "shouldn't it output only the range I selected?". The
+    project keeps every page, the output holds the range, and both are asserted here.
     """
     import pymupdf
 
@@ -84,7 +87,6 @@ def test_a_page_range_narrows_translation_without_shrinking_the_document(tmp_pat
     assert len(load_project(project).pages) == 15, "project lost the unselected pages"
 
     exported = pymupdf.open(out)
-    assert exported.page_count == 15
-    translated_per_page = [p.get_text().count("[tr]") + p.get_text().count("TR:") for p in exported]
-    assert all(n > 0 for n in translated_per_page[:2]), "selected pages were not translated"
-    assert all(n == 0 for n in translated_per_page[2:]), "pages outside the range were translated"
+    assert exported.page_count == 2, "the output should hold only the selected pages"
+    translated = [p.get_text().count("[tr]") + p.get_text().count("TR:") for p in exported]
+    assert all(n > 0 for n in translated), "selected pages were not translated"
