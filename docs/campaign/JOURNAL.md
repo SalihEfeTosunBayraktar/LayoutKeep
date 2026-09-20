@@ -1703,3 +1703,24 @@ each of the 50 states" both survive translation intact and both are flagged.
 So the three biggest numbers on this run - D1=1,130 flagged blocks, L3=1, L6=43 - have one cause
 and one lever: the box. That is roadmap item 4 (reflow/room), not the ladder (measured and
 reverted above), and not the model. Worth knowing before spending another evening on prompts.
+
+## 2026-09-20 (evening) - the story in three languages, and the day's numbers
+
+The user asked why the story was Turkish only; it now publishes in tr/en/de with a switcher on every
+page (`tools/story_site.py`). Turkish stays the original in `docs/story/`; English and German live in
+their own directories with the same file names; a chapter without a translation falls back to the
+closest language that has one, behind a visible note. All sixteen chapters were written by hand
+(Turkish original, English set, German set) - no model was spent on them.
+
+The same evening, the day's measurements, for the record:
+
+- **The book finished**: 106/106 chunks, the full audit **L1=0, L2=48, L3=1, L4=0, L5=0, L6=120,
+  L7=2, L8=3, L9=5, L10=0, D1=2,155, D2=273, D3=39** over 12,647 blocks; the 424 pages were joined
+  into one local PDF (73.9 MB, copyrighted, never published).
+- **A new held-out source ran**: Project Gutenberg #31061 (Cajori, A History of Mathematics, 556
+  pages, public domain) - 6 chunks, 24 pages, 11.4 minutes; it is now on the comparison site, which
+  went from 24 documents/288 images to **25/304**.
+- **The instruments that stayed**: `fit_probe.py` and `fit_ab.py` (both model-free), the L3 label
+  correction, and the review-reason split that reached the completion screen in 0.9.7.
+- Releases today: **v0.9.1 through v0.9.7**, each verified by downloading the asset and comparing its
+  SHA-256 with the local build.
