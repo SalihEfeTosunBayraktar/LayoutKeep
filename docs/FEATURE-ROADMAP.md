@@ -77,6 +77,18 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 4. **Örtüşme çözümü**: `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
+   **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
+   kutuya sığmadı, küçültme yetmedi" ile işaretlendi — en büyük tek sınıf; ikincisi 36 (model
+   metni çevirmeden geri verdi). Yani darboğaz model ya da okuyucu değil, **sığdırma merdiveninin
+   sonu**. **Tasarım:** (a) `_css_for_block` blok stilinde `line_height` varsa `line-height` yazsın
+   — bugün ölçüm `style.line_height`'ı kullanıyor, yazıcı kullanmıyor (gizli uyuşmazlık; okuyucu
+   alanı hiç doldurmadığı için uykuda); (b) merdiven, küçültme tabanına inince ve hâlâ taşıyorsa
+   satır aralığını 1.15 → 1.0 → 0.92 oranlarıyla sıkıp yeniden ölçsün (`FitResult` yeni bir
+   `line_height` alanı taşır, `pdf_pass` blok stillerine yazar); (c) model çağrısından **önce**
+   denenir (bedava) ve kabul ölçütü aynı: L7 ve D3 artmamalı. **Ölçüm yolu:** `rewrite_run.py`
+   kayıtlı çevirileri yeniden yazar — model gerekmez, A/B aynı girdiyle yapılır. **Not:** bu
+   değişiklik `fitting/`'i etkilediği için çalışan bir koşu sürerken yapılmaz (her parça yeni
+   süreç başlatır → parçalar arası tutarsızlık olur).
 5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (sözlük
    düzenleyicisine "belgeden öner" düğmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen
    sözlükle örtüşmesi.

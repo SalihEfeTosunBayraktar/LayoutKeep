@@ -866,10 +866,20 @@ def _block_html(block: Block, resolver: _FontResolver) -> str:
 def _css_for_block(block: Block, resolver: _FontResolver) -> str:
     dominant = block.dominant_style()
     family = resolver.css_family_for(dominant)
+    # A style that names its own line height is honoured here because the *measurement* already
+    # honours it (`fitting/measure.py` reads `style.line_height`): without this rule the fit was
+    # decided against one leading and the page drawn with another. The readers leave the field
+    # unset today, so this is the seam the fitting ladder's "tighten the leading" step will use.
+    leading = (
+        f" line-height: {dominant.line_height:.2f}pt;"
+        if dominant.line_height is not None
+        else ""
+    )
     return (
         f"{resolver.css_face_rules()} "
         f"p {{ font-family: {family}; font-size: {dominant.size:.2f}pt; color: {dominant.color}; "
-        f"direction: {block.direction.value}; margin: 0; text-align: {_css_align(block)}; }}"
+        f"direction: {block.direction.value}; margin: 0; text-align: {_css_align(block)};"
+        f"{leading} }}"
     )
 
 
