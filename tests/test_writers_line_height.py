@@ -11,8 +11,8 @@ field, and the CSS carries it.
 
 from __future__ import annotations
 
-from layoutkeep.core.docir import Block, BBox, Document, Line, Page, Span, Style
-from layoutkeep.fitting.measure import make_measure_fn  # noqa: F401  (used by _measure)
+from layoutkeep.core.docir import BBox, Block, Document, Line, Page, Span, Style
+from layoutkeep.fitting.measure import make_measure_fn
 
 
 def _block_with_leading(line_height: float | None) -> Block:
@@ -56,7 +56,7 @@ def test_a_named_line_height_changes_what_fits() -> None:
 
 
 def test_the_writer_writes_the_named_line_height_into_the_css() -> None:
-    from layoutkeep.writers.pdf_writer import _FontResolver, _css_for_block
+    from layoutkeep.writers.pdf_writer import _css_for_block, _FontResolver
 
     block = _block_with_leading(12.5)
     resolver = _FontResolver("tr")
@@ -69,7 +69,7 @@ def test_a_block_without_a_named_line_height_leaves_the_css_alone() -> None:
     """Every block in the repository today: the rule must not appear, or the engine's own
     leading (which the writer calibrated against, `writer_line_height_ratio`) would be
     overridden for every paragraph in every document."""
-    from layoutkeep.writers.pdf_writer import _FontResolver, _css_for_block
+    from layoutkeep.writers.pdf_writer import _css_for_block, _FontResolver
 
     block = _block_with_leading(None)
     resolver = _FontResolver("tr")
