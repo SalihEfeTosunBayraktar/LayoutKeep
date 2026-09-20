@@ -237,6 +237,26 @@ dört yeni test eklendi. **Gerçek koşuda doğrulama (aynı gün):** 220 sayfal
 `type_drift` hizalama bayrağı **0** çıktı (düzeltmeden önce aynı ölçüm arXiv'da 4 bayrak
 veriyordu). Yani karar okuyucudan yazıcıya, yazıcıdan çizilmiş sayfaya kadar taşındı.
 
+## 4.15 Ölçüm ile çizim farklı satır yüksekliği kullanıyordu (uykuda bir hata)
+
+**Belirti.** Yok — hata uykudaydı. Sığdırma merdivenine "satır aralığını sık" adımı eklenirken
+fark edildi.
+
+**Araştırma.** `fitting/measure.py` bir metnin kutuya sığıp sığmadığına karar verirken
+`style.line_height` alanını **okuyor**; `pdf_writer`'ın CSS'i ise bu alanı **hiç yazmıyordu**. Yani
+satır yüksekliği adı konmuş bir blok, o yüksekliğe göre *ölçülüp* motorun kendi yüksekliğiyle
+*çizilirdi*. Bugün görünmemesinin tek sebebi: okuyucular alanı hiç doldurmuyor (`None`), ikisi de
+varsayılana düşüyor.
+
+**Neden şimdi önemli.** Kitabın biten 12 parçasında en büyük inceleme bayrağı sınıfı "çeviri kutuya
+sığmadı, küçültme yetmedi" (6.570 bloğun 352'si). Merdivenin bu sınıfı eritecek adımı — satır
+aralığını sıkmak — tam da bu alanı kullanacak; uyuşmazlık kapatılmadan o adım yanlış ölçerdi.
+
+**Çözüm.** `_css_for_block`, blok stilinde `line_height` varsa `line-height: …pt` yazıyor.
+3 test: ölçüm alanı görüyor mu (kısa metinle test etmenin yanlış geçtiği de not edildi — tek
+satırlık metin her satır yüksekliğinde "sığar"), CSS alanı taşıyor mu, alan boşsa CSS'e
+dokunulmuyor mu (motorun kalibre edilmiş varsayılanı her paragraf için ezilmesin).
+
 ## 4.14 Klasör düzeni: telifli sayfa görüntüleri depoda
 
 **Belirti (kullanıcı kriteri).** *"açık kaynaklı olan içerikleri githubda yayınla gerisi lokalde
