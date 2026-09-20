@@ -100,7 +100,22 @@ Bu bir **sıklık kuralı**, anlama değil — docstring bunu açıkça yazar. S
 kaydetmeden bir koşuya girmez. Sözlükte zaten olan terim önerilmez. 9 test; ikisi gerçek bir PDF
 sayfası üzerinden düzenleyiciyle konuşur.
 
-## 6.8 Sürümler ve yayın akışı
+## 6.8 Ayar profilleri
+
+Ayar ekranı otuz değer gösteriyor; "hızlı bir taslak için hangilerini değiştirmeliyim" sorusunun
+dürüst cevabı "birlikte anlam taşıyan birkaç tanesi"dir. İki hazır ayar var:
+
+| Profil | Ne değişir | Kimin için |
+|---|---|---|
+| **Hızlı taslak** | 7 paralel istek, okunabilirlik tabanı 0.80, kısaltma isteme kapalı | Okunacak ilk geçiş; sıkı kutularda punto küçülür |
+| **Yayın kalitesi** | 2 istek, taban 0.85, kısaltma eşiği 0.95 (ölçülmüş varsayılanlar) | Saklanacak çıktı; kısa çeviri bir tur fazla model ister |
+
+Değerler aynı doğrulanmış yoldan yazılır ve düzenleyiciler hemen güncellenir; `current()` yalnız
+**her** değer uyuşurken profil adını söyler, elle bir değer değiştiyse "özel" der. Varsayılan
+kurulum zaten "yayın kalitesi"dir. Arayüz notu, parça parça koşan komut satırı işlerinin her yeni
+parçada değerleri yeniden okuduğunu açıkça yazar.
+
+## 6.9 Sürümler ve yayın akışı
 
 Uygulama **tek dosya** olarak yayınlanır (`LayoutKeep.exe`, ~173 MB, onefile), GitHub Releases
 üzerinden. Yayın akışı:
@@ -120,7 +135,7 @@ Yayınlanan sürümler ve her birinin getirdiği şey:
 | 0.9.4 | **Uygulama istekleri paralel gönderiyor** (dalga dalga, belge sırasında birleşir) |
 | 0.9.5 | Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır |
 
-## 6.9 Karşılaştırma sitesi
+## 6.10 Karşılaştırma sitesi
 
 **İstenen:** *"orijinal kaynakları ve çevrilmiş hallerini yan yana kıyaslayabileceğim bir slider
 web sitesi, tüm örnekler için."*
@@ -141,7 +156,7 @@ Görseller tek belge başına yüklenir (tembel): toplam 49 MB'lık arşiv, ziya
 trafik demektir. NASA belgesinin 6997×3163'lük render'ları 3200px'e indirildi (10,4 MB → 1,9 MB) —
 zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
 
-## 6.10 GitHub Pages: açılış sayfası ve bağlantılar
+## 6.11 GitHub Pages: açılış sayfası ve bağlantılar
 
 - **Kök** (`/LayoutKeep/`): açılış sayfası — indirme, karşılaştırma sitesi ve hikâye bağlantıları.
 - **`/docs/comparison/`**: karşılaştırma sitesi.
@@ -152,7 +167,7 @@ zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
   siteye bakar; "bu daldaki kodun durumu" notu iki dilde de kalıcıdır (bir push onu silmişti,
   geri konuldu ve iki tarafta tutuluyor).
 
-## 6.11 Ölçek: bugünkü sayılar
+## 6.12 Ölçek: bugünkü sayılar
 
 | | Değer |
 |---|---|
