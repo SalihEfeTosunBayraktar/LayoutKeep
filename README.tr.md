@@ -68,24 +68,24 @@ kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevri
 
 | İş kurulumu | Çalışırken | Sağlayıcı uç noktaları |
 |---|---|---|
-| ![Kurulum ekranı](docs/screenshots/01_setup_light.png) | ![İlerleme ekranı](docs/screenshots/02_progress_light.png) | ![Sağlayıcı ayarları](docs/screenshots/06_provider_settings_light.png) |
+| ![Kurulum ekranı](docs/screenshots/tr/01_setup_light.png) | ![İlerleme ekranı](docs/screenshots/tr/02_progress_light.png) | ![Sağlayıcı ayarları](docs/screenshots/tr/06_provider_settings_light.png) |
 
 | İlk açılış kendini anlatıyor | Adım adım | Kaliteyi ne belirler |
 |---|---|---|
-| ![Karşılama ekranı](docs/screenshots/07_welcome_hello_light.png) | ![İlk çeviri, üç adım](docs/screenshots/07_welcome_first_light.png) | ![Kaliteyi ne belirler](docs/screenshots/07_welcome_quality_light.png) |
+| ![Karşılama ekranı](docs/screenshots/tr/07_welcome_hello_light.png) | ![İlk çeviri, üç adım](docs/screenshots/tr/07_welcome_first_light.png) | ![Kaliteyi ne belirler](docs/screenshots/tr/07_welcome_quality_light.png) |
 
 | Terim sözlüğü ve çeviri belleği | Sayıların yaşadığı yer | Uzun koşuyu pencere olmadan izle |
 |---|---|---|
-| ![Ayarlar](docs/screenshots/04_settings_basic_light.png) | ![Gelişmiş ayarlar](docs/screenshots/05_settings_advanced_light.png) | ![Yüzen ilerleme çubuğu](docs/screenshots/08_floating_bar_light.png) |
+| ![Ayarlar](docs/screenshots/tr/04_settings_basic_light.png) | ![Gelişmiş ayarlar](docs/screenshots/tr/05_settings_advanced_light.png) | ![Yüzen ilerleme çubuğu](docs/screenshots/tr/08_floating_bar_light.png) |
 
 | Yardım, uygulamanın içinde | Bayraklar ve kriterler ne demek | Sözlüğü düzenlemek |
 |---|---|---|
-| ![Yardım](docs/screenshots/09_help_light.png) | ![Kayıpsızlık kriterleri](docs/screenshots/09_help_criteria_light.png) | ![Sözlük düzenleyici](docs/screenshots/10_glossary_light.png) |
+| ![Yardım](docs/screenshots/tr/09_help_light.png) | ![Kayıpsızlık kriterleri](docs/screenshots/tr/09_help_criteria_light.png) | ![Sözlük düzenleyici](docs/screenshots/tr/10_glossary_light.png) |
 
 Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim başlıktadır ve
 hatırlanır — karşılama ekranı ise boru hattını, sağlayıcı seçimini ve kaliteyi neyin belirlediğini
 her şeyden önce anlatır, atlanabilir. Her ekranın koyu bir varyantı var — görüntüler
-[`docs/screenshots/`](docs/screenshots/) altında.
+[`docs/screenshots/`](docs/screenshots/tr/) altında.
 
 ## Daha uzun bir örnek, ve maliyeti
 
