@@ -44,7 +44,9 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
             "body": (
                 "Genel sekmesi: işçi sayısı (sunucunun yuva sayısıyla eşleşmeli), tekrarlanan "
                 "metni bir kez çevirme, çeviri belleği (koşular arası SQLite; aynı belgeyi yeniden "
-                "çevirmeyi ucuzlatır) ve terim sözlüğü dosyası (JSON).\n"
+                "çevirmeyi ucuzlatır) ve terim sözlüğü. Sözlüğü “Düzenle…” ile tablo hâlinde "
+                "yazabilir, JSON ya da iki sütunlu CSV/TSV yükleyebilirsin; kullanılmayan terim "
+                "inceleme kuyruğuna düşer.\n"
                 "Geliştirici sekmesi: sığdırma ve parti büyüklüğü eşikleri. Buradaki değerler "
                 "yanlış olduğunda hata vermez, sessizce daha kötü çıktı üretir; bu yüzden her "
                 "birinin yanında ne bozulduğu yazılıdır.\n\n"
@@ -133,7 +135,9 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
             "body": (
                 "General tab: worker count (match the server's slot count), translate repeated text "
                 "once, the translation memory (a cross-run SQLite store that makes re-translating "
-                "the same document cheap) and a glossary file (JSON).\n"
+                "the same document cheap) and the glossary. “Edit…” opens it as a table; it also "
+                "loads JSON or a two-column CSV/TSV, and a term that was not used lands in the "
+                "review queue.\n"
                 "Developer tab: fitting and batch-size thresholds. A wrong value there does not "
                 "raise an error, it quietly produces worse output - which is why every entry says "
                 "what goes wrong next to it.\n\n"
