@@ -9,7 +9,7 @@ the help screen the moment it exists in the checker.
 from __future__ import annotations
 
 #: Section keys in the order they are listed.
-SECTIONS = ("first", "provider", "settings", "flags", "criteria", "output", "trouble")
+SECTIONS = ("first", "provider", "settings", "flags", "criteria", "quality", "output", "trouble")
 
 _TEXT: dict[str, dict[str, dict[str, str]]] = {
     "tr": {
@@ -89,6 +89,33 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "Denetim, yazılan sayfayı kaynağıyla karşılaştırır. L ile başlayanlar kayıp, D ile "
                 "başlayanlar betimleyicidir (kayıp sayılmaz, ama bakılması gerekir). Aşağıdaki "
                 "liste denetimin kendi kodundan okunur."
+            ),
+        },
+        "quality": {
+            "title": "Çevirinin kalitesini ne belirler",
+            "body": (
+                "Aynı belge farklı koşullarda farklı sonuç verir. Etkisi en büyükten küçüğe:\n\n"
+                "• Modelin dil becerisi — en büyük tek faktör. Yerel küçük bir modelle öncü bir "
+                "bulut modeli deyimlerde yakın değildir; hangi modeli seçtiğin çevirinin "
+                "okunurluğunu belirler.\n"
+                "• Belge dijital mi, tarama mı — dijital PDF kendi yazı tiplerini, boyutlarını ve "
+                "koordinatlarını taşır, stiller korunur; tarama OCR'dan geçer ve tanıma hataları "
+                "metne karışabilir.\n"
+                "• Tarama çözünürlüğü — kabaca 200 dpi altında OCR küçük puntoyu ve üst simgeleri "
+                "kaybetmeye başlar; yanlış karakter, yanlış çeviridir.\n"
+                "• Belge türü — düz metin geniş kutulara akar; formun ve tablonun kutuları tam bir "
+                "satır yüksekliğindedir ve sığdırma orada küçültmek zorunda kalır. Formüller, kod "
+                "ve figürler bilerek dokunulmadan bırakılır.\n"
+                "• Kaynağın kendi düzeni — dar kolonlar, üst üste binen kutular ve figürün "
+                "etrafına sarılan metin, çevirinin kullanabileceği yeri daraltır.\n"
+                "• Çeviri yönü — Türkçe eklemeli bir dildir: İngilizceye çevrilirken kısalır, "
+                "İngilizceden çevrilirken uzar. Aynı paragraf her yönde farklı yer ister.\n"
+                "• Terim sözlüğü ve çeviri belleği — sözlük sözcükleri sabitler; bellek tekrar "
+                "eden metni bir kez çevirir ve her yerde aynı bırakır.\n"
+                "• Ayarların — kayıpsız mod, tekrar birleştirme ve parça parça onarım hız ile "
+                "sadakat arasında takas yapar; varsayılanlar kayıpsız olanlardır.\n\n"
+                "Özet: okunurluğu model belirler, düzenin ayakta kalmasını belge belirler, "
+                "ikisinin de doğru olduğunu denetim söyler."
             ),
         },
         "output": {
@@ -200,6 +227,35 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "The audit compares the written page against the source. L-criteria are losses; "
                 "D-criteria are descriptive (not counted as losses, but they are what to look at). "
                 "The list below is read from the checker's own code."
+            ),
+        },
+        "quality": {
+            "title": "What decides the quality of a translation",
+            "body": (
+                "The same document gives different results under different conditions. From the "
+                "largest effect down:\n\n"
+                "• The model's language ability — the single largest factor. A small local model "
+                "and a frontier cloud model are not close on idiom; which model you pick decides "
+                "how well the translation reads.\n"
+                "• Digital text or a scan — a digital PDF carries its own fonts, sizes and "
+                "coordinates, so styles survive; a scan goes through OCR and recognition errors "
+                "enter the text.\n"
+                "• Scan resolution — below roughly 200 dpi the OCR starts losing small type and "
+                "superscripts, and a wrong character is a wrong translation.\n"
+                "• The document type — prose re-flows into generous boxes; a form's and a table's "
+                "boxes are exactly one line tall and the fitting has to shrink there. Formulae, "
+                "code and figures are deliberately left untouched.\n"
+                "• The source's own layout — narrow columns, overlapping boxes and text wrapped "
+                "around a figure all narrow the room the translation can use.\n"
+                "• The language direction — Turkish is agglutinative: it contracts into English "
+                "and expands out of it. The same paragraph needs different room each way.\n"
+                "• The glossary and the translation memory — a term list pins the vocabulary; the "
+                "memory translates a repeated string once and keeps it the same everywhere.\n"
+                "• Your settings — lossless mode, repeat unification and piecewise repair trade "
+                "speed for fidelity; the defaults are the lossless ones.\n\n"
+                "The short version: the model decides whether the translation reads well, the "
+                "document decides whether the layout survives, and the audit decides whether "
+                "either is true."
             ),
         },
         "output": {
