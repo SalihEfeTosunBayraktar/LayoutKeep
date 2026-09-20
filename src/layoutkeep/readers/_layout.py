@@ -56,6 +56,28 @@ def infer_alignment(bbox: BBox, page_width: float, lines: list[BBox] | None = No
     return "left"
 
 
+def spread(values: list[float]) -> float:
+    """How far apart the smallest and largest value are - the one measure every rule here uses."""
+    return max(values) - min(values)
+
+
+def _is_justified(lefts: list[float], rights: list[float], tolerance: float) -> bool:
+    """Straight right edge, and a last line that still starts at the left margin.
+
+    WHY THIS EXISTS: justification stretches every line to the margin *except* the last, so a
+    shorter last line is the signature. It is not enough on its own - a centred title's lines also
+    get shorter towards the end - and the two are only separable by where the last line starts: a
+    justified last line begins at the body's left edge, a centred one is still centred. Without
+    that, the NASA report cover's title was recorded "justify" and moved off centre.
+    """
+    if len(rights) < 2:
+        return False
+    body = rights[:-1]
+    if spread(body) > tolerance or rights[-1] >= max(body) - tolerance:
+        return False
+    return abs(lefts[-1] - min(lefts)) <= tolerance
+
+
 def _alignment_from_lines(boxes: list[BBox], page_width: float) -> str:
     """Alignment read from how a block's lines line up, not from where the block sits.
 
@@ -68,14 +90,38 @@ def _alignment_from_lines(boxes: list[BBox], page_width: float) -> str:
     indent is a paragraph, not a different alignment.
     """
     tolerance = max(2.0, page_width * 0.015)
-
-    def spread(values: list[float]) -> float:
-        return max(values) - min(values)
-
     lefts = [box.x0 for box in boxes]
+    rights = [box.x1 for box in boxes]
     if spread(lefts[1:] if len(boxes) >= 3 else lefts) <= tolerance:
+        # Justified or flush-left: the left edge is straight either way. What separates them is the
+        # right edge - flush on every line but the last for justified text, ragged for flush-left.
+        # The writer draws blocks through an HTML box where `text-align: justify` is honoured, so
+        # recording it hands back the source's straight right edge instead of a ragged one; this is
+        # the "alignments are lost in translation" the user reported (arXiv 19113: four justified
+        # body paragraphs came out flush-left).
+        # The last line must be *shorter*: a block whose lines are all the same width is a centred
+        # title as much as a justified paragraph, and calling that "justify" moved the NASA report
+        # cover's title off centre. A justified paragraph's last line is short; that is the tell.
+        if _is_justified(lefts, rights, tolerance):
+            return "justify"
         return "left"
-    if spread([box.x1 for box in boxes]) <= tolerance:
+    # A justified or flush-left block whose FIRST line is indented has left edges that differ by
+    # the indent - a few points - while a right-aligned block's lines differ by the width of the
+    # text that was not set on them, which is far larger. Without this, a two-line paragraph with
+    # an indented opening was recorded as "right" (its right edge is straight because it is
+    # justified) and the type-drift audit flagged four arXiv body paragraphs for an alignment
+    # change that never happened.
+    if len(boxes) >= 2:
+        rest = lefts[1:]
+        indent = lefts[0] - min(rest)
+        # A real indent pushes the first line to the RIGHT of the rest. A centred block whose
+        # first line is the longest has its first line further LEFT, and reading that as an indent
+        # turned the NASA report cover's centred title into a flush-left block.
+        if spread(rest) <= tolerance and tolerance <= indent <= max(tolerance, page_width * 0.02):
+            if _is_justified(lefts, rights, tolerance):
+                return "justify"
+            return "left"
+    if spread(rights) <= tolerance:
         return "right"
     if spread([(box.x0 + box.x1) / 2 for box in boxes]) <= tolerance:
         return "center"

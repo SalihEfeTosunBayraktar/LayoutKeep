@@ -55,14 +55,35 @@ def test_a_centred_caption_is_still_centred() -> None:
 _NOVEL = 322.0
 
 
-def test_a_justified_paragraph_in_a_centred_column_is_left() -> None:
+def test_a_justified_paragraph_in_a_centred_column_is_justified() -> None:
+    """Justified, not merely "left": the writer draws through an HTML box where `text-align:
+    justify` is honoured, so recording it keeps the source's straight right edge. Recorded as
+    "left" it came back ragged - the "alignments are lost in translation" the user reported."""
     lines = [BBox(44, 100 + i * 12, 278, 110 + i * 12) for i in range(5)] + [BBox(44, 160, 180, 170)]
-    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "left"
+    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "justify"
 
 
-def test_a_first_line_indent_paragraph_is_left() -> None:
+def test_a_first_line_indent_paragraph_is_justified() -> None:
     lines = [BBox(56, 100, 278, 110)] + [BBox(44, 112 + i * 12, 278, 122 + i * 12) for i in range(4)] + [BBox(44, 160, 150, 170)]
-    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "left"
+    assert infer_alignment(BBox(44, 100, 278, 170), _NOVEL, lines) == "justify"
+
+
+def test_a_flush_left_paragraph_with_a_ragged_right_edge_stays_left() -> None:
+    """The other half of the rule: ragged right edges are not justification."""
+    lines = [BBox(44, 100, 250, 110), BBox(44, 112, 271, 122), BBox(44, 124, 233, 134), BBox(44, 136, 180, 146)]
+    assert infer_alignment(BBox(44, 100, 278, 146), _NOVEL, lines) == "left"
+
+
+def test_a_centred_block_whose_lines_shrink_is_not_called_justified() -> None:
+    """A centred title's lines also get shorter towards the end; only where the last line *starts*
+    separates it from a justified paragraph (the NASA cover title was drawn off centre without it)."""
+    lines = [BBox(61, 100, 261, 110), BBox(111, 112, 211, 122)]
+    assert infer_alignment(BBox(61, 100, 261, 122), _NOVEL, lines) == "center"
+
+
+def test_a_right_aligned_two_line_block_stays_right() -> None:
+    lines = [BBox(200, 100, 300, 110), BBox(240, 112, 300, 122)]
+    assert infer_alignment(BBox(200, 100, 300, 122), _NOVEL, lines) == "right"
 
 
 def test_centred_lines_of_different_widths_are_centred() -> None:
