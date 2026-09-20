@@ -1690,3 +1690,16 @@ short of lines, they are short of **box**: `room_below` can shorten a block's me
 to keep it off the next block, and nothing fits in 6pt. Their fix is the box (the reflow/room
 work), not the ladder - which is why the next lever is roadmap item 4, and why this step was left
 where it does no harm.
+
+## 2026-09-20 - L3, L6 and D1 are the same problem wearing three names
+
+Checked the book's L6 findings ("numbers lost", 43 of them, the largest L class) block by block:
+`drops_numbers(source, target, "tr")` returns False for the examples - the numbers are all in the
+translation. The audit's L6 comes from the *written page*, so what it is really reporting is the
+same thing L3 reports: a block that did not fit, drawn clipped, with its tail - often the number -
+not on the page. The TOC line ("Problems .... 468") and "Table 2.8 gives the birth rates ... in
+each of the 50 states" both survive translation intact and both are flagged.
+
+So the three biggest numbers on this run - D1=1,130 flagged blocks, L3=1, L6=43 - have one cause
+and one lever: the box. That is roadmap item 4 (reflow/room), not the ladder (measured and
+reverted above), and not the model. Worth knowing before spending another evening on prompts.
