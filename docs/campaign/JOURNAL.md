@@ -1759,3 +1759,24 @@ Measured rate: ~1 minute per page (4-page chunks, 7 workers) — the same rate t
 So the full set is a night's work: the three laws land first, the reverse direction in the middle,
 the two plans after that. Every step is `--resume`-safe; relaunching the same file picks up at the
 first chunk that has no `.lkproj` yet.
+
+## The type-drift readings, checked against the page
+
+`type_drift.py` reported inflated blocks on the NIST scan (chart labels at 1.23-1.50x) and two
+alignment changes on the Turkish law run. Rendering those pages and *looking* at them settled it:
+the charts are scaled as a unit and come out slightly **smaller** than the source, the caption that
+the tool called centred is **justified exactly like the original** (confirmed at 300 dpi on a crop,
+after the same crop at reading size had suggested otherwise), and the body type matches. The law
+pages the tool flagged as right-aligned are left-aligned to the eye.
+
+The reason is the instrument's own shape: it compares a block-level median against that block's
+*dominant* style, and on a scan the OCR boxes put chart labels, body text and captions into blocks
+whose dominant style is not the style of every line inside them — a mixed-size block reports drift
+nobody can see. The alignment check has the same weakness, and its docstring already records two
+earlier rounds of false positives on an IRS form and an arXiv paper. Lesson for the next session:
+**before fixing what this tool reports, render the page and look at it.** The tool is a detector,
+not a verdict.
+
+The two readings that do survive a look are real and already known: the fit ladder squeezing dense
+translations toward the readability floor (D1), and single-line headings in narrow boxes. Both are
+the box/room problem, not a type-size bug.
