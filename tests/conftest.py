@@ -126,6 +126,12 @@ _OCR_TEST_MODULES = (
     "test_conversion_matrix",
     "test_cross_format",
     "test_outlined_text",
+    # Added when the CI first reached its test step: these three drive a scanned page end to end,
+    # so `rapidocr` is imported from inside the reader's engine rather than at module level and
+    # the absence was a collection error rather than a skip.
+    "test_pdf_writer_scanned_paper",
+    "test_pdf_reader_hidden_ocr_layer",
+    "test_pdf_reader_scanned",
 )
 
 from layoutkeep.core import paths

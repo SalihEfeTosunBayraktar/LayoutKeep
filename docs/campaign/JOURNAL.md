@@ -1798,3 +1798,18 @@ worth more than tidiness:
   a redirect with a canonical link, so addresses shared before the viewer moved still land on the
   current site — and the GitHub About link now points at the landing page, which opens the story,
   the viewer and the releases.
+
+## Branch cleanup
+
+The owner asked for the other branches to be either merged into main or removed. The remote was
+already clean - after `git fetch --prune`, GitHub holds only `main`, the feature branch and three
+dependabot branches - and the work of the removed ones is provably in the feature branch
+(`tests/fixtures/rich_book.epub` and `src/layoutkeep/fitting/elastic_flow.py` both exist there, and
+two of the local branches were ancestors of it). The local copies, with their tips recorded so
+nothing is lost silently:
+
+| branch | tip | why it goes |
+|---|---|---|
+| `layout-model` | `7ef33ea` | an ancestor of the feature branch; merged |
+| `scanned-pdf-ocr` | `298e04f` | an ancestor of the feature branch; merged |
+| `v2-vision-layout` | `b89396b` | the abandoned second clone's branch, never merged; the owner said to forget V2 |

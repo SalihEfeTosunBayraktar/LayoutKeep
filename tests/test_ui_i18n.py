@@ -40,6 +40,12 @@ def test_header_language_selector(qtbot) -> None:
     emitted_langs: list[str] = []
     header.ui_language_changed.connect(emitted_langs.append)
 
+    # Start from Turkish. The interface default is English, so moving an already-English header to
+    # index 1 changes nothing and emits nothing - which is why this passed locally (an earlier test
+    # had left Turkish behind) and failed on the CI, where the state was clean.
+    header._ui_lang_combo.setCurrentIndex(0)  # 0: Türkçe
+    assert "tr" in emitted_langs
+
     # Dil seçici İngilizce'ye getirildiğinde sinyal yayılmalı / Changing to English should emit signal
     header._ui_lang_combo.setCurrentIndex(1)  # 1: English
     assert "en" in emitted_langs

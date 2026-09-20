@@ -10,6 +10,8 @@ import sys
 import threading
 from pathlib import Path
 
+import pytest
+
 from layoutkeep.core.docir import load_project
 from layoutkeep.ui.job import JobConfig, ProviderConfig
 from layoutkeep.ui.worker import TranslationWorker, _batch_timeout
@@ -17,6 +19,22 @@ from layoutkeep.ui.worker import TranslationWorker, _batch_timeout
 sys.path.insert(0, str(Path(__file__).parent / "fixtures"))
 import build_epub_fixture
 import build_pdf_fixture
+
+
+@pytest.fixture(autouse=True)
+def _turkish_wording():
+    """These tests assert the Turkish wording, so pin the interface language and put it back.
+
+    WHY THIS EXISTS: the app's default is English and the error messages now follow the interface
+    language, so asserting Turkish only passed while an earlier test happened to leave Turkish
+    behind - the CI, starting from a clean state, saw English and failed. Pinning it here makes the
+    assertion about the message rather than about test order.
+    """
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("tr")
+    yield
+    UIStrings.set_language("en")
 
 
 def _job(tmp_path, **overrides) -> JobConfig:
@@ -144,6 +162,17 @@ def test_timeout_produces_readable_message_not_a_stack_trace(qtbot, tmp_path, mo
     message = failed[0]
     assert "zaman aşımı" in message
     assert "Traceback" not in message
+
+    # The same error in English, the interface default: the wording follows the language rather
+    # than being a Turkish literal shown to every user.
+    from layoutkeep.ui.strings import UIStrings
+    from layoutkeep.ui.worker import _timeout_error_message
+
+    UIStrings.set_language("en")
+    english = _timeout_error_message("http://127.0.0.1:1234/v1", 30)
+    assert "did not answer within" in english
+    assert "zaman aşımı" not in english
+    UIStrings.set_language("tr")
 
 
 def test_connection_failure_produces_readable_message_not_a_stack_trace(qtbot, tmp_path, monkeypatch):
