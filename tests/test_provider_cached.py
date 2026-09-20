@@ -85,3 +85,35 @@ def test_book_with_repeated_headers_measures_real_hit_rate(tmp_path):
     assert stats["hits"] == (num_pages - 1) * 2
     assert stats["entries"] == num_pages + 2  # header + footer + one unique body per page
     assert hit_rate > 0.2  # matches the 20-40% savings expected from running headers/footers
+
+
+def test_budget_capped_request_is_not_served_from_memory_at_full_length(tmp_path):
+    """The fit pass's shorten request (`max_len`) must not be answered by a cache hit of the
+    original length: rhetorically the same request, but the model would be asked to produce a
+    shorter rendering, so a hit at full length is a no-op that makes the shrink ladder give up."""
+
+    memory = TranslationMemory(tmp_path / "tm.sqlite3")
+    memory.put(Segment(block_id="b1", source="Hello", target="A very long cached translation"), "en", "fr", "fake-1")
+    short = {"b1": "Short."}
+    inner = FakeProvider(translations=short)
+    provider = CachedProvider(inner, memory, model_id="fake-1")
+
+    result = provider.translate([Segment(block_id="b1", source="Hello", max_len=8)], "en", "fr")
+    assert result[0].from_memory is False
+    assert result[0].target == "Short."
+
+    # A hit that does fit the cap is still served from memory.
+    memory.put(Segment(block_id="b2", source="World", target="Petit"), "en", "fr", "fake-1")
+    result = provider.translate(
+        [Segment(block_id="b2", source="World", max_len=10), Segment(block_id="b2", source="World")],
+        "en", "fr",
+    )
+    assert result[0].from_memory is True
+    assert result[0].target == "Petit"
+
+    # No max_len: unchanged behaviour, full-length hit served (a source the short inner
+    # answer has not overwritten - the first miss stored "Short." for b1).
+    memory.put(Segment(block_id="b3", source="Tree", target="Arbre tres long ici"), "en", "fr", "fake-1")
+    result = provider.translate([Segment(block_id="b3", source="Tree")], "en", "fr")
+    assert result[0].from_memory is True
+    assert result[0].target == "Arbre tres long ici"
