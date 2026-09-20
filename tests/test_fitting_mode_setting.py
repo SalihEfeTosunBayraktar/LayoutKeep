@@ -7,6 +7,8 @@ tests pin the wiring, not the fitting itself.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from layoutkeep.core import tunables
 from layoutkeep.fitting import FitMode
 
@@ -44,7 +46,6 @@ def test_the_application_follows_the_setting(monkeypatch):
     """`ui.worker` asks the same registry; a hard-coded mode would show up here."""
     from layoutkeep.ui import worker
 
-    source = worker.__file__
-    text = open(source, encoding="utf-8").read()
+    text = Path(worker.__file__).read_text(encoding="utf-8")
 
     assert 'tunables.get("fitting.reflow")' in text, "the worker pins the fit mode again"
