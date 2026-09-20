@@ -232,7 +232,10 @@ aynı. Üçüncüsü kritik — ortalanmış başlığın satırları da kısal�
 o şart olmadan NASA kapak başlığı merkezden kayıyordu (test yakaladı).
 
 **Kanıt.** 19 hizalama testi + 218 okuyucu/layout testi; iki eski test yeni sözleşmeye çevrildi,
-dört yeni test eklendi.
+dört yeni test eklendi. **Gerçek koşuda doğrulama (aynı gün):** 220 sayfalık kitabın yeniden
+çevrilen ilk parçalarında okuyucu, 70 uzun gövde bloğunun **26'sını "justify"** olarak okudu ve
+`type_drift` hizalama bayrağı **0** çıktı (düzeltmeden önce aynı ölçüm arXiv'da 4 bayrak
+veriyordu). Yani karar okuyucudan yazıcıya, yazıcıdan çizilmiş sayfaya kadar taşındı.
 
 ## 4.14 Klasör düzeni: telifli sayfa görüntüleri depoda
 
