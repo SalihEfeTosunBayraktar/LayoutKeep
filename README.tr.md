@@ -10,6 +10,7 @@
   <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/"><strong>Çevrilmiş bir belgeyi yan yana görün →</strong></a><br>
   <a href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep/releases/latest"><strong>Uygulamayı indirin (Windows, tek dosya) →</strong></a><br>
   <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/story/"><strong>Bütün hikâye — 8 bölüm, Türkçe, İngilizce ve Almanca: her hata, her ölçüm →</strong></a><br>
+  <a href="docs/CREDITS.md"><strong>Nelerin üzerine kurulu — her kütüphane, lisansı ve buradaki işi →</strong></a><br>
   <sub>Akademik bir makalenin on sayfası, İngilizce ve Türkçe, sürüklenebilir bir ayırıcı altında.</sub>
 </p>
 
