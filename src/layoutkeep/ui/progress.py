@@ -243,7 +243,7 @@ class ProgressWidget(QWidget):
         self._title = QLabel(UIStrings.PROGRESS_TITLE)
         self._title.setStyleSheet("font-size: 16px; font-weight: 700;")
 
-        self._status = QLabel("hazır")
+        self._status = QLabel(UIStrings.STATUS_READY)
         self._status.setStyleSheet("font-size: 13px; font-weight: 500;")
 
         self._time_info = QLabel("")

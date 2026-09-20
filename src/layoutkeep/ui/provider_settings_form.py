@@ -25,6 +25,7 @@ from layoutkeep.ui.endpoint_tree import EndpointTree
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.model_catalog import ModelSelectorWidget
+from layoutkeep.ui.strings import UIStrings
 
 KIND_OPENAI = "openai"
 KIND_DEEPL = "deepl"
@@ -149,15 +150,15 @@ class ProviderSettingsForm:
         if cfg.model:
             self._model.addItem(cfg.model)
 
-        self._refresh_btn = QPushButton("Modelleri Getir", self._parent)
+        self._refresh_btn = QPushButton(UIStrings.FETCH_MODELS_BTN, self._parent)
         self._api_key = QLineEdit(load_api_key_for(cfg.base_url), self._parent)
         self._api_key.setEchoMode(QLineEdit.EchoMode.Password)
-        self._api_key.setPlaceholderText("opsiyonel - LM Studio/Ollama gerektirmez")
+        self._api_key.setPlaceholderText(UIStrings.OPTIONAL_NO_KEY_NEEDED)
 
         self._timeout = QLineEdit(
             str(cfg.timeout) if cfg.timeout else "", self._parent
         )
-        self._timeout.setPlaceholderText("boş = otomatik (öneriliyor)")
+        self._timeout.setPlaceholderText(UIStrings.TIMEOUT_AUTO)
         self._status = QLabel("", self._parent)
         self._status.setWordWrap(True)
 

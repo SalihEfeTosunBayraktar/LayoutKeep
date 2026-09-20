@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.ui.icons import get_svg_icon
+from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
 # Üretici / Model Ailesi Eşleşmeleri / Vendor and model family pattern mappings
@@ -87,7 +88,7 @@ class ModelSelectorWidget(QWidget):
     def _init_ui(self) -> None:
         # Arayüz elemanlarını kurar / Initializes UI controls
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("Model ara… (örn: llama, qwen, 7b)")
+        self._search_input.setPlaceholderText(UIStrings.MODEL_SEARCH_PLACEHOLDER)
         self._search_input.setClearButtonEnabled(True)
         self._search_input.addAction(get_svg_icon("search", size=14), QLineEdit.ActionPosition.LeadingPosition)
 

@@ -294,7 +294,7 @@ class ProviderSettingsDialog(QDialog):
         # Model listesini sunucudan getirir / Fetches model list from provider
         f = self._form
         f.refresh_btn.setEnabled(False)
-        f.status.setText("modeller alınıyor...")
+        f.status.setText(UIStrings.STATUS_FETCHING_MODELS)
         self._list_worker = ListModelsWorker(f.base_url.text().strip(), f.api_key.text() or None)
         self._list_worker.succeeded.connect(self._on_models)
         self._list_worker.failed.connect(self._on_models_failed)
@@ -309,7 +309,7 @@ class ProviderSettingsDialog(QDialog):
         if models:
             self._form.status.setText(f"{len(models)} model bulundu (üreticilere göre gruplandı)")
         else:
-            self._form.status.setText("sunucu model döndürmedi")
+            f.status.setText(UIStrings.STATUS_NO_MODELS)
 
     def _on_models_failed(self, message: str) -> None:
         self._form.status.setText(
