@@ -372,13 +372,24 @@ Düzeltme: görseller tek tek değil **birleşim alanıyla** değerlendiriliyor 
 kaynağın o görsel üzerinde zaten yazdığı kelimeler çıkarılıyor (grafik etiketleri). Gerçek olan iki
 sayfa `fitting/figures.py` ile düzeldi; yeniden çevirimde **13 → 0**.
 
-### 7.2 Kırılan satırlar (D1'in bir parçası)
+### 7.2 Kırılan satırlar: denendi, ölçüldü, **geri alındı**
 
 `room_below` birkaç punto negatif çıkınca yazar kutuyu kısaltıyor, 6.7pt'lik dizin satırı 4.5pt'ye
-eziliyordu. Yazar artık taban ölçek tutmazsa bloğun **kendi kutusunu** da deniyor. Ölçüm
-(`rewrite_run` + yeni `tools/audit/type_drift.py`): okunamaz 12 → 2, küçültülmüş 84 → 6, hizası
-değişmiş 4 → 0. Kutuyu sağa genişletme denendi ve **ölçümle çürütüldü** (kısıt yükseklik), geri
-alındı.
+eziliyordu. Yazarın taban ölçek tutmazsa bloğun **kendi kutusunu** denemesi bunu düzeltti gibi
+göründü (cookbook: okunamaz 12 → 2, küçültülmüş 84 → 6) - ama bedeli ölçülmemişti. IRS formunun
+tam koşusu (48 parça) L7=11 gösterdi; aynı kayıtlı çeviriler üzerinde iki sürüm yan yana ölçüldü:
+
+| sürüm | L7 | D3 |
+|---|---|---|
+| bloğun kendi kutusu serbest | **10** | 4 |
+| yalnız başka bloğun satırı yoksa (koruma) | 0 | 1 |
+
+Kazanç gerçekti, karşılığı form gibi yoğun sayfalarda **üst üste binen metindi** - kullanıcının
+"çok tehlikeli" dediği sınıf. Korumalı sürüm kazancı da sıfırlıyor (cookbook 12 → 12), yani kod
+ekleyip hiçbir şey kazandırmıyor. Değişiklik **tamamen geri alındı**. Ayrıca kutuyu sağa genişletme
+denenmiş ve **ölçümle çürütülmüş**tü (kısıt yükseklik) - o da geri alınmıştı.
+
+Ders: bir düzeltmenin kazancını ölçmek yetmiyor, **bedelini de** ölçmek gerekiyor.
 
 ### 7.3 type_drift artık kaynakla karşılaştırıyor
 

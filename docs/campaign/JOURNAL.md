@@ -1629,3 +1629,12 @@ tarama kalitesinin doğrudan sonuca yansıdığı, kullanıcıya söylenen bir v
 
 Bu, "kaliteyi ne belirler" maddesinin (kullanıcının 6. ek kriteri) ölçülmüş örneği: belge türü
 (tarama), görsel kalite ve süslü tipografi → OCR güveni → inceleme bayrağı.
+
+## 2026-09-20 — gece 5: "kırılan satır" düzeltmesi geri alındı
+
+Gece 1'de yazıcıya eklenen "bloğun kendi kutusunu dene" değişikliği cookbook'ta ölçülebilir bir
+kazanç veriyordu (okunamaz 12 → 2). Bedeli ölçülmemişti: IRS formunun tam koşulunda L7=11 çıktı ve
+aynı kayıtlı çeviriler üzerinde iki sürüm karşılaştırıldığında sebebin bu değişiklik olduğu
+doğrulandı (korumasız L7=10, korumalı L7=0 - ama korumalı sürüm cookbook'ta kazancı da sıfırlıyor:
+12 → 12). İkisi de kalmadı, değişiklik tamamen geri alındı. Kural: kazancı ölçmek yetmez, bedelini
+de ölç.
