@@ -129,6 +129,13 @@ ignore = [
     "TRY400",
 ]
 
+[tool.ruff.lint.isort]
+# Stated for the same reason `select` is: without it, "first-party" is inferred from whatever ruff
+# version is installed, and the two disagree. A newer ruff stopped treating `layoutkeep` as
+# first-party on the CI runner while the local one still did, so the same file passed here and
+# failed there - one import block, two standards. Naming it settles both.
+known-first-party = ["layoutkeep"]
+
 [tool.ruff.lint.per-file-ignores]
 # The PUA delimiter that hides a value from the model is a constant, not a credential.
 "src/layoutkeep/core/protect.py" = ["S105"]
