@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Ölçüm disiplini — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 3. Ölçüm disiplini.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <span class='here'>3</span> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>3. Ölçüm disiplini: sayılar nasıl üretiliyor, ve ölçümün kendisi nasıl yanıldı</h1>
+<p>Bu projenin en çok tekrarlanan dersi şu: <strong>yanlış ölçüm, ölçümsüzlükten kötüdür.</strong> Yanlış bir sayı yok sayılmaz — düzeltilmesi gereken bir düzeltme üretir, insan saatleri harcatır, ve bir süre sonra "kayıpsız" iddiasını güvenilmez yapar. Bu bölüm önce ölçümün ne olduğunu, sonra üç kez nasıl yanıldığını anlatır.</p>
+<h2>3.1 On kayıp türü, üç kalite eşiği</h2>
+<p><code>verify.py</code> her koşuda şu kriterleri sayar. Kural: <strong>her kriter ya 0'dır ya da gerekçesi yazılıdır.</strong></p>
+<table>
+<thead><tr>
+<th>Kod</th>
+<th>Ne sayar</th>
+<th>Nasıl ölçülür</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>L1</strong></td><td>Sayfa sayısı farklı</td><td>Kaynak ve çıktı PDF'lerinin sayfa sayıları</td></tr>
+<tr><td><strong>L2</strong></td><td>Çevrilmemiş ya da başka dilde</td><td>Çıktı sayfasındaki kelimeler kaynağın diliyle karşılaştırılır</td></tr>
+<tr><td><strong>L3</strong></td><td>Yazıcı bloğu düşürmüş</td><td>DocIR'daki blok çıktıda bulunamadı</td></tr>
+<tr><td><strong>L4</strong></td><td>Metin sayfanın dışına taşmış</td><td>Kelime kutusu sayfa dikdörtgeninin dışında</td></tr>
+<tr><td><strong>L5</strong></td><td>Etiket sızmış</td><td>Çıktıda <code>&lt;...&gt;</code> kalıbı</td></tr>
+<tr><td><strong>L6</strong></td><td>Çeviride sayılar kaybolmuş</td><td>Kaynaktaki sayı kümesi çıktıda aranır</td></tr>
+<tr><td><strong>L7</strong></td><td>Metin başka metnin üstüne yazılmış</td><td>Kelime kutularının çakışması</td></tr>
+<tr><td><strong>L8</strong></td><td>Çevrilmeyen metin yerinden oynamış</td><td>Kaynakta duran blok çıktıda başka yerde</td></tr>
+<tr><td><strong>L9</strong></td><td>Başka alfabeden harf karışmış</td><td>Örnek: <code>Việt語</code> — Latin + CJK karışımı</td></tr>
+<tr><td><strong>L10</strong></td><td>Metin bir figürün üstüne çizilmiş</td><td>Kelime kutusu görsel kutusuyla kesişiyor</td></tr>
+<tr><td><strong>D1</strong></td><td>Okunabilirlik tabanının altında</td><td>Punto 0.85 ölçeğinin altına inmiş bloklar</td></tr>
+<tr><td><strong>D2</strong></td><td>Kısa bloklar değişmeden kalmış</td><td>3 kelimeden kısa ve çevrilmemiş bloklar</td></tr>
+<tr><td><strong>D3</strong></td><td>Kutuya sıkışmış metin</td><td>Kelimeler arası boşluk sıfıra inmiş</td></tr>
+</tbody>
+</table>
+<p>L-kriterleri <strong>kayıp</strong>, D-kriterleri <strong>kalite</strong>tir: bir L ihlali "bir şey kayboldu" demektir ve kabul edilemez; bir D bulgusu "bir şey kötüleşti" demektir ve sayılır, raporlanır, mümkünse düzeltilir. Kitap koşusunun son tablosu (220 sayfa, 4.491 çevrilebilir blok): <strong>L1=1, L2=2, L3=0, L4=0, L5=0, L6=4, L7=1, L8=1, L9=0, L10=0, D1=801, D2=163, D3=0.</strong> L1'in tek vakası bilinçli (kitabın sonundaki kaynakça sayfası çıktıya alınmadı), L2'nin ikisi kaynakça satırı, D1'in 801'i ise uzun çevirilerin küçültülmesi — hepsi gerekçeli.</p>
+<h2>3.2 Denetim araçları</h2>
+<p><code>tools/audit/</code> altında 56 araç var; en sık kullanılanlar:</p>
+<ul><li><code>lossless_audit.py</code> — bir koşu dizinini tarar, L1–L10 + D1–D3 tablosunu üretir (<code>audit.json</code>).</li><li><code>type_drift.py</code> — yazılan sayfanın <strong>tipografisi</strong> ile okuyucunun kaydettiği stili karşılaştırır:</li></ul>
+<p>büyümüş bloklar (başlık irileşti mi), küçülmüş bloklar (sığdırma merdiveni), hizası değişmiş bloklar, okunamaz boyuta inmiş bloklar.</p>
+<ul><li><code>text_over_image.py</code> — yalnız L10'u derinleştirir (bkz. 3.3, ilk yanlış ölçüm).</li><li><code>side_by_side.py</code> — dört panelli görsel karşılaştırma üretir (orijinal | eski | yeni | model).</li><li><code>comparison_site.py</code> — tüm koşuları tek bir kaydırıcılı siteye döker (yayınlanan site budur).</li><li><code>translate_book.py</code> / <code>translate_epub.py</code> — parça parça, çok işçili canlı koşu sürücüleri.</li><li><code>rewrite_run.py</code>, <code>repair_book.py</code> — mevcut çıktıyı yeni motorla yeniden yaz / onar.</li><li><code>live_check.py</code>, <code>format_matrix.py</code>, <code>translation_completeness.py</code> — biçim çiftleri ve dil</li></ul>
+<p>tamlığı ölçümleri.</p>
+<p>Araçların ortak kuralı: <strong>çıktı makine okunur</strong> (JSON) ve <strong>iddia taşımaz</strong>, sayı taşır.</p>
+<h2>3.3 Ölçümün kendisi üç kez yanıldı</h2>
+<h3>Vaka A: L10 yanlış pozitifleri — sayıların yarısı ölçüm hatasıydı</h3>
+<p>L10 "metin bir figürün üstüne çizilmiş" demek. İlk uygulama, kelime kutusu görsel kutusuyla kesişiyorsa kayıp sayıyordu. Sonuçlar şöyleydi: cookbook <strong>182</strong>, mushrooms <strong>124</strong>, kitap <strong>6</strong>, arXiv <strong>25</strong> — yani "her belgede figür üstü yazı var" gibi görünüyordu.</p>
+<p>Tek tek bakıldığında iki hata ortaya çıktı:</p>
+<ol><li><strong>Tam sayfa / döşemeli tarama görselleri.</strong> Taranmış bir belgede sayfanın tamamı bir görüntüdür;</li></ol>
+<p>üstündeki her kelime "figür üstü" sayılıyordu. Kural düzeltildi: görsel alanların <strong>birleşimi</strong> sayfanın tamamına yakınsa (≥%100) L10 uygulanmaz.</p>
+<ol><li><strong>Kaynağın kendi grafik etiketleri.</strong> arXiv makalesinde grafiğin içindeki eksen etiketleri</li></ol>
+<p>kaynakta zaten vardı; çeviri onları koruyordu ama "kayıp" sayılıyordu. Kural düzeltildi: bir kelime <strong>kaynağın da yazdığı</strong> bir kelimeyse L10 sayılmaz.</p>
+<p>Düzeltilmiş ölçüm: cookbook 182→<strong>0</strong>, mushrooms 124→<strong>0</strong>, kitap 6→<strong>0</strong>, arXiv 25→<strong>0</strong> (hepsi yanlış pozitif). Wikipedia koşularında ise 13/13 <strong>gerçekti</strong> — ve yeniden çevirimle <strong>0</strong>'a indi. Yani düzeltme hem yanlış pozitifleri eledi hem gerçek vakayı yakalamaya devam etti. Aynı kural çekirdeğe de taşındı (<code>verify.words_over_figures</code>); NIST dergisinde L10 8→0 oldu.</p>
+<h3>Vaka B: "bariz daha büyük font" — ölçüm hatası, kod hatası değil</h3>
+<p>Kullanıcı "bazı örneklerde bariz daha büyük font" bildirdi. İlk ölçüm şöyle yapılmıştı: yazılan satır, <strong>en yakın yükseklikteki</strong> kaynak satırla eşleştiriliyordu. Bir formda her etiket kendi değeriyle aynı yükseklik bandındadır — 10 puntoluk etiket 12 puntoluk komşusuyla "karşılaştırıldı" ve doğru bir sayfa şişmiş göründü. Ölçüm, okuyucunun <strong>o blok için kaydettiği</strong> stille, geometriyle eşleştirilerek yeniden yazıldı (<code>type_drift.py</code>); sonuç: <strong>büyüyen blok yok.</strong> Sorun kodda değil, ölçümdeydi — ve bu ancak ölçüm aracı denetlenerek anlaşıldı.</p>
+<h3>Vaka C: hizalama bayrakları — sütun sınırından okumak</h3>
+<p><code>type_drift</code> bir süre arXiv'da 4 blok için "hizası değişmiş" dedi. Blok blok bakıldığında kaynak <strong>iki yana yaslı</strong> (her satır 72→540, son satır kısa), çıktı ise sola yaslı ve sağ kenarı tırtıklı çıkıyordu — yani gerçek bir kayıp vardı ama <strong>sebebi beklenen yerde değildi</strong>: yazıcı <code>text-align: justify</code>'ı zaten destekliyordu (bloklar HTML kutusuyla çiziliyor), eksik olan <strong>okuyucunun hiç "justify" üretmemesiydi</strong> (yalnız left/right/center üretiyordu).</p>
+<p>Düzeltme iki ayırt edici kural gerektirdi: sol kenarlar düz <strong>ve</strong> son satır kısa <strong>ve</strong> son satırın <strong>sol kenarı</strong> gövdeyle aynı. Üçüncüsü olmadan ortalanmış bir başlık da "justify" okunuyordu (onun satırları da kısalır, ama son satır ortadan başlar) — NASA kapak başlığı tam olarak bu yüzden merkezden kayıyordu, ve test yakaladı. Aynı oturumda eklenen girinti kuralı da fazla genişti: ortalanmış bir bloğun ilk satırı (en uzun satır) solda başlar, "girinti" sanılmamalıydı.</p>
+<p><strong>Sonuç:</strong> 19 hizalama testi + 218 okuyucu/layout testi yeşil; iki eski test yeni sözleşmeye çevrildi, dört yeni test eklendi (tırtıklı flush-left "left" kalır, ortalanmış kısalma justify sayılmaz, sağa yaslı iki satır sağ kalır).</p>
+<h2>3.4 Ölçüm altyapısının kuralları</h2>
+<p>Bu üç vakadan çıkan ve artık yazılı olan kurallar:</p>
+<ol><li><strong>Ölçüm aracının kendisi test edilir.</strong> <code>text_over_image.py</code>'nin düzeltmesi, eski koşular</li></ol>
+<p>üzerinde yeniden koşularak doğrulandı: gerçek vakayı (wikipedia 13/13) yakalamaya devam etti, yanlış pozitifleri (cookbook, mushrooms, kitap, arXiv) eledi.</p>
+<ol><li><strong>Ölçüm, kaynağın kendi verisiyle çapraz kontrol edilir.</strong> "Kayıp" denen bir şey kaynağın da</li></ol>
+<p>yazdığı bir şeyse kayıp değildir (arXiv grafik etiketleri).</p>
+<ol><li><strong>Yanlış çıkan bir sayı, düzeltilmiş sayıyla birlikte yazılır.</strong> Bu depoda "182 → 0" gibi</li></ol>
+<p>ifadeler bilinçli: eski sayının yanlış olduğunu gizlemek, yeni sayıya duyulan güveni de götürürdü.</p>
+<ol><li><strong>Varsayılan, kanıtlanmış kayıp varsa kapalıdır.</strong> <code>reflow</code> modu NIST'te D1'i 52→0 yaptı ama</li></ol>
+<p>IRS'te L7'yi 0→1 yaptı; kazanç belgeye bağlı, kayıp kayıpsızlık ihlali — o yüzden mod var, varsayılan değil.</p><p class="pager"><a href="02-mimari.html">← önceki bölüm</a> · <a href="04-hatalar.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>

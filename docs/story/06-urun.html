@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. Ürünleşme: motordan uygulamaya — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 6. Ürünleşme: motordan uygulamaya.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <span class='here'>6</span> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>6. Ürünleşme: motordan uygulamaya</h1>
+<p>Motor doğru olsa da kullanılamıyorsa proje bitmiş sayılmaz. Bu bölüm, "kütüphane"den "herkesin indirip çalıştırabildiği bir uygulama"ya giden adımları ve her adımın hangi kullanıcı şikâyetinden doğduğunu anlatır.</p>
+<h2>6.1 Karşılama ekranı</h2>
+<p><strong>Şikâyet:</strong> <em>"ilk açılışta bir karşılama ve açıklama ekranı olsun, nasıl ilk çeviri yapılır, ne ayar ne işe yarar, yerel sağlayıcı vb... baya detaylı, dil vb oradan başlarken seçilebilmeli, tema dahil."</em></p>
+<p>Karşılama dört sayfadan oluşur ve <strong>ilk çalıştırmada</strong> açılır:</p>
+<ol><li><strong>Ne yapar</strong> — belgeyi kutusunda çevirir; üç cümlelik özet ve "kayıpsız" tanımı.</li><li><strong>Nasıl çalıştırılır</strong> — sürükle-bırak, dil seçimi, sağlayıcı seçimi; yerel/bulut farkı.</li><li><strong>Hangi ayar ne işe yarar</strong> — bağlam penceresi ve yuva sayısı matematiği (7 işçi + 8192 pencere</li></ol>
+<p>= istek başına ~1.2k token), sığdırma eşikleri, korunan değerler.</p>
+<ol><li><strong>Dil ve tema</strong> — arayüz dili (TR/EN/DE) ve açık/koyu tema burada seçilir.</li></ol>
+<p>Karşılama <strong>sürüm bazlı</strong> işaretlenir: yeni sürüm, yeni karşılamadır. (Bu, "karşılama çıkmadı" şikâyetinin kalıcı çözümüdür — Bölüm 4.5.)</p>
+<h2>6.2 Yardım: kriterler kullanıcıya açık</h2>
+<p><strong>Şikâyet:</strong> <em>"her türlü kullanıcının kullanabilmesi için yardım ve açıklayıcı kısımlar fazlaca olmalı."</em></p>
+<p>Yardım ekranı yedi bölümden oluşur ve <strong>motorun kendi kriterlerini</strong> anlatır: ilk çeviri, sağlayıcı seçimi, ayarların anlamı, inceleme bayrakları (her bayrağın ne demek olduğu), kayıpsızlık kriterleri (L1–L10 + D1–D3, Türkçe adlarıyla), çıktıların nerede olduğu (<code>.lkproj</code>, bellek, günlükler, taşınabilir mod), sorun giderme.</p>
+<p>Kural: yardım, kodda olmayan bir şey vaat etmez. Her bölüm, o sürümde gerçekten çalışan bir davranışı anlatır — ve davranış değiştiğinde yardım metni de değişir (bu, sürüm notlarında görülebilir: paralellik varsayılanı 7→2 olduğunda üç ayrı metin güncellendi).</p>
+<h2>6.3 Sözlük ve bellek arayüzde</h2>
+<p><strong>Şikâyet:</strong> <em>"sözlük nerede?"</em> (Bölüm 4.6)</p>
+<ul><li><strong>Sözlük</strong>: dosya seçilir (JSON veya CSV/TSV), uygulama içinde <strong>tablo olarak düzenlenir</strong></li></ul>
+<p>(satır ekle/sil, dosyadan yükle, farklı kaydet), çeviri sırasında hem istemde hem çıktı denetiminde uygulanır. Sözlüğün parmak izi bellek anahtarına girer — sözlüğü değiştirdiğinizde eski çeviriler sessizce kullanılmaz.</p>
+<ul><li><strong>Bellek</strong>: koşular arası SQLite. Tamamlanma ekranı <strong>isabet oranını</strong> gösterir. Gerçek bir</li></ul>
+<p>koşuda 2.555 segment birikti; aynı belgeyi yeniden başlatmak, o segmentler için modeli hiç çağırmaz.</p>
+<h2>6.4 Yüzen çubuk ve pencere geçişi</h2>
+<p><strong>Şikâyet:</strong> <em>"aynı anda pill ve ana pencerenin gözükmesi ve büyük pencereyi gizleyince küçüğün gizlenme sorununu çöz"</em> + <em>"pill'i kapatınca geri açamıyorum."</em></p>
+<p>Uzun koşularda pencereyi arkaya atabilmek gerekir. Çözüm iki yönlü bir geçiş:</p>
+<ul><li>Başlıktaki <strong>▤ "Küçük pencereye geç"</strong> düğmesi pencereyi gizler, ilerleme yüzen çubukta devam</li></ul>
+<p>eder (koşu sürerken etkindir).</p>
+<ul><li>Çubuktaki <strong>"Pencereye dön"</strong> geri getirir; pencereyi küçültmek çubuğu <strong>gizlemez</strong> (sahiplik</li></ul>
+<p>ilişkisi kaldırıldı — Bölüm 4.7).</p>
+<ul><li>Çubuk; ilerleme yüzdesi, aşama, segment sayaçları ve dosya adını gösterir. Dosya adı çubuğa</li></ul>
+<p>sığmazsa kısaltılır ama <strong>tam ad tooltip'te</strong> durur (kısaltılmış bir adı doğrulayamadığınız bir ad, işe yaramaz).</p>
+<h2>6.5 Sayfa aralığı: ne vaat ediyorsa onu yapar</h2>
+<p><strong>Şikâyet:</strong> <em>"sadece seçtiğim aralığı çıktı vermesi gerekmez mi?"</em> (Bölüm 4.12)</p>
+<p>Aralık seçildiğinde:</p>
+<ul><li><strong>Çevrilen</strong>: yalnız seçilen sayfalar.</li><li><strong>Çıktı</strong>: yalnız seçilen sayfalar (yazıcıya kaynağın dilimi verilir).</li><li><strong>Proje (<code>.lkproj</code>)</strong>: belgenin <strong>tamamı</strong> — inceleme ekranı geri kalanı da gösterir ve yeniden</li></ul>
+<p>dışa aktarma belgeyi sessizce kısaltmaz.</p>
+<p>Arayüzde aralık seçildiği anda ne olacağı yazılıdır (TR/EN/DE). Bu davranış 11 testle sabitlendi, gerçek 15 sayfalık bir corpus PDF'i üzerinde ölçüldü: aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa.</p>
+<h2>6.6 Sürümler ve yayın akışı</h2>
+<p>Uygulama <strong>tek dosya</strong> olarak yayınlanır (<code>LayoutKeep.exe</code>, ~173 MB, onefile), GitHub Releases üzerinden. Yayın akışı:</p>
+<ol><li><code>pyproject.toml</code> + <code>__init__.py</code> sürümü artırılır.</li><li><code>PyInstaller packaging/layoutkeep_onefile.spec --noconfirm --clean</code> ile derlenir.</li><li>Tam test süiti koşar.</li><li>Etiket + release; <strong>indirilen dosyanın SHA-256'sı yerel derlemeyle karşılaştırılır</strong>.</li></ol>
+<p>Yayınlanan sürümler ve her birinin getirdiği şey:</p>
+<table>
+<thead><tr>
+<th>Sürüm</th>
+<th>Ne getirdi</th>
+</tr></thead>
+<tbody>
+<tr><td>0.9.1</td><td>İlk genel yayın: karşılama, yardım, sözlük/bellek arayüzü, inceleme kuyruğu</td></tr>
+<tr><td>0.9.2</td><td>Çubuk ↔ pencere geçişi; karşılama sürüm bazlı; Romen rakamı koruması (ayarla açılır/kapanır)</td></tr>
+<tr><td>0.9.3</td><td>▤ düğmesi + yardım metinleri</td></tr>
+<tr><td>0.9.4</td><td><strong>Uygulama istekleri paralel gönderiyor</strong> (dalga dalga, belge sırasında birleşir)</td></tr>
+<tr><td>0.9.5</td><td>Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır</td></tr>
+</tbody>
+</table>
+<h2>6.7 Karşılaştırma sitesi</h2>
+<p><strong>İstenen:</strong> <em>"orijinal kaynakları ve çevrilmiş hallerini yan yana kıyaslayabileceğim bir slider web sitesi, tüm örnekler için."</em></p>
+<p>Site <code>docs/comparison/</code> altında üretilir ve GitHub Pages'te yayınlanır:</p>
+<ul><li><strong>Tek belge görüntüleyici</strong>: solda orijinal, sağda çeviri, ortada sürüklenebilir ayırıcı;</li></ul>
+<p>tekerlek ile yakınlaştırma; klavye ile sayfa gezinme.</p>
+<ul><li><strong>Her belge için denetim özeti</strong>: L ve D sayıları, sayfa sayısı, model, tarih.</li><li><strong>22 belge</strong>: arXiv makaleleri, NIST dergisi ve formu, IRS formları, NASA raporu (dijital +</li></ul>
+<p>taranmış), Project Gutenberg kitapları, kamu malı bir DOCX, iki taranmış sayfa.</p>
+<ul><li><strong>Geliştirme koşuları</strong> varsayılan olarak gizli, tek kutucukla açılır — yayınlanan liste gerçek</li></ul>
+<p>belgelerden oluşur.</p>
+<ul><li><strong>Telif kuralı</strong>: yalnız açık lisanslı/kamu malı kaynaklar yayınlanır; telifli olanlar</li></ul>
+<p>(<code>NOT_PUBLISHABLE</code>) yalnız kullanıcının diskinde kalır.</p>
+<p>Görseller tek belge başına yüklenir (tembel): toplam 49 MB'lık arşiv, ziyaretçi başına ~1 MB'lık trafik demektir. NASA belgesinin 6997×3163'lük render'ları 3200px'e indirildi (10,4 MB → 1,9 MB) — zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.</p>
+<h2>6.8 GitHub Pages: açılış sayfası ve bağlantılar</h2>
+<ul><li><strong>Kök</strong> (<code>/LayoutKeep/</code>): açılış sayfası — indirme, karşılaştırma sitesi ve hikâye bağlantıları.</li><li><strong><code>/docs/comparison/</code></strong>: karşılaştırma sitesi.</li><li><strong><code>/docs/story/</code></strong>: bu belge (çok sayfalı).</li><li><strong>Eski adres</strong> (<code>docs/comparison.html</code>): 4,4 MB'lık tek dosyalık eski sayfa, paylaşılmış</li></ul>
+<p>bağlantılar kırılmasın diye <strong>yönlendirmeye</strong> dönüştürüldü.</p>
+<ul><li><strong>README'ler</strong> (EN/TR): indirme bağlantısı <code>releases/latest</code> üzerinden; vitrin düğmeleri güncel</li></ul>
+<p>siteye bakar; "bu daldaki kodun durumu" notu iki dilde de kalıcıdır (bir push onu silmişti, geri konuldu ve iki tarafta tutuluyor).</p>
+<h2>6.9 Ölçek: bugünkü sayılar</h2>
+<table>
+<thead><tr>
+<th></th>
+<th>Değer</th>
+</tr></thead>
+<tbody>
+<tr><td>Kaynak kod</td><td>~24.000 satır (<code>src/</code>), 133 dosya</td></tr>
+<tr><td>Test</td><td><strong>1192 test</strong>, 138 test dosyası</td></tr>
+<tr><td>Denetim aracı</td><td>56 (<code>tools/audit/</code>)</td></tr>
+<tr><td>En büyük gerçek koşu</td><td>220 sayfalık kitap, 55 parça, ~106 dakika</td></tr>
+<tr><td>En büyük tek belge</td><td>841 sayfa (tamamı çevrildiğinde ~%23'ü tek koşuda)</td></tr>
+<tr><td>Karşılaştırma sitesi</td><td>22 belge, 276 görsel</td></tr>
+<tr><td>Ayar</td><td>30, hepsi koda bağlı ve testli</td></tr>
+</tbody>
+</table><p class="pager"><a href="05-model.html">← önceki bölüm</a> · <a href="07-sinirlar.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>

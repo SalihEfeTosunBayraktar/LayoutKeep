@@ -60,6 +60,14 @@ TEMPLATE = """<!doctype html>
   hr {{ border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }}
   em {{ color: var(--muted); }}
   .home {{ display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }}
+  .story-nav {{ display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }}
+  .story-nav a {{ text-decoration: none; padding: .1rem .35rem; }}
+  .story-nav .here {{ background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }}
+  .pager {{ display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }}
   footer {{ margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }}
 </style>
 </head>
@@ -186,9 +194,66 @@ def markdown_to_html(markdown: str) -> str:
     return "\n".join(out)
 
 
+#: Chapters are rendered in this order; the index links them and each page carries prev/next.
+CHAPTERS = [
+    ("01-problem", "1. Problem: kayıpsız çeviri ne demek"),
+    ("02-mimari", "2. Mimari: boru hattının her parçası"),
+    ("03-olcum", "3. Ölçüm disiplini"),
+    ("04-hatalar", "4. Hata kataloğu: on dört vaka"),
+    ("05-model", "5. Model seçimi ve IBM Docling"),
+    ("06-urun", "6. Ürünleşme: motordan uygulamaya"),
+    ("07-sinirlar", "7. Dürüst sınırlar ve dersler"),
+    ("08-kaynaklar", "8. Dış kaynaklar ve atıflar"),
+]
+
+#: A small nav strip under the title: the reader is three pages deep and needs a way back.
+NAV_TEMPLATE = """<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  {links}
+</nav>"""
+
+
+def _nav(current: str) -> str:
+    links = []
+    for slug, title in CHAPTERS:
+        number = title.split(".")[0]
+        if slug == current:
+            links.append(f"<span class='here'>{number}</span>")
+        else:
+            links.append(f"<a href='{slug}.html'>{number}</a>")
+    return NAV_TEMPLATE.format(links=" ".join(links))
+
+
+def _pager(current: str) -> str:
+    """Previous / next links, so a chapter can be read straight through."""
+    slugs = [slug for slug, _title in CHAPTERS]
+    if current not in slugs:
+        return ""
+    position = slugs.index(current)
+    parts = []
+    if position > 0:
+        parts.append(f"<a href=\"{slugs[position - 1]}.html\">← önceki bölüm</a>")
+    else:
+        parts.append("<a href=\"index.html\">← giriş</a>")
+    if position + 1 < len(slugs):
+        parts.append(f"<a href=\"{slugs[position + 1]}.html\">sonraki bölüm →</a>")
+    return "<p class=\"pager\">" + " · ".join(parts) + "</p>"
+
+
+def _chapter_body(path: Path) -> str:
+    """A chapter's HTML, with image paths re-based for the page it lands on.
+
+    Chapters live in `docs/story/` and reference `architecture.png` beside them, which is the same
+    relative path on the page - so only `../screenshots/` (used by the index) needs rewriting.
+    """
+    body = markdown_to_html(path.read_text(encoding="utf-8"))
+    return body.replace('src="story/', 'src="').replace('src="screenshots/', 'src="../screenshots/')
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=ROOT / "docs/STORY.md")
+    parser.add_argument("--story-dir", type=Path, default=ROOT / "docs/story")
     parser.add_argument("--out", type=Path, default=ROOT / "docs/story/index.html")
     parser.add_argument("--title", default="LayoutKeep — sıfırdan bugüne")
     parser.add_argument(
@@ -197,17 +262,34 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    body = markdown_to_html(args.source.read_text(encoding="utf-8"))
-    # The Markdown sits in `docs/` and its images are written relative to it (`story/x.png`,
-    # `screenshots/y.png`); the page sits one level deeper, so the paths have to be re-based or
-    # every image 404s on the published page.
-    body = body.replace('src="story/', 'src="').replace('src="screenshots/', 'src="../screenshots/')
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    body = _chapter_body(args.source)
     args.out.write_text(
         TEMPLATE.format(title=html.escape(args.title), description=html.escape(args.description), body=body),
         encoding="utf-8",
     )
-    print(f"{args.source} -> {args.out} ({len(body)} karakter gövde)")
+    print(f"{args.source.name} -> {args.out.name} ({len(body)} karakter gövde)")
+
+    written = 0
+    for slug, title in CHAPTERS:
+        source = args.story_dir / f"{slug}.md"
+        if not source.exists():
+            print(f"  ! {source.name} yok, atlandı")
+            continue
+        page = _chapter_body(source)
+        page = _nav(slug) + page + _pager(slug)
+        target = args.story_dir / f"{slug}.html"
+        target.write_text(
+            TEMPLATE.format(
+                title=html.escape(title + " — LayoutKeep"),
+                description=html.escape(f"LayoutKeep proje tarihçesi, bölüm: {title}."),
+                body=page,
+            ),
+            encoding="utf-8",
+        )
+        written += 1
+        print(f"  {source.name} -> {target.name} ({len(page)} karakter gövde)")
+    print(f"toplam {written} bölüm sayfası + giriş")
     return 0
 
 

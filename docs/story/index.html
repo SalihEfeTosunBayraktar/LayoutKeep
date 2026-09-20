@@ -38,6 +38,14 @@
   hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
   em { color: var(--muted); }
   .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
 </style>
 </head>
@@ -57,167 +65,60 @@
 </tr></thead>
 <tbody>
 <tr><td>Desteklenen biçimler</td><td>PDF → PDF, EPUB, DOCX, PNG/JPG, LKPROJ</td><td><code>capabilities.py</code> matrisi, iki yönlü testli</td></tr>
-<tr><td>Kayıpsızlık kriteri</td><td><strong>10 kayıp (L1–L10) + 3 sığdırma (D1–D3)</strong></td><td><code>verify.py</code>; kriterler denetleyicinin kendisinden okunur</td></tr>
+<tr><td>Kayıpsızlık kriteri</td><td><strong>10 kayıp (L1–L10) + 3 kalite eşiği (D1–D3)</strong></td><td><code>verify.py</code>; kriterler denetleyicinin kendisinden okunur</td></tr>
 <tr><td>Yayınlanan ölçüm seti</td><td><strong>22 belge</strong>, 276 görsel, 0 "eski kayıt"</td><td>karşılaştırma sitesi (her belge kendi denetim sayılarıyla)</td></tr>
-<tr><td>En büyük gerçek koşu</td><td>220 sayfalık istatistik kitabı, 55 parça, 106 dakika</td><td><code>translate_book.py</code>, <code>--workers 7</code></td></tr>
-<tr><td>Test paketi</td><td><strong>1187 test</strong></td><td><code>.venv/Scripts/python.exe -m pytest -q</code></td></tr>
+<tr><td>En büyük gerçek koşu</td><td>220 sayfalık istatistik kitabı, 55 parça, ~106 dakika</td><td><code>translate_book.py</code>, <code>--workers 7</code></td></tr>
+<tr><td>Test paketi</td><td><strong>1192 test</strong>, 138 dosya</td><td><code>.venv/Scripts/python.exe -m pytest -q</code></td></tr>
+<tr><td>Kaynak kod</td><td>~24.000 satır (<code>src/</code>), 56 denetim aracı</td><td><code>wc -l</code>, <code>tools/audit/</code></td></tr>
 <tr><td>Uygulama</td><td>tek dosya Windows exe (kurulumsuz), ~173 MB</td><td>PyInstaller onefile</td></tr>
-<tr><td>Çalışma zamanı modeli</td><td><code>google/gemma-4-e4b</code>, LM Studio, 7 yuva</td><td>yerel; belge makineden çıkmaz</td></tr>
+<tr><td>Çalışma zamanı modeli</td><td><code>google/gemma-4-e4b</code>, LM Studio, varsayılan 2 işçi</td><td>yerel; belge makineden çıkmaz</td></tr>
+<tr><td>Düzen modeli</td><td>IBM Docling <strong>Heron</strong> (ONNX, yerel)</td><td>taranmış/karmaşık sayfalarda bölge sınıflandırması</td></tr>
 </tbody>
 </table>
 <hr>
-<h2>1. "Kayıpsız çeviri" tam olarak ne demek</h2>
-<p>Bir belgeyi çevirmek kolaydır; <strong>yerini koruyarak</strong> çevirmek zordur. Kaynak sayfada bir cümle kutunun içinde durur, çeviri genelde %10–30 daha uzundur, ve o kutu büyümez: komşu paragraf, şekil, tablo ve sayfa sonu oradadır. Naif bir çevirici ya kutuyu büyütür (sayfa akar, sayfa sayısı değişir, şekiller kayar) ya da metni kırpar (bilgi sessizce kaybolur).</p>
-<p>Bu projenin sözü şudur:</p>
-<ol><li>Her metin kutusu <strong>kendi konumunu ve boyutunu</strong> korur.</li><li>Görseller, tablolar, başlıklar, dipnotlar <strong>yerinde kalır</strong>.</li><li>Sığmayan ya da kaybolan her şey <strong>işaretlenir</strong> — sessizce kabul edilmez.</li></ol>
-<p>Üçüncü madde en önemlisidir: mükemmel olmayan bir sistem, neyi yapamadığını söyleyen bir sistemdir. Bunun için her koşudan sonra yazılan çıktı <strong>kaynakla karşılaştırılır</strong> ve 13 kriterle denetlenir.</p>
-<hr>
-<h2>2. Başlangıç: ilk günler</h2>
-<p>Proje <strong>10 Eylül 2026</strong>'da tek bir cümleyle başladı: <em>"translate a document without moving anything on the page"</em>. İlk günlerde alınan ve bugüne kadar taşınan kararlar:</p>
-<ul><li><strong>Aracı bir belge modeli (DocIR).</strong> Okuyucular (PDF, EPUB, DOCX, görüntü) belgeyi kendi</li></ul>
-<p>yapısından bağımsız bir modele çevirir; yazıcılar o modelden hedef biçimi üretir. Böylece "PDF → DOCX" gibi çapraz dönüşümler ayrı bir kod yolu gerektirmez.</p>
-<ul><li><strong>Kutunun sahibi kaynaktır.</strong> Çeviri, kaynağın ölçtüğü kutunun içine yazılır; modelin ürettiği</li></ul>
-<p>uzunluk asla düzeni belirlemez.</p>
-<ul><li><strong>Ölçüm, iddiadan önce gelir.</strong> Depodaki <code>docs/CONTRACT.md</code> bunu bağlayıcı kural yapar:</li></ul>
-<p><em>"bu belge ile bir ölçüm çelişirse, belgeyi düzelt ve ölçümün ne olduğunu yaz."</em></p>
-<p>İlk günlerin en pahalı dersi, iddia ile ölçüm arasındaki farktı: ilk "kayıpsız" raporlar yalnız metin akışına bakıyordu. Görsel, grafik ve vektör tablo taşıyan gerçek belgelerle denendiğinde iki gerçek hata ortaya çıktı — o günden sonra <strong>zengin fixture</strong> kuralı geldi: yalnız metin taşıyan test dosyaları sessiz kayıpları gizler.</p>
-<hr>
-<h2>3. Mimari, kısaca</h2>
-<pre><code>oku → DocIR → çevir (sağlayıcı zinciri) → sığdır (fit) → yaz → denetle (verify)</code></pre>
-<ul><li><strong>Okuyucular</strong>: <code>readers/pdf_reader.py</code>, <code>epub_reader.py</code>, <code>docx_reader.py</code>, <code>_layout.py</code></li></ul>
-<p>(hizalama çıkarımı), <code>_nonprose.py</code> (kod/formül tanıma), OCR yolu (taranmış sayfalar için).</p>
-<ul><li><strong>Sağlayıcı zinciri</strong> (<code>providers/</code>): <code>dedupe</code> (aynı metni bir kez çevir) → <code>cached</code>/<code>memory</code></li></ul>
-<p>(koşular arası bellek, SQLite) → <code>protected</code> (sayı, ölçü, DOI, URL, Romen rakamı modele hiç gösterilmez) → <code>retry</code> (aynısını geri veren modeli parça parça sıkar) → <code>split</code> (taşan bloğu cümle cümle sorar).</p>
-<ul><li><strong>Sığdırma</strong> (<code>fitting/</code>): kutuya sığmayan çeviri için sırayla küçültme, kısaltma isteme ve</li></ul>
-<p>(isteğe bağlı) blokları aşağı itme (reflow) denenir; hiçbiri tutmazsa blok <strong>işaretlenir</strong>.</p>
-<ul><li><strong>Yazıcılar</strong> (<code>writers/</code>): PDF (PyMuPDF <code>insert_htmlbox</code>), DOCX, EPUB, TXT; kutu daraltma ve</li></ul>
-<p>"kendi kutusunu dene" gibi kararlar burada.</p>
-<ul><li><strong>Denetleyici</strong> (<code>verify.py</code>): L1–L10 ve D1–D3; ayrıca <code>ask_again</code> ile kaybedileni yeniden sorar.</li></ul>
-<p><img alt="LayoutKeep çeviri hattı" src="architecture.png"></p>
-<p><em>Şema depodaki kodun akışını yansıtır: okuyucular → DocIR → sağlayıcı zinciri → sığdırma/yazma → denetleyici, ve denetleyicinin geri beslemesi (kaynak ↔ çıktı).</em></p>
-<hr>
-<h2>4. Kronoloji</h2>
+<h2>1. Bu belge nasıl okunur</h2>
+<p>Hikâye sekiz bölüme ayrıldı. Her bölüm kendi başına okunabilir; sırayla okunduğunda projenin mantığı çıkar: önce problem, sonra mimari, sonra <strong>ölçüm</strong> (çünkü her karar bir sayıya dayanıyor), sonra hatalar, sonra model kararları, sonra ürün, sonra dürüst sınırlar ve kaynaklar.</p>
 <table>
 <thead><tr>
-<th>Dönem</th>
+<th>#</th>
+<th>Bölüm</th>
+<th>İçinde ne var</th>
+</tr></thead>
+<tbody>
+<tr><td>1</td><td><a href="01-problem.html">Problem: "kayıpsız çeviri" tam olarak ne demek</a></td><td>Tanım, dört ölçülmüş zorluk, dış araçlarla karşılaştırma tablosu, sözleşme (D1–D7)</td></tr>
+<tr><td>2</td><td><a href="02-mimari.html">Mimari: boru hattının her parçası</a></td><td>Modüller ve satır sayıları, DocIR, okuyucular, sağlayıcı zinciri, sığdırma, yazıcılar, denetleyici</td></tr>
+<tr><td>3</td><td><a href="03-olcum.html">Ölçüm disiplini</a></td><td>L1–L10 + D1–D3 tablosu, 56 denetim aracı, <strong>ölçümün kendisinin üç kez yanılması</strong></td></tr>
+<tr><td>4</td><td><a href="04-hatalar.html">Hata kataloğu: on dört vaka</a></td><td>Her vaka: belirti → araştırma → kök neden → çözüm → kanıt</td></tr>
+<tr><td>5</td><td><a href="05-model.html">Model seçimi ve IBM Docling meselesi</a></td><td>Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı</td></tr>
+<tr><td>6</td><td><a href="06-urun.html">Ürünleşme: motordan uygulamaya</a></td><td>Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, sürümler, karşılaştırma sitesi</td></tr>
+<tr><td>7</td><td><a href="07-sinirlar.html">Dürüst sınırlar ve dersler</a></td><td>Bugün çalışmayanlar, yol haritası, sekiz ders</td></tr>
+<tr><td>8</td><td><a href="08-kaynaklar.html">Dış kaynaklar ve atıflar</a></td><td>Her bağımlılığın rolü ve lisansı, test kaynaklarının hukuki durumu</td></tr>
+</tbody>
+</table>
+<p>Markdown dosyaları depoda: <code>docs/story/01-problem.md</code> … <code>docs/story/08-kaynaklar.md</code>.</p>
+<hr>
+<h2>2. Kısa kronoloji</h2>
+<p>Proje <strong>10 Eylül 2026</strong>'da tek bir cümleyle başladı: <em>"translate a document without moving anything on the page"</em>.</p>
+<table>
+<thead><tr>
+<th>Tarih</th>
 <th>Ne oldu</th>
 </tr></thead>
 <tbody>
-<tr><td><strong>10 Eyl</strong></td><td>PDF → PDF hattı, DocIR, karşılaştırma sayfası, ilk paketleme</td></tr>
-<tr><td><strong>11–13 Eyl</strong></td><td>EPUB/DOCX yolları, zengin fixture'lar, görsel-üstü-metin ve tablo testleri</td></tr>
-<tr><td><strong>14 Eyl</strong></td><td>Sığdırma (fit) geçişi, kısaltma merdiveni, <code>reflow</code> fikrinin ilk ölçümleri</td></tr>
-<tr><td><strong>15–16 Eyl</strong></td><td>Masaüstü uygulaması (PySide6): kurulum, ilerleme, tamamlanma ekranları; sağlayıcı ayarları</td></tr>
-<tr><td><strong>17 Eyl</strong></td><td>Kampanya düzeltmeleri: NIST, The Time Machine, Electricity in Agriculture koşularından çıkan hatalar</td></tr>
-<tr><td><strong>18 Eyl</strong></td><td>Kayıpsızlık kampanyası: L kriterlerinin genişletilmesi, <code>lossless_audit</code>, held-out seti</td></tr>
-<tr><td><strong>19 Eyl</strong></td><td>7 paralel işçi, parça parça kitap çevirisi, <code>--resume</code>, bellek ve sözlük sağlayıcıları</td></tr>
-<tr><td><strong>19–20 Eyl (gece)</strong></td><td>220 sayfalık kitap (55 parça, 106 dk); L10'un ölçüm hatası; reflow'un iki ölçümü; uygulama içi sözlük; yardım ve karşılama ekranları; yüzen çubuk; sürümler 0.9.1 → 0.9.4</td></tr>
+<tr><td>10 Eyl</td><td>İlk çalışan boru hattı: PDF → PDF, DocIR doğdu, sözleşme yazıldı; ilk "kayıpsız" raporun yanlış olduğu görüldü (yalnız metin akışına bakıyordu) ve <strong>zengin fixture</strong> kuralı geldi</td></tr>
+<tr><td>11–13 Eyl</td><td>EPUB/DOCX yolları, görsel-üstü-metin ve tablo testleri, ilk gerçek belgelerde ölçümler</td></tr>
+<tr><td>14 Eyl</td><td>Sığdırma (fit) geçişi, kısaltma merdiveni, <code>reflow</code> fikrinin ilk ölçümleri</td></tr>
+<tr><td>15–16 Eyl</td><td>Masaüstü uygulaması (PySide6): kurulum, ilerleme, tamamlanma; sağlayıcı ayarları; <strong>IBM Docling Heron</strong> düzen modelinin eklenmesi</td></tr>
+<tr><td>17 Eyl</td><td>Kaynak türü ayrımı (dijital/taranmış/karma), OCR güven eşiği, dört panelli görsel karşılaştırma</td></tr>
+<tr><td>18 Eyl</td><td>Kayıpsızlık kampanyası: L kriterlerinin genişletilmesi, <code>lossless_audit</code>, held-out seti</td></tr>
+<tr><td>19 Eyl</td><td>Çok işçili parça çevirisi (<code>--workers</code>), <code>--resume</code>, bellek ve sözlük sağlayıcıları, karşılaştırma sitesinin ilk sürümü</td></tr>
+<tr><td>19–20 Eyl (gece)</td><td>220 sayfalık kitap (55 parça, ~106 dk); L10'un ölçüm hatası; reflow'un iki ölçümü; sözlük/bellek arayüzde; yardım ve karşılama; yüzen çubuk</td></tr>
+<tr><td>20 Eyl</td><td>Ürünleşme ve düzeltmeler: <strong>uygulamada paralellik</strong>, aralık davranışı, hizalama (justify), ölü ayar anahtarı, telif temizliği, sürümler <strong>v0.9.1 → v0.9.5</strong></td></tr>
 </tbody>
 </table>
 <hr>
-<h2>5. Hata kataloğu: belirti → kök neden → ölçüm → çözüm</h2>
-<p>Projenin en öğretici kısmı budur. Her satır gerçek bir koşudan geldi.</p>
-<h3>5.1 "Model bulunamadı" — ama model yerindeydi</h3>
-<p><strong>Belirti:</strong> Uygulama, LM Studio'da model yüklüyken "model bulunamadı" diyordu. <strong>Kök neden:</strong> Gerçek hata mesajı <code>Context size has been exceeded</code> idi: 8192 token'lık bağlam, 7 istek ve uzun paragraflarla doluyordu; sağlayıcı bunu "model yok" diye raporluyordu. <strong>Çözüm:</strong> Bağlam 32768'e çıkarıldı, istek başına bütçe hesaplandı ve <strong>taşma artık ölümcül değil</strong>: taşan blok parçalanıp yeniden sorulur (<code>providers/split.py</code>).</p>
-<h3>5.2 Yüzen ilerleme çubuğu uygulamayı çökertiyordu (0xc0000374)</h3>
-<p><strong>Belirti:</strong> Koşu sırasında pencere kapanınca heap bozulması. <strong>Kök neden:</strong> Sürükleme yardımcısı (<code>WindowDrag</code>) hedef widget'a <strong>zayıf</strong> referans tutuyordu; widget yok olunca sarkan işaretçiye yazıyordu. <strong>Çözüm:</strong> Güçlü referans + açık <code>deleteLater()</code>. Ölçüm: 20 dakikalık koşuda çökme yok.</p>
-<h3>5.3 Aynı metin onlarca kez çevriliyordu</h3>
-<p><strong>Belirti:</strong> 55 parçalık kitapta başlık, dipnot ve künye satırları tekrar tekrar çevrildi. <strong>Kök neden:</strong> Parçalar birbirinden habersizdi; aynı kaynak metin her parçada yeniden gitti. <strong>Çözüm:</strong> <code>providers/dedupe.py</code> (aynı metni bir kez çevir) + <code>providers/memory.py</code> (koşular arası SQLite belleği). İkinci koşuda aynı belge neredeyse bedava.</p>
-<h3>5.4 Kırılan satırlar: kazancı ölçüldü, <strong>bedeli ölçülünce geri alındı</strong></h3>
-<p><strong>Belirti:</strong> Dizin sayfalarında 6.7pt'lik satırlar 4.5pt'ye eziliyordu (okunamaz). <strong>Kök neden:</strong> Blok kutuları birkaç punto üst üste bindiği için <code>room_below</code> negatif çıkıyor, yazar kutuyu kısaltıyordu. <strong>Denenen çözüm:</strong> Yazar, taban ölçek tutmazsa bloğun <strong>kendi kutusunu</strong> da denesin. <strong>Ölçüm:</strong> cookbook'ta okunamaz 12 → 2 ✓ <em>ama</em> IRS formunun tam koşulunda <strong>L7 (üst üste metin) 0 → 11</strong> ✗. Aynı kayıtlı çeviriler üzerinde iki sürüm yan yana koşturuldu: korumasız L7=10, korumalı L7=0 — korumalı sürüm ise cookbook kazancını da sıfırlıyordu (12 → 12). <strong>Sonuç:</strong> Değişiklik <strong>tamamen geri alındı</strong>. Kural: <em>bir düzeltmenin kazancını ölçmek yetmez, bedelini de ölç.</em></p>
-<h3>5.5 L10'un yarısı kendi ölçüm hatamızdı</h3>
-<p><strong>Belirti:</strong> "Görselin üstünde metin" kriteri cookbook'ta 182, mushrooms'ta 124 kelime bildiriyordu. <strong>Kök neden (ölçüm hatası):</strong> O sayfalarda görsel <strong>döşemeli</strong> — tarama iki katman + satır yamaları; her kelime zaten taramanın üstünde. İkinci sınıf: arXiv grafiğinin <strong>kendi etiketleri</strong> kaynakta metin olarak duruyor (kaynakta 28, çeviride 26). <strong>Çözüm:</strong> Görseller tek tek değil <strong>birleşim alanıyla</strong> değerlendirilir; kaynağın o görsel üzerinde zaten yazdığı kelimeler çıkarılır. Gerçek kalan iki Wikipedia sayfası ise <strong>13 → 0</strong> düzeldi (yeniden çevirimle).</p>
-<h3>5.6 Karşılama ekranı test paketini asıyordu</h3>
-<p><strong>Belirti:</strong> Test paketi %89'da 15 dakika bekledi. <strong>Kök neden:</strong> İlk-çalıştırma ekranı <em>modal</em> açılıyor; otomatik oturumda kimse kapatamıyor. <strong>Çözüm:</strong> <code>LAYOUTKEEP_NO_WELCOME</code> anahtarı; test oturumu kendi kurar.</p>
-<h3>5.7 Sözlük ve bellek yalnız komut satırındaydı</h3>
-<p><strong>Belirti:</strong> Ayarlarda "çeviri belleği" vardı ama uygulama hiç kullanmıyordu (<code>memory_path</code> boş). <strong>Kök neden:</strong> Özellik CLI'da bağlıydı, arayüzde değil. <strong>Çözüm:</strong> İkisi de arayüze bağlandı; sözlük <strong>uygulama içi tablo düzenleyici</strong> + JSON/CSV/TSV okuma kazandı.</p>
-<h3>5.8 Yüzen çubuk: iki pencere aynı anda, ve kaybolunca geri gelmiyor</h3>
-<p><strong>Belirti (kullanıcı ekran görüntüsü):</strong> Koşu başlayınca hem pencerenin kendi ilerleme ekranı hem çubuk görünüyordu; pencere küçültülünce <strong>çubuk da kayboluyordu</strong>; çubuk bir kez kapatılınca geri açılamıyordu. <strong>Kök neden (iki tane):</strong> (1) Çubuk ana pencereye <strong>çocuk</strong> olarak yaratılmıştı — Windows sahipli pencereyi sahibiyle birlikte küçültür. (2) İş başlarken koşulsuz gösteriliyordu ve geri getirecek bir denetim yoktu. <strong>Çözüm:</strong> Çubuk ebeveynsiz üst-düzey pencere (ömrü açık <code>deleteLater()</code> ile yönetilir); pencere ve çubuk <strong>sırayla</strong> görünür; başlığa <strong>▤ "Küçük pencereye geç"</strong> düğmesi eklendi (çubuktaki "Pencereye dön" ile çift yönlü). 7 test bu davranışı tutuyor.</p>
-<h3>5.9 Uygulama tek istek gönderiyordu (7 yuva ayarlıyken)</h3>
-<p><strong>Belirti (kullanıcı bildirimi):</strong> <em>"paralel 7 slot ayarlı olsa da aynı anda sadece 1 slot yolluyor"</em>. <strong>Kök neden:</strong> Paralellik <strong>komut satırında</strong> vardı (<code>ThreadPoolExecutor</code>, parça başına bir alt süreç); uygulamanın çeviri döngüsü ise segment batch'lerini <strong>tek tek</strong> gönderiyordu. LM Studio'nun yuva ayarı tam da bunun için yapılmıştı — yani uygulama, aynı motorun yavaş kullanımıydı. <strong>Çözüm:</strong> Döngü dalga dalga çalışır: her dalgada <code>translation.workers</code> batch paralel gider, dalga sonunda duraklat/iptal kontrol edilir, sonuçlar <strong>belge sırasına göre</strong> birleştirilir. Her paralel iş parçası kendi sağlayıcı zincirini alır (dedupe önbelleği ve bellek bağlantısı paylaşılırsa yarış olurdu). Üç yeni test: eşzamanlılık gerçekten &gt;1, tek işçide sıralı, çıktı belge sırasında.</p>
-<h3>5.12 Sayfa aralığı çıktıyı daraltmıyordu</h3>
-<p><strong>Belirti (kullanıcı bildirimi):</strong> 841 sayfalık kitapta aralık seçildi; çıktı yine <strong>tüm kitap</strong> geldi — <em>"ama sadece seçtiğim aralığı çıktı vermesi gerekmez mi, neden tüm kitabı vermiş"</em>. <strong>Ölçüm:</strong> Çıktı PDF'inde 841 sayfa, 194'ünde Türkçe (%23 — seçilen aralık), gerisi İngilizce. Motor aralığı <strong>yalnız çeviriye</strong> uyguluyordu; çıktı, kaynağın tamamının kopyasıydı. <strong>Kök neden:</strong> Bu bilinçli bir karardı ve yazılıydı: bir zamanlar aralık belgeden sayfa <strong>silerek</strong> uygulanmış, proje yalnız seçili sayfaları saklayınca inceleme kaybolmuş ve yeniden dışa aktarma sessizce kısalmıştı (CONTRACT.md, D5). Doğru çözüm aralığı <strong>ikiye ayırmaktı</strong>: yazılan kopyaya uygula, kaydedilen projede tüm sayfaları tut. <strong>İkinci kök neden (ölçümle çıktı):</strong> İlk denemede belge içinden sayfaları düşürmek yetmedi — çıktı yine 841 sayfa geldi, çünkü PDF yazıcısı sayfaları <strong>kaynak dosyadan</strong> çiziyor. Yazıcıya kaynağın dilimi verildi; dilimdeki sayfalar 0..n yeniden numaralandı ki doğrulama sayfa N'i N ile karşılaştırsın, proje ise özgün numaraları korusun (kopyalar <code>deepcopy</code>). <strong>Çözüm:</strong> <code>_output_document</code> + <code>_source_slice</code>; arayüzde aralık seçilince ne olacağı yazıyor (RANGE_HINT, tr/en/de). 11 yeni test + eski D5 testi yeni sözleşmeye çevrildi.</p>
-<h3>5.11 Ayar ekranındaki ölü anahtar</h3>
-<p><strong>Belirti (kullanıcı isteği):</strong> <em>"uygulamanın arayüzüne bağlanmamış ayarları bul ve uygulamaya bağla."</em> <strong>Ölçüm:</strong> Bildirilen 30 ayarın anahtarları, <code>src/</code> içinde okunan anahtarlarla karşılaştırıldı. Bir tanesi — <code>timeout.first_batch_s</code> — ayar ekranında <strong>görünüyor, kaydediliyor ve hiçbir şey okumuyordu</strong>: ilk partinin zaman aşımı sabitten geliyordu. Ayrıca ayar ekranının 30/30 gösterdiği de ölçüldü. <strong>Çözüm:</strong> Anahtar worker'a bağlandı (warm partiler kendi sabitini korur). Beş test: "bildirilen her ayar kodda geçmeli" (ölü anahtar bir daha sızmasın), ilk-parti ayarının zaman aşımına ulaştığı, warm partinin ondan etkilenmediği, varsayılan paralelliğin 2 olduğu, ayar ekranının her bildirileni gösterdiği. <strong>Ders:</strong> çalışmayan bir anahtar, hiç olmayan bir anahtardan kötüdür — çalışanlara olan güveni harcar.</p>
-<h3>5.10 Tarama gürültüsü sessiz değil</h3>
-<p><strong>Belirti:</strong> NASA taramasında dekoratif başlık "Naga Merorautigs Frogrom Amerika" diye okundu. <strong>Çözüm:</strong> Blok "OCR güveni düşük (0.62)" ile <strong>işaretlenir</strong> — sessiz kayıp değil, kullanıcıya söylenen bir vaka.</p>
-<hr>
-<h2>6. Model seçimi: hangi model, neden</h2>
-<h3>6.1 Çalışma zamanı LLM'i: yerel, tek, sabit</h3>
-<table>
-<thead><tr>
-<th>Denenen</th>
-<th>Sonuç</th>
-</tr></thead>
-<tbody>
-<tr><td>Bulut API'leri (Gemini ve benzerleri)</td><td>Kalite iyi, ama belge makineden çıkıyor ve maliyet sayfa başına</td></tr>
-<tr><td>Ücretsiz yönlendiriciler (OpenRouter/free)</td><td><strong>Reddedildi:</strong> küçük bağlamlı modele düşüp tekrar döngüsüne giriyor ("repetition loop"), uzun belgelerde kullanılamaz</td></tr>
-<tr><td>Yedek zinciri (büyük bulut modeller)</td><td>Yalnız yedek olarak duruyor</td></tr>
-<tr><td><strong>Yerel LM Studio + <code>google/gemma-4-e4b</code></strong></td><td><strong>Seçildi:</strong> belge makineden çıkmaz, yuva başına bağlam denetlenebilir, 7 paralel işçi CPU/GPU'yu doyurur</td></tr>
-</tbody>
-</table>
-<p>Gerekçe ölçülebilir: bu proje <strong>yerel bir modelle</strong> uçtan uca çalışır ve kalite farkı modelin becerisidir, düzenin garantisi değil — düzen garantileri modelden bağımsızdır.</p>
-<h3>6.2 Düzen modeli: neden IBM Docling (Heron)</h3>
-<p>Metin çıkarma, kural yazmakla değil <strong>görsel nesne algılama</strong> ile daha doğru yapılır. Başlangıçta <code>docs/YENI_MIMARI_VE_GECIS_PLANI.md</code> bunu şöyle koyuyordu: <em>"IBM Docling, MinerU, Marker, RT-DocLayout metin çıkarmayı kural yazarak değil, görsel nesne algılama ve ilişki grafı ile çözer."</em></p>
-<ul><li><strong>Seçilen</strong>: IBM Docling'in <strong>Heron</strong> düzen modeli (RT-DETRv2, ONNX) — DocLayNet üzerinde</li></ul>
-<p>eğitilmiş; başlık, paragraf, tablo, formül, dipnot ve şekil altı yazılarını ayırır; CPU'da ~80–140 ms/sayfa. Lisans Apache-2.0, ilk kullanımda indirilir, <strong>paketlenmez</strong>.</p>
-<ul><li><strong>Neden V2 değil:</strong> O plan tam bir yeniden yazım öneriyordu (<code>LayoutKeep_V2</code>). V2 denendi ve</li></ul>
-<p><strong>terk edildi</strong>; ama planın işe yarayan parçası — düzen algılayıcı — mevcut motora alındı (<code>--layout-detector</code>, <code>ocr/layout_detector.py</code>). Yani karar "her şeyi değiştir" değil, "kanıtlananı al" oldu.</p>
-<ul><li><strong>Ne zaman çalışır:</strong> Yalnız taranmış/karmaşık sayfalarda; dijital belgelerde PyMuPDF'in kendi</li></ul>
-<p>metin katmanı yeterli ve daha hızlıdır.</p>
-<h3>6.3 İnce ayar (fine-tune) denemesi</h3>
-<p>Ayrı bir hat olarak <code>LayoutKeep_Qwen_QLoRA</code> denendi: Qwen2.5-7B-Instruct, Kaggle'da QLoRA, 6.000 örnek. Amaç ikiydi: (1) uygulamanın <strong>tel protokolüne</strong> uyum (çok segmentli JSON, <code>&lt;0&gt;..&lt;/0&gt;</code> işaretleri, korunan değer token'ları), (2) akademik düzeyde EN↔TR çeviri. Veri omurgası OPUS-100 gibi hazır külliyatlar yerine <strong>elle yazılmış alan çiftleri</strong> oldu (OPUS en-tr ölçülüp reddedildi: haber/günlük konuşma ağırlıklı). Bu hat bugün deneysel durumda; çalışma zamanı modeli yerel gemma'dır.</p>
-<hr>
-<h2>7. Ölçüm disiplini: yanlış ölçümleri kim ölçtü</h2>
-<p>Projenin en değerli çıktılarından biri araçlarının kendisidir:</p>
-<table>
-<thead><tr>
-<th>Araç</th>
-<th>Ne yapar</th>
-</tr></thead>
-<tbody>
-<tr><td><code>tools/audit/lossless_audit.py</code></td><td>Bir koşuyu 13 kriterle denetler, <code>audit.json</code> yazar</td></tr>
-<tr><td><code>tools/audit/rewrite_run.py</code></td><td>Kayıtlı bir koşuyu <strong>güncel yazıcıyla</strong> yeniden çizer — model gerekmez, A/B için</td></tr>
-<tr><td><code>tools/audit/type_drift.py</code></td><td>Yazılan sayfanın tip sapması: büyümüş/küçülmüş/hizası değişmiş/okunamaz bloklar (artık <strong>kaynak sayfayla</strong> karşılaştırır)</td></tr>
-<tr><td><code>tools/audit/text_over_image.py</code></td><td>Görsel-üstü metin; birleşim ve kaynak kurallarıyla</td></tr>
-<tr><td><code>tools/audit/comparison_site.py</code></td><td>Yayınlanan karşılaştırma sitesi (kaynak ↔ çeviri, denetim sayılarıyla)</td></tr>
-<tr><td><code>tools/audit/live_check.py</code></td><td>Kayıtlı ölçümlerin üstüne yazmadan yeni koşu</td></tr>
-</tbody>
-</table>
-<p>Bu araçlar sayesinde üç büyük <strong>ölçüm hatası</strong> yakalandı ve düzeltildi: (1) "bariz daha büyük font" iddiası — ölçüm bloğun stilini yanlış eşleştiriyordu, düzeltilince <strong>0 büyümüş</strong> çıktı; (2) L10'un iki yanlış-pozitif sınıfı (§5.5); (3) <code>type_drift</code>'in hiza bayrakları — kaynağın dikey sayı şeritlerini "hizasız" sayıyordu, kaynakla karşılaştırınca IRS'te 14 → 2 düştü.</p>
-<hr>
-<h2>8. Ürünleşme: uygulama</h2>
-<ul><li><strong>Karşılama ekranı</strong> (5 sayfa, TR/EN/DE): ne yapar, ilk çeviri üç adım, çeviriyi kim yapar,</li></ul>
-<p>kaliteyi ne belirler, hazırsın. Dil ve tema orada seçilir; atlanabilir; güncellemede bir kez daha görünür (sürüm kaydedilir).</p>
-<ul><li><strong>Yardım ekranı</strong> (<code>?</code>): yedi bölüm; <strong>kayıpsızlık kriterleri doğrudan denetleyiciden okunur</strong>,</li></ul>
-<p>yani bayatlayamaz.</p>
-<ul><li><strong>Sözlük</strong>: uygulama içi tablo düzenleyici, JSON <strong>veya</strong> iki sütunlu CSV/TSV; kullanılmayan</li></ul>
-<p>terim inceleme kuyruğuna düşer.</p>
-<ul><li><strong>Çeviri belleği</strong>: koşular arası SQLite; aynı paragraf ikinci kez çevrilmez.</li><li><strong>Yüzen çubuk</strong>: pencereyi arkaya atınca koşu küçük çubukta sürer; ▤ ile geçilir, "Pencereye</li></ul>
-<p>dön" ile dönülür.</p>
-<ul><li><strong>İnceleme kuyruğu</strong>: her koşu, neyin denetlendiğini ve neyin insan beklediğini söyler.</li></ul>
-<table>
-<thead><tr>
-<th>Karşılama ekranı (ilk açılış)</th>
-<th>Yardım ekranı (kriterler denetleyiciden)</th>
-<th>Sözlük düzenleyici</th>
-</tr></thead>
-<tbody>
-<tr><td><img alt="Karşılama" src="../screenshots/07_welcome_first_light.png"></td><td><img alt="Yardım" src="../screenshots/09_help_criteria_light.png"></td><td><img alt="Sözlük" src="../screenshots/10_glossary_light.png"></td></tr>
-</tbody>
-</table>
-<table>
-<thead><tr>
-<th>Yüzen çubuk (pencere arkada)</th>
-<th>Tamamlanma ekranı</th>
-<th>Koyu tema</th>
-</tr></thead>
-<tbody>
-<tr><td><img alt="Yüzen çubuk" src="../screenshots/08_floating_bar_dark.png"></td><td><img alt="Tamamlanma" src="../screenshots/03_completion_light.png"></td><td><img alt="Koyu" src="../screenshots/01_setup_dark.png"></td></tr>
-</tbody>
-</table>
-<hr>
-<h2>9. Sonuçlar ve dürüst sınırlar</h2>
-<p>Bugünkü durum (ölçülmüş):</p>
+<h2>3. Bugünkü durum: belge belge</h2>
+<p>Her sayı o koşunun <code>audit.json</code> dosyasından; karşılaştırma sitesinde her belgenin yanında duruyor.</p>
 <table>
 <thead><tr>
 <th>Belge</th>
@@ -229,40 +130,18 @@
 <tr><td>cookbook_1907</td><td>35</td><td>L6=2, D1 (küçük punto)</td></tr>
 <tr><td>mushrooms_1895_sample</td><td>41</td><td>L2=1, L6=1</td></tr>
 <tr><td>NIST dergisi / NISTIR taraması</td><td>8 / 6</td><td>L1 kısmi koşu; <strong>L2–L10 = 0</strong></td></tr>
-<tr><td>IRS formu (48 parça)</td><td>48</td><td>L7=11 (yoğun form; yukarıdaki yazıcı sürümüyle koştu)</td></tr>
-<tr><td>220 sayfalık kitap</td><td>55</td><td>L2=2, L6=4, L10=0, D1=801 (küçük punto sınıfı)</td></tr>
+<tr><td>IRS formu (48 parça)</td><td>48</td><td>L7 (yoğun form; reflow kapalıyken ölçüldü)</td></tr>
+<tr><td>220 sayfalık kitap</td><td>55</td><td>L2=2, L6=4, L7=1, L8=1, L10=0, D1=801 (küçük punto sınıfı)</td></tr>
 </tbody>
 </table>
 <p><img alt="Karşılaştırma sitesi" src="site.png"></p>
-<p><em>Yayınlanan karşılaştırma sitesi: solda orijinal, sağda çeviri, üstte o belgenin denetim sayıları (<code>arxiv_19113</code> örneğinde: 8 sayfa · denetim L6 1, D1 68, D2 23).</em></p>
-<p><strong>Bilinen sınırlar:</strong> tablo başlıklarındaki <strong>sayı şeritleri</strong> (bir satır boyunca ayrı x konumlarına dağılmış salt sayı dizileri) çeviride tek bir sola yaslı bloğa düşebilir — sayılar korunur, dizilişleri kaybolur; kaynakça satırları ve numaralı başlıklar bazen kaynak dilde kalır (L2, işaretli); yoğun formlarda okunabilirlik tabanının altına inen bloklar vardır (D1; <code>reflow</code> modu bu sınıfı kaldırır ama sabit düzenlerde metni üst üste bindirebilir, o yüzden varsayılan kapalıdır); taranmış sayfalar OCR kalitesine bağlıdır ve düşük güvenle işaretlenir; <strong>sağdan sola yazı sistemleri uygulanmamıştır</strong>; kalite modelin becerisidir.</p>
+<p><em>Yayınlanan karşılaştırma sitesi: solda orijinal, sağda çeviri, üstte o belgenin denetim sayıları.</em></p>
+<p><strong>Bilinen sınırlar (özet):</strong> tablo başlıklarındaki <strong>sayı şeritleri</strong> dizilişini kaybedebilir; kaynakça satırları bazen kaynak dilde kalır (L2, işaretli); yoğun formlarda okunabilirlik tabanının altına inen bloklar vardır (D1); taranmış sayfalar OCR kalitesine bağlıdır ve düşük güvenle işaretlenir; <strong>sağdan sola yazı sistemleri uygulanmamıştır</strong>; kalite modelin becerisidir. Ayrıntılı liste ve yol haritası: <a href="07-sinirlar.html">Bölüm 7</a>.</p>
 <hr>
-<h2>10. Dış kaynaklar ve atıflar</h2>
-<table>
-<thead><tr>
-<th>Kaynak</th>
-<th>Rolü</th>
-<th>Lisans</th>
-</tr></thead>
-<tbody>
-<tr><td><a href="https://pymupdf.readthedocs.io/">PyMuPDF</a></td><td>PDF okuma/yazma motoru</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://doc.qt.io/qtforpython/">Qt / PySide6</a></td><td>Masaüstü arayüzü</td><td>LGPL-3.0</td></tr>
-<tr><td><a href="https://huggingface.co/docling-project/docling-layout-heron-onnx">IBM Docling — Heron düzen modeli</a></td><td>Taranmış sayfalarda düzen algılama (RT-DETRv2, ONNX) — raporu <a href="https://arxiv.org/abs/2509.11720">arXiv:2509.11720</a></td><td>Apache-2.0</td></tr>
-<tr><td><a href="https://github.com/funstory-ai/BabelDOC">BabelDOC</a></td><td>Karşılaştırma: paralel PDF çevirisi; "kayıpsız" iddiasının ölçülmesi fikri</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://github.com/Byaidu/PDFMathTranslate">PDFMathTranslate</a></td><td>Karşılaştırma: formül koruma ve kısa çeviri isteme</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://github.com/opendatalab/MinerU">MinerU</a></td><td>Karşılaştırma: okuma sırası ve kademeli sığdırma (reflow) fikri</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://ai.google.dev/gemma">google/gemma</a></td><td>Çalışma zamanı modeli (yerel, LM Studio)</td><td>Gemma Terms</td></tr>
-<tr><td><a href="https://github.com/IBM/plex">IBM Plex</a></td><td>Yayınlanan karşılaştırma sayfasının yazı tipi</td><td>SIL OFL 1.1</td></tr>
-<tr><td>NIST, NASA, PLOS, Wikipedia, Project Gutenberg</td><td>Ölçüm belgeleri (yalnız kamu malı/açık lisanslılar yayınlanır)</td><td>çeşitli</td></tr>
-</tbody>
-</table>
+<h2>4. Tek cümlelik özet</h2>
+<p>Bir belgeyi başka bir dile çevirmek kolay; <strong>sayfayı yerinde bırakarak</strong> çevirmek zor — ve bu proje ikincisini yapıp <strong>kaybı sayarak</strong> kanıtlıyor: her koşu kaynağa karşı sayfa sayfa denetlenir, her kayıp ya düzeltilir ya gerekçesiyle işaretlenir, ve hiçbir sayı gizlenmez.</p>
 <hr>
-<h2>11. Dersler</h2>
-<ol><li><strong>Kazancı ölçmek yetmez, bedelini de ölç.</strong> (§5.4)</li><li><strong>Bir kriterin ne saydığını, kullanmadan önce ölç.</strong> (§5.5)</li><li><strong>Bir regresyonu tek koşuya bakarak suçlama</strong> — aynı girdiyle iki sürümü yan yana koştur.</li><li><strong>Arayüz ile komut satırı ayrı düşebilir.</strong> Bugüne kadar üç kez oldu: sözlük/bellek, sığdırma</li></ol>
-<p>modu, paralellik. Her biri "özellik var ama kullanılmıyor" diye ortaya çıktı.</p>
-<ol><li><strong>Sessiz kayıp, gürültülü hatadan kötüdür.</strong> Her koşu, neyi yapamadığını yazar.</li><li><strong>Ölçüm hatası, kod hatasından sinsi.</strong> Araçlarını da denetle.</li><li><strong>Yeniden yazım yerine kanıtlananı al.</strong> V2 terk edildi, düzen algılayıcı kaldı.</li></ol>
-<hr>
-<p><em>Bu belge, depodaki <code>docs/campaign/JOURNAL.md</code>, <code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code>, <code>docs/MEASUREMENTS.md</code>, <code>docs/ENGINE-ARCHITECTURE.md</code> ve <code>docs/CONTRACT.md</code> dosyalarından ve 164 commit'lik geçmişten derlendi.</em></p>
+<p>*Bu belge depodaki <code>docs/CONTRACT.md</code>, <code>docs/campaign/JOURNAL.md</code>, <code>docs/MEASUREMENTS.md</code>, <code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code>, <code>docs/FEATURE-ROADMAP.md</code> dosyalarından, <code>_artifacts/heldout/**/audit.json</code> denetim kayıtlarından ve git geçmişinden derlendi.*</p>
 <footer>
   Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
   Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.

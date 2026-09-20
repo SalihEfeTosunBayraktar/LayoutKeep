@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Mimari: boru hattının her parçası — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 2. Mimari: boru hattının her parçası.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <span class='here'>2</span> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>2. Mimari: boru hattının her parçası</h1>
+<p>Bu bölüm, depodaki kodun nasıl bir araya geldiğini anlatır — hangi modül ne yapar, neden o sınırda durur, ve o sınırı çizmek hangi hatayı önledi. Sayılar bu depodan (<code>wc -l</code>, 2026-09-20).</p>
+<p><img alt="LayoutKeep çeviri hattı" src="architecture.png"></p>
+<h2>2.1 Genel akış</h2>
+<pre><code>oku → DocIR → segmentle → sağlayıcı zinciri → sığdır → yaz → doğrula → işaretle</code></pre>
+<p>Her aşama bir sonrakinin girdisini üretir ve <strong>hiçbiri diğerinin işini yapmaz</strong>. Bu ayrım teorik değil: her sınır, bir hatanın düzeltilmesiyle çizildi. Örneğin "sığdırma çeviriden ayrı bir aşama olmalı" (D3) kuralı, modelin "şu cümleyi kısalt" isteğine cevap verirken çeviri kalitesini bozmasından sonra yazıldı — model artık kısaltma istemini yalnız <em>ikinci</em> turda ve yalnız sığdırma aşamasında görür.</p>
+<h2>2.2 Modüller ve boyutları</h2>
+<table>
+<thead><tr>
+<th>Modül</th>
+<th>Satır</th>
+<th>Sorumluluk</th>
+<th>Sınır kuralı</th>
+</tr></thead>
+<tbody>
+<tr><td><code>readers/</code></td><td>3.819</td><td>PDF, EPUB, DOCX, görüntü okuyucuları</td><td>Çıktı yalnız DocIR'dır; okuyucu hiçbir şey yazmaz</td></tr>
+<tr><td><code>core/</code></td><td>2.519</td><td>DocIR, koruma, sayı-sözcükleri, ayarlar, aralık</td><td>Biçim bilmez; yalnız veri</td></tr>
+<tr><td><code>providers/</code></td><td>2.718</td><td>Sağlayıcı zinciri: dedupe, bellek, sözlük, koruma, parçalama, yeniden deneme</td><td>Düzeni bilmez (D2)</td></tr>
+<tr><td><code>fitting/</code></td><td>1.881</td><td>Kutuya sığdırma, büyütme, figür çakışması, metin-üstü-görsel</td><td>Çeviri istemez; ölçer</td></tr>
+<tr><td><code>writers/</code></td><td>3.196</td><td>PDF, DOCX, EPUB yazıcıları + dönüştürücüler</td><td>Karar vermez; çizer</td></tr>
+<tr><td><code>ocr/</code></td><td>726</td><td>Taranmış sayfa okuma, düzen dedektörü (IBM Docling Heron)</td><td>Okuyucuya veri sağlar</td></tr>
+<tr><td><code>ui/</code></td><td>7.864</td><td>PySide6 arayüzü, işçi, yüzen çubuk, karşılama, yardım, sözlük düzenleyici</td><td>Motoru çağırır, kopyalamaz</td></tr>
+<tr><td><code>verify.py</code></td><td>576</td><td>L1–L10 ve D1–D3 denetimi + onarım</td><td>Hem CLI hem arayüz aynı dosyayı koşar</td></tr>
+<tr><td><code>cli.py</code></td><td>703</td><td>Komut satırı</td><td>Aynı motor, farklı kapı</td></tr>
+</tbody>
+</table>
+<p>Arayüzün motordan büyük olması tesadüf değil: kullanıcıya görünen her kolaylık (karşılama ekranı, yardım, sözlük tablosu, yüzen çubuk, inceleme kuyruğu) burada yaşıyor. Motor ise küçük tutuldu — çünkü motorun doğruluğu test edilebilirliğine bağlı.</p>
+<h2>2.3 DocIR: neden biçimden bağımsız ara model</h2>
+<p><code>core/docir.py</code> şu zinciri taşır:</p>
+<pre><code>Document → Page → Block → Line → Span</code></pre>
+<ul><li><strong>Block</strong> çevrilebilir bir birimdir: <code>text</code>, <code>bbox</code>, <code>role</code> (title/paragraph/table/caption/...),</li></ul>
+<p><code>align</code>, <code>direction</code>, <code>rotation</code>, <code>source_ref</code> (hangi sayfadan geldiği), <code>table_id/row/col</code>.</p>
+<ul><li><strong>Line/Span</strong> tipografiyi taşır: font ailesi, punto, kalın/italik, renk.</li><li><strong>Segment</strong> ise çeviri birimidir: <code>source</code> (korunan değerler maskelenmiş metin), <code>target</code>,</li></ul>
+<p><code>block_id</code>, bayraklar ve gerekçeler.</p>
+<p>Neden ayrı bir model? Çünkü okuyucu ile yazıcı arasında <strong>iki yönlü</strong> bir dönüşüm var: PDF→DOCX, DOCX→EPUB, EPUB→PDF hepsi aynı ara modelden geçer ve aynı denetimden geçer. Bu olmadan her biçim çifti için ayrı bir boru hattı gerekirdi ve her birinin kendi hataları olurdu.</p>
+<p><strong>Korunan değerler.</strong> Çeviri öncesi sayılar, ölçüler, DOI/URL'ler, parça numaraları, tarihler ve (ayarla açılıp kapanan) Romen rakamları <strong>modele hiç gösterilmez</strong>: metinden çıkarılıp yerine U+E000–U+E001 aralığında görünmez yer tutucular konur, çeviri sonrası geri yerleştirilir. Böylece modelin sayı uydurması ya da düşürmesi yapısal olarak imkânsız hale gelir. Kitap koşusunda bu kural, "çeviride sayılar kayboldu" bayrağını 49 vakaya indirdi — kalanların çoğu tablo içi sayı gruplarıdır.</p>
+<h2>2.4 Okuyucular</h2>
+<p><strong>PDF okuyucu</strong> (<code>readers/pdf_reader.py</code>) iki yol kullanır: metin katmanı varsa oradan, yoksa OCR ile. Sayfa sayfa karar verilir — bir kitabın 841 sayfasının 2'si taranmış olabilir (ölçüldü) ve yalnız o 2 sayfa OCR'a girer. Reading order için XY-cut (yatay/dikey kesme) ile sütun ayrımı, ardından satır birleştirme ve paragraf kuralları çalışır.</p>
+<p><strong>Düzen dedektörü (IBM Docling Heron).</strong> XY-cut, sayfa <em>çizgilerine</em> bakar: hizalanmış blokları bulur. Karmaşık sayfalarda (kutu içinde kutu, resim altı yazı, iki sütun arasına sıkışmış formül) yetersiz kalır. Bu yüzden <code>docling-project/docling-layout-heron-onnx</code> modeli eklendi: sayfayı görüntü olarak görüp bölge bölge sınıflandırır (başlık, paragraf, tablo, şekil, dipnot). Model <code>--layout-detector</code> ile açılır ve arayüzde varsayılan açıktır. Etkisi ölçüldü: 10 kitap sayfası üzerinde dört panelli karşılaştırmada (orijinal | eski koşu | XY-cut | dedektörlü), dedektör "hâlâ İngilizce kalan düzyazı" sayısını 6/82'den 1/82'ye indirdi.</p>
+<p><strong>EPUB ve DOCX okuyucuları</strong> kendi biçimlerinin yapısını doğrudan işler. DOCX'te <code>python-docx</code> bilinçli olarak <strong>kullanılmaz</strong>: o kütüphane belgeyi yeniden serileştirir ve bu, korunması gereken her şeyi (stil kimlikleri, ilişkiler, içerik denetimleri) yeniden yazar. OOXML doğrudan okunur.</p>
+<h2>2.5 Sağlayıcı zinciri</h2>
+<p>Sıra önemli — her halka bir üsttekinin işini boşa çıkarır:</p>
+<pre><code>koruma (mask)  →  dedupe (aynı metni bir kez çevir)  →  bellek (koşular arası)  →
+sözlük (terim zorlama)  →  model çağrısı  →  parçalama (aynı metni geri verirse cümle cümle)  →
+yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (aynı kaynağa tek çeviri)</code></pre>
+<ul><li><strong>dedupe</strong>: bir belgede aynı metin onlarca kez geçer (başlıklar, tablo etiketleri, form</li></ul>
+<p>alanları). Aynı metin bir kez çevrilir; IRS formunda bu, istek sayısını belirgin biçimde düşürür.</p>
+<ul><li><strong>bellek</strong> (<code>providers/memory.py</code>): SQLite; koşular arası. Gerçek bir koşuda 2.555 segment</li></ul>
+<p>birikti ve kullanıcı aynı kitabı yeniden başlattığında o segmentler modele hiç gitmez.</p>
+<ul><li><strong>parçalama</strong> (<code>providers/split.py</code>): model bazen paragrafı olduğu gibi geri verir. O zaman</li></ul>
+<p>paragraf cümlelere bölünüp her cümle ayrı sorulur — sorun "modelin tembelliği" değil, uzun bağlamda dikkatin dağılmasıdır; cümle cümle sormak bunu aşar.</p>
+<ul><li><strong>tekrarları birleştir</strong> (<code>core/repeats.py</code>): aynı kaynak farklı yerlerde farklı çevrilmişse</li></ul>
+<p>çoğunluk çevirisine hizalanır. Böylece "Chapter" bir yerde "Bölüm", başka yerde "Kısım" olmaz.</p>
+<h2>2.6 Sığdırma</h2>
+<p>Çeviri kutuya sığmazsa sırasıyla denenir: <strong>küçült</strong> (0.85 tabanına kadar) → <strong>kısaltma iste</strong> (modelden daha kısa çeviri) → <strong>aşağı it</strong> (altında boşluk varsa bloğu büyüt) → <strong>işaretle</strong>. <code>--fit-mode reflow</code> ek bir kademe ekler (satır aralığını sıkma + aşağı itme) ama varsayılan <strong>kapalı</strong>: NIST dergisinde D1'i 52'den 0'a indirdi, ancak IRS formunda aşağı itilen bloklar hareketsiz metne çarptı (L7 0→1). Yani kazanç belgeye bağlı, kayıp ise kayıpsızlık ihlali — kural: <em>kanıtlanmış kayıp varsa varsayılan kapalı.</em></p>
+<h2>2.7 Yazıcılar ve yazma kararı</h2>
+<p>PDF yazıcısı sayfayı <strong>kaynak dosyadan</strong> çizer: her blok kendi kutusunda redakte edilip yeniden yazılır. Değişmeyen bloklara dokunulmaz (bir ad, bir belge kodu, bir üstbilgi olduğu gibi kalır — silip yeniden çizmek tipografisini kaybettirir). Bloklar HTML kutusu + CSS ile çizilir; bu, hizalama (ortala, sağa yasla, iki yana yasla) ve yazı tipi eşlemesi için tarayıcı motorunun işini kullanmak demektir.</p>
+<p>DOCX ve EPUB yazıcıları aynı DocIR'ı kendi biçimlerine döker. <code>writers/converter.py</code> biçim çiftlerini yönetir ve D7 gereği <strong>yalnız ölçülmüş</strong> çiftleri sunar.</p>
+<h2>2.8 Denetleyici: projenin ayırt edici parçası</h2>
+<p><code>verify.py</code> çıktıyı kaynakla karşılaştırır ve on kayıp türünü sayar (L1–L10), üç de kalite eşiğini (D1–D3). Denetim <strong>iki taraflıdır</strong>: hem yazma öncesi DocIR üzerinde, hem yazılmış PDF'in kendisi üzerinde çalışır. İkincisi kritik — çünkü hataların bir kısmı yalnız <em>çizimde</em> oluşur (üst üste binen metin, sayfa dışına taşan kelime, figür üstüne düşen yazı).</p>
+<p>Denetim yalnız rapor etmez: kaybı bulduğunda <strong>yeniden sorar</strong> (<code>ask_again</code>), düzeltilebileni düzeltir, kalanı gerekçesiyle işaretler. Kullanıcı arayüzünde gördüğü "inceleme kuyruğu" bu işaretlerdir — her satırın bir nedeni vardır ve o neden Türkçe yazılıdır.</p><p class="pager"><a href="01-problem.html">← önceki bölüm</a> · <a href="03-olcum.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>
