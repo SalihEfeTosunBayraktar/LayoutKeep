@@ -1926,3 +1926,28 @@ retranslate path in the fitting pass firing for the legal documents, and if it f
 result still not fit; the per-chunk logs differ (`tr_tck_smoke` reports `shrunk=15 overflow=22`
 while `tr_tck_5237`'s chunks report no fitting line at all). (2) The inline-size design from the
 entry above, which owns the inflated 8.0 pt runs and the glued superscript marker.
+
+### Correction: the direction "split" was the instrument, not the pipeline
+
+The entry above read a real difference between the directions out of `type_drift.py`'s ratios. Reading
+the instrument and the fitting module together takes it back:
+
+- `fitting/fit.py` sets `MIN_SCALE = 0.85` - "point size never shrinks past this fraction of the
+  original" - so a **genuinely drawn 0.26x is impossible**. A ratio below 0.85 cannot be describing a
+  shrink.
+- `type_drift._written_lines` collects every written line whose *centre* falls inside a block's
+  recorded box and divides its size by that box's **single** recorded style. A 6 pt footnote marker
+  inside an 11 pt block therefore reads as 0.55x, and text from a neighbouring block drawn into the
+  box reads as whatever it happens to be. The ratio is direction-blind: it measures how much of a box
+  is occupied by runs of a different size, and legal text with small article numbers next to body copy
+  simply gives it more to trip over.
+- The same mechanism explains the 1.33-1.62x "inflated" blocks on the arXiv run, so both tails of the
+  distribution are one blind spot rather than two defects.
+
+What survives: the directions *are* different, but the module already knows it and says so with
+measured numbers - `FitLayer.EXPANDED` exists because EN->TR expands 0.93x on average and 0.64x at the
+low tail, and `MIN_FILL = 0.75` is set to catch exactly that tail. The direction rule stays (a fitting
+change is still read on both directions before it is kept), but it is a rule about blast radius, not
+evidence of a TR->EN loss. **Before either the inline-size design or any per-language-pair knobs are
+built, `type_drift` has to measure per run/line instead of per block**, or every judgement it feeds
+will keep mixing boxes with the runs inside them.
