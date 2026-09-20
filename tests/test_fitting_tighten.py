@@ -14,10 +14,21 @@ CSS (see tests/test_writers_line_height.py).
 
 from __future__ import annotations
 
-from layoutkeep.core.docir import BBox, Style
-from layoutkeep.core.docir import Segment
+import pytest
+
+from layoutkeep.core.docir import BBox, Segment, Style
 from layoutkeep.fitting.fit import FitLayer, FitMode, fit_segment
 from layoutkeep.fitting.measure import TextMeasurer, make_measure_fn
+
+#: The step these tests describe was built, measured and **reverted** the same day: with the
+#: fitting pass's own style it rescued no block on the book (14 calls, 0 fits) and the written-page
+#: A/B came back identical in both arms. The tests stay as the record of what was tried - they go
+#: green again the moment someone has evidence that a leading step helps. See
+#: docs/campaign/JOURNAL.md (2026-09-20) and the story's chapter 3.
+pytestmark = pytest.mark.xfail(
+    reason="leading step reverted: it measured nothing on the written page (bbf5958)",
+    strict=False,
+)
 
 
 def _measure():

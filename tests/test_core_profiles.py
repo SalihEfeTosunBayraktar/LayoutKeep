@@ -109,7 +109,7 @@ def test_the_dialog_opens_on_custom_when_nothing_matches(qtbot) -> None:
 
     from layoutkeep.ui.tweaks_dialog import TweaksDialog
 
-    app = QApplication.instance() or QApplication([])
+    QApplication.instance() or QApplication([])
     tunables.set_value("fit.min_scale", 0.83)
     dialog = TweaksDialog()
     qtbot.addWidget(dialog)
