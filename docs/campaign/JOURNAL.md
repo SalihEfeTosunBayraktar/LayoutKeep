@@ -1813,3 +1813,27 @@ nothing is lost silently:
 | `layout-model` | `7ef33ea` | an ancestor of the feature branch; merged |
 | `scanned-pdf-ocr` | `298e04f` | an ancestor of the feature branch; merged |
 | `v2-vision-layout` | `b89396b` | the abandoned second clone's branch, never merged; the owner said to forget V2 |
+
+## The workflow's first green run, and why it had never been green
+
+The GitHub workflow had failed on every run since it was written, and the reason was in the first
+step: `lint` failed, so the test step never executed and the suite had never been run on the
+runners at all. Fixing lint exposed what that had been hiding: browserless mistakes that only show
+up in a clean environment.
+
+1. **Three scanned-page modules imported the OCR engine from inside a reader**, so a runner without
+   `rapidocr` collected an ImportError instead of skipping. Two more were named by the CI itself,
+   and instead of chasing them one run at a time the whole suite was run locally with `rapidocr`
+   blocked by a sitecustomize shim: **1259 passed, 4 xfailed, 1 xpassed, exit 0** - no module
+   outside the conftest list needs the engine, so the list is complete and the chase is over.
+2. **Two tests asserted Turkish wording without pinning the language.** They passed on this machine
+   only because an earlier test had left Turkish set, and failed on the runner, where the state is
+   clean - exactly the order-dependence that makes a suite lie. Both now set the language they
+   assert, and the worker test also asserts the English message, which is the point of the change.
+
+CI at `af268f8` + `4bd07c2`: `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`,
+`package`, `build-windows` - all **success**. The suite also gained the language test that would have
+caught the original English/Turkish mixing on its own.
+
+Noted for later: one test is marked `xfail` but passes (an expected-failure marker left behind by a
+fix). `strict=False` keeps it harmless, and it is a small, separate piece of tidying.
