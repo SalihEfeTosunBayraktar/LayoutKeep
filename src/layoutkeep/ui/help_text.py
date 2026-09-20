@@ -99,6 +99,10 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "biçimde dışa aktarmak için gereken her şey.\n"
                 "Denetim: komut satırında `tools/audit/lossless_audit.py --work <koşu dizini>`; "
                 "uygulamada tamamlanma ekranındaki özet sayılar.\n"
+                "İnceleme bayrakları: tamamlanma ekranı “N parça inceleme bekliyor” diyorsa, o "
+                "parçalar ya kutusuna sığmadı ya bir sayıyı/korunan değeri düşürdü. Ekran ayrıca "
+                "kaç tanesinin kutu kısaltmasından olduğunu söyler: onlar metnin uzunluğuyla "
+                "değil sayfa düzeniyle ilgilidir — aynı metni yeniden çevirmek çözmez.\n"
                 "Çökme günlüğü: veri klasöründeki `crash.log` (uygulama beklenmedik kapanırsa)."
             ),
         },
@@ -206,6 +210,10 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "export in a different format.\n"
                 "The audit: `tools/audit/lossless_audit.py --work <run directory>` on the command "
                 "line; the completion screen shows its headline numbers.\n"
+                "Review flags: when the completion screen says \"N segments need review\", those "
+                "segments either did not fit their box or dropped a number or protected value. It "
+                "also says how many of them are shortened boxes: those are a page-layout problem, "
+                "not a long translation, and translating the same text again will not fix them.\n"
                 "The crash log: `crash.log` in the data directory, if the application ever closes "
                 "unexpectedly."
             ),
