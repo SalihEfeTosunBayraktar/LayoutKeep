@@ -22,12 +22,10 @@ biçimlendirme, metin yönü ve yapı, hedef dilin izin verdiği ölçüde özg�
 Yerel çalışır. Modelini kendin getirirsin: LM Studio, Ollama veya llama.cpp üzerinden yerel bir
 LLM, ya da OpenAI-uyumlu herhangi bir bulut uç noktası. Belgelerinin makineden çıkması gerekmez.
 
-> **Durum: 20 format çiftinden 14'ü açık.** PDF, EPUB ve DOCX birbirine ve HTML'e dönüşüyor;
-> EPUB ve DOCX ayrıca PNG'ye, DOCX ayrıca PDF'e de dönüşüyor. Açılan her çift, gerçekçi bir
-> fikstürle kelime kelime karşılaştırıldı ve hiçbir şey eksik çıkmadı — sadece %100'e yakın bir
-> oran değil. Geri kalanlar, aynı kontrolü geçene kadar kilitli kalıyor — arayüzde kaldırılmadan
-> ya da sunulmadan, kilitle ve gerekçesiyle gösteriliyorlar. Ölçüm ve her birinin açılması için ne
-> gerektiği: [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md).
+> **Durum: 20 format çiftinden 14'ü açık** — PDF, EPUB ve DOCX birbirine ve HTML'e dönüşüyor;
+> EPUB ve DOCX ayrıca PNG'ye, DOCX ayrıca PDF'e de dönüşüyor. Açılan her çift gerçekçi bir
+> fikstürle kelime kelime karşılaştırıldı ve hiçbir şey eksik çıkmadı. Geri kalanlar, aynı kontrolü
+> geçene kadar kilitli kalıyor ([`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md)).
 
 ---
 
@@ -50,9 +48,7 @@ Tam otomatik, düzeni koruyan çeviri diye bir şey yok — ne burada ne de herh
   halde verir.
 
 Bu yüzden LayoutKeep kusursuz, tek tıkla bir sonuç vadetmiyor. **İyi bir ilk geçiş**, dürüst bir
-gözden geçirme sinyali (motorun emin olmadığı segmentler gerekçesiyle işaretlenir) ve hemen
-açabileceğiniz, formatı korunmuş bir çıktı vadediyor. Çeviri diske yazılır ve tamamlanma ekranı
-onu açmayı önerir; ayrı bir elle düzeltme editörü yoktur.
+gözden geçirme sinyali ve hemen açabileceğiniz, formatı korunmuş bir çıktı vadediyor.
 
 Bu dosyadaki her ölçülmüş sayı yeniden üretilebilir; komutlar
 [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md) içinde.
@@ -83,10 +79,8 @@ kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevri
 |---|---|---|
 | ![Yardım](docs/screenshots/tr/09_help_light.png) | ![Kayıpsızlık kriterleri](docs/screenshots/tr/09_help_criteria_light.png) | ![Sözlük düzenleyici](docs/screenshots/tr/10_glossary_light.png) |
 
-Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim başlıktadır ve
-hatırlanır — karşılama ekranı ise boru hattını, sağlayıcı seçimini ve kaliteyi neyin belirlediğini
-her şeyden önce anlatır, atlanabilir. Her ekranın koyu bir varyantı var — görüntüler
-[`docs/screenshots/`](docs/screenshots/tr/) altında.
+Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir. Her ekranın koyu bir varyantı
+var — görüntüler [`docs/screenshots/`](docs/screenshots/tr/) altında.
 
 ## Daha uzun bir örnek, ve maliyeti
 
@@ -97,34 +91,20 @@ grafikleri, başlık satırlı tabloları, mikroskop görüntüleri, üst bilgis
 üreteci [`tools/make_academic_paper.py`](tools/make_academic_paper.py) — boş bir kopyadan
 yeniden kurulabilir.
 
-| | |
-|---|---:|
-| Sayfa | 10 |
-| Okunan blok | 741 |
-| Çevrilen | 91 istekte 30.603 karakter |
-| İncelemeye işaretlenen | 731 segmentin 37'si |
-| Süre | **65,2 sn** — 12,7 sn çeviri, 39,4 sn sığdırma, 12,7 sn PDF yazma |
-
 ![Süre nereye gidiyor](docs/images/bench_10_pages.png)
 
-**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/)** — on sayfanın tamamı, İngilizce ve Türkçe, üzerinde sürüklediğiniz bir ayırıcıyla.
-Kendi kendine yeten tek bir dosya (görseller içinde
-taşınıyor) ve güncel çıktıdan
-[`tools/make_comparison_page.py`](tools/make_comparison_page.py) ile yeniden üretiliyor; yani
-boru hattının artık yapmadığı bir şeyi gösteremez.
-
-**[Ve daha geniş karşılaştırma](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — aynı ayırıcı, **tüm held-out örnekleri** üzerinde:
-arXiv makaleleri, iki IRS talimat kitabı, bir NASA taraması, bir PLOS makalesi, iki Wikipedia
-maddesi, bir Gutenberg romanı, iki Internet Archive taraması, bir WPA afişi ve en yeni canlı
-koşular. Her belgenin yanında denetimin o belge için ölçtüğü sonuç yazılı; bir sayfa bir şey
-kaybettiyse, bunu sayfanın yanında söylüyor. Kaynak ve çıktıdan
-[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) ile üretilir.
-
 Çeviri, geçen sürenin beşte birinden az. **Asıl pahalı kısım, çevirinin İngilizce için
-ayarlanmış kutulara geri sığdırılması** — kaynaktan uzun bir dilin bedeli orada ödeniyor ve o 37
-inceleme bayrağı oradan geliyor. PDF yazmak burada ucuz ama ölçekle kötüleşiyor: 100 sayfalık bir
-koşu sayfa başına 7 saniye, buradaki 1,3 saniyeye karşılık.
-[`docs/BENCHMARK.md`](docs/BENCHMARK.md) tüm rakamları ve nedenini içerir.
+ayarlanmış kutulara geri sığdırılması** — kaynaktan uzun bir dilin bedeli orada ödeniyor ve
+inceleme bayrakları oradan geliyor. PDF yazmak burada ucuz ama ölçekle kötüleşiyor.
+[`docs/BENCHMARK.md`](docs/BENCHMARK.md) rakamların tamamını ve nedenini içerir.
+
+**[Sayfa sayfa görün](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/)** —
+aynı ayırıcı, **tüm held-out örnekleri** üzerinde: arXiv makaleleri, iki IRS talimat kitabı, bir
+NASA taraması, bir PLOS makalesi, iki Wikipedia maddesi, bir Gutenberg romanı, iki Internet
+Archive taraması, bir WPA afişi ve kampanyanın bitirdiği Türkçe devlet belgeleri. Her belgenin
+yanında denetimin o belge için ölçtüğü sonuç yazılı; bir sayfa bir şey kaybettiyse, bunu
+sayfanın yanında söylüyor. Kaynak ve çıktıdan
+[`tools/audit/comparison_site.py`](tools/audit/comparison_site.py) ile üretilir.
 
 ## Ne çalışıyor
 
@@ -149,25 +129,19 @@ alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uyg
 
 ## Terimler, bellek ve inceleme kuyruğu
 
-Uzun bir belgenin sayfa yığını gibi değil de tek bir belge gibi okunmasını üç şey belirler; üçü de
-uygulamada (ve komut satırında) var:
-
 - **Terim sözlüğü** — `{"kaynak terim": "hedef terim"}` çiftlerinden oluşan bir JSON dosyası,
-  ya da iki sütunlu bir CSV/TSV tablosu (terim listeleri genelde bir tabloda başlar). Her
-  isteğe eklenir *ve* sonrasında denetlenir: modelin kullanmadığı terim, bloğunu gerekçesiyle
-  inceleme kuyruğuna düşürür. Gelişmiş Ayarlar'da tablo hâlinde düzenleyicisi var (CLI'da
-  `--glossary`).
+  ya da iki sütunlu bir CSV/TSV tablosu. Her isteğe eklenir *ve* sonrasında denetlenir: modelin
+  kullanmadığı terim, bloğunu gerekçesiyle inceleme kuyruğuna düşürür. Gelişmiş Ayarlar'da tablo
+  düzenleyicisi var (CLI'da `--glossary`).
 - **Çeviri belleği** — (kaynak metin, dil çifti, model kimliği) ile anahtarlanmış bir SQLite
-  dosyası. Aynı belgeyi yeniden çevirmek neredeyse bedava; tekrarlanan üstbilgi ve dipnotlar bir kez
-  çevrilir; anahtar sözlüğün parmak izini taşır, yani terim politikası değişince eski kayıtlardan
-  cevap gelmez. Tamamlanma ekranı ne kadarının bellekten geldiğini yazar (CLI'da `--memory`,
-  uygulamada varsayılan açık).
-- **İnceleme kuyruğu** — her bayrak neden konduğunu taşır (sığmayan blok, kullanılmayan terim,
-  çevrilmeden dönen cümle); liste bir puan değil, yapılacaklar listesidir.
+  dosyası. Aynı belgeyi yeniden çevirmek neredeyse bedava; tekrarlenen üstbilgiler bir kez
+  çevrilir; anahtar sözlüğün parmak izini taşır. Uygulamada varsayılan açık (CLI'da `--memory`).
+- **İnceleme kuyruğu** — her bayrak neden konduğunu taşır; liste bir puan değil, yapılacaklar
+  listesidir.
 
-Uygulama ayrıca kendini yerinde anlatır: ilk açılışta beş sayfalık karşılama ekranı (arayüz dili ve
-tema oradan seçilir), başlıktaki `?` düğmesiyle açılan ve kriterleri **denetimin kendi kodundan**
-okuyan yardım ekranı, ve her gelişmiş ayarın altında yanlış olduğunda ne bozulduğunu yazan açıklama.
+Uygulama kendini yerinde anlatır: ilk açılışta beş sayfalık karşılama ekranı, kriterleri denetimin
+kendi kodundan okuyan `?` yardım ekranı, ve her gelişmiş ayarın altında yanlış kurulumda ne
+bozulacağını yazan açıklama.
 
 ## Sonucun iyi çıkmasını ne belirler
 
@@ -183,23 +157,17 @@ Aynı ayarlar belgeden belgeye çok farklı sonuç veriyor. Etki sırasına gör
 | **Model sunucusunun ayarı** | Yerel modelin bağlam penceresi paralel yuvalara bölünür; paralellik varsayılan 2 |
 | **Terim sözlüğü ve çeviri belleği** | Terim listesi sözcükleri sabitler; bellek tekrar eden dizeyi her yerde aynı tutar |
 
-Her etken koşunun okunabilir bir yerinde görünür: sığdırma satırı
-(`as_is=50 shrunk=9 expanded=2 overflow=3`), denetim (L1–L10) ya da uygulamanın inceleme kuyruğu.
 Ölçümlü sürüm — tarama çözünürlüğü vakaları, bağlam penceresi hikâyesi, blok blok sayılar ve her
 birinin nereden geldiği — [`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md) içinde.
 
-**Gerçek belgeler bunları yaptığı için ayrıca ele alınanlar:** her açıda döndürülmüş metin, aynalı
-metin (sessizce düzeltilmek yerine tespit edilip işaretlenir), çeviri boyunca satır-içi işaretlerle
-taşınan kalın/italik parçalar, ve özgün yazı tipi hedef dili çizemediğinde metrik-uyumlu yazı tipi
-ikamesi.
+Gerçek belgeler ayrıca bunları getirir: her açıda döndürülmüş metin, aynalı metin (tespit edilip
+işaretlenir), kalın/italik parçaları taşıyan satır-içi işaretler, ve özgün yazı tipi hedef dili
+çizemediğinde metrik-uyumlu yazı tipi ikamesi.
 
-## Çevrilmemesi gereken değerler
-
-Tork değerleri, toleranslar, parça numaraları, form kimlikleri ve şema etiketleri model onları
-görmeden önce simgelerle değiştirilir ve sonrasında kaynaktan geri yazılır — bir model, istemine
-hiç girmemiş bir şeyi başka sözcüklerle anlatamaz. IRS W-4 formunda ölçüldü: 162 değer geri
-tutuldu, 116 segmentin 35'i hiç istek gönderilmeden yanıtlandı ve denetlenen her değer çıktıda
-kaynaktakiyle tam olarak aynı sayıda görünüyor.
+**Ve korunan değerler:** tork değerleri, toleranslar, parça numaraları, form kimlikleri ve şema
+etiketleri model onları görmeden önce simge olur, sonrasında kaynaktan geri yazılır — bir model,
+istemine hiç girmemiş bir şeyi başka sözcüklerle anlatamaz. IRS W-4 formunda ölçüldü: 162 değer
+geri tutuldu ve denetlenen her değer çıktıda kaynaktakiyle tam olarak aynı sayıda.
 
 ## Kurulum (geliştirme)
 
@@ -211,22 +179,10 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[pdf,epub,docx,ui,dev]"
 ```
 
-Çekirdek paketin (`layoutkeep`) tasarım gereği **zorunlu üçüncü-parti bağımlılığı yoktur** —
-okuyucu/yazıcı katmanları isteğe bağlı ekstralardır, böylece yalnızca DocIR çekirdeğine ve sahte
-sağlayıcıya ihtiyacı olan bir CI işi standart kütüphaneyle kalır. Yalnızca gerçekten dokunduğunuz
-formatların ekstralarını kurun:
-
-| Ekstra | Ne getirir | Ne için gerekir |
-|---|---|---|
-| `pdf` | `pymupdf` | PDF okuma/yazma, EPUB→PDF akıtma, görsel render |
-| `epub` | `ebooklib`, `lxml` | EPUB okuma/yazma |
-| `docx` | `lxml` | DOCX okuma/yazma (zipfile + lxml, python-docx yok) |
-| `fitting` | `fonttools` | Sığdırma motoru için glif kapsamı + gerçek yazı tipi metrikleri |
-| `ocr` | RapidOCR / ONNX runtime | Taranmış belge ve görsel çevirisi |
-| `ui` | `PySide6` | Masaüstü uygulaması |
-| `dev` | `pytest`, `ruff` | Testler ve linting |
-
-Hepsi birden: `.[pdf,epub,docx,ocr,ui,dev]`.
+Çekirdek paket (`layoutkeep`) tasarımı gereği **zorunlu üçüncü parti bağımlılık taşımaz** —
+okuyucu/yazar katmanları ekstra seçenekler. Dokunduğunuz biçimlere göre kurun: `pdf`, `epub`,
+`docx`, `fitting` (yazı tipi metrikleri), `ocr` (taramalar), `ui` (masaüstü uygulaması), `dev`
+(test, lint). Hepsi birden: `.[pdf,epub,docx,ocr,ui,dev]`.
 
 ## Kullanım
 
@@ -240,37 +196,27 @@ Dosyayı bırak, dilleri ve sağlayıcıyı seç, başlat. Sağlayıcı uç nokt
 yönetilir: sürükleyerek sıralanır, birini diğerinin üstüne bırakınca grup olur, sağ tıkla silinir
 ve **Test Et** kaydetmeden dener.
 
-Uzun belgelerde **yüzen ilerleme çubuğu** çıkar: her şeyin üstünde duran küçük, çerçevesiz bir
-pencere; hangi belgenin çevrildiğini, hangi aşamada olduğunu, kaç parçanın bittiğini ve yüzdeyi
-gösterir. Sürükleyip taşıyabilir, `—` düğmesiyle minik bir hapa indirebilir, *Pencereye dön* ile
-tam pencereye geçebilirsin. İş bitince yeşile döner; çıktıyı açmayı ve yeni çeviri başlatmayı sunar.
-Gelişmiş ayarlardaki `ui.floating_progress` ile kapatılır.
+Uzun belgelerde **yüzen ilerleme çubuğu** çıkar — her şeyin üstünde duran küçük, çerçevesiz
+pencere: belge, aşama, biten parça, yüzde; sürükle, hıçkılat, sonunda yeşile döner.
+Gelişmiş Ayarlar'daki `ui.floating_progress` ile kapatılır.
 
 ### Komut satırı
-
-Bir belgeyi çevirmeden okuyucunun onu nasıl anladığını görmek için:
-
-```bash
-layoutkeep inspect book.epub --sample 5
-```
-
-Yerel bir LM Studio veya Ollama sunucusu üzerinden çeviri:
 
 ```bash
 layoutkeep translate book.epub --to tr --base-url http://localhost:1234/v1 --model your-model
 ```
 
-DeepL üzerinden — bu bir model değil, çeviri servisidir. Seçilecek model yoktur; anahtar hangi
-sunucuya gidileceğini belirler ve ücretsiz anahtarlar `:fx` ile biter. Yerel yolun tersine bu,
-metni DeepL sunucularına gönderir:
+DeepL üzerinden — bu bir model değil, çeviri servisidir (ücretsiz anahtarlar `:fx` ile biter; yerel
+yolun tersine metni DeepL'e gönderir):
 
 ```bash
 layoutkeep translate book.epub --to tr --provider deepl --api-key YOUR-KEY:fx
 ```
 
-`--limit 20` yalnızca ilk 20 segmenti çevirir; bütün bir kitaba girişmeden kaliteyi sınamanın ucuz
-yolu budur. `--save-project out.lkproj` yeniden kullanılabilir bir proje dosyası yazar (segmentler,
-düzen, bayraklar).
+İkisi de uygulamanın sağlayıcı listesinde. `--limit 20` yalnızca ilk 20 segmenti çevirir — bütün
+bir kitaptan önce kaliteyi sınamanın ucuz yolu. `--save-project out.lkproj` yeniden kullanılabilir
+bir proje dosyası yazar (segmentler, düzen, bayraklar). `layoutkeep inspect book.epub --sample 5`,
+çeviri öncesi okuyucunun belgeyi nasıl anladığını gösterir.
 
 ## Gözden geçirme bayrakları
 
@@ -296,22 +242,16 @@ Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
 
 ## Ayarlama
 
-Düzen aşamalarının dayandığı sayılar — bir tablo satırının hücreleri sayılmak için iki kutunun ne
-kadar örtüşmesi gerektiği, iki satırın hâlâ aynı paragraf sayılması için ne kadar uzak
-durabileceği, metnin okunabilirliğini yitirmeden ne kadar küçültülebileceği — çalışma anında
-**Gelişmiş Ayarlar → Geliştirici** altında düzenlenebilir. Her birinin ne yaptığı ve yanlış
-ayarlanırsa neyin bozulacağı yanında yazar, varsayılanlar kodun geldiği değerlerdir ve bir
-sıfırlama düğmesi vardır. Değerler kullanıldıkları yerde okunur, dolayısıyla değişiklik yeniden
-başlatma istemez. Komut satırı aynı dosyayı okur, böylece ikisi tek makinede birbirinden
-ayrışamaz.
+Düzen aşamalarının dayandığı sayılar — tablo hücresi örtüşmesi, satır gruplama uzaklığı,
+okunabilirlik tabanı — çalışma anında **Gelişmiş Ayarlar → Geliştirici** altında düzenlenebilir.
+Her biri kendini anlatır; varsayılan ve sıfırlama vardır; değişiklik yeniden başlatma istemez ve
+komut satırı aynı dosyayı okur, böylece ikisi sapmaz.
 
 ## Testler hakkında bir not
 
-Paket geniş ve yeşil. **Bunu zayıf kanıt sayın.** Bu projede bulunan her ciddi kusur, ürünün
-gerçek bir belge üzerinde çalıştırılmasından çıktı, hiçbiri geçen bir testten çıkmadı — sessizce
-düşürülen şekiller, sayfa aralığının attığı sayfalar, kaydedilen projeye ulaşmadan atılan
-inceleme bayrakları, paketlenmiş derlemede tamamen ölü bir özellik. Buradaki testler zor yoldan
-öğrenilmiş olanı sabitler; onu keşfetmezler. Çalıştırın.
+Paket geniş ve yeşil. **Bunu zayıf kanıt sayın.** Burada bulunan her ciddi kusur, ürünün gerçek
+bir belge üzerinde çalıştırılmasından çıktı; hiçbiri geçen bir testten çıkmadı. Testler zor yoldan
+öğrenilmiş olanı sabitler; keşfetmez. Uygulamayı çalıştırın.
 
 ## Mimari
 
