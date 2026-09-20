@@ -54,6 +54,16 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 
 ## 3. Önerilen sıra (etki / emek / nasıl ölçülür)
 
+0. ~~Sayfa aralığının çıktıyı da daraltması~~ **yapıldı (2026-09-20)**: aralık artık yazılan kopyaya
+   uygulanıyor (çıktı yalnız seçilen sayfalar), kaydedilen `.lkproj` belgenin tamamını saklıyor;
+   PDF yazıcısı kaynağın dilimini alıyor, dilimdeki sayfalar 0..n yeniden numaralanıyor ki
+   doğrulama sayfa N'i N ile karşılaştırsın. Arayüzde/yardımda ne olacağı yazılı (tr/en/de).
+   Ölçüm: 15 sayfalık corpus PDF'inde aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa (11 test).
+   Kalan: aralık seçimini görsel bir sayfa seçiciyle (küçük önizleme) yapmak.
+1. ~~Ayar ekranındaki ölü anahtar~~ **yapıldı (2026-09-20)**: `timeout.first_batch_s` hiçbir şey
+   okumuyordu; worker'a bağlandı ve "bildirilen her ayar kodda geçmeli" testi eklendi. Kalan:
+   ayarları profillere ayırma (ör. "hızlı taslak" / "yayın kalitesi" ön ayarları).
+
 1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Kilidi kolay: aynı sayfayı iki
    kez yazıp sayfa boyutunu ikiye katlamak ya da sayfa sırasını değiştirmek; `pdf_writer` zaten
    sayfa bazlı. Ölçüm: çıktı sayfa sayısı = 2×kaynak (almaşık) ve L1–L10 bozulmuyor.
