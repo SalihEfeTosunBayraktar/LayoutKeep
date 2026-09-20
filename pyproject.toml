@@ -1,6 +1,6 @@
 [project]
 name = "layoutkeep"
-version = "0.9.0"
+version = "0.9.8"
 description = "Layout-preserving document and e-book translation"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"   # target 3.13; 3.14 breaks the phase-2 OCR tier
@@ -52,6 +52,10 @@ ui = ["PySide6>=6.11.2", "keyring"]
 # effect of the `ocr` extra, so CI - which does not install it - could not collect eight
 # test modules at all.
 dev = ["pytest", "pytest-qt", "pytest-html", "ruff", "Pillow>=10", "numpy>=1.26"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [".venv", "_artifacts", "dist", "build", "tools/audit"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -124,6 +128,13 @@ ignore = [
     "TRY301",
     "TRY400",
 ]
+
+[tool.ruff.lint.isort]
+# Stated for the same reason `select` is: without it, "first-party" is inferred from whatever ruff
+# version is installed, and the two disagree. A newer ruff stopped treating `layoutkeep` as
+# first-party on the CI runner while the local one still did, so the same file passed here and
+# failed there - one import block, two standards. Naming it settles both.
+known-first-party = ["layoutkeep"]
 
 [tool.ruff.lint.per-file-ignores]
 # The PUA delimiter that hides a value from the model is a constant, not a credential.
