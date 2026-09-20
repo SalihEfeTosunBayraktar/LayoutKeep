@@ -131,7 +131,13 @@ def _loss_summary(run: Path) -> str:
     counts = data.get("counts", {})
     if not counts:
         return ""
-    return ", ".join(f"{kind} {value}" for kind, value in sorted(counts.items()))
+    # Only what was found, in criterion order: a row of zeroes tells a reader nothing, and the
+    # order L1..L10 then D1..D3 is the one the report and the application use.
+    order = [f"L{n}" for n in range(1, 11)] + [f"D{n}" for n in range(1, 4)]
+    shown = [f"{kind} {counts[kind]}" for kind in order if counts.get(kind)]
+    if not shown:
+        return "kayıpsızlık denetimi: bulgu yok"
+    return "denetim: " + ", ".join(shown)
 
 
 def _campaign_documents() -> list[Document]:
@@ -227,6 +233,7 @@ def _live_documents(per_document: int = 12) -> list[Document]:
                 name=base,
                 title=base,
                 pairs=pairs,
+                losses=_loss_summary(newest),
                 note="en güncel kod, gerçek model",
                 commit=recorded,
                 stale=(
