@@ -158,3 +158,54 @@ class TestFitPdfPass:
         )
         doc = Document(source_lang="en", target_lang="tr", pages=[])
         assert fit_pdf_pass(doc, [_segment("x", "text")], retranslate=lambda s, m: "y") is None
+
+
+class TestReviewReasons:
+    """What a flag says is part of the product - it is the line the review list shows.
+
+    Measured on the book: most flags are not text that could not be shortened, they are boxes the
+    pass had to crush to keep clear of the next block (`room_below`), and a 6pt box fits nothing.
+    Telling the user "shrinking was not enough" then sends them to the wrong knob.
+    """
+
+    def test_a_crushed_box_says_the_box_was_the_problem(self, monkeypatch) -> None:
+        doc = _doc_with_block()
+        page = doc.pages[0]
+        # A second block starting deep inside the first: room_below goes strongly negative, so the
+        # measured box is shortened to its 6pt floor and nothing can fit there.
+        under = Block(
+            id="b2",
+            role=BlockRole.BODY,
+            bbox=BBox(0, 9, 100, 150),
+            lines=[Line(spans=[Span(text="under", bbox=BBox(0, 9, 100, 150), style=_style())])],
+            order=1,
+            source_text="under",
+        )
+        page.blocks.append(under)
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [_segment("b1", "uzun bir çeviri metni kutuya sığmıyor")],
+            retranslate=lambda segment, budget: segment.target,
+            on_fitted=lambda _s, _b, result: seen.append(result),
+        )
+
+        assert seen, "the block must reach the engine"
+        assert seen[0].needs_review, seen[0]
+        assert "kutu" in seen[0].review_reason, seen[0].review_reason
+
+    def test_an_ordinary_overflow_keeps_the_generic_reason(self) -> None:
+        """A block with room below it is a text problem, and must not claim otherwise."""
+        doc = _doc_with_block()
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [_segment("b1", "uzun bir çeviri metni kutuya sığmıyor " * 6)],
+            retranslate=lambda segment, budget: segment.target,
+            on_fitted=lambda _s, _b, result: seen.append(result),
+        )
+
+        assert seen and seen[0].needs_review
+        assert seen[0].review_reason == "", seen[0].review_reason

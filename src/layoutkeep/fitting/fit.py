@@ -63,6 +63,12 @@ class FitResult:
     scale: float
     text: str
     needs_review: bool = False
+    #: The engine's own explanation for a flag, when it knows more than "did not fit". The
+    #: front-ends show this instead of their generic sentence: measured on the book, most flags
+    #: are not text that could not be shortened but a box the fitting had to crush to stay off
+    #: the next block (`room_below` can take it to 6pt, and nothing fits in 6pt), and telling a
+    #: user "shrinking was not enough" when the box is the problem sends them to the wrong knob.
+    review_reason: str = ""
     #: REFLOW only: the block still doesn't fit and must grow, pushing later blocks down. How
     #: many lines that takes is a page-layout question `fitting/` can't answer (it only knows
     #: `(fits, scale)` from `measure`, not a line count) - the caller re-measures after growing.

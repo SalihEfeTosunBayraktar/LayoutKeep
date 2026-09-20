@@ -29,6 +29,12 @@ Retranslate = Callable[[Segment, int], str]
 _ROTATION_EPS = 0.01
 
 
+#: A block whose measured box is shortened to this height has nothing to draw in: `room_below`
+#: takes it down to keep clear of the next block's lines, and no text fits in six points. It is
+#: the floor of the shortening rule above, named here so the flag's reason and the box agree.
+_MIN_BOX_HEIGHT_PT = 6.0
+
+
 def fit_pdf_pass(
     doc: Document,
     segments: list[Segment],
@@ -108,7 +114,7 @@ def fit_pdf_pass(
             BBox(
                 block.bbox.x0, block.bbox.y0, block.bbox.x1,
                 max(
-                    block.bbox.y0 + min(block.bbox.height, 6.0),
+                    block.bbox.y0 + min(block.bbox.height, _MIN_BOX_HEIGHT_PT),
                     block.bbox.y1 - missing + grant,
                 ),
             )
@@ -131,6 +137,15 @@ def fit_pdf_pass(
             ),
             rotation=block.rotation,
         )
+        crushed = measured_box.height <= min(block.bbox.height, _MIN_BOX_HEIGHT_PT) + 0.01
+        if result.needs_review and missing > 0 and crushed:
+            # The box, not the text: `room_below` shortened it to keep clear of the next block,
+            # and a box that lost half its height is why nothing fits (measured: the flags on the
+            # book are mostly these, crushed to 6pt where no text fits at any size). The front-end
+            # shows this reason instead of its own "shrinking was not enough".
+            result.review_reason = (
+                "kutu sonraki bloğa değmesin diye kısaltıldı; metin bu kutuya sığmıyor"
+            )
         if on_fitted is not None:
             on_fitted(seg, block, result)
         results.append(result)
