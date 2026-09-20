@@ -97,3 +97,11 @@ Round 4, still seen:
   caption box. Round 3's caption was correct - model behaviour, intermittent.
 - p61 heading "Decoder Expansion" left in English: two words, below the echo check's minimum,
   which exists because names and codes legitimately translate to themselves.
+
+## Not: görüntüler yayından çıkarıldı (2026-09-20)
+
+Bu klasördeki `page_*.jpg` görüntüleri telifli kaynakların sayfalarını içerdiği için **depodan
+çıkarıldı** (dosyalar bu makinede durur; kriter: açık lisanslı içerik yayınlanır, gerisi lokalde
+kalır). Ölçümler ve yöntem README'de aynen duruyor; görüntüleri aşağıdaki komutlarla yeniden
+üretebilirsiniz.
+

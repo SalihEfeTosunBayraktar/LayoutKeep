@@ -89,3 +89,11 @@ blank space between them, come out as one block when the model boxes them togeth
 `turkish` 3 -> 1, `small_trim` body 3 -> 1). Adding the indent rule back inside regions fixes
 those and costs the book frag 8 -> 15, so it is not added. On the book itself the model splits
 such paragraphs correctly (`first_probe_book_p61.jpg`).
+
+## Note: images removed from the public repo (2026-09-20)
+
+The `*.jpg` images here contained pages of copyrighted sources, so they were **untracked** (the
+files stay on this machine; the rule is that openly licensed content is published and the rest
+stays local). The measurements and the method above are unchanged, and the images can be
+regenerated with the commands given here.
+
