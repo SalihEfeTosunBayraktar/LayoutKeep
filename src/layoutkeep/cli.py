@@ -534,13 +534,27 @@ def _verify(doc: Document, translated, src: Path, out: Path, provider, glossary,
         print(f"          {kind} {LABELS[kind]}: {report.remaining[kind]} - flagged for review")
 
 
+def fit_mode_from(args):
+    """The fitting mode in force: the flag when given, otherwise the setting the app reads too.
+
+    Kept as a function so it can be tested without a run, and so the CLI and the desktop worker
+    cannot drift into different modes for the same document - which is what had happened (the
+    worker was pinned to strict, so the reflow path was unreachable from the application).
+    """
+    from layoutkeep.fitting import FitMode
+
+    chosen = getattr(args, "fit_mode", None) or (
+        "reflow" if tunables.get("fitting.reflow") else "strict"
+    )
+    return FitMode.REFLOW if chosen == "reflow" else FitMode.STRICT
+
+
 def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
     """Make the translated text fit its original boxes. PDF only - EPUB reflows by itself.
 
     Delegates to `fitting.pdf_pass`, the one pass the desktop worker runs too (a GUI that
     drifts from the CLI here is a bug, not a feature - both must fit identically).
     """
-    from layoutkeep.fitting import FitMode
     from layoutkeep.fitting.pdf_pass import fit_pdf_pass
 
     def retranslate(segment, budget: int) -> str:
@@ -554,8 +568,7 @@ def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
     # The flag wins when it is given; otherwise the same setting the application reads decides,
     # so the two cannot disagree about how a document is fitted (they did: the CLI could reflow
     # while the application always used strict).
-    chosen = args.fit_mode or ("reflow" if tunables.get("fitting.reflow") else "strict")
-    mode = FitMode.REFLOW if chosen == "reflow" else FitMode.STRICT
+    mode = fit_mode_from(args)
 
     def on_fitted(seg, block, result) -> None:
         # fit_segment is pure - it reports what would fit. Writing the result back is ours.
