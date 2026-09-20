@@ -352,3 +352,68 @@ asla yazmaz).
   model gerekmez), `tools/audit/url_size_probe.py` (renderer puntoyu büyütüyor mu sorusunu
   ölçer - cevap: hayır, o yedek yazı tipinin metriği)
 
+---
+
+## 7. Gece turu (20 Eylül 2026): ölçüm düzeltmeleri ve ürünleşme
+
+### 7.1 L10'un yarısı kendi ölçüm hatasıymış
+
+`tools/audit/text_over_image.py` ve `verify.words_over_figures` iki sınıf yanlış pozitif üretiyordu:
+
+| koşu | bildirilen | gerçek | neden |
+|---|---|---|---|
+| cookbook_1907 | 182 | **0** | sayfa görselleri döşemeli (tarama iki katman + satır yamaları); her kelime zaten taramanın üstünde |
+| mushrooms_1895_sample | 124 | **0** | aynı |
+| 220 sayfalık kitap | 6 | **0** | aynı |
+| arxiv_19145 | 25 | **0** | kaynağın kendi grafik etiketleri (kaynakta 28 tane) |
+| wikipedia ×2 | 13 + 13 | **13 + 13** | **gerçek**: kaynakta fotoğrafın çevresinden akan satırlar çeviride fotoğrafın üstüne biniyordu |
+
+Düzeltme: görseller tek tek değil **birleşim alanıyla** değerlendiriliyor (tarama sayfası), ve
+kaynağın o görsel üzerinde zaten yazdığı kelimeler çıkarılıyor (grafik etiketleri). Gerçek olan iki
+sayfa `fitting/figures.py` ile düzeldi; yeniden çevirimde **13 → 0**.
+
+### 7.2 Kırılan satırlar (D1'in bir parçası)
+
+`room_below` birkaç punto negatif çıkınca yazar kutuyu kısaltıyor, 6.7pt'lik dizin satırı 4.5pt'ye
+eziliyordu. Yazar artık taban ölçek tutmazsa bloğun **kendi kutusunu** da deniyor. Ölçüm
+(`rewrite_run` + yeni `tools/audit/type_drift.py`): okunamaz 12 → 2, küçültülmüş 84 → 6, hizası
+değişmiş 4 → 0. Kutuyu sağa genişletme denendi ve **ölçümle çürütüldü** (kısıt yükseklik), geri
+alındı.
+
+### 7.3 type_drift artık kaynakla karşılaştırıyor
+
+İlk sürüm bloğun okuyucu tarafından çıkarılmış `align` niteliğine bakıyordu; IRS formunda 14 "hiza
+değişikliği" bildirdi, hepsi tablonun dikey sayı şeritleriydi (tek gliflik satırlar - sol/sağ ayırt
+edilemez). Artık yazılan satırlar kaynak sayfanın aynı yerdeki satırlarıyla karşılaştırılıyor:
+IRS 14 → 2, cookbook 4 → 0.
+
+### 7.4 Reflow modu ölçüldü; varsayılan değişmedi
+
+| koşu | D1 strict | D1 reflow | L kaybı |
+|---|---|---|---|
+| NIST dergisi (4 parça, 114 blok) | 52 | **0** | yok |
+| IRS formu (4 parça) | 15 | **0** | **L7 0 → 1** |
+
+Mod artık `fitting.reflow` ayarı; CLI bayrağı verilmediğinde ayarı okuyor, arayüz de aynı ayarı
+okuyor (eskiden arayüz sabit STRICT'ti, yani özelliğe hiç erişemiyordu).
+
+### 7.5 Sözlük ve bellek uygulamada
+
+`--glossary` ve `--memory` yalnız komut satırındaydı (`memory_path` alanı boş duruyordu, yani
+uygulama belleği hiç kullanmıyordu). Artık Gelişmiş Ayarlar'da iki anahtar var; sözlük JSON **veya
+CSV/TSV**, uygulama içi tablo düzenleyiciyle; sözlük parmak izi bellek anahtarına katıldı.
+
+### 7.6 Yeni kaynaklar (kamu malı, NIST)
+
+| kaynak | parça | L1 | L2 | L6 | L7 | L10 | D1 |
+|---|---|---|---|---|---|---|---|
+| `nist_jres_v98n1` (dijital dergi) | 8 / 157 | 1* | 1 | 1 | 0 | **0** | 54 |
+| `nist_ir6643_vapor_pressure` (tarama, OCR yolu) | 6 / 61 | 1* | 0 | 0 | 0 | **0** | 0 |
+
+\* `--chunks N` kısmi koşu; denetim artık "(partial run)" diye işaretliyor.
+
+### 7.7 Tarama gürültüsü nasıl görünüyor
+
+`nasa_ntrs_scan_r2`: kaynağın metin katmanı yok, OCR dekoratif başlığı "Naga Merorautigs Frogrom
+Amerika" diye okumuş. Bloklar "OCR güveni düşük (0.62)" ile işaretli - sessiz kayıp değil,
+kullanıcıya söylenen bir vaka.
