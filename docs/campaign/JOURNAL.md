@@ -1604,3 +1604,17 @@ Wikipedia'nın ikisi 13 → 0 (düzeldi) ama arxiv 25 → 26, mushrooms 124 → 
 ikisi de inceleme kuyruğunda; L7=L10=0. `nist_ir6643_vapor_pressure` (6 parça, 29 blok, tarama)
 L2–L10 = **0**, D1 = 0. L1 yalnız "--chunks" kısmi koşu olduğu için 1 (denetim artık
 "(partial run)" diye işaretliyor).
+
+## 2026-09-20 — gece 3: reflow modunun ölçümü (varsayılan değişmedi)
+
+`--fit-mode reflow` şimdiye kadar yalnız bir bayraktı ve **arayüz onu hiç kullanmıyordu** (sabit
+STRICT). Ölçtüm, çünkü D1'in ("çeviri kutuya sığmadı") tamamı bu modun çözmeyi vaat ettiği sınıf:
+
+| koşu | parça | D1 strict | D1 reflow | L kaybı |
+|---|---|---|---|---|
+| NIST dergisi | 4 (114 blok) | 52 | **0** | L1-L10 aynı |
+| IRS formu | 4 (69/101 blok) | 15 | **0** | **L7 0 -> 1** (aşağı itilen blok hareketsiz metne bindi) |
+
+Sonuç: reflow "sığmadı" bayraklarını tamamen kaldırıyor ama akışkan olmayan formlarda gerçek kayıp
+üretebiliyor. **Varsayılan strict kaldı**; mod artık `fitting.reflow` ayarı (Gelişmiş Ayarlar'da iki
+ölçümü yazan uyarısıyla) ve hem CLI hem arayüz aynı ayarı okuyor — eskiden ikisi ayrı davranıyordu.

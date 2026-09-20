@@ -285,9 +285,11 @@ TUNABLES: tuple[Tunable, ...] = (
             "karşılığı)."
         ),
         warning=(
-            "Ölçüm (NIST dergisi, 4 parça, 114 blok): strict D1=52 (sığmadı diye işaretlenen blok), "
-            "reflow D1=0; L1-L10 aynı kaldı. Sayfa düzeni daha çok değişir, çünkü bloklar aşağı "
-            "kayar - akışkan olmayan formlarda denemeden açma."
+            "İki ölçüm: NIST dergisinde (4 parça, 114 blok) strict D1=52 iken reflow D1=0 ve "
+            "L1-L10 birebir aynı kaldı. IRS formunda (4 parça) ise D1 15 -> 0 olurken **L7 0 -> 1** "
+            "oldu: aşağı itilen blok, hareketsiz bir metnin üstüne bindi. Yani kazanç 'sığmadı' "
+            "bayraklarında, bedeli akışkan olmayan sayfalarda gerçek kayıp olabiliyor - bu yüzden "
+            "varsayılan kapalı; belge türüne göre aç."
         ),
     ),
     Tunable(
