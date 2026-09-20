@@ -37,7 +37,7 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "1. Belgeyi pencereye sürükle ya da “Gözat” ile seç. Türüne göre hangi çıktı "
                 "biçimlerinin açık olduğunu uygulama gösterir.\n"
                 "2. Kaynak ve hedef dili, sonra sağlayıcıyı seç. Uzun belgelerde paralel işçi sayısı "
-                "(varsayılan 7) modelin yuva sayısıyla eşleşmeli.\n"
+                "(varsayılan 2) modelin yuva sayısıyla eşleşmeli.\n"
                 "3. “Çeviriyi Başlat”a bas. Belge okunur, metinler çevrilir, çeviri kutulara "
                 "sığdırılır, çıktı yazılır ve yazılan sayfa kaynağıyla doğrulanır."
             ),
@@ -124,7 +124,7 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "1. Drop the document on the window, or pick it with “Browse”. The application shows "
                 "which output formats that type can produce.\n"
                 "2. Choose the source and target language, then the provider. On long documents the "
-                "worker count (7 by default) should match the model's parallel slots.\n"
+                "worker count (2 by default) should match the model's parallel slots.\n"
                 "3. Press “Start translation”. The document is read, the text is translated, the "
                 "translation is fitted into its boxes, the output is written, and the written page is "
                 "verified against the source."
@@ -219,7 +219,7 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
             "lead": "Zwei Wege, dieselbe Verarbeitung — nur der Übersetzer unterscheidet sich:",
             "bullets": (
                 "Lokal (LM Studio): kostenlos und offline; der Kontext wird über parallele Slots "
-                "geteilt (-c 32768 für 7 Worker).\n"
+                "geteilt (Standard 2 Worker; für 7 mit -c 32768 laden).\n"
                 "Cloud (OpenAI-kompatibel oder DeepL): schnell und stark, braucht Schlüssel und "
                 "Verbindung."
             ),
