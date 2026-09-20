@@ -1618,3 +1618,14 @@ STRICT). Ölçtüm, çünkü D1'in ("çeviri kutuya sığmadı") tamamı bu modu
 Sonuç: reflow "sığmadı" bayraklarını tamamen kaldırıyor ama akışkan olmayan formlarda gerçek kayıp
 üretebiliyor. **Varsayılan strict kaldı**; mod artık `fitting.reflow` ayarı (Gelişmiş Ayarlar'da iki
 ölçümü yazan uyarısıyla) ve hem CLI hem arayüz aynı ayarı okuyor — eskiden ikisi ayrı davranıyordu.
+
+## 2026-09-20 — gece 4: taranmış belgede OCR gürültüsü nasıl görünüyor
+
+`nasa_ntrs_scan_r2` (1 sayfa, kamu malı NASA taraması) L2=1 ile bitti ve tek tek bakıldığında
+sebep çeviri değil **tarama**: sayfanın metin katmanı yok (`''`), OCR dekoratif başlığı
+"Naga Merorautigs Frogrom Amerika" diye okumuş, çeviri de okunanı taşımış. Aynı bloklar zaten
+işaretli: "OCR güveni düşük (0.62)" ve "çeviri kutuya sığmadı". Yani bu, sessiz bir kayıp değil -
+tarama kalitesinin doğrudan sonuca yansıdığı, kullanıcıya söylenen bir vaka.
+
+Bu, "kaliteyi ne belirler" maddesinin (kullanıcının 6. ek kriteri) ölçülmüş örneği: belge türü
+(tarama), görsel kalite ve süslü tipografi → OCR güveni → inceleme bayrağı.
