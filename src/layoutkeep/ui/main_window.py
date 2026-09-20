@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtCore import QEvent, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
@@ -75,11 +75,14 @@ class MainWindow(QWidget):
         self._setup = JobSetupWidget()
         self._progress = ProgressWidget()
         self._completion = CompletionWidget()
-        #: Owned by this window (destroyed with it) but flagged as its own always-on-top tool
-        #: window, so it stays reachable while the main window is minimised. Parentless was tried
-        #: first and crashed the UI test suite: orphaned top-level widgets outlive the window that
-        #: created them, and the next global stylesheet application touches freed memory.
-        self._floating = FloatingProgress(self)
+        #: Owned by this window (kept alive by this reference, destroyed with it in `closeEvent`),
+        #: but a *parentless* top-level window on purpose. A Qt window with a parent is an owned
+        #: window on Windows, and Windows minimises an owned window together with its owner - so
+        #: minimising the main window took the bar down with it, which is the one thing the bar
+        #: exists to avoid. Parentless was tried before and crashed the UI suite because the
+        #: widget outlived the window that created it; the fix is not a parent but an explicit
+        #: `deleteLater()` in `closeEvent`, and never touching it afterwards.
+        self._floating: FloatingProgress | None = FloatingProgress(None)
 
         self._stack.addWidget(self._setup)
         self._stack.addWidget(self._progress)
@@ -88,6 +91,44 @@ class MainWindow(QWidget):
         self._last_output_path = ""
         self._completion.back_to_setup_requested.connect(self._return_to_setup)
         self._worker: TranslationWorker | None = None
+
+    @property
+    def _bar(self) -> FloatingProgress:
+        """The floating bar. It exists for the whole life of the window; `closeEvent` clears it."""
+        bar = self._floating
+        if bar is None:  # only reachable after `closeEvent` has taken it down
+            raise RuntimeError("the floating bar was already destroyed")
+        return bar
+
+    def _sync_bar_visibility(self) -> None:
+        """The window and the bar take turns, so a run never shows two progress displays at once.
+
+        This is the bug the first screenshot of the bar came with: the run started and the reader
+        had the in-window progress screen *and* the bar on top of it. The bar is for when the
+        window is out of the way - minimised, or hidden behind other work - and it is the only
+        thing left on screen then, which is also the only way it stays reachable.
+        """
+        bar = self._floating
+        if bar is None:
+            return
+        if self.isMinimized() or not self.isVisible():
+            bar.show()
+            bar.raise_()
+        else:
+            bar.hide()
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._sync_bar_visibility()
+
+    def hideEvent(self, event) -> None:
+        super().hideEvent(event)
+        self._sync_bar_visibility()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._sync_bar_visibility()
 
     def _setup_layout(self) -> None:
         # Ana dikey düzeni kurar / Sets up main vertical layout
@@ -107,10 +148,10 @@ class MainWindow(QWidget):
         self._progress.cancel_requested.connect(self._cancel_job)
         self._progress.pause_requested.connect(self._pause_job)
         self._progress.resume_requested.connect(self._resume_job)
-        self._floating.restore_requested.connect(self._restore_from_floating)
-        self._floating.new_job_requested.connect(self._new_job_from_floating)
-        self._floating.open_output_requested.connect(self._open_output_from_floating)
-        self._floating.pause_toggled.connect(self._toggle_pause_from_floating)
+        self._bar.restore_requested.connect(self._restore_from_floating)
+        self._bar.new_job_requested.connect(self._new_job_from_floating)
+        self._bar.open_output_requested.connect(self._open_output_from_floating)
+        self._bar.pause_toggled.connect(self._toggle_pause_from_floating)
 
     def _restore_theme(self) -> None:
         # Kayıtlı tema tercihini uygular / Applies saved theme preference
@@ -137,7 +178,7 @@ class MainWindow(QWidget):
         self._setup.retranslate_ui()
         self._progress.retranslate_ui()
         self._completion.retranslate_ui()
-        self._floating.retranslate_ui()
+        self._bar.retranslate_ui()
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         # Tema değiştiğinde QSS'i yeniler ve kaydeder / Refreshes QSS and saves on theme change
@@ -152,7 +193,7 @@ class MainWindow(QWidget):
         self._setup.apply_theme()
         self._completion.apply_theme()
         self._progress.apply_theme()
-        self._floating.apply_theme()
+        self._bar.apply_theme()
         self._header.set_active_step(self._stack.currentIndex() + 1)
 
     def _start_job(self, config: JobConfig) -> None:
@@ -180,36 +221,37 @@ class MainWindow(QWidget):
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.failed.connect(self._on_failed)
         # The summary bar reads the same signals as the card, so the two cannot disagree.
-        self._worker.progress.connect(self._floating.set_progress)
-        self._worker.status.connect(self._floating.set_phase)
-        self._worker.finished_ok.connect(self._floating.finish)
-        self._worker.failed.connect(self._floating.fail)
+        self._worker.progress.connect(self._bar.set_progress)
+        self._worker.status.connect(self._bar.set_phase)
+        self._worker.finished_ok.connect(self._bar.finish)
+        self._worker.failed.connect(self._bar.fail)
         if bool(tunables.get("ui.floating_progress")):
-            self._floating.start_job(Path(config.input_path).name)
+            self._bar.start_job(Path(config.input_path).name)
+            self._sync_bar_visibility()
         self._worker.start()
 
     def _restore_from_floating(self) -> None:
         # Yüzen çubuktan ana pencereye döner / Comes back to the full window from the summary bar
-        self._floating.hide()
+        self._bar.hide()
         self.showNormal()
         self.raise_()
         self.activateWindow()
 
     def _new_job_from_floating(self) -> None:
         # "Yeni çeviri": kurulum ekranına döner / Starts over from the setup screen
-        self._floating.hide()
+        self._bar.hide()
         self._return_to_setup()
         self._restore_from_floating()
 
     def _open_output_from_floating(self) -> None:
         # Çıktı dosyasını sistem varsayılanıyla açar / Opens the output with the system default app
-        path = self._last_output_path or self._floating.output_path()
+        path = self._last_output_path or self._bar.output_path()
         if path:
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def _toggle_pause_from_floating(self) -> None:
         # Yüzen çubuktaki duraklat/devam düğmesi / The bar's pause-resume toggle
-        if self._floating.is_paused():
+        if self._bar.is_paused():
             self._pause_job()
         else:
             self._resume_job()
@@ -219,9 +261,13 @@ class MainWindow(QWidget):
         if self._worker is not None and self._worker.isRunning():
             self._worker.cancel()
             self._worker.wait(1500)
-        # The bar is its own window: closing the application has to take it down too, or it would
-        # outlive the window it reports about.
-        self._floating.close()
+        # The bar is a parentless top-level window, so closing the application has to take it down
+        # explicitly - and delete it, not merely hide it: an orphaned top-level widget outliving
+        # this window is what crashed the UI suite the first time this was tried.
+        if self._floating is not None:
+            self._floating.close()
+            self._floating.deleteLater()
+            self._floating = None
         super().closeEvent(event)
 
     def _cancel_job(self) -> None:
