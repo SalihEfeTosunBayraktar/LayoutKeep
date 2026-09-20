@@ -373,6 +373,18 @@ def _chapter_body(path: Path, depth: int) -> str:
     body = body.replace('src="story/', f'src="{up}').replace(
         'src="screenshots/', f'src="{up}../screenshots/'
     )
+    if depth:
+        # A translated page sits one level below the original, so a bare asset path
+        # (`architecture.png`, which the original language can leave alone because the file is
+        # right beside the page) has to step up too. Verified by resolving every link in every
+        # generated page against the disk: three of them were broken before this.
+        def _step_up(match: re.Match[str]) -> str:
+            target = match.group(1)
+            if target.startswith(("../", "/", "http", "data:", "#")):
+                return match.group(0)
+            return f'src="{up}{target}"'
+
+        body = re.sub(r'src="([^"]+)"', _step_up, body)
     return re.sub(r'href="story/([0-9]{2}-[a-z]+)\.md"', r'href="\1.html"', body)
 
 
@@ -428,6 +440,9 @@ def main() -> int:
 
         for slug in CHAPTERS:
             source, fell_back = _source_for(code, slug, args.source, args.story_dir)
+            if not source.exists():
+                print(f"  ! {source} yok, atlandı")
+                continue
             page = _chapter_body(source, depth)
             if fell_back and spec["missing"]:
                 page = spec["missing"] + page
