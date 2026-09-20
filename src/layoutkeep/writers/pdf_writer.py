@@ -217,7 +217,9 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                         html,
                         css,
                         resolver.archive,
-                        own_bottom=block.bbox.y1 + float(tunables.get(_BOX_SLACK_KEY)),
+                        own_bottom=_own_bottom_if_clear(
+                            block, everything, float(tunables.get(_BOX_SLACK_KEY))
+                        ),
                     )
         # `garbage=4` dedupes identical objects: every block drawn in a given resolved font
         # embeds its own copy of that font's subset bytes (`insert_htmlbox`'s own font-loading
@@ -579,6 +581,27 @@ def _measure_rotated_font(style: Style) -> pymupdf.Font:
     if style.font_path:
         return pymupdf.Font(fontfile=style.font_path)
     return pymupdf.Font(fontname=_base14_font(style))
+
+
+def _own_bottom_if_clear(block, others, slack: float) -> float | None:
+    """The block's own bottom edge - but only when nothing else's *text* is in the way.
+
+    WHY THIS EXISTS: `_draw_block` may try the block's own box when the floor scale does not fit
+    in the shortened one, and that recovered ten unreadable lines on a recipe index. On a dense
+    form it went wrong: `room_below` measures *block boxes*, which overlap by a few points nearly
+    everywhere, while the glyphs underneath are usually further down - so "negative room" is
+    often not room that is actually taken, and using the own box there drew text over text.
+    Measured on the IRS form (48 chunks): eleven pages of overlapping words with the unguarded
+    version, none when the own box is only used where no other block's *lines* reach into it.
+    """
+    bottom = block.bbox.y1 + slack
+    for other in others:
+        if other is block or not other.lines:
+            continue
+        for line in other.lines:
+            if line.bbox.y0 < bottom and line.bbox.y1 > block.bbox.y1 + 0.5:
+                return None
+    return bottom
 
 
 def _draw_block(
