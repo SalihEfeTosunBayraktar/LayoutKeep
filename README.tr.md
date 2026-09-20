@@ -144,7 +144,8 @@ alanı taşır, yani sağdan-sola desteği baştan yazmadan eklenebilir; ama uyg
 Uzun bir belgenin sayfa yığını gibi değil de tek bir belge gibi okunmasını üç şey belirler; üçü de
 uygulamada (ve komut satırında) var:
 
-- **Terim sözlüğü** — `{"kaynak terim": "hedef terim"}` çiftlerinden oluşan bir JSON dosyası. Her
+- **Terim sözlüğü** — `{"kaynak terim": "hedef terim"}` çiftlerinden oluşan bir JSON dosyası,
+  ya da iki sütunlu bir CSV/TSV tablosu (terim listeleri genelde bir tabloda başlar). Her
   isteğe eklenir *ve* sonrasında denetlenir: modelin kullanmadığı terim, bloğunu gerekçesiyle
   inceleme kuyruğuna düşürür. Gelişmiş Ayarlar'da tablo hâlinde düzenleyicisi var (CLI'da
   `--glossary`).

@@ -79,7 +79,8 @@ TUNABLES: tuple[Tunable, ...] = (
         kind="str",
         group="Terim sözlüğü",
         help_text=(
-            "{\"kaynak terim\": \"hedef terim\"} biçiminde düz bir JSON nesnesi. Dosya "
+            "{\"kaynak terim\": \"hedef terim\"} biçiminde düz bir JSON nesnesi, ya da iki "
+            "sütunlu bir CSV/TSV tablosu (başlık satırı olabilir). Dosya "
             "verildiğinde sözlük her isteğin istemine eklenir ve çıktıda terimin gerçekten "
             "kullanılıp kullanılmadığı denetlenir; kullanılmadıysa blok inceleme kuyruğuna düşer. "
             "Boş bırakılırsa sözlük kullanılmaz."

@@ -146,7 +146,8 @@ field so right-to-left support can be added without a rewrite, but it is not imp
 Three things decide whether a long document reads as one document rather than as a pile of pages,
 and all three are in the application (and on the command line):
 
-- **A glossary** — a JSON file of `{"source term": "target term"}` pairs. It is added to every
+- **A glossary** — a `{"source term": "target term"}` JSON file, or a two-column
+  CSV/TSV table (the spreadsheet a term list usually starts as). It is added to every
   request *and* checked afterwards: a term the model did not use puts its block in the review
   queue with the reason. Advanced Settings has a table editor for it (`--glossary` on the CLI).
 - **A translation memory** — a SQLite file keyed by (source text, language pair, model identity).
