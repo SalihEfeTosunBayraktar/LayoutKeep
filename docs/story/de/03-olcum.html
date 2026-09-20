@@ -65,76 +65,78 @@
   <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <span class='here'>3</span> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
 </nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>3. Ölçüm disiplini: sayılar nasıl üretiliyor, ve ölçümün kendisi nasıl yanıldı</h1>
-<p>Bu projenin en çok tekrarlanan dersi şu: <strong>yanlış ölçüm, ölçümsüzlükten kötüdür.</strong> Yanlış bir sayı yok sayılmaz — düzeltilmesi gereken bir düzeltme üretir, insan saatleri harcatır, ve bir süre sonra "kayıpsız" iddiasını güvenilmez yapar. Bu bölüm önce ölçümün ne olduğunu, sonra üç kez nasıl yanıldığını anlatır.</p>
-<h2>3.1 On kayıp türü, üç kalite eşiği</h2>
-<p><code>verify.py</code> her koşuda şu kriterleri sayar. Kural: <strong>her kriter ya 0'dır ya da gerekçesi yazılıdır.</strong></p>
+<h1>3. Measurement discipline: how the numbers are produced, and how measurement itself was wrong</h1>
+<p>The lesson this project repeats most: <strong>a wrong measurement is worse than no measurement.</strong> A wrong number is not ignored — it produces a correction that has to be corrected, burns human hours, and after a while makes the claim of "lossless" untrustworthy. This chapter first describes what measurement is here, then the four times it was wrong.</p>
+<h2>3.1 Ten loss kinds, three quality thresholds</h2>
+<p><code>verify.py</code> counts these criteria on every run. The rule: <strong>every criterion is either zero or has a written reason.</strong></p>
 <table>
 <thead><tr>
-<th>Kod</th>
-<th>Ne sayar</th>
-<th>Nasıl ölçülür</th>
+<th>Code</th>
+<th>What it counts</th>
+<th>How it is measured</th>
 </tr></thead>
 <tbody>
-<tr><td><strong>L1</strong></td><td>Sayfa sayısı farklı</td><td>Kaynak ve çıktı PDF'lerinin sayfa sayıları</td></tr>
-<tr><td><strong>L2</strong></td><td>Çevrilmemiş ya da başka dilde</td><td>Çıktı sayfasındaki kelimeler kaynağın diliyle karşılaştırılır</td></tr>
-<tr><td><strong>L3</strong></td><td>Yazıcı bloğu düşürmüş</td><td>DocIR'daki blok çıktıda bulunamadı</td></tr>
-<tr><td><strong>L4</strong></td><td>Metin sayfanın dışına taşmış</td><td>Kelime kutusu sayfa dikdörtgeninin dışında</td></tr>
-<tr><td><strong>L5</strong></td><td>Etiket sızmış</td><td>Çıktıda <code>&lt;...&gt;</code> kalıbı</td></tr>
-<tr><td><strong>L6</strong></td><td>Çeviride sayılar kaybolmuş</td><td>Kaynaktaki sayı kümesi çıktıda aranır</td></tr>
-<tr><td><strong>L7</strong></td><td>Metin başka metnin üstüne yazılmış</td><td>Kelime kutularının çakışması</td></tr>
-<tr><td><strong>L8</strong></td><td>Çevrilmeyen metin yerinden oynamış</td><td>Kaynakta duran blok çıktıda başka yerde</td></tr>
-<tr><td><strong>L9</strong></td><td>Başka alfabeden harf karışmış</td><td>Örnek: <code>Việt語</code> — Latin + CJK karışımı</td></tr>
-<tr><td><strong>L10</strong></td><td>Metin bir figürün üstüne çizilmiş</td><td>Kelime kutusu görsel kutusuyla kesişiyor</td></tr>
-<tr><td><strong>D1</strong></td><td>Okunabilirlik tabanının altında</td><td>Punto 0.85 ölçeğinin altına inmiş bloklar</td></tr>
-<tr><td><strong>D2</strong></td><td>Kısa bloklar değişmeden kalmış</td><td>3 kelimeden kısa ve çevrilmemiş bloklar</td></tr>
-<tr><td><strong>D3</strong></td><td>Kutuya sıkışmış metin</td><td>Kelimeler arası boşluk sıfıra inmiş</td></tr>
+<tr><td><strong>L1</strong></td><td>Page count differs</td><td>The page counts of the source and output PDFs</td></tr>
+<tr><td><strong>L2</strong></td><td>Left untranslated, or in another language</td><td>The words on the output page are compared against the source's language</td></tr>
+<tr><td><strong>L3</strong></td><td>Text not on the page</td><td>A block in the DocIR cannot be found in the output</td></tr>
+<tr><td><strong>L4</strong></td><td>Text past the page edge</td><td>A word box outside the page rectangle</td></tr>
+<tr><td><strong>L5</strong></td><td>Markup leaked</td><td>A <code>&lt;…&gt;</code> pattern in the output</td></tr>
+<tr><td><strong>L6</strong></td><td>Numbers lost in translation</td><td>The source's set of numbers is looked for in the output</td></tr>
+<tr><td><strong>L7</strong></td><td>Text drawn over other text</td><td>Word boxes overlapping</td></tr>
+<tr><td><strong>L8</strong></td><td>Untouched text moved</td><td>A block that stayed as it was in the source, elsewhere in the output</td></tr>
+<tr><td><strong>L9</strong></td><td>Letters from another script mixed in</td><td>Example: <code>Việt語</code> — Latin and CJK in one word</td></tr>
+<tr><td><strong>L10</strong></td><td>Text drawn over a figure</td><td>A word box intersecting an image box</td></tr>
+<tr><td><strong>D1</strong></td><td>Below the readability floor</td><td>Blocks whose type size went below the 0.85 scale</td></tr>
+<tr><td><strong>D2</strong></td><td>Short blocks left unchanged</td><td>Blocks shorter than three words that were not translated</td></tr>
+<tr><td><strong>D3</strong></td><td>Text squeezed in its box</td><td>The space between words collapsed to zero</td></tr>
 </tbody>
 </table>
-<p>L-kriterleri <strong>kayıp</strong>, D-kriterleri <strong>kalite</strong>tir: bir L ihlali "bir şey kayboldu" demektir ve kabul edilemez; bir D bulgusu "bir şey kötüleşti" demektir ve sayılır, raporlanır, mümkünse düzeltilir. Kitap koşusunun son tablosu (220 sayfa, 4.491 çevrilebilir blok): <strong>L1=1, L2=2, L3=0, L4=0, L5=0, L6=4, L7=1, L8=1, L9=0, L10=0, D1=801, D2=163, D3=0.</strong> L1'in tek vakası bilinçli (kitabın sonundaki kaynakça sayfası çıktıya alınmadı), L2'nin ikisi kaynakça satırı, D1'in 801'i ise uzun çevirilerin küçültülmesi — hepsi gerekçeli.</p>
-<h2>3.2 Denetim araçları</h2>
-<p><code>tools/audit/</code> altında 56 araç var; en sık kullanılanlar:</p>
-<ul><li><code>lossless_audit.py</code> — bir koşu dizinini tarar, L1–L10 + D1–D3 tablosunu üretir (<code>audit.json</code>).</li><li><code>type_drift.py</code> — yazılan sayfanın <strong>tipografisi</strong> ile okuyucunun kaydettiği stili karşılaştırır:</li></ul>
-<p>büyümüş bloklar (başlık irileşti mi), küçülmüş bloklar (sığdırma merdiveni), hizası değişmiş bloklar, okunamaz boyuta inmiş bloklar.</p>
-<ul><li><code>text_over_image.py</code> — yalnız L10'u derinleştirir (bkz. 3.3, ilk yanlış ölçüm).</li><li><code>side_by_side.py</code> — dört panelli görsel karşılaştırma üretir (orijinal | eski | yeni | model).</li><li><code>comparison_site.py</code> — tüm koşuları tek bir kaydırıcılı siteye döker (yayınlanan site budur).</li><li><code>translate_book.py</code> / <code>translate_epub.py</code> — parça parça, çok işçili canlı koşu sürücüleri.</li><li><code>rewrite_run.py</code>, <code>repair_book.py</code> — mevcut çıktıyı yeni motorla yeniden yaz / onar.</li><li><code>live_check.py</code>, <code>format_matrix.py</code>, <code>translation_completeness.py</code> — biçim çiftleri ve dil</li></ul>
-<p>tamlığı ölçümleri.</p>
-<p>Araçların ortak kuralı: <strong>çıktı makine okunur</strong> (JSON) ve <strong>iddia taşımaz</strong>, sayı taşır.</p>
-<h2>3.3 Ölçümün kendisi üç kez yanıldı</h2>
-<h3>Vaka A: L10 yanlış pozitifleri — sayıların yarısı ölçüm hatasıydı</h3>
-<p>L10 "metin bir figürün üstüne çizilmiş" demek. İlk uygulama, kelime kutusu görsel kutusuyla kesişiyorsa kayıp sayıyordu. Sonuçlar şöyleydi: cookbook <strong>182</strong>, mushrooms <strong>124</strong>, kitap <strong>6</strong>, arXiv <strong>25</strong> — yani "her belgede figür üstü yazı var" gibi görünüyordu.</p>
-<p>Tek tek bakıldığında iki hata ortaya çıktı:</p>
-<ol><li><strong>Tam sayfa / döşemeli tarama görselleri.</strong> Taranmış bir belgede sayfanın tamamı bir görüntüdür;</li></ol>
-<p>üstündeki her kelime "figür üstü" sayılıyordu. Kural düzeltildi: görsel alanların <strong>birleşimi</strong> sayfanın tamamına yakınsa (≥%100) L10 uygulanmaz.</p>
-<ol><li><strong>Kaynağın kendi grafik etiketleri.</strong> arXiv makalesinde grafiğin içindeki eksen etiketleri</li></ol>
-<p>kaynakta zaten vardı; çeviri onları koruyordu ama "kayıp" sayılıyordu. Kural düzeltildi: bir kelime <strong>kaynağın da yazdığı</strong> bir kelimeyse L10 sayılmaz.</p>
-<p>Düzeltilmiş ölçüm: cookbook 182→<strong>0</strong>, mushrooms 124→<strong>0</strong>, kitap 6→<strong>0</strong>, arXiv 25→<strong>0</strong> (hepsi yanlış pozitif). Wikipedia koşularında ise 13/13 <strong>gerçekti</strong> — ve yeniden çevirimle <strong>0</strong>'a indi. Yani düzeltme hem yanlış pozitifleri eledi hem gerçek vakayı yakalamaya devam etti. Aynı kural çekirdeğe de taşındı (<code>verify.words_over_figures</code>); NIST dergisinde L10 8→0 oldu.</p>
-<h3>Vaka B: "bariz daha büyük font" — ölçüm hatası, kod hatası değil</h3>
-<p>Kullanıcı "bazı örneklerde bariz daha büyük font" bildirdi. İlk ölçüm şöyle yapılmıştı: yazılan satır, <strong>en yakın yükseklikteki</strong> kaynak satırla eşleştiriliyordu. Bir formda her etiket kendi değeriyle aynı yükseklik bandındadır — 10 puntoluk etiket 12 puntoluk komşusuyla "karşılaştırıldı" ve doğru bir sayfa şişmiş göründü. Ölçüm, okuyucunun <strong>o blok için kaydettiği</strong> stille, geometriyle eşleştirilerek yeniden yazıldı (<code>type_drift.py</code>); sonuç: <strong>büyüyen blok yok.</strong> Sorun kodda değil, ölçümdeydi — ve bu ancak ölçüm aracı denetlenerek anlaşıldı.</p>
-<h3>Vaka C: hizalama bayrakları — sütun sınırından okumak</h3>
-<p><code>type_drift</code> bir süre arXiv'da 4 blok için "hizası değişmiş" dedi. Blok blok bakıldığında kaynak <strong>iki yana yaslı</strong> (her satır 72→540, son satır kısa), çıktı ise sola yaslı ve sağ kenarı tırtıklı çıkıyordu — yani gerçek bir kayıp vardı ama <strong>sebebi beklenen yerde değildi</strong>: yazıcı <code>text-align: justify</code>'ı zaten destekliyordu (bloklar HTML kutusuyla çiziliyor), eksik olan <strong>okuyucunun hiç "justify" üretmemesiydi</strong> (yalnız left/right/center üretiyordu).</p>
-<p>Düzeltme iki ayırt edici kural gerektirdi: sol kenarlar düz <strong>ve</strong> son satır kısa <strong>ve</strong> son satırın <strong>sol kenarı</strong> gövdeyle aynı. Üçüncüsü olmadan ortalanmış bir başlık da "justify" okunuyordu (onun satırları da kısalır, ama son satır ortadan başlar) — NASA kapak başlığı tam olarak bu yüzden merkezden kayıyordu, ve test yakaladı. Aynı oturumda eklenen girinti kuralı da fazla genişti: ortalanmış bir bloğun ilk satırı (en uzun satır) solda başlar, "girinti" sanılmamalıydı.</p>
-<p><strong>Sonuç:</strong> 19 hizalama testi + 218 okuyucu/layout testi yeşil; iki eski test yeni sözleşmeye çevrildi, dört yeni test eklendi (tırtıklı flush-left "left" kalır, ortalanmış kısalma justify sayılmaz, sağa yaslı iki satır sağ kalır). <strong>Aynı gün gerçek koşuda:</strong> kitabın yeniden çevrilen parçalarında 70 uzun gövde bloğunun 26'sı "justify" okundu ve <code>type_drift</code> hizalama bayrağı 0 çıktı — düzeltme ölçümden çizilmiş sayfaya kadar doğrulandı.</p>
-<h3>Üçüncü vaka: sonda, geçişin sormadığı soruyu yanıtladı (2026-09-20)</h3>
-<p>Kitapta en büyük inceleme bayrağı sınıfı "çeviri kutuya sığmadı" (42 parçada 6.014 bloğun 1.130'u). Merdivene bir <strong>satır aralığı adımı</strong> eklendi: kutu okunabilirlik tabanında bile sığmıyorsa, modele sormadan önce satırları sıkılaştır. Adım çalışıyordu — sentetik bir kutuda testleri geçti.</p>
-<p>Ölçüm iki kez yapıldı ve <strong>ikisi farklı cevap verdi</strong>:</p>
-<ul><li><em>Sonda</em> (kayıtlı koşunun çevirileri üzerinde ölçüm): 158 taşan bloğun <strong>20'si</strong> kurtuluyor.</li><li><em>Enstrümanlı geçiş</em> (fonksiyon sarmalanıp sayıldı): 6 parçada adım **14 kez çağrıldı, 0 kez</li></ul>
-<p>sığdırdı**.</p>
-<ul><li><em>Yazılmış sayfa A/B'si</em> (20 parça, iki kol): <strong>birebir aynı</strong> — D1=627, D3=0, tüm L aynı.</li></ul>
-<p>Fark tek bir satırdı: sonda <code>block.dominant_style()</code> ile ölçüyordu, geçiş ise <code>_as_drawn(...)</code> ile — hedef dilin <strong>ikame fontu</strong> çözülmüş stil. İki fontun metrikleri farklı ve sonda, motorun hiç sormadığı bir soruyu yanıtlıyordu.</p>
-<p><strong>Sonuç:</strong> adım geri alındı (dal birleştirilmedi, girişim <code>bbf5958</code> olarak jurnalde duruyor). Ölçüm göstermiyorsa değişiklik geri alınır kuralı burada bir <em>sondayı</em> değil, bir <em>fikri</em> kurtardı. İki enstrüman (<code>fit_probe.py</code>, <code>fit_ab.py</code>) kaldı; ikisi de model harcamıyor.</p>
-<p><strong>Sıradaki kol da bu ölçümden çıktı:</strong> kurtulmayan 138 bloğun derdi satır değil <strong>kutu</strong> — <code>room_below</code> bir bloğun ölçülen kutusunu sonraki bloğa değmemek için 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Yani asıl iş örtüşme/yer açma (yol haritası 4), merdiven değil.</p>
-<h2>3.4 Ölçüm altyapısının kuralları</h2>
-<p>Bu üç vakadan çıkan ve artık yazılı olan kurallar:</p>
-<ol><li><strong>Ölçüm aracının kendisi test edilir.</strong> <code>text_over_image.py</code>'nin düzeltmesi, eski koşular</li></ol>
-<p>üzerinde yeniden koşularak doğrulandı: gerçek vakayı (wikipedia 13/13) yakalamaya devam etti, yanlış pozitifleri (cookbook, mushrooms, kitap, arXiv) eledi.</p>
-<ol><li><strong>Ölçüm, kaynağın kendi verisiyle çapraz kontrol edilir.</strong> "Kayıp" denen bir şey kaynağın da</li></ol>
-<p>yazdığı bir şeyse kayıp değildir (arXiv grafik etiketleri).</p>
-<ol><li><strong>Yanlış çıkan bir sayı, düzeltilmiş sayıyla birlikte yazılır.</strong> Bu depoda "182 → 0" gibi</li></ol>
-<p>ifadeler bilinçli: eski sayının yanlış olduğunu gizlemek, yeni sayıya duyulan güveni de götürürdü.</p>
-<ol><li><strong>Sonda ile boru hattı anlaşmazsa, boru hattı enstrümanlanır.</strong> Bir değişikliği ölçen sonda</li></ol>
-<p>motorun kullandığı girdileri kullanmalı (stil dahil: geçiş <code>_as_drawn</code> ile ölçer, blok stiliyle değil). Anlaşmazlıkta doğru hamle, test edilen fonksiyonu sarmalayıp saymaktır — sondayı düzeltmek değil.</p>
-<ol><li><strong>Varsayılan, kanıtlanmış kayıp varsa kapalıdır.</strong> <code>reflow</code> modu NIST'te D1'i 52→0 yaptı ama</li></ol>
-<p>IRS'te L7'yi 0→1 yaptı; kazanç belgeye bağlı, kayıp kayıpsızlık ihlali — o yüzden mod var, varsayılan değil.</p><p class="pager"><a href="02-mimari.html">← voriges Kapitel</a> · <a href="04-hatalar.html">nächstes Kapitel →</a></p>
+<p>L criteria are <strong>losses</strong>, D criteria are <strong>quality</strong>: an L violation means "something was lost" and is not acceptable; a D finding means "something got worse" and is counted, reported, and fixed where possible. The book run's final table (220 pages, 4,491 translatable blocks): <strong>L1=1, L2=2, L3=0, L4=0, L5=0, L6=4, L7=1, L8=1, L9=0, L10=0, D1=801, D2=163, D3=0.</strong> The single L1 is deliberate (the bibliography page at the end of the book was left out of the output), the two L2s are bibliography rows, and the 801 D1s are long translations being shrunk — all of them with a reason.</p>
+<h2>3.2 The audit tools</h2>
+<p><code>tools/audit/</code> holds 56 tools; the ones used most:</p>
+<ul><li><code>lossless_audit.py</code> — sweeps a run directory and produces the L1–L10 + D1–D3 table (<code>audit.json</code>).</li><li><code>type_drift.py</code> — compares the <strong>typography</strong> of the written page against the style the reader</li></ul>
+<p>recorded: blocks that grew (did a heading get bigger), blocks that shrank (the fitting ladder), blocks whose alignment changed, blocks that fell to an unreadable size.</p>
+<ul><li><code>text_over_image.py</code> — deepens L10 only (see 3.3, the first wrong measurement).</li><li><code>side_by_side.py</code> — produces the four-panel visual comparison (original | old | new | model).</li><li><code>comparison_site.py</code> — turns every run into one site with a slider (that is the published site).</li><li><code>translate_book.py</code> / <code>translate_epub.py</code> — chunked, multi-worker live run drivers.</li><li><code>rewrite_run.py</code>, <code>repair_book.py</code> — rewrite or mend an existing output with the current engine.</li><li><code>live_check.py</code>, <code>format_matrix.py</code>, <code>translation_completeness.py</code> — measurements for format</li></ul>
+<p>pairs and translation completeness.</p>
+<p>The tools share a rule: <strong>the output is machine-readable</strong> (JSON) and <strong>carries no claim</strong>, only numbers.</p>
+<h2>3.3 Measurement itself was wrong four times</h2>
+<h3>Case A: L10's false positives — half the numbers were a measurement bug</h3>
+<p>L10 means "text drawn over a figure". The first implementation counted a loss whenever a word box intersected an image box. The results were: cookbook <strong>182</strong>, mushrooms <strong>124</strong>, the book <strong>6</strong>, arXiv <strong>25</strong> — that is, it looked as if every document had text on its figures.</p>
+<p>Looking one by one, two bugs appeared:</p>
+<ol><li><strong>Full-page and tiled scan images.</strong> In a scanned document the whole page is one image; every</li></ol>
+<p>word on top of it counted as "over a figure". The rule was fixed: if the <strong>union</strong> of the image areas covers essentially the whole page (≥100%), L10 does not apply.</p>
+<ol><li><strong>The source's own graphic labels.</strong> The axis labels inside an arXiv paper's chart were already</li></ol>
+<p>in the source; the translation preserved them, and they were counted as "lost". The rule was fixed: a word the <strong>source also wrote</strong> is not an L10 loss.</p>
+<p>The corrected measurement: cookbook 182→<strong>0</strong>, mushrooms 124→<strong>0</strong>, book 6→<strong>0</strong>, arXiv 25→<strong>0</strong> (all false positives). On the Wikipedia runs 13/13 were <strong>real</strong> — and the re-translation brought them to <strong>0</strong>. So the fix both removed the false positives and kept catching the real case. The same rule moved into the core (<code>verify.words_over_figures</code>); on the NIST journal L10 went 8→0.</p>
+<h3>Case B: "obviously bigger type" — a measurement bug, not a code bug</h3>
+<p>The user reported "in some examples the type is obviously bigger". The first measurement had matched each written line against the source line <strong>of the nearest height</strong>. On a form, every label sits in the same height band as its value — a 10-point label was "compared" against its 12-point neighbour, and a correct page looked inflated. The measurement was rewritten to match the style and geometry the reader <strong>recorded for that block</strong> (<code>type_drift.py</code>); the result: <strong>no block grew.</strong> The problem was not in the code but in the measurement — and that was only understood by auditing the measuring tool itself.</p>
+<h3>Case C: alignment flags — reading past the column boundary</h3>
+<p>For a while <code>type_drift</code> said "alignment changed" for 4 blocks on arXiv. Looking block by block, the source was <strong>justified</strong> (every line 72→540, last line short) while the output was flush left with a ragged right edge — a real loss, but <strong>its cause was not where it was expected</strong>: the writer already supported <code>text-align: justify</code> (blocks are drawn as HTML boxes), and what was missing was <strong>the reader never producing "justify"</strong> (it only produced left/right/center).</p>
+<p>The fix needed two distinguishing rules: straight left edges <strong>and</strong> a short last line <strong>and</strong> the last line's <strong>left edge</strong> level with the body. Without the third, a centred heading also read as "justify" (its lines shorten too, but its last line starts in the middle) — the NASA cover heading was drifting off centre for exactly that reason, and a test caught it. The indent rule added in the same session was too broad as well: a centred block's first line (its longest) starts at the left and must not be mistaken for an indent.</p>
+<p><strong>Result:</strong> 19 alignment tests + 218 reader/layout tests green; two old tests converted to the new contract, four new ones added (ragged flush-left stays "left", a centred short line is not justify, two right-aligned lines stay right). <strong>In a real run the same day:</strong> on the book's re-translated chunks, 26 of 70 long body blocks were read as "justify" and <code>type_drift</code>'s alignment flag came out 0 — the fix was verified from the measurement all the way to the drawn page.</p>
+<h3>Case D: the probe answered a question the engine never asks (2026-09-20)</h3>
+<p>The book's largest review-flag class was "the translation did not fit its box" (1,130 of 6,014 blocks in 42 chunks). A <strong>leading step</strong> was added to the ladder: when the box does not fit even at the readability floor, tighten the lines before asking the model. The step worked — it passed its tests in a synthetic box.</p>
+<p>The measurement was made twice and <strong>the two disagreed</strong>:</p>
+<ul><li><em>The probe</em> (measuring over a recorded run's translations): <strong>20</strong> of 158 overflowing blocks are</li></ul>
+<p>rescued.</p>
+<ul><li><em>The instrumented pass</em> (the function wrapped and counted): over 6 chunks the step was called</li></ul>
+<p><strong>14 times and fitted 0</strong>.</p>
+<ul><li><em>The written-page A/B</em> (20 chunks, two arms): <strong>identical</strong> — D1=627, D3=0, every L the same.</li></ul>
+<p>The difference was one line: the probe measured with <code>block.dominant_style()</code>, while the pass measures with <code>_as_drawn(…)</code> — the style with the target language's <strong>substitute font</strong> already resolved. The two fonts have different metrics, and the probe was answering a question the engine never asks.</p>
+<p><strong>Result:</strong> the step was reverted (the branch was never merged; the attempt stays in the journal as <code>bbf5958</code>). The rule "a change the measurement does not show comes back out" saved an <em>idea</em> here, not just a probe. The two instruments (<code>fit_probe.py</code>, <code>fit_ab.py</code>) stayed; neither spends a model call.</p>
+<p><strong>The next lever came out of the same measurement:</strong> the 138 blocks no leading rescues are not short of lines, they are short of <strong>box</strong> — <code>room_below</code> crushes a block's measured box to 6pt to keep it clear of the next one, and nothing fits in 6pt. So the real work is overlap/room handling (roadmap item 4), not the ladder.</p>
+<h2>3.4 The rules of the measurement infrastructure</h2>
+<p>What these four cases produced, and what is now written down:</p>
+<ol><li><strong>The measuring tool is itself tested.</strong> <code>text_over_image.py</code>'s fix was verified by re-running it</li></ol>
+<p>over old runs: it kept catching the real case (Wikipedia 13/13) and dropped the false positives (cookbook, mushrooms, book, arXiv).</p>
+<ol><li><strong>A measurement is cross-checked against the source's own data.</strong> Something called a "loss" that</li></ol>
+<p>the source also wrote is not a loss (the arXiv chart labels).</p>
+<ol><li><strong>A number that came out wrong is written down together with the corrected one.</strong> Phrases like</li></ol>
+<p>"182 → 0" are deliberate in this repository: hiding that the old number was wrong would take away the trust the new one needs.</p>
+<ol><li><strong>When a probe and the pipeline disagree, the pipeline is instrumented.</strong> A probe measuring a</li></ol>
+<p>change must use the inputs the engine uses (style included: the pass measures with <code>_as_drawn</code>, not with the block's style). The right move on a disagreement is to wrap the function under test and count — not to fix the probe.</p>
+<ol><li><strong>A default is off when a loss is proven.</strong> <code>reflow</code> took D1 from 52 to 0 on NIST but took L7</li></ol>
+<p>from 0 to 1 on the IRS form; the gain depends on the document while the loss is a losslessness violation — so the mode exists, but it is not the default.</p><p class="pager"><a href="02-mimari.html">← voriges Kapitel</a> · <a href="04-hatalar.html">nächstes Kapitel →</a></p>
 <footer>
   Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>

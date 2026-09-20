@@ -11,7 +11,9 @@ set PYTHONIOENCODING=utf-8
 set LAYOUTKEEP_DATA_DIR=%LOCALAPPDATA%\Temp\lk-data
 .venv\Scripts\python.exe tools\audit\translate_book.py ^
   "_artifacts/heldout/sources/gutenberg_31061_history_of_mathematics.pdf" ^
-  --name gutenberg_math --to tr --model google/gemma-4-e4b --workers 7 ^
+  --to tr --model google/gemma-4-e4b --workers 7 ^
+  --work "_artifacts/heldout/live/gutenberg_math" ^
+  --out "_artifacts/heldout/live/gutenberg_math/gutenberg_math.tr.pdf" ^
   --pages-per-chunk 4 --limit-chunks 6 --layout-detector --resume ^
-  --memory > "%LOCALAPPDATA%\Temp\lk_gutenberg_math.txt" 2>&1
+  > "%LOCALAPPDATA%\Temp\lk_gutenberg_math.txt" 2>&1
 echo exit=%ERRORLEVEL% >> "%LOCALAPPDATA%\Temp\lk_gutenberg_math.txt"

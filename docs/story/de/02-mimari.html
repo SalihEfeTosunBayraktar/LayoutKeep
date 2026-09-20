@@ -65,67 +65,68 @@
   <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <span class='here'>2</span> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
 </nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>2. Mimari: boru hattının her parçası</h1>
-<p>Bu bölüm, depodaki kodun nasıl bir araya geldiğini anlatır — hangi modül ne yapar, neden o sınırda durur, ve o sınırı çizmek hangi hatayı önledi. Sayılar bu depodan (<code>wc -l</code>, 2026-09-20).</p>
-<p><img alt="LayoutKeep çeviri hattı" src="../architecture.png"></p>
-<h2>2.1 Genel akış</h2>
-<pre><code>oku → DocIR → segmentle → sağlayıcı zinciri → sığdır → yaz → doğrula → işaretle</code></pre>
-<p>Her aşama bir sonrakinin girdisini üretir ve <strong>hiçbiri diğerinin işini yapmaz</strong>. Bu ayrım teorik değil: her sınır, bir hatanın düzeltilmesiyle çizildi. Örneğin "sığdırma çeviriden ayrı bir aşama olmalı" (D3) kuralı, modelin "şu cümleyi kısalt" isteğine cevap verirken çeviri kalitesini bozmasından sonra yazıldı — model artık kısaltma istemini yalnız <em>ikinci</em> turda ve yalnız sığdırma aşamasında görür.</p>
-<h2>2.2 Modüller ve boyutları</h2>
+<h1>2. Architecture: every part of the pipeline</h1>
+<p>This chapter describes how the code in the repository fits together — what each module does, why it stops at that boundary, and which bug drawing that boundary prevented. The numbers come from this repository (<code>wc -l</code>, 2026-09-20).</p>
+<p><img alt="The LayoutKeep translation pipeline" src="../architecture.png"></p>
+<h2>2.1 The overall flow</h2>
+<pre><code>read → DocIR → segment → provider chain → fit → write → verify → flag</code></pre>
+<p>Every stage produces the next one's input and <strong>none of them does another's job</strong>. The separation is not theoretical: each boundary was drawn while fixing a bug. The rule "fitting must be a stage of its own" (D3), for example, was written after the model, answering a request to "make this sentence shorter", damaged translation quality — the model now sees a shortening request only on the <em>second</em> pass and only in the fitting stage.</p>
+<h2>2.2 Modules and their sizes</h2>
 <table>
 <thead><tr>
-<th>Modül</th>
-<th>Satır</th>
-<th>Sorumluluk</th>
-<th>Sınır kuralı</th>
+<th>Module</th>
+<th>Lines</th>
+<th>Responsibility</th>
+<th>The boundary rule</th>
 </tr></thead>
 <tbody>
-<tr><td><code>readers/</code></td><td>3.819</td><td>PDF, EPUB, DOCX, görüntü okuyucuları</td><td>Çıktı yalnız DocIR'dır; okuyucu hiçbir şey yazmaz</td></tr>
-<tr><td><code>core/</code></td><td>2.519</td><td>DocIR, koruma, sayı-sözcükleri, ayarlar, aralık</td><td>Biçim bilmez; yalnız veri</td></tr>
-<tr><td><code>providers/</code></td><td>2.718</td><td>Sağlayıcı zinciri: dedupe, bellek, sözlük, koruma, parçalama, yeniden deneme</td><td>Düzeni bilmez (D2)</td></tr>
-<tr><td><code>fitting/</code></td><td>1.881</td><td>Kutuya sığdırma, büyütme, figür çakışması, metin-üstü-görsel</td><td>Çeviri istemez; ölçer</td></tr>
-<tr><td><code>writers/</code></td><td>3.196</td><td>PDF, DOCX, EPUB yazıcıları + dönüştürücüler</td><td>Karar vermez; çizer</td></tr>
-<tr><td><code>ocr/</code></td><td>726</td><td>Taranmış sayfa okuma, düzen dedektörü (IBM Docling Heron)</td><td>Okuyucuya veri sağlar</td></tr>
-<tr><td><code>ui/</code></td><td>7.864</td><td>PySide6 arayüzü, işçi, yüzen çubuk, karşılama, yardım, sözlük düzenleyici</td><td>Motoru çağırır, kopyalamaz</td></tr>
-<tr><td><code>verify.py</code></td><td>576</td><td>L1–L10 ve D1–D3 denetimi + onarım</td><td>Hem CLI hem arayüz aynı dosyayı koşar</td></tr>
-<tr><td><code>cli.py</code></td><td>703</td><td>Komut satırı</td><td>Aynı motor, farklı kapı</td></tr>
+<tr><td><code>readers/</code></td><td>3,819</td><td>PDF, EPUB, DOCX and image readers</td><td>The output is DocIR only; a reader writes nothing</td></tr>
+<tr><td><code>core/</code></td><td>2,519</td><td>DocIR, protection, number words, settings, page ranges</td><td>Knows no format; data only</td></tr>
+<tr><td><code>providers/</code></td><td>2,718</td><td>The provider chain: dedupe, memory, glossary, protection, splitting, retry</td><td>Knows no layout (D2)</td></tr>
+<tr><td><code>fitting/</code></td><td>1,881</td><td>Fitting into a box, growing, figure collisions, text-over-image</td><td>Does not ask for translations; it measures</td></tr>
+<tr><td><code>writers/</code></td><td>3,196</td><td>PDF, DOCX and EPUB writers + converters</td><td>Decides nothing; it draws</td></tr>
+<tr><td><code>ocr/</code></td><td>726</td><td>Reading scanned pages, the layout detector (IBM Docling Heron)</td><td>Supplies data to the reader</td></tr>
+<tr><td><code>ui/</code></td><td>7,864</td><td>The PySide6 interface, the worker, the floating bar, welcome, help, the glossary editor</td><td>Calls the engine, never copies it</td></tr>
+<tr><td><code>verify.py</code></td><td>576</td><td>The L1–L10 and D1–D3 checks + repair</td><td>The CLI and the interface run the same file</td></tr>
+<tr><td><code>cli.py</code></td><td>703</td><td>The command line</td><td>The same engine, a different door</td></tr>
 </tbody>
 </table>
-<p>Arayüzün motordan büyük olması tesadüf değil: kullanıcıya görünen her kolaylık (karşılama ekranı, yardım, sözlük tablosu, yüzen çubuk, inceleme kuyruğu) burada yaşıyor. Motor ise küçük tutuldu — çünkü motorun doğruluğu test edilebilirliğine bağlı.</p>
-<h2>2.3 DocIR: neden biçimden bağımsız ara model</h2>
-<p><code>core/docir.py</code> şu zinciri taşır:</p>
+<p>That the interface is larger than the engine is not an accident: every convenience the user sees (the welcome screen, help, the glossary table, the floating bar, the review queue) lives there. The engine was kept small — because the engine's correctness depends on how testable it is.</p>
+<h2>2.3 DocIR: why a format-independent intermediate model</h2>
+<p><code>core/docir.py</code> carries this chain:</p>
 <pre><code>Document → Page → Block → Line → Span</code></pre>
-<ul><li><strong>Block</strong> çevrilebilir bir birimdir: <code>text</code>, <code>bbox</code>, <code>role</code> (title/paragraph/table/caption/...),</li></ul>
-<p><code>align</code>, <code>direction</code>, <code>rotation</code>, <code>source_ref</code> (hangi sayfadan geldiği), <code>table_id/row/col</code>.</p>
-<ul><li><strong>Line/Span</strong> tipografiyi taşır: font ailesi, punto, kalın/italik, renk.</li><li><strong>Segment</strong> ise çeviri birimidir: <code>source</code> (korunan değerler maskelenmiş metin), <code>target</code>,</li></ul>
-<p><code>block_id</code>, bayraklar ve gerekçeler.</p>
-<p>Neden ayrı bir model? Çünkü okuyucu ile yazıcı arasında <strong>iki yönlü</strong> bir dönüşüm var: PDF→DOCX, DOCX→EPUB, EPUB→PDF hepsi aynı ara modelden geçer ve aynı denetimden geçer. Bu olmadan her biçim çifti için ayrı bir boru hattı gerekirdi ve her birinin kendi hataları olurdu.</p>
-<p><strong>Korunan değerler.</strong> Çeviri öncesi sayılar, ölçüler, DOI/URL'ler, parça numaraları, tarihler ve (ayarla açılıp kapanan) Romen rakamları <strong>modele hiç gösterilmez</strong>: metinden çıkarılıp yerine U+E000–U+E001 aralığında görünmez yer tutucular konur, çeviri sonrası geri yerleştirilir. Böylece modelin sayı uydurması ya da düşürmesi yapısal olarak imkânsız hale gelir. Kitap koşusunda bu kural, "çeviride sayılar kayboldu" bayrağını 49 vakaya indirdi — kalanların çoğu tablo içi sayı gruplarıdır.</p>
-<h2>2.4 Okuyucular</h2>
-<p><strong>PDF okuyucu</strong> (<code>readers/pdf_reader.py</code>) iki yol kullanır: metin katmanı varsa oradan, yoksa OCR ile. Sayfa sayfa karar verilir — bir kitabın 841 sayfasının 2'si taranmış olabilir (ölçüldü) ve yalnız o 2 sayfa OCR'a girer. Reading order için XY-cut (yatay/dikey kesme) ile sütun ayrımı, ardından satır birleştirme ve paragraf kuralları çalışır.</p>
-<p><strong>Düzen dedektörü (IBM Docling Heron).</strong> XY-cut, sayfa <em>çizgilerine</em> bakar: hizalanmış blokları bulur. Karmaşık sayfalarda (kutu içinde kutu, resim altı yazı, iki sütun arasına sıkışmış formül) yetersiz kalır. Bu yüzden <code>docling-project/docling-layout-heron-onnx</code> modeli eklendi: sayfayı görüntü olarak görüp bölge bölge sınıflandırır (başlık, paragraf, tablo, şekil, dipnot). Model <code>--layout-detector</code> ile açılır ve arayüzde varsayılan açıktır. Etkisi ölçüldü: 10 kitap sayfası üzerinde dört panelli karşılaştırmada (orijinal | eski koşu | XY-cut | dedektörlü), dedektör "hâlâ İngilizce kalan düzyazı" sayısını 6/82'den 1/82'ye indirdi.</p>
-<p><strong>EPUB ve DOCX okuyucuları</strong> kendi biçimlerinin yapısını doğrudan işler. DOCX'te <code>python-docx</code> bilinçli olarak <strong>kullanılmaz</strong>: o kütüphane belgeyi yeniden serileştirir ve bu, korunması gereken her şeyi (stil kimlikleri, ilişkiler, içerik denetimleri) yeniden yazar. OOXML doğrudan okunur.</p>
-<h2>2.5 Sağlayıcı zinciri</h2>
-<p>Sıra önemli — her halka bir üsttekinin işini boşa çıkarır:</p>
-<pre><code>koruma (mask)  →  dedupe (aynı metni bir kez çevir)  →  bellek (koşular arası)  →
-sözlük (terim zorlama)  →  model çağrısı  →  parçalama (aynı metni geri verirse cümle cümle)  →
-yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (aynı kaynağa tek çeviri)</code></pre>
-<ul><li><strong>dedupe</strong>: bir belgede aynı metin onlarca kez geçer (başlıklar, tablo etiketleri, form</li></ul>
-<p>alanları). Aynı metin bir kez çevrilir; IRS formunda bu, istek sayısını belirgin biçimde düşürür.</p>
-<ul><li><strong>bellek</strong> (<code>providers/memory.py</code>): SQLite; koşular arası. Gerçek bir koşuda 2.555 segment</li></ul>
-<p>birikti ve kullanıcı aynı kitabı yeniden başlattığında o segmentler modele hiç gitmez.</p>
-<ul><li><strong>parçalama</strong> (<code>providers/split.py</code>): model bazen paragrafı olduğu gibi geri verir. O zaman</li></ul>
-<p>paragraf cümlelere bölünüp her cümle ayrı sorulur — sorun "modelin tembelliği" değil, uzun bağlamda dikkatin dağılmasıdır; cümle cümle sormak bunu aşar.</p>
-<ul><li><strong>tekrarları birleştir</strong> (<code>core/repeats.py</code>): aynı kaynak farklı yerlerde farklı çevrilmişse</li></ul>
-<p>çoğunluk çevirisine hizalanır. Böylece "Chapter" bir yerde "Bölüm", başka yerde "Kısım" olmaz.</p>
-<h2>2.6 Sığdırma</h2>
-<p>Çeviri kutuya sığmazsa sırasıyla denenir: <strong>küçült</strong> (0.85 tabanına kadar) → <strong>kısaltma iste</strong> (modelden daha kısa çeviri) → <strong>aşağı it</strong> (altında boşluk varsa bloğu büyüt) → <strong>işaretle</strong>. <code>--fit-mode reflow</code> ek bir kademe ekler (satır aralığını sıkma + aşağı itme) ama varsayılan <strong>kapalı</strong>: NIST dergisinde D1'i 52'den 0'a indirdi, ancak IRS formunda aşağı itilen bloklar hareketsiz metne çarptı (L7 0→1). Yani kazanç belgeye bağlı, kayıp ise kayıpsızlık ihlali — kural: <em>kanıtlanmış kayıp varsa varsayılan kapalı.</em></p>
-<h2>2.7 Yazıcılar ve yazma kararı</h2>
-<p>PDF yazıcısı sayfayı <strong>kaynak dosyadan</strong> çizer: her blok kendi kutusunda redakte edilip yeniden yazılır. Değişmeyen bloklara dokunulmaz (bir ad, bir belge kodu, bir üstbilgi olduğu gibi kalır — silip yeniden çizmek tipografisini kaybettirir). Bloklar HTML kutusu + CSS ile çizilir; bu, hizalama (ortala, sağa yasla, iki yana yasla) ve yazı tipi eşlemesi için tarayıcı motorunun işini kullanmak demektir.</p>
-<p>DOCX ve EPUB yazıcıları aynı DocIR'ı kendi biçimlerine döker. <code>writers/converter.py</code> biçim çiftlerini yönetir ve D7 gereği <strong>yalnız ölçülmüş</strong> çiftleri sunar.</p>
-<h2>2.8 Denetleyici: projenin ayırt edici parçası</h2>
-<p><code>verify.py</code> çıktıyı kaynakla karşılaştırır ve on kayıp türünü sayar (L1–L10), üç de kalite eşiğini (D1–D3). Denetim <strong>iki taraflıdır</strong>: hem yazma öncesi DocIR üzerinde, hem yazılmış PDF'in kendisi üzerinde çalışır. İkincisi kritik — çünkü hataların bir kısmı yalnız <em>çizimde</em> oluşur (üst üste binen metin, sayfa dışına taşan kelime, figür üstüne düşen yazı).</p>
-<p>Denetim yalnız rapor etmez: kaybı bulduğunda <strong>yeniden sorar</strong> (<code>ask_again</code>), düzeltilebileni düzeltir, kalanı gerekçesiyle işaretler. Kullanıcı arayüzünde gördüğü "inceleme kuyruğu" bu işaretlerdir — her satırın bir nedeni vardır ve o neden Türkçe yazılıdır.</p><p class="pager"><a href="01-problem.html">← voriges Kapitel</a> · <a href="03-olcum.html">nächstes Kapitel →</a></p>
+<ul><li><strong>Block</strong> is a translatable unit: <code>text</code>, <code>bbox</code>, <code>role</code> (title/paragraph/table/caption/…),</li></ul>
+<p><code>align</code>, <code>direction</code>, <code>rotation</code>, <code>source_ref</code> (which page it came from), <code>table_id/row/col</code>.</p>
+<ul><li><strong>Line/Span</strong> carry typography: font family, size, bold/italic, colour.</li><li><strong>Segment</strong> is the translation unit: <code>source</code> (text with protected values masked), <code>target</code>,</li></ul>
+<p><code>block_id</code>, flags and reasons.</p>
+<p>Why a model of its own? Because the transformation between readers and writers goes <strong>both ways</strong>: PDF→DOCX, DOCX→EPUB, EPUB→PDF all pass through the same intermediate model and the same audit. Without it, every format pair would need a pipeline of its own, and each would have its own bugs.</p>
+<p><strong>Protected values.</strong> Numbers, measurements, DOIs/URLs, part numbers, dates and (toggleable) Roman numerals are <strong>never shown to the model</strong>: they are lifted out of the text and replaced with invisible placeholders in the U+E000–U+E001 range, then put back after translation. That makes it structurally impossible for the model to invent or drop a number. On the book run this rule brought the "numbers were lost" flag down to 49 cases — most of what remains are number groups inside tables.</p>
+<h2>2.4 Readers</h2>
+<p><strong>The PDF reader</strong> (<code>readers/pdf_reader.py</code>) uses two paths: the text layer when there is one, OCR when there is not. The decision is made page by page — two of a book's 841 pages can be scans (measured) and only those two go through OCR. Reading order runs XY-cut (horizontal/vertical splitting) with column separation, then line merging and paragraph rules.</p>
+<p><strong>The layout detector (IBM Docling Heron).</strong> XY-cut looks at the page's <em>lines</em>: it finds aligned blocks. On complex pages (a box inside a box, a caption under a picture, a formula squeezed between two columns) it is not enough. So the <code>docling-project/docling-layout-heron-onnx</code> model was added: it looks at the page as an image and classifies it region by region (heading, paragraph, table, figure, footnote). The model is enabled with <code>--layout-detector</code> and is on by default in the interface. Its effect was measured: in a four-panel comparison over 10 book pages (original | old run | XY-cut | with the detector), the detector cut "prose still left in English" from 6/82 to 1/82.</p>
+<p><strong>The EPUB and DOCX readers</strong> handle their own formats' structure directly. In DOCX, <code>python-docx</code> is deliberately <strong>not used</strong>: that library re-serialises the document, which rewrites everything that has to be preserved (style ids, relationships, content controls). OOXML is read directly.</p>
+<h2>2.5 The provider chain</h2>
+<p>The order matters — each link makes the one above it unnecessary:</p>
+<pre><code>protection (mask)  →  dedupe (translate the same text once)  →  memory (across runs)  →
+glossary (forcing terms)  →  the model call  →  splitting (sentence by sentence if it echoes)  →
+retry (ask again for what came back empty)  →  unify repeats (one translation per source)</code></pre>
+<ul><li><strong>dedupe</strong>: the same text appears dozens of times in a document (headings, table labels, form</li></ul>
+<p>fields). It is translated once; on the IRS form this cuts the request count noticeably.</p>
+<ul><li><strong>memory</strong> (<code>providers/memory.py</code>): SQLite, across runs. A real run accumulated 2,555 segments,</li></ul>
+<p>and when the user restarted the same book those segments never went to the model at all.</p>
+<ul><li><strong>splitting</strong> (<code>providers/split.py</code>): sometimes the model hands the paragraph back unchanged.</li></ul>
+<p>The paragraph is then cut into sentences and each one asked separately — the problem is not "the model is lazy" but attention drifting over a long context, and asking sentence by sentence gets past it.</p>
+<ul><li><strong>unify repeats</strong> (<code>core/repeats.py</code>): if the same source was translated differently in different</li></ul>
+<p>places, it is aligned to the majority rendering. So "Chapter" does not become "Bölüm" in one place and "Kısım" in another.</p>
+<h2>2.6 Fitting</h2>
+<p>If a translation does not fit its box, these are tried in order: <strong>shrink</strong> (down to the 0.85 floor) → <strong>ask for a shorter rendering</strong> (a shorter translation from the model) → <strong>push down</strong> (grow the block if there is room below it) → <strong>flag</strong>. <code>--fit-mode reflow</code> adds a step (tightening the leading and pushing down) but is <strong>off</strong> by default: on the NIST journal it took D1 from 52 to 0, but on the IRS form the pushed-down blocks ran into untouched text (L7 0→1). The gain depends on the document while the loss is a losslessness violation — the rule is: <em>a proven loss means the default stays off.</em></p>
+<p>A <strong>leading step</strong> (tighten the line spacing before asking the model for a shorter text) was built on 2026-09-20, measured, and <strong>reverted</strong>: with the fitting pass's own substituted font it rescued no block on the book, and the written-page A/B came back identical in both arms. The measurement also answered the bigger question: most flagged blocks are not short of lines, they are short of <em>box</em> — <code>room_below</code> can shorten a block's measured box to six points to keep it clear of the next one, and nothing fits in six points. See Chapter 3 and <code>docs/campaign/JOURNAL.md</code>.</p>
+<h2>2.7 Writers, and the decision to write</h2>
+<p>The PDF writer draws the page <strong>from the source file</strong>: each block is redacted in its own box and written again. Blocks that did not change are left alone (a name, a document code, a running header stays exactly as it was — erasing and redrawing it loses its typography). Blocks are drawn with an HTML box plus CSS, which means using the browser engine's work for alignment (centre, right, justify) and font mapping.</p>
+<p>The DOCX and EPUB writers pour the same DocIR into their own formats. <code>writers/converter.py</code> manages the format pairs and, per D7, offers <strong>only measured</strong> pairs.</p>
+<h2>2.8 The checker: the part that sets the project apart</h2>
+<p><code>verify.py</code> compares the output against the source and counts ten kinds of loss (L1–L10) and three quality thresholds (D1–D3). The audit runs on <strong>both sides</strong>: on the DocIR before writing, and on the written PDF itself. The second is critical — some bugs only appear <em>in the drawing</em> (text overlapping text, a word past the page edge, text landing on a figure).</p>
+<p>The audit does not merely report: when it finds a loss it <strong>asks again</strong> (<code>ask_again</code>), mends what can be mended, and flags the rest with its reason. The "review queue" the user sees in the interface is exactly those flags — every row has a reason, and the reason is written in the interface's language.</p><p class="pager"><a href="01-problem.html">← voriges Kapitel</a> · <a href="03-olcum.html">nächstes Kapitel →</a></p>
 <footer>
   Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>

@@ -389,17 +389,26 @@ def _chapter_body(path: Path, depth: int) -> str:
 
 
 def _source_for(language: str, slug: str | None, source: Path, story_dir: Path) -> tuple[Path, bool]:
-    """The Markdown to render for a page, and whether it is a fallback to the Turkish original.
+    """The Markdown to render for a page, and whether it is a fallback.
 
     The index is `docs/STORY.md`; a chapter is `docs/story/<slug>.md`. A translation sits in the
-    language's own directory with the same name (`index.md`, `04-hatalar.md`).
+    language's own directory with the same name (`index.md`, `04-hatalar.md`). When it is missing,
+    the page falls back to the closest language that has one - English before the Turkish original -
+    so a German reader waiting for a translation gets the language most of them read anyway.
     """
     spec = LANGUAGES[language]
     original = source if slug is None else story_dir / f"{slug}.md"
+    name = "index.md" if slug is None else f"{slug}.md"
     if not spec["dir"]:
         return original, False
-    translated = story_dir / spec["dir"] / ("index.md" if slug is None else f"{slug}.md")
-    return (translated, False) if translated.exists() else (original, True)
+    candidates = [story_dir / spec["dir"] / name]
+    if language != "en":
+        candidates.append(story_dir / "en" / name)
+    candidates.append(original)
+    for candidate in candidates[:-1]:
+        if candidate.exists():
+            return candidate, candidate != candidates[0]
+    return original, True
 
 
 def main() -> int:

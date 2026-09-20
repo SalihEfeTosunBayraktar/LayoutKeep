@@ -65,104 +65,104 @@
   <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <span class='here'>8</span>
 </nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>8. Dış kaynaklar ve atıflar</h1>
-<p>Bu proje ayakta durmak için başkalarının işine yaslanıyor. Aşağıda her kaynağın <strong>projedeki rolü</strong> ve lisansı var. (Aynı tablo <code>CREDITS.md</code> dosyasında da tutulur; burası gerekçeleriyle birlikte genişletilmiş hâlidir.)</p>
-<h2>8.1 Motor ve altyapı</h2>
+<h1>8. External sources and citations</h1>
+<p>This project stands on other people's work. Below is each source's <strong>role in the project</strong> and its licence. (The same table is kept in <code>CREDITS.md</code>; this is the longer version with the reasoning.)</p>
+<h2>8.1 Engine and infrastructure</h2>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Projedeki rolü</th>
-<th>Lisans</th>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
 </tr></thead>
 <tbody>
-<tr><td><a href="https://pymupdf.readthedocs.io/">PyMuPDF</a></td><td>PDF okuma ve yazma motoru; metin katmanı, tipografi, görsel çıkarma, redaksiyon, HTML kutusu çizimi</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://doc.qt.io/qtforpython/">Qt / PySide6</a></td><td>Masaüstü arayüzü: pencere, yüzen çubuk, karşılama, tablolar, tema</td><td>LGPL-3.0</td></tr>
-<tr><td><a href="https://pytest.org/">pytest</a></td><td>1.192 testin koşum altyapısı</td><td>MIT</td></tr>
-<tr><td><a href="https://pyinstaller.org/">PyInstaller</a></td><td>Tek dosya <code>.exe</code> üretimi</td><td>GPL-2.0 (özel istisna ile)</td></tr>
-<tr><td><a href="https://github.com/RapidAI/RapidOCR">RapidOCR</a> (PP-OCR modelleri)</td><td>Taranmış sayfalarda OCR; güven skoru üretir</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://pymupdf.readthedocs.io/">PyMuPDF</a></td><td>The PDF reading and writing engine; text layer, typography, image extraction, redaction, drawing HTML boxes</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://doc.qt.io/qtforpython/">Qt / PySide6</a></td><td>The desktop interface: window, floating bar, welcome, tables, theme</td><td>LGPL-3.0</td></tr>
+<tr><td><a href="https://pytest.org/">pytest</a></td><td>The runner for 1,256 tests</td><td>MIT</td></tr>
+<tr><td><a href="https://pyinstaller.org/">PyInstaller</a></td><td>Producing the single-file <code>.exe</code></td><td>GPL-2.0 (with the usual exception)</td></tr>
+<tr><td><a href="https://github.com/RapidAI/RapidOCR">RapidOCR</a> (PP-OCR models)</td><td>OCR on scanned pages; produces a confidence score</td><td>Apache-2.0</td></tr>
 </tbody>
 </table>
-<h2>8.2 Düzen modeli (IBM Docling)</h2>
+<h2>8.2 The layout model (IBM Docling)</h2>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Projedeki rolü</th>
-<th>Lisans</th>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
 </tr></thead>
 <tbody>
-<tr><td><a href="https://huggingface.co/docling-project/docling-layout-heron-onnx">IBM Docling — Heron düzen modeli</a></td><td>Taranmış/karmaşık sayfalarda bölge sınıflandırması (başlık, paragraf, tablo, şekil, dipnot). ONNX olarak yerelde koşar</td><td>MIT</td></tr>
-<tr><td><a href="https://github.com/docling-project/docling">Docling (proje)</a></td><td>Modelin geldiği çerçeve; mimari fikirleri (sayfa görüntüsünden yapı çıkarma)</td><td>MIT</td></tr>
+<tr><td><a href="https://huggingface.co/docling-project/docling-layout-heron-onnx">IBM Docling — the Heron layout model</a></td><td>Region classification on scanned and complex pages (heading, paragraph, table, figure, footnote). Runs locally as ONNX</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/docling-project/docling">Docling (the project)</a></td><td>The framework the model comes from; its architectural ideas (recovering structure from a page image)</td><td>MIT</td></tr>
 </tbody>
 </table>
-<p>Kararın gerekçesi ve ölçümü Bölüm 5.3'te: 10 kitap sayfası üzerinde dört panelli karşılaştırmada "hâlâ İngilizce kalan düzyazı" 6/82 → 1/82. Modelin <strong>yalnız başına</strong> çıktısı da kaydedildi (<code>tests/layout_eval/2026-09-16_heron_pure/</code>) ki sonradan eklenen her kural ölçülmüş bir tabana göre eklensin.</p>
-<h2>8.3 Çeviri modelleri</h2>
+<p>The reasoning and the measurement are in section 5.3: in a four-panel comparison over 10 book pages, "prose still left in English" went 6/82 → 1/82. The model's output <strong>on its own</strong> was recorded as well (<code>tests/layout_eval/2026-09-16_heron_pure/</code>), so that every rule added later was added against a measured floor.</p>
+<h2>8.3 Translation models</h2>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Projedeki rolü</th>
-<th>Lisans</th>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
 </tr></thead>
 <tbody>
-<tr><td><a href="https://huggingface.co/google/gemma-4-e4b">google/gemma-4-e4b</a> (LM Studio üzerinden)</td><td>Varsayılan yerel çeviri modeli</td><td>Gemma Terms of Use</td></tr>
-<tr><td><a href="https://lmstudio.ai/">LM Studio</a></td><td>Yerel model sunucusu (OpenAI uyumlu uç nokta, paralel yuvalar, bağlam ayarı)</td><td>Özel (ücretsiz kullanım)</td></tr>
-<tr><td><a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B-Instruct</a></td><td>İnce ayar hattının taban modeli (ayrı çalışma, Bölüm 5.4)</td><td>Apache-2.0</td></tr>
-<tr><td><a href="https://huggingface.co/docs/transformers/">Hugging Face Transformers</a> + PEFT/QLoRA</td><td>İnce ayar (Kaggle'da, TRL'e bağımlı olmadan)</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://huggingface.co/google/gemma-4-e4b">google/gemma-4-e4b</a> (through LM Studio)</td><td>The default local translation model</td><td>Gemma Terms of Use</td></tr>
+<tr><td><a href="https://lmstudio.ai/">LM Studio</a></td><td>The local model server (OpenAI-compatible endpoint, parallel slots, context setting)</td><td>Proprietary (free to use)</td></tr>
+<tr><td><a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B-Instruct</a></td><td>The base model of the fine-tuning track (a separate effort, section 5.4)</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://huggingface.co/docs/transformers/">Hugging Face Transformers</a> + PEFT/QLoRA</td><td>Fine-tuning (on Kaggle, without depending on TRL)</td><td>Apache-2.0</td></tr>
 </tbody>
 </table>
-<h2>8.4 Karşılaştırma noktaları (kod alınmadı, fikir ve ölçüt alındı)</h2>
+<h2>8.4 Comparison points (no code taken, ideas and yardsticks taken)</h2>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Neyi karşılaştırdık</th>
-<th>Lisans</th>
+<th>Source</th>
+<th>What we compared</th>
+<th>Licence</th>
 </tr></thead>
 <tbody>
-<tr><td><a href="https://github.com/funstory-ai/BabelDOC">BabelDOC</a></td><td>Paralel PDF çevirisi; "kayıpsız" iddiası ve kendi karşılaştırma tablosu (arXiv 2605.10845)</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://github.com/Byaidu/PDFMathTranslate">PDFMathTranslate</a></td><td>PDF çevirisi; formül/görsel koruma yaklaşımı</td><td>AGPL-3.0</td></tr>
-<tr><td><a href="https://github.com/opendatalab/MinerU">MinerU</a> / mineru-translate</td><td>Belge anlama hattı; çift dilli çıktı, önbellek</td><td>AGPL-3.0</td></tr>
-<tr><td>Ticari derlemeler (Doclingo, Lara Translate, Doctranslate, Bluente)</td><td>Özellik kapsamı ve fiyatlandırma</td><td>—</td></tr>
+<tr><td><a href="https://github.com/funstory-ai/BabelDOC">BabelDOC</a></td><td>Parallel PDF translation; its "lossless" claim and its own comparison table (arXiv 2605.10845)</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/Byaidu/PDFMathTranslate">PDFMathTranslate</a></td><td>PDF translation; its approach to preserving formulas and figures</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/opendatalab/MinerU">MinerU</a> / mineru-translate</td><td>Document-understanding pipelines; bilingual output, caching</td><td>AGPL-3.0</td></tr>
+<tr><td>Commercial roundups (Doclingo, Lara Translate, Doctranslate, Bluente)</td><td>Feature coverage and pricing</td><td>—</td></tr>
 </tbody>
 </table>
-<p><strong>Kod alınmadı.</strong> Bu projedeki hiçbir satır yukarıdaki araçlardan kopyalanmadı; tablo yalnızca "dışarıda ne var, bizde ne yok" sorusunu ölçülebilir kılmak için var (<code>docs/FEATURE-ROADMAP.md</code>).</p>
-<h2>8.5 Test kaynakları (held-out set)</h2>
-<p>Ölçüm için kullanılan belgeler ve lisans durumları. Telifli olanlar <strong>depoya girmez</strong> ve siteye yayınlanmaz (<code>NOT_PUBLISHABLE</code>); yalnız kullanıcının diskinde kalır.</p>
+<p><strong>No code was taken.</strong> Not a line in this project was copied from the tools above; the table exists only to make the question "what exists outside, what is missing here" measurable (<code>docs/FEATURE-ROADMAP.md</code>).</p>
+<h2>8.5 Test sources (the held-out set)</h2>
+<p>The documents used for measurement, and their licence status. Copyrighted ones <strong>do not enter the repository</strong> and are not published on the site (<code>NOT_PUBLISHABLE</code>); they stay on the user's disk only.</p>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Tür</th>
-<th>Durum</th>
+<th>Source</th>
+<th>Kind</th>
+<th>Status</th>
 </tr></thead>
 <tbody>
-<tr><td>NIST Journal of Research (dergi sayıları)</td><td>Dijital PDF</td><td>Kamu malı (ABD federal) — yayınlanır</td></tr>
-<tr><td>NIST IR 6643 (vapor pressure)</td><td><strong>Taranmış</strong> PDF</td><td>Kamu malı — yayınlanır</td></tr>
-<tr><td>NIST dergisinden üretilmiş DOCX</td><td>DOCX</td><td>Kamu malı (projenin kendi PDF→DOCX hattıyla üretildi) — yayınlanır</td></tr>
-<tr><td>NASA NTRS raporu + NASA grant formu</td><td>Dijital + taranmış</td><td>Kamu malı — yayınlanır</td></tr>
-<tr><td>arXiv makaleleri (19113, 19145, 2510.03959, 2605.18014)</td><td>Dijital PDF</td><td>arXiv lisansı — yayınlanır</td></tr>
-<tr><td>IRS formları (i1040gi, p505)</td><td>Form PDF</td><td>Kamu malı (ABD federal) — yayınlanır</td></tr>
-<tr><td>Project Gutenberg #31061, Cajori — A History of Mathematics (556 sayfa)</td><td>PDF, formül yoğun</td><td>Kamu malı — yayınlanır</td></tr>
-<tr><td>Project Gutenberg kitapları (The Time Machine, Think Python, cookbook)</td><td>EPUB/PDF</td><td>Kamu malı / açık lisans — yayınlanır</td></tr>
-<tr><td>Wikipedia sayfaları</td><td>PDF</td><td>CC BY-SA — yayınlanır</td></tr>
-<tr><td>Introductory Statistics (Sheldon M. Ross)</td><td>Kitap PDF</td><td><strong>Telifli</strong> — yalnız yerelde</td></tr>
-<tr><td>computer-systems-Architecture</td><td>Kitap PDF</td><td><strong>Telifli</strong> — yalnız yerelde (görüntüleri depodan çıkarıldı)</td></tr>
+<tr><td>NIST Journal of Research (journal issues)</td><td>Digital PDF</td><td>Public domain (US federal) — published</td></tr>
+<tr><td>NIST IR 6643 (vapour pressure)</td><td><strong>Scanned</strong> PDF</td><td>Public domain — published</td></tr>
+<tr><td>A DOCX produced from the NIST journal</td><td>DOCX</td><td>Public domain (made with the project's own PDF→DOCX path) — published</td></tr>
+<tr><td>NASA NTRS report + NASA grant form</td><td>Digital + scanned</td><td>Public domain — published</td></tr>
+<tr><td>arXiv papers (19113, 19145, 2510.03959, 2605.18014)</td><td>Digital PDF</td><td>arXiv licence — published</td></tr>
+<tr><td>IRS forms (i1040gi, p505)</td><td>Form PDF</td><td>Public domain (US federal) — published</td></tr>
+<tr><td>Project Gutenberg #31061, Cajori — A History of Mathematics (556 pages)</td><td>PDF, formula-dense</td><td>Public domain — published</td></tr>
+<tr><td>Project Gutenberg books (The Time Machine, Think Python, cookbook)</td><td>EPUB/PDF</td><td>Public domain / open licence — published</td></tr>
+<tr><td>Wikipedia pages</td><td>PDF</td><td>CC BY-SA — published</td></tr>
+<tr><td>Introductory Statistics (Sheldon M. Ross)</td><td>Book PDF</td><td><strong>Copyrighted</strong> — local only</td></tr>
+<tr><td>computer-systems-Architecture</td><td>Book PDF</td><td><strong>Copyrighted</strong> — local only (its images were removed from the repository)</td></tr>
 </tbody>
 </table>
-<h2>8.6 Yöntem ve mühendislik kaynakları</h2>
+<h2>8.6 Method and engineering sources</h2>
 <table>
 <thead><tr>
-<th>Kaynak</th>
-<th>Neyi etkiledi</th>
+<th>Source</th>
+<th>What it influenced</th>
 </tr></thead>
 <tbody>
-<tr><td>Google DESIGN.md / tasarım token'ları</td><td>Arayüz renk paletinin token'lardan gelmesi kuralı (hardcoded hex yasak)</td></tr>
-<tr><td>Apple HIG, Material Design (genel ilkeler)</td><td>Karşılama/yardım ekranlarının yapısı, boşluk ve tipografi ölçeği</td></tr>
-<tr><td>ISO 639 dil kodları</td><td>Dil seçimi ve algılama</td></tr>
-<tr><td>Unicode özel kullanım alanı (U+E000–U+E001)</td><td>Korunan değerlerin modele görünmez şekilde taşınması</td></tr>
-<tr><td>Portable Document Format spec (ISO 32000)</td><td>PDF yazımı ve redaksiyon davranışının doğrulanması</td></tr>
+<tr><td>Google DESIGN.md / design tokens</td><td>The rule that the interface palette comes from tokens (no hardcoded hex)</td></tr>
+<tr><td>Apple HIG, Material Design (general principles)</td><td>The structure of the welcome and help screens, the spacing and type scale</td></tr>
+<tr><td>ISO 639 language codes</td><td>Language selection and detection</td></tr>
+<tr><td>The Unicode private use area (U+E000–U+E001)</td><td>Carrying protected values invisibly to the model</td></tr>
+<tr><td>The Portable Document Format spec (ISO 32000)</td><td>Verifying PDF writing and redaction behaviour</td></tr>
 </tbody>
 </table>
-<h2>8.7 Bu belgenin kendi kaynakları</h2>
-<p>Bu hikâye uydurulmadı; şu dosyalardan ve ölçümlerden derlendi:</p>
-<ul><li><code>docs/CONTRACT.md</code> — mimari değişmezler (D1–D7)</li><li><code>docs/campaign/JOURNAL.md</code> — gün gün ölçüm jurnalı (vakaların birincil kaynağı)</li><li><code>docs/MEASUREMENTS.md</code>, <code>docs/BENCHMARK.md</code> — sayılar</li><li><code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code> — kayıpsızlık durumu</li><li><code>docs/FEATURE-ROADMAP.md</code> — dış karşılaştırma ve açık işler</li><li><code>_artifacts/heldout/**/audit.json</code> — her koşunun denetim sayıları</li><li><code>git log</code> — tarihler ve kararlar</li></ul><p class="pager"><a href="07-sinirlar.html">← voriges Kapitel</a></p>
+<h2>8.7 This document's own sources</h2>
+<p>This story was not invented; it was assembled from these files and measurements:</p>
+<ul><li><code>docs/CONTRACT.md</code> — the architectural invariants (D1–D7)</li><li><code>docs/campaign/JOURNAL.md</code> — the day-by-day measurement journal (the primary source for the cases)</li><li><code>docs/MEASUREMENTS.md</code>, <code>docs/BENCHMARK.md</code> — the numbers</li><li><code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code> — the losslessness status</li><li><code>docs/FEATURE-ROADMAP.md</code> — the outside comparison and the open work</li><li><code>_artifacts/heldout/**/audit.json</code> — every run's audit numbers</li><li><code>git log</code> — dates and decisions</li></ul><p class="pager"><a href="07-sinirlar.html">← voriges Kapitel</a></p>
 <footer>
   Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>

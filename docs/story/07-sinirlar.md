@@ -35,21 +35,25 @@ elde edilen metin, bulut modelinden zayıftır; bu fark sözlük ve bellekle aza
 **İnceleme kuyruğu okunur, düzenlenemez.** Bayrakların gerekçesi yazılı ama kullanıcı çeviriyi
 uygulama içinde düzeltip yeniden yazamıyor. Bu, yol haritasındaki en yüksek emekli iş.
 
-**Çift dilli PDF çıktısı yok.** Site karşılaştırmayı sunuyor; PDF'in kendisi almaşık sayfalı
-üretilemiyor (BabelDOC'ta var).
+**İnceleme kuyruğu düzenlenemiyor** (yukarıda): bayrağın gerekçesi var, düzeltme yok. Yol
+haritasının en yüksek emekli işi.
 
 ## 7.2 Yol haritası (etki / emek sırasına göre)
 
-1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Ölçüm: çıktı sayfa sayısı
-   2×kaynak, L1–L10 bozulmuyor.
-2. **Örtüşme çözümü kademesi** — `reflow`'u deneysel olmaktan çıkarıp kademeli hâle getirmek
-   (küçült → satır aralığını sık → aşağı it), D1=801'i ve "okunamaz boyut" sayısını düşürmek.
-3. **Otomatik terim adayları** — belgede sık geçen isim öbeklerini sözlük düzenleyiciye önermek.
-4. **Küçük editör** — inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazmak.
-5. **Sayfa-ötesi bağlam** — parça sınırında önceki parçanın son bloklarını isteme eklemek; L2 ve
+Önceki yol haritasının 1, 3 ve 7. maddeleri **yayınlandı**: çift dilli PDF, belgeden terim
+adayları, ayar profilleri. Kalanlar, bugünkü durumlarıyla:
+
+1. **Örtüşme kademesi** (küçült → satır aralığını sık → aşağı it). Satır aralığı adımı tek başına
+   2026-09-20'de yazıldı, ölçüldü ve **geri alındı**: geçişin kendi ikame fontuyla hiçbir bloğu
+   kurtarmadı, yazılmış sayfa A/B'si iki kolda aynıydı. Ölçüm asıl işi de gösterdi: bayraklı
+   blokların çoğu satır değil **kutu** eksiğidir (`room_below` ölçülen kutuyu 6pt'ye ezebiliyor).
+   Emek: orta-yüksek. Ölçüm: D1 ve "okunamaz boyut" sayısı, L7 ile birlikte okunur.
+2. **Küçük editör** — inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazmak. Emek: yüksek.
+3. **Sayfa-ötesi bağlam** — parça sınırında önceki parçanın son bloklarını isteme eklemek; L2 ve
    D2'yi düşürmesi beklenir.
-6. **Aralık için görsel sayfa seçici** — küçük önizlemelerle aralık seçmek.
-7. **Ayar profilleri** — "hızlı taslak" / "yayın kalitesi" ön ayarları.
+4. **Aralık için görsel sayfa seçici** — küçük önizlemelerle aralık seçmek.
+5. **Sınırların arayüze taşınması** — D1/kutu ayrımı tamamlanma ekranında (0.9.7); kaynakça notu
+   henüz değil.
 
 ## 7.3 Dersler
 
@@ -77,7 +81,7 @@ etmesi gerekmez.
 
 **7. Kullanıcı geri bildirimi en iyi test setidir.** Bu belgedeki vakaların çoğu kullanıcı
 cümlesiyle başlar: *"paralel 7 slot ayarlı olsa da 1 slot yolluyor"*, *"neden tüm kitabı vermiş"*,
-*"bariz daha büyük font"*, *"pill'i kapatınca geri açamıyorum"*. Hiçbiri 1.192 testin yakaladığı
+*"bariz daha büyük font"*, *"pill'i kapatınca geri açamıyorum"*. Hiçbiri 1.256 testin yakaladığı
 türden değildi — hepsi *kullanım* sırasında çıktı. Test süiti regresyonu tutar, kullanım yeni
 hatayı bulur.
 

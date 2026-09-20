@@ -64,97 +64,97 @@
 <nav class="story-nav">
   <a href="index.html">Introduction</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <span class='here'>5</span> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><p class="untranslated"><em>This chapter has not been translated yet; the Turkish original is shown below.</em></p>
-<h1>5. Model seçimi: hangi model, neden — ve IBM Docling meselesi</h1>
-<p>Bu bölümde iki ayrı model kararı var ve ikisi sık karıştırılıyor:</p>
-<ul><li><strong>Çeviriyi yapan model</strong> (LLM): yerel <code>google/gemma-4-e4b</code>, LM Studio üzerinden.</li><li><strong>Sayfanın düzenini bulan model</strong>: IBM Docling'in <strong>Heron</strong> düzen dedektörü (ONNX).</li><li>Ayrıca <strong>üçüncü bir hat</strong>: projeye özel ince ayar (Qwen2.5-7B QLoRA), ayrı bir çalışma.</li></ul>
-<p>"Neden IBM modeline geçtik" sorusunun cevabı üçüncü değil <strong>ikinci</strong> satırdır: çeviriyi IBM modeli yapmıyor; IBM'in modeli <em>sayfayı anlıyor</em>. Aşağıda her kararın gerekçesi ve ölçümü var.</p>
-<h2>5.1 Çeviri modeli: neden yerel</h2>
-<p>Projenin varsayılanı <strong>yerel</strong> çalışmaktır ve bu bir tercih değil, tasarım eksenidir:</p>
+</nav><h1>5. Choosing the model: which one, why — and the IBM Docling question</h1>
+<p>There are two separate model decisions in this chapter and they are often confused:</p>
+<ul><li><strong>The model that translates</strong> (an LLM): the local <code>google/gemma-4-e4b</code>, through LM Studio.</li><li><strong>The model that finds the page's layout</strong>: IBM Docling's <strong>Heron</strong> layout detector (ONNX).</li><li>Plus a <strong>third track</strong>: a project-specific fine-tune (Qwen2.5-7B QLoRA), a separate effort.</li></ul>
+<p>The answer to "why did we move to the IBM model" is the <strong>second</strong> row, not the third: the IBM model does not do the translating; IBM's model <em>understands the page</em>. Each decision's reasoning and measurement is below.</p>
+<h2>5.1 The translation model: why local</h2>
+<p>The project's default is to run <strong>locally</strong>, and that is not a preference but a design axis:</p>
 <table>
 <thead><tr>
 <th></th>
-<th>Yerel (LM Studio)</th>
-<th>Bulut (OpenAI uyumlu, DeepL)</th>
+<th>Local (LM Studio)</th>
+<th>Cloud (OpenAI-compatible, DeepL)</th>
 </tr></thead>
 <tbody>
-<tr><td>Belge makineden çıkar mı</td><td><strong>hayır</strong></td><td>evet</td></tr>
-<tr><td>Ücret</td><td>yok</td><td>genelde var</td></tr>
-<tr><td>Hız</td><td>GPU'ya bağlı</td><td>ağ + sağlayıcı</td></tr>
-<tr><td>Kalite</td><td>modele bağlı (küçük modellerde daha zayıf)</td><td>genelde daha güçlü</td></tr>
-<tr><td>Paralellik</td><td>sunucunun yuva sayısı</td><td>sağlayıcı sınırı</td></tr>
+<tr><td>Does the document leave the machine</td><td><strong>no</strong></td><td>yes</td></tr>
+<tr><td>Cost</td><td>none</td><td>usually some</td></tr>
+<tr><td>Speed</td><td>depends on the GPU</td><td>network + provider</td></tr>
+<tr><td>Quality</td><td>depends on the model (weaker on small ones)</td><td>usually stronger</td></tr>
+<tr><td>Parallelism</td><td>the server's slot count</td><td>the provider's limit</td></tr>
 </tbody>
 </table>
-<p>Bulut <strong>desteklenir</strong> (sağlayıcı ayarlarından uç nokta eklenir, "Test Et" ile anahtar kaydedilmeden denenir) — ama varsayılan değildir. Sebep basit: bu proje bir <em>belge</em> aracıdır ve kullanıcının belgesi (telifli kitap, kişisel tarama, kurumsal form) çoğu zaman makineden çıkmamalıdır. Yerel-önce olmak, "kayıpsız" iddiasının yanında duran ikinci bir sözdür.</p>
-<p>Yerel tarafta <strong>tek model kuralı</strong> vardır: makinede tek bir model yüklenir ve istekler sırayla gider (paralel yuvalar hariç). Bu, GPU belleği paylaşıldığında model değiştirmenin getirdiği yükleme cezasını ve kararsızlığı önler. Ölçülen sonuç: 220 sayfalık kitap, 55 parça, ~106 dakika.</p>
-<h2>5.2 Kalite tavanı ve boru hattının cevabı</h2>
-<p>Küçük bir yerel modelin dil becerisi sınırlıdır. Projenin cevabı "daha iyi model bulmak" değil, <strong>modelin üstüne değil altına mekanizma koymak</strong> oldu:</p>
-<ul><li><strong>Korunan değerler</strong> (sayılar, ölçüler, DOI/URL, parça numaraları, Romen rakamları) modele hiç</li></ul>
-<p>gösterilmez — model yanlış yapsa bile kaybolmazlar.</p>
-<ul><li><strong>Sözlük</strong> terimleri zorlar (istemde + çıktı denetiminde): model "hypothesis"ı bir yerde</li></ul>
-<p>"hipotez", başka yerde "varsayım" yapamaz.</p>
-<ul><li><strong>Bellek</strong> aynı metne aynı çeviriyi verir (koşular arası, SQLite).</li><li><strong>Tekrarları birleştir</strong> aynı kaynağın farklı çevirilerini çoğunluğa hizalar.</li><li><strong>Doğrulayıcı</strong> kaybı bulur, yeniden sorar, kalanı gerekçesiyle işaretler.</li></ul>
-<p>Bu yaklaşımın ölçülmüş karşılığı: modelin zayıflığı <em>metnin akıcılığında</em> kalır, <em>belgenin bütünlüğünde</em> değil.</p>
-<h2>5.3 IBM Docling (Heron) düzen dedektörü — asıl "IBM modeli"</h2>
-<h3>Neden gerekliydi</h3>
-<p>Okuma hattının klasik yöntemi <strong>XY-cut</strong>: sayfayı yatay/dikey boşluk çizgilerinden keserek bloklar bulur. Hizalanmış, temiz sayfalarda iyi çalışır; karmaşık sayfalarda çöker:</p>
-<ul><li>kutu içinde kutu (form alanları), resim altı yazılar (figure caption), iki sütun arasına sıkışmış</li></ul>
-<p>formüller, sayfa kenarına taşan dipnotlar;</p>
-<ul><li>taranmış sayfalar (çizgi yok, yalnız pikseller).</li></ul>
-<p>Bu durumlarda yanlış okunan şey <em>metin</em> değil, <strong>bölge sınırıdır</strong>: bir başlık paragrafın içine karışır, bir dipnot gövdeye girer, bir tablo satırı ayrı blok olur. Sonuç: çeviri doğru ama yerleşim yanlış — yani kullanıcının şikâyet ettiği şey.</p>
-<h3>Ne yapıldı</h3>
-<p>IBM Research'ün geliştirdiği <strong>Docling</strong> projesinin düzen modeli (<code>docling-layout-heron-onnx</code>) eklendi. Model sayfayı görüntü olarak görür ve bölgeleri sınıflandırır: başlık, paragraf, tablo, şekil, liste, dipnot. ONNX olarak <strong>yerelde</strong> koşar (CPU'da bile), yani yerel-önce ilkesini bozmaz.</p>
-<ul><li>Komut satırında <code>--layout-detector</code> ile açılır; arayüzde varsayılan açıktır.</li><li>Yalnız gerekli yerde çalışır: sayfa metin katmanıyla okunabiliyorsa ve yapı basitse XY-cut</li></ul>
-<p>yeterlidir; model taranmış/karmaşık sayfalarda devreye girer.</p>
-<h3>Ölçüm: gerçekten ne değişti</h3>
-<p>10 kitap sayfası üzerinde <strong>dört panelli</strong> karşılaştırma üretildi: <code>orijinal | eski koşu | XY-cut | dedektörlü</code>. Ölçülen metrik: "çıktıda hâlâ İngilizce kalan düzyazı" ve "sayfadan taşan kelime".</p>
+<p>Cloud is <strong>supported</strong> (add an endpoint in the provider settings, try it with "Test" before saving a key) — but it is not the default. The reason is simple: this is a tool for <em>documents</em>, and a user's document (a copyrighted book, a personal scan, a corporate form) usually should not leave the machine. Being local-first is a second promise standing next to the claim of "lossless".</p>
+<p>On the local side there is a <strong>one-model rule</strong>: a single model is loaded on the machine and requests go through it (apart from the parallel slots). That avoids the loading penalty and the instability of swapping models while GPU memory is shared. The measured result: a 220-page book, 55 chunks, ~106 minutes.</p>
+<h2>5.2 The quality ceiling, and the pipeline's answer</h2>
+<p>A small local model's language ability is limited. The project's answer was not "find a better model" but <strong>putting mechanisms under the model rather than on top of it</strong>:</p>
+<ul><li><strong>Protected values</strong> (numbers, measurements, DOIs/URLs, part numbers, Roman numerals) are never</li></ul>
+<p>shown to the model — even if the model gets it wrong, they cannot be lost.</p>
+<ul><li><strong>The glossary</strong> forces terms (in the prompt and in the output check): the model cannot render</li></ul>
+<p>"hypothesis" as "hipotez" in one place and "varsayım" in another.</p>
+<ul><li><strong>The memory</strong> gives the same text the same translation (across runs, in SQLite).</li><li><strong>Unify repeats</strong> aligns differing translations of the same source to the majority.</li><li><strong>The checker</strong> finds a loss, asks again, and flags what remains with its reason.</li></ul>
+<p>The measured consequence of this approach: the model's weakness stays in <em>the fluency of the text</em>, not in <em>the integrity of the document</em>.</p>
+<h2>5.3 The IBM Docling (Heron) layout detector — the actual "IBM model"</h2>
+<h3>Why it was needed</h3>
+<p>The reading pipeline's classical method is <strong>XY-cut</strong>: it finds blocks by cutting the page along horizontal and vertical gaps. It works well on aligned, clean pages and collapses on complex ones:</p>
+<ul><li>a box inside a box (form fields), captions under pictures, formulas squeezed between two columns,</li></ul>
+<p>footnotes spilling into the margin;</p>
+<ul><li>scanned pages (no lines, only pixels).</li></ul>
+<p>In those cases what is misread is not the <em>text</em> but the <strong>region boundary</strong>: a heading merges into a paragraph, a footnote enters the body, a table row becomes a block of its own. The result: the translation is right and the placement is wrong — which is exactly what the user complains about.</p>
+<h3>What was done</h3>
+<p>The layout model from IBM Research's <strong>Docling</strong> project (<code>docling-layout-heron-onnx</code>) was added. The model looks at the page as an image and classifies its regions: heading, paragraph, table, figure, list, footnote. It runs as ONNX <strong>locally</strong> (even on CPU), so it does not break the local-first principle.</p>
+<ul><li>It is enabled on the command line with <code>--layout-detector</code>; in the interface it is on by default.</li><li>It only runs where it is needed: if a page can be read through its text layer and the structure is</li></ul>
+<p>simple, XY-cut is enough; the model comes in on scanned or complex pages.</p>
+<h3>The measurement: what actually changed</h3>
+<p>A <strong>four-panel</strong> comparison was produced over 10 book pages: <code>original | old run | XY-cut | with the detector</code>. The metric measured: "prose still left in English in the output" and "words past the page edge".</p>
 <table>
 <thead><tr>
 <th></th>
-<th>İngilizce kalan düzyazı</th>
-<th>Sayfadan taşan kelime</th>
+<th>Prose left in English</th>
+<th>Words past the page edge</th>
 </tr></thead>
 <tbody>
-<tr><td>Eski koşu (524 sayfa, model yok)</td><td>6/82 (%7)</td><td>0</td></tr>
-<tr><td>XY-cut</td><td>6/82 (%7)</td><td>0</td></tr>
-<tr><td><strong>Dedektörlü</strong></td><td><strong>1/82 (%1)</strong></td><td>0</td></tr>
+<tr><td>Old run (524 pages, no model)</td><td>6/82 (7%)</td><td>0</td></tr>
+<tr><td>XY-cut</td><td>6/82 (7%)</td><td>0</td></tr>
+<tr><td><strong>With the detector</strong></td><td><strong>1/82 (1%)</strong></td><td>0</td></tr>
 </tbody>
 </table>
-<p>Ayrıca modelin <strong>yalnız başına</strong> ne yaptığı da kaydedildi (<code>tests/layout_eval/2026-09-16_heron_pure/</code>): her bölge, modelin döndürdüğü hâliyle çizildi — XY-cut yok, paragraf kuralı yok, sıralama yok. Bu "temiz taban", sonradan eklenen her kuralın <strong>ölçülmüş</strong> bir tabana göre eklenmesini sağladı; "model şunu da bulur herhalde" diye varsayım yapılmadı.</p>
-<h3>V2 planı: neden yeniden yazmadık</h3>
-<p>Aynı dönemde bir <strong>V2 planı</strong> yazıldı: boru hattını Gemini ile baştan kurmak, düzen modelini merkeze almak. Plan dokümanı <code>docs/YENI_MIMARI_VE_GECIS_PLANI.md</code> olarak duruyor. Plan uygulanmadı, çünkü:</p>
-<ol><li>Yeniden yazım, kayıpsızlık denetimini (L1–L10) ve 1.000'den fazla testi geçersiz kılardı.</li><li>Çalışan motorda <strong>tek bir eksik</strong> vardı: karmaşık sayfalarda bölge bulma. Bunu çözmek için</li></ol>
-<p>modeli <em>mevcut</em> okuyucuya eklemek yeterliydi — öyle de yapıldı.</p>
-<ol><li>V2 dalı (<code>v2-vision-layout</code>) çakışmasız birleşmiyordu (6 çakışma); zorla birleştirmek, ölçülmüş</li></ol>
-<p>davranışları ölçülmemiş olanlarla değiştirmek olurdu.</p>
-<p>Yani "IBM modeline geçiş" bir <strong>yeniden yazım değil</strong>, mevcut boru hattına eklenen bir <strong>okuma yeteneği</strong> oldu. Planın işe yarayan parçası alındı, gerisi arşivde duruyor — ve bu karar da yazılı: <em>kanıtsız düzeltme taşınmaz, kanıtsız yeniden yazım da taşınmaz.</em></p>
-<h2>5.4 Üçüncü hat: projeye özel ince ayar (LayoutKeepLLM)</h2>
-<p>Ayrı bir çalışma kolu (kendi klasöründe), iki hedefi birlikte kovalıyor:</p>
-<ol><li><strong>Uygulamanın tel protokolüne uyum</strong>: çok segmentli JSON yanıtı, <code>&lt;0&gt;…&lt;/0&gt;</code> işaretleri,</li></ol>
-<p>U+E000–U+E001 aralığındaki korunan değer token'ları, bağlam/uzunluk sınırları. Amaç, modelin "serbest metin" değil <strong>protokol</strong> üretmesi.</p>
-<ol><li><strong>Akademik düzeyde tutarlı EN↔TR çeviri</strong> — yani yalnız doğru değil, terim tutarlılığı olan.</li></ol>
-<p>Tasarım kararları:</p>
-<ul><li>Taban model <strong>Qwen2.5-7B-Instruct</strong>; eğitim <strong>Kaggle'da QLoRA</strong> (yerel GPU'da değil).</li><li>Veri omurgası <strong>elle yazılmış alan-uzmanı çiftler</strong> (üretici: <code>01_Dataset/build_dataset.py</code>,</li></ul>
-<p>korpus: <code>_dataset_corpus.py</code>); toplam ~6.000 kayıt.</p>
-<ul><li><strong>OPUS-100 reddedildi</strong>: EN-TR kısmı ölçüldü, haber ve günlük konuşma ağırlıklı — bu projenin</li></ul>
-<p>çevirdiği şey akademik/teknik belge. "Bol veri" ile "doğru veri" aynı şey değil.</p>
-<ul><li>Eğitim betiği <strong>TRL'e bağımlı değil</strong> (düz <code>transformers.Trainer</code> + <code>apply_chat_template</code>),</li></ul>
-<p>çünkü TRL'in <code>SFTConfig</code> API'si sürümler arasında değişiyor ve notebook Kaggle'da kırılıyordu.</p>
-<p>Bu hat, ürünün bugünkü sürümünde <strong>kullanılmıyor</strong>: çalışma zamanı modeli gemma. İnce ayar, kalite tavanını yükseltmek için duran bir yol; ölçüm ölçütü aynı: L/D tablosu ve terim tutarlılığı.</p>
-<h2>5.5 Özet: hangi model neyi yapıyor</h2>
+<p>What the model does <strong>on its own</strong> was recorded as well (<code>tests/layout_eval/2026-09-16_heron_pure/</code>): every region drawn exactly as the model returned it — no XY-cut, no paragraph rules, no ordering. That "clean baseline" is what let every rule added later be added against a <strong>measured</strong> floor; no one assumed "the model probably finds this too".</p>
+<h3>The V2 plan: why we did not rewrite</h3>
+<p>A <strong>V2 plan</strong> was written around the same time: rebuild the pipeline around Gemini, with the layout model at its centre. The plan document sits at <code>docs/YENI_MIMARI_VE_GECIS_PLANI.md</code>. It was never applied, because:</p>
+<ol><li>A rewrite would invalidate the losslessness audit (L1–L10) and more than 1,000 tests.</li><li>The working engine had <strong>exactly one gap</strong>: finding regions on complex pages. Adding the model to</li></ol>
+<p>the <em>existing</em> reader was enough to close it — and that is what was done.</p>
+<ol><li>The V2 branch (<code>v2-vision-layout</code>) did not merge without conflicts (six of them); forcing it</li></ol>
+<p>would have replaced measured behaviour with unmeasured behaviour.</p>
+<p>So "moving to the IBM model" was not a <strong>rewrite</strong> but a <strong>reading capability</strong> added to the existing pipeline. The useful part of the plan was taken and the rest sits in the archive — and that decision is written down too: <em>an unproven fix is not kept, and neither is an unproven rewrite.</em></p>
+<h2>5.4 The third track: a project-specific fine-tune (LayoutKeepLLM)</h2>
+<p>A separate workstream (in its own folder), chasing two goals at once:</p>
+<ol><li><strong>Conforming to the application's wire protocol</strong>: a multi-segment JSON answer, <code>&lt;0&gt;…&lt;/0&gt;</code></li></ol>
+<p>markers, protected-value tokens in the U+E000–U+E001 range, context/length limits. The aim is for the model to produce a <strong>protocol</strong>, not free text.</p>
+<ol><li><strong>Academically consistent EN↔TR translation</strong> — not merely correct, but terminologically</li></ol>
+<p>consistent.</p>
+<p>The design decisions:</p>
+<ul><li>Base model <strong>Qwen2.5-7B-Instruct</strong>; training <strong>QLoRA on Kaggle</strong> (not on the local GPU).</li><li>The dataset's backbone is <strong>hand-written domain-expert pairs</strong> (generator:</li></ul>
+<p><code>01_Dataset/build_dataset.py</code>, corpus: <code>_dataset_corpus.py</code>); about 6,000 records in total.</p>
+<ul><li><strong>OPUS-100 was rejected</strong>: its EN-TR portion was measured and is weighted towards news and everyday</li></ul>
+<p>speech — while what this project translates is academic and technical documents. "Plenty of data" and "the right data" are not the same thing.</p>
+<ul><li>The training script <strong>does not depend on TRL</strong> (a plain <code>transformers.Trainer</code> plus</li></ul>
+<p><code>apply_chat_template</code>), because TRL's <code>SFTConfig</code> API changes between versions and the notebook kept breaking on Kaggle.</p>
+<p>This track is <strong>not used</strong> by the product as it stands: the runtime model is gemma. The fine-tune is a path kept for raising the quality ceiling; its measuring stick is the same: the L/D table and terminology consistency.</p>
+<h2>5.5 Summary: which model does what</h2>
 <table>
 <thead><tr>
-<th>Katman</th>
-<th>Model/araç</th>
-<th>Neden o</th>
+<th>Layer</th>
+<th>Model/tool</th>
+<th>Why that one</th>
 </tr></thead>
 <tbody>
-<tr><td>Sayfa düzeni (taranmış/karmaşık)</td><td>IBM Docling <strong>Heron</strong> ONNX</td><td>Bölge sınıflandırmasında XY-cut'ın çöktüğü yerde çalışır; yerel koşar; ölçülmüş kazanç 6/82 → 1/82</td></tr>
-<tr><td>Metin çıkarma (dijital)</td><td>PyMuPDF</td><td>Metin katmanı varsa en doğru kaynak; tipografi bilgisi taşır</td></tr>
-<tr><td>OCR (taranmış)</td><td>RapidOCR (PP-OCR modelleri)</td><td>Güven skoru verir; düşük güven işaretlenir</td></tr>
-<tr><td>Çeviri</td><td><code>google/gemma-4-e4b</code> (LM Studio)</td><td>Yerel, ücretsiz, yuvalara paralel; belge makineden çıkmaz</td></tr>
-<tr><td>Bulut çeviri (isteğe bağlı)</td><td>OpenAI uyumlu uç noktalar, DeepL</td><td>Güçlü modeller; kullanıcı açıkça seçerse</td></tr>
-<tr><td>Kalite garantisi</td><td><code>verify.py</code> + sözlük + bellek</td><td>Modelin zayıflığını belge bütünlüğüne taşımaz</td></tr>
+<tr><td>Page layout (scanned/complex)</td><td>IBM Docling <strong>Heron</strong> ONNX</td><td>Works where XY-cut collapses on region classification; runs locally; measured gain 6/82 → 1/82</td></tr>
+<tr><td>Text extraction (digital)</td><td>PyMuPDF</td><td>The most accurate source when a text layer exists; carries typography</td></tr>
+<tr><td>OCR (scanned)</td><td>RapidOCR (PP-OCR models)</td><td>Gives a confidence score; low confidence is flagged</td></tr>
+<tr><td>Translation</td><td><code>google/gemma-4-e4b</code> (LM Studio)</td><td>Local, free, parallel across slots; the document never leaves the machine</td></tr>
+<tr><td>Cloud translation (optional)</td><td>OpenAI-compatible endpoints, DeepL</td><td>Stronger models; only if the user chooses them</td></tr>
+<tr><td>Quality guarantee</td><td><code>verify.py</code> + the glossary + the memory</td><td>Does not let the model's weakness reach the document's integrity</td></tr>
 </tbody>
 </table><p class="pager"><a href="04-hatalar.html">← previous chapter</a> · <a href="06-urun.html">next chapter →</a></p>
 <footer>
