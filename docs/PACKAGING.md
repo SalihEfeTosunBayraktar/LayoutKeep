@@ -18,11 +18,11 @@ Tek dosya EXE üretilir (güncel standart — CLI ve masaüstü için tek `dist\
 derlemeleri ayrı kabukta başlat ve günlük dosyasından izle (projenin uzun iş kuralı):
 
 ```powershell
-Start-Process -FilePath cmd.exe -ArgumentList '/c "<proje>\packaging\build.bat"' -WindowStyle Minimized
+Start-Process -FilePath cmd.exe -ArgumentList '/c','packaging\build.bat' -WindowStyle Minimized
 ```
-Kabuk betiğinin içi: `python -m PyInstaller packaging\layoutkeep_onefile.spec --noconfirm --clean`
-çıktısını `%LOCALAPPDATA%\Temp\lk_build.txt`'e yaz, sonuna `exit=%ERRORLEVEL%` ve
-`dist\LayoutKeep.exe` boyutunu ekle. **Derleme bittikten sonra exe'yi sür** (bkz. `docs/MAP.md`
+`packaging\build.bat` depoda duruyor: `python -m PyInstaller packaging\layoutkeep_onefile.spec
+--noconfirm --clean` çıktısını `%LOCALAPPDATA%\Temp\lk_build.txt`'e yazar, sonuna `exit=%ERRORLEVEL%`
+ve `dist\LayoutKeep.exe` boyutunu ekler. **Derleme bittikten sonra exe'yi sür** (bkz. `docs/MAP.md`
 "paketlenmiş exe ancak sürüldüğünde biter") — yalnız derlenmiş dosya teslim sayılmaz.
 
 `packaging\layoutkeep.spec` (eski çoklu-klasör varyantı) CI'da ve arşivde durur; el ile üretimde
