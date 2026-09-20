@@ -43,6 +43,17 @@ hiddenimports = [
     "layoutkeep.ui.completion",
     "layoutkeep.ui.main_window",
     "layoutkeep.ui.provider_profile",
+    # The check_spec audit found these six missing: the dialogs are opened from a menu handler and
+    # the three feature modules are imported inside the functions that use them, so PyInstaller's
+    # static analysis never saw them. Without them the built exe raised ImportError the moment a
+    # user opened the help screen or the glossary editor - found by tools/audit/check_spec.py,
+    # which exists for exactly this.
+    "layoutkeep.ui.glossary_dialog",
+    "layoutkeep.ui.help_dialog",
+    "layoutkeep.core.profiles",
+    "layoutkeep.core.terms",
+    "layoutkeep.fitting.figures",
+    "layoutkeep.writers.dual_pdf",
     "PySide6.QtSvg",
     "layoutkeep.providers.openai_compat",
     "layoutkeep.providers.fake",
