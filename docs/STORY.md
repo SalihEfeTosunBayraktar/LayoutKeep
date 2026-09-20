@@ -36,14 +36,14 @@ sonra hatalar, sonra model kararları, sonra ürün, sonra dürüst sınırlar v
 
 | # | Bölüm | İçinde ne var |
 |---|---|---|
-| 1 | [Problem: "kayıpsız çeviri" tam olarak ne demek](01-problem.html) | Tanım, dört ölçülmüş zorluk, dış araçlarla karşılaştırma tablosu, sözleşme (D1–D7) |
-| 2 | [Mimari: boru hattının her parçası](02-mimari.html) | Modüller ve satır sayıları, DocIR, okuyucular, sağlayıcı zinciri, sığdırma, yazıcılar, denetleyici |
-| 3 | [Ölçüm disiplini](03-olcum.html) | L1–L10 + D1–D3 tablosu, 56 denetim aracı, **ölçümün kendisinin üç kez yanılması** |
-| 4 | [Hata kataloğu: on dört vaka](04-hatalar.html) | Her vaka: belirti → araştırma → kök neden → çözüm → kanıt |
-| 5 | [Model seçimi ve IBM Docling meselesi](05-model.html) | Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı |
-| 6 | [Ürünleşme: motordan uygulamaya](06-urun.html) | Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, sürümler, karşılaştırma sitesi |
-| 7 | [Dürüst sınırlar ve dersler](07-sinirlar.html) | Bugün çalışmayanlar, yol haritası, sekiz ders |
-| 8 | [Dış kaynaklar ve atıflar](08-kaynaklar.html) | Her bağımlılığın rolü ve lisansı, test kaynaklarının hukuki durumu |
+| 1 | [Problem: "kayıpsız çeviri" tam olarak ne demek](story/01-problem.md) | Tanım, dört ölçülmüş zorluk, dış araçlarla karşılaştırma tablosu, sözleşme (D1–D7) |
+| 2 | [Mimari: boru hattının her parçası](story/02-mimari.md) | Modüller ve satır sayıları, DocIR, okuyucular, sağlayıcı zinciri, sığdırma, yazıcılar, denetleyici |
+| 3 | [Ölçüm disiplini](story/03-olcum.md) | L1–L10 + D1–D3 tablosu, 56 denetim aracı, **ölçümün kendisinin üç kez yanılması** |
+| 4 | [Hata kataloğu: on dört vaka](story/04-hatalar.md) | Her vaka: belirti → araştırma → kök neden → çözüm → kanıt |
+| 5 | [Model seçimi ve IBM Docling meselesi](story/05-model.md) | Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı |
+| 6 | [Ürünleşme: motordan uygulamaya](story/06-urun.md) | Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, sürümler, karşılaştırma sitesi |
+| 7 | [Dürüst sınırlar ve dersler](story/07-sinirlar.md) | Bugün çalışmayanlar, yol haritası, sekiz ders |
+| 8 | [Dış kaynaklar ve atıflar](story/08-kaynaklar.md) | Her bağımlılığın rolü ve lisansı, test kaynaklarının hukuki durumu |
 
 Markdown dosyaları depoda: `docs/story/01-problem.md` … `docs/story/08-kaynaklar.md`.
 
@@ -89,7 +89,7 @@ Her sayı o koşunun `audit.json` dosyasından; karşılaştırma sitesinde her 
 kaynakça satırları bazen kaynak dilde kalır (L2, işaretli); yoğun formlarda okunabilirlik tabanının
 altına inen bloklar vardır (D1); taranmış sayfalar OCR kalitesine bağlıdır ve düşük güvenle
 işaretlenir; **sağdan sola yazı sistemleri uygulanmamıştır**; kalite modelin becerisidir. Ayrıntılı
-liste ve yol haritası: [Bölüm 7](07-sinirlar.html).
+liste ve yol haritası: [Bölüm 7](story/07-sinirlar.md).
 
 ---
 
