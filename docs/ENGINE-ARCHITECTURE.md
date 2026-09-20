@@ -217,7 +217,7 @@ document still stands behind is the *architecture* finding: the generators were 
 writers, and the format matrix is what to run before trusting the next one.
 
 The matrix above is small and synthetic on purpose - fast to run, easy to reason about - but it
-is exactly the scale [`isolating-residual-gaps`](../../.claude/skills) warns about: a fixture
+is exactly the scale the lesson "isolating residual gaps" warns about: a fixture
 small enough to never be "dense" hides regressions a real document exposes. So before a pair
 opens, it also has to pass [`tools/audit/faz2_candidates.py`](../tools/audit/faz2_candidates.py)
 against `tests/fixtures/rich_report.*` and `rich_book.epub` - documents built with headers,
