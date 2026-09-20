@@ -309,6 +309,26 @@ OCR güveni düşük                               (low OCR confidence)
   subsets; `garbage=4` collapses them at save, but the work is already spent. 10 pages write in
   1.3 s each, 100 pages in 7.0 s each. Measured in [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
 
+## What decides the quality of a translation
+
+None of this is a guarantee, and none of it is theory: these are the factors the held-out runs
+actually moved with, and each row names where it was seen.
+
+| factor | what it changes | where it showed up |
+|---|---|---|
+| **The model's language ability** | The single largest factor. A local 4B model and a frontier model are not close on idiom; the fine-tuning work in `03_Kaggle_Colab/` exists for exactly this. | The campaign's per-model comparisons, and the `L9` (garbled letters) findings that were all on a fixture until the model changed |
+| **Digital text or a scan** | A digital PDF carries its own fonts, sizes and coordinates, so styles survive. A scan goes through OCR: recognition errors enter as text (`L9`), and boxes are approximate, so fitting has less to work with. | The IRS form and the NASA report (scans) against the arXiv and NIST issues (digital) |
+| **Scan resolution** | Below roughly 200 dpi the OCR starts losing small type and superscripts, and a wrong character is a wrong translation. | `nist_ir6643_vapor_pressure` exists to exercise this path; the site renders at 144 dpi for weight, not for quality |
+| **The document type** | Prose re-flows into generous boxes; a form's boxes are exactly one line tall and dense, which is where the fitting ladder has to squeeze (`D1`); formulae, code and figures are deliberately left alone. | `D1` is 2,155 on the 841-page statistics book and 0 on the prose-heavy samples — the same engine, different document |
+| **The source's own layout** | Narrow columns, overlapping boxes and text that wraps around figures all narrow the room a translation can use. | The figure-aware narrowing in `fitting/figures.py`, measured at 87 words of Turkish on a photograph before it existed |
+| **Language direction** | Turkish and English are not symmetric: agglutinative Turkish expands where English contracts, so the same paragraph needs different room in each direction. | The TR→EN campaign runs both directions over the same plan (`tr_plan_12` and `sbb_development_plan_12_en`) |
+| **The glossary and the translation memory** | A term list pins the vocabulary; the memory keeps a repeated string translated the same way everywhere, and skips paying for it twice. | `GLOSSARY_SUGGEST` in the app, and the memory hits that made a re-run's first chunks finish in 21 s instead of 229 s |
+| **The settings you choose** | Lossless mode, repeat unification, dedupe, piecewise repair and the model timeout all trade speed for fidelity; the defaults are the lossless ones. | `docs/KAYIPSIZ_MOD_DURUM.md`, and the advanced-settings captions that say what each knob costs |
+
+The honest summary: **the model decides whether the translation reads well, the document decides
+whether the layout survives, and the audit decides whether either is true.** The `L1`–`L10`
+criteria in the help screen are the same list, from the other end.
+
 ## Tuning it
 
 The numbers the layout stages depend on - how much two boxes must overlap to be cells of one

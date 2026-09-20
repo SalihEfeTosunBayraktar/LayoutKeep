@@ -293,6 +293,26 @@ Bayraklar `.lkproj` dosyasına yazılır ve komut satırı skor tablosunda sayı
 Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
 [`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) içindedir.
 
+## Çevirinin kalitesini ne belirler
+
+Bunların hiçbiri garanti değil ve hiçbiri teori değil: aşağıdakiler, elde tutulan koşuların
+gerçekten değiştiği faktörlerdir; her satır nerede görüldüğünü söylüyor.
+
+| faktör | neyi değiştirir | nerede görüldü |
+|---|---|---|
+| **Modelin dil becerisi** | En büyük tek faktör. Yerel 4B bir modelle öncü bir model deyimlerde yakın değil; `03_Kaggle_Colab/` altındaki ince ayar tam bunun için var. | Kampanyanın model karşılaştırmaları ve model değişene kadar hepsi tek bir fixture'da çıkan `L9` (bozuk harf) bulguları |
+| **Dijital metin mi, tarama mı** | Dijital PDF kendi yazı tiplerini, boyutlarını ve koordinatlarını taşır, stiller korunur. Tarama OCR'dan geçer: tanıma hataları metne karışır (`L9`) ve kutular yaklaşıktır, sığdırmanın eli daha zayıftır. | IRS formu ve NASA raporu (tarama) ile arXiv ve NIST sayıları (dijital) karşılaştırması |
+| **Tarama çözünürlüğü** | Kabaca 200 dpi altında OCR küçük puntoyu ve üst simgeleri kaybetmeye başlar; yanlış karakter, yanlış çeviridir. | `nist_ir6643_vapor_pressure` bu yolu sınamak için var; site 144 dpi'yi ağırlık için kullanır, kalite için değil |
+| **Belge türü** | Düz metin geniş kutulara akar; formun kutuları tam bir satır yüksekliğinde ve yoğundur, sığdırma merdiveni orada ezer (`D1`); formüller, kod ve figürler bilerek dokunulmadan bırakılır. | `D1` 841 sayfalık istatistik kitabında 2.155, düz metin örneklerinde 0 — aynı motor, farklı belge |
+| **Kaynağın kendi düzeni** | Dar kolonlar, üst üste binen kutular ve figürün etrafına sarılan metin, çevirinin kullanabileceği yeri daraltır. | `fitting/figures.py`'deki figür farkındalı daraltma; o gelmeden önce bir fotoğrafın üstünde 87 kelime Türkçe ölçülmüştü |
+| **Çeviri yönü** | Türkçe ile İngilizce simetrik değil: eklemeli Türkçe, İngilizcenin kısaldığı yerde uzar; aynı paragraf her yönde farklı yer ister. | TR→EN kampanyası aynı planı iki yönde koşuyor (`tr_plan_12` ve `sbb_development_plan_12_en`) |
+| **Terim sözlüğü ve çeviri belleği** | Terim listesi sözcükleri sabitler; bellek, tekrar eden bir dizenin her yerde aynı çevrilmesini sağlar ve onu ikinci kez ödemezsiniz. | Uygulamadaki `GLOSSARY_SUGGEST` ve yeniden koşuda ilk parçaların 229 sn yerine 21 sn'de bitmesini sağlayan bellek isabetleri |
+| **Seçtiğiniz ayarlar** | Kayıpsız mod, tekrar birleştirme, dedupe, parça parça onarım ve model zaman aşımı hız ile sadakat arasında takas yapar; varsayılanlar kayıpsız olanlardır. | `docs/KAYIPSIZ_MOD_DURUM.md` ve her düğmenin maliyetini söyleyen gelişmiş ayar açıklamaları |
+
+Dürüst özet: **çevirinin okunaklı olup olmadığına model karar verir, düzenin ayakta kalıp
+kalmadığına belge karar verir, ikisinin de doğru olup olmadığına denetim karar verir.** Yardım
+ekranındaki `L1`–`L10` kriterleri aynı listenin diğer ucudur.
+
 ## Ayarlama
 
 Düzen aşamalarının dayandığı sayılar — bir tablo satırının hücreleri sayılmak için iki kutunun ne
