@@ -38,6 +38,7 @@ class HeaderBar(QFrame):
     #: The settings button next to the theme toggle was clicked.
     tweaks_requested = Signal()
     help_requested = Signal()
+    bar_requested = Signal()  # hand the run over to the floating bar
     theme_toggled = Signal(bool)
     ui_language_changed = Signal(str)
 
@@ -111,6 +112,7 @@ class HeaderBar(QFrame):
         main_layout.addWidget(steps_holder)
         main_layout.addStretch(1)
         main_layout.addWidget(self._ui_lang_combo)
+        main_layout.addWidget(self._bar_btn)
         main_layout.addWidget(self._help_btn)
         main_layout.addWidget(self._tweaks_btn)
         main_layout.addWidget(self._theme_btn)
@@ -181,6 +183,12 @@ class HeaderBar(QFrame):
             self._ui_lang_combo.setCurrentIndex(idx_lang)
         self._ui_lang_combo.currentIndexChanged.connect(self._on_lang_combo_changed)
 
+        # The bar is where a long run keeps going while the window is out of the way, so this is
+        # the way back to it: without a button the bar could be closed once and never seen again.
+        self._bar_btn = QPushButton("▤")
+        self._bar_btn.setToolTip(f"{UIStrings.BAR_TOGGLE} — {UIStrings.BAR_TOGGLE_HINT}")
+        self._bar_btn.clicked.connect(self.bar_requested.emit)
+
         self._help_btn = QPushButton("?")
         self._help_btn.setToolTip(UIStrings.HELP_TITLE)
         self._help_btn.clicked.connect(self.help_requested.emit)
@@ -207,6 +215,10 @@ class HeaderBar(QFrame):
             self._ui_lang_combo.blockSignals(True)
             self._ui_lang_combo.setCurrentIndex(idx)
             self._ui_lang_combo.blockSignals(False)
+
+    def set_bar_available(self, available: bool) -> None:
+        """The compact-bar button only means something while a run is going."""
+        self._bar_btn.setEnabled(available)
 
     def retranslate_ui(self) -> None:
         # Başlık ve etiketleri güncel dilde yeniler / Retranslates header texts in active language

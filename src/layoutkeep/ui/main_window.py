@@ -100,6 +100,19 @@ class MainWindow(QWidget):
             raise RuntimeError("the floating bar was already destroyed")
         return bar
 
+    def _switch_to_bar(self) -> None:
+        """Hand the run to the floating bar: the window steps aside and the bar takes over.
+
+        The bar used to be a one-way door. It appeared when a job started and when the window was
+        minimised, and once it was folded or closed there was nothing left to bring it back - the
+        reader had a running job and no compact view of it. This is the way in; the bar's own
+        "back to window" button is the way out again.
+        """
+        if self._worker is None:
+            return
+        tunables.set_value("ui.floating_progress", True)
+        self.hide()  # hideEvent hands the run to the bar (see `_sync_bar_visibility`)
+
     def _sync_bar_visibility(self) -> None:
         """The window and the bar take turns, so a run never shows two progress displays at once.
 
@@ -137,6 +150,8 @@ class MainWindow(QWidget):
         layout.setSpacing(0)
         self._header.tweaks_requested.connect(self._open_tweaks)
         self._header.help_requested.connect(self.show_help)
+        self._header.bar_requested.connect(self._switch_to_bar)
+        self._header.set_bar_available(False)
         layout.addWidget(self._header)
         layout.addWidget(self._stack)
 
@@ -227,6 +242,7 @@ class MainWindow(QWidget):
         self._worker.failed.connect(self._bar.fail)
         if bool(tunables.get("ui.floating_progress")):
             self._bar.start_job(Path(config.input_path).name)
+            self._header.set_bar_available(True)
             self._sync_bar_visibility()
         self._worker.start()
 

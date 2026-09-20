@@ -61,3 +61,25 @@ def test_closing_the_window_takes_the_bar_with_it(window: MainWindow) -> None:
     QApplication.processEvents()
     window.close()
     assert window._floating is None
+
+
+def test_the_header_button_hands_the_run_to_the_bar(window: MainWindow) -> None:
+    """The way back: once folded or closed, nothing used to bring the bar back."""
+    window.show()
+    QApplication.processEvents()
+    window._worker = object()  # only "a run is going" is read here
+    try:
+        window._header.bar_requested.emit()
+        QApplication.processEvents()
+        assert not window.isVisible()
+        assert window._floating.isVisible()
+    finally:
+        window._worker = None
+
+
+def test_the_bar_button_is_only_live_while_a_run_is_going(window: MainWindow) -> None:
+    assert not window._header._bar_btn.isEnabled()
+    window._header.set_bar_available(True)
+    assert window._header._bar_btn.isEnabled()
+    window._header.set_bar_available(False)
+    assert not window._header._bar_btn.isEnabled()
