@@ -24,6 +24,7 @@ from layoutkeep.core.docir import (
 )
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
+from layoutkeep.ui.translation_loop import _run_translation_loop
 
 #: How many segments the worker hands the provider at a time.
 #:
@@ -163,12 +164,6 @@ def _build_provider(config: JobConfig):
 # ---------------------------------------------------------------------------
 
 
-def _segment_preview(source_text: str) -> str:
-    """Build the short single-line preview shown next to the active segment."""
-    clean = source_text.strip().replace("\n", " ")
-    return clean[:77] + "…" if len(clean) > 80 else clean
-
-
 def _timeout_error_message(base_url: str, timeout: float) -> str:
     return (
         f"Sunucu ({base_url}) {timeout:.0f} saniye içinde yanıt vermedi.\n"
@@ -184,118 +179,6 @@ def _connection_error_message(base_url: str, exc: Exception) -> str:
         "LM Studio (1234 portu) veya Ollama (11434 portu) sunucusunun çalıştığından "
         "ve sunucu modunun etkin olduğundan emin olun."
     )
-
-
-def _run_translation_loop(
-    worker: TranslationWorker,
-    provider,
-    memory,
-    segments: list[Segment],
-    total: int,
-    total_chars: int,
-    *,
-    source_lang: str,
-    target_lang: str,
-    glossary: dict[str, str] | None = None,
-) -> list[Segment] | None:
-    """Translate `segments` in batches; returns None if cancelled or a batch errored."""
-    from layoutkeep.providers.batching import BatchProgress
-
-    worker.status.emit("translating")
-    translated: list[Segment] = []
-    chars_per_second: float | None = None
-    done_chars = 0
-
-    chunk_size = tunables.get("batch.chunk_size")
-    for batch_index, start in enumerate(range(0, total, chunk_size)):
-        if worker._cancelled:
-            worker.status.emit("cancelled")
-            return None
-
-        if not worker._pause_event.is_set():
-            # Reached the boundary: now it really is paused, not merely asked to.
-            worker.status.emit(UIStrings.STATUS_PAUSED)
-        while not worker._pause_event.is_set():
-            if worker._cancelled:
-                worker.status.emit("cancelled")
-                return None
-            time.sleep(0.1)
-
-        batch = segments[start : start + chunk_size]
-        worker.active_segment.emit(start + 1, _segment_preview(batch[0].source))
-        batch_chars = sum(len(s.source) for s in batch)
-        timeout = _compute_batch_timeout(
-            provider,
-            worker._config.provider.timeout,
-            batch_chars,
-            is_first=batch_index == 0,
-            chars_per_second=chars_per_second,
-        )
-        _set_provider_timeout(provider, timeout)
-        worker.batch_timeout.emit(timeout)
-
-        hits_before = memory.stats()["hits"] if memory is not None else 0
-        started = time.monotonic()
-        base_done = len(translated)
-        base_chars = done_chars
-
-        def _sub_progress(
-            bp: BatchProgress,
-            b_done: int = base_done,
-            b_chars: int = base_chars,
-        ) -> None:
-            curr_done = b_done + bp.segments_done
-            curr_chars = b_chars + bp.chars_done
-            worker.progress.emit(curr_done, total)
-            worker.progress_detailed.emit(curr_done, total, curr_chars, total_chars, 0.0, "")
-
-        try:
-            result = provider.translate(
-                batch,
-                src_lang=source_lang,
-                tgt_lang=target_lang,
-                glossary=glossary,
-                on_progress=_sub_progress,
-            )
-        except TimeoutError:
-            worker.failed.emit(_timeout_error_message(worker._config.provider.base_url, timeout))
-            return None
-        except OSError as exc:
-            worker.failed.emit(_connection_error_message(worker._config.provider.base_url, exc))
-            return None
-
-        elapsed = time.monotonic() - started
-        hit_this = memory is not None and memory.stats()["hits"] > hits_before
-        # Her gerçek (memory-hit olmayan) batch'te hızı güncelle: hem timeout hesabı hem UI
-        # hız göstergesi için. İlk ölçüme kilitlenmek yanlış - soğuk model yüklemesi ilk
-        # batch'i her zaman yavaşlatır ve sonraki batch'ler daha hızlıdır.
-        measured = batch_chars > 0 and elapsed > 0 and not hit_this
-        if measured:
-            chars_per_second = batch_chars / elapsed
-
-        translated.extend(result)
-        # The progress screen shows source and translation side by side; until now only the
-        # source was emitted, so the right-hand panel had nothing to draw.
-        for produced in result:
-            if produced.target:
-                worker.segment_translated.emit(
-                    _segment_preview(produced.source), _segment_preview(produced.target)
-                )
-        worker.review_flags.emit(
-            sum(1 for seg in translated if seg.needs_review), len(translated)
-        )
-        done_chars += batch_chars
-        # UI'a giden hız: bu batch'in ölçülen hızı (batch_chars / elapsed), kümülatif değil.
-        # Memory hit batch'leri ~0 saniyede döner - onların "hızı" gerçek değildir, 0.0
-        # gönder (EtaCalculator 0.0'ı ölçüm yok sayar).
-        rate = chars_per_second if measured else 0.0
-        worker.progress.emit(len(translated), total)
-        worker.progress_detailed.emit(len(translated), total, done_chars, total_chars, rate, "")
-        if memory is not None:
-            st = memory.stats()
-            worker.memory_stats.emit(st["hits"], st["hits"] + st["misses"])
-
-    return translated
 
 
 def _compute_batch_timeout(
