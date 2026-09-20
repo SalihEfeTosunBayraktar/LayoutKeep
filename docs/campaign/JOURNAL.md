@@ -2092,5 +2092,8 @@ Two things this leaves on the table, worth doing rather than forgetting:
    `out/t_NNNN.log`; what was missing was any hint of *where* the chunk died. A failing chunk should
    leave the stage it died in - the reader, the model, the fitting pass or the writer - in its log.
 2. **A chunk that fails after eleven hours of a campaign gets no automatic second try.** `--resume`
-   covers it, but only if someone notices the document was not merged. A single in-run retry would
-   have finished this document at 23:00 with nobody watching.
+   covers it, but only if someone notices the document was not merged. **Done the same night:**
+   `translate_book.py` retries each failed chunk once, sequentially, through `_retry_failed`
+   (`tests/test_translate_book_retry.py`, four tests, no model server involved). A chunk that fails
+   twice is still a real failure and is reported as one, and the tool was re-run over the finished
+   document afterwards to prove the edit did not break the runner (`merged 50 chunks -> 198 pages`).
