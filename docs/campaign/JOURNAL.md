@@ -2100,6 +2100,42 @@ Two things this leaves on the table, worth doing rather than forgetting:
    twice is still a real failure and is reported as one, and the tool was re-run over the finished
    document afterwards to prove the edit did not break the runner (`merged 50 chunks -> 198 pages`).
 
+## The budget-capped dedupe fix, measured: the readability floor moves for the first time
+
+The dedupe pass shared a repeat whenever the source text matched, so the fitting pass's *capped*
+shorten request (`max_len`) could be answered by a sister occurrence's uncapped translation - a
+capping segment received text that ignored its budget, and `providers/cached.py` already refuses to do
+that with a memory hit. The fix forwards a capped repeat to the provider instead of sharing.
+
+Measured on `tr_tck_5237`, which is the only honest way to keep it: a **copy** of the recorded run with
+its `out/t_*.pdf` deleted, re-run with `--resume`, so the memory answers the translations and only the
+shorten path reaches the model. One variable changed - the fix. 21.6 minutes, 22 chunks, 88 pages.
+
+| criterion | before | after | change |
+|---|---|---|---|
+| L2 left untranslated | 52 | **31** | **-21** |
+| L6 numbers lost | 44 | 41 | -3 |
+| L7 text drawn over text | 13 | 14 | **+1** |
+| D1 below readability floor | 429 | **391** | **-38** |
+| D2 short blocks left unchanged | 12 | 9 | -3 |
+| L1, L3-L5, L8-L10, D3 | 0 / 0 / 0 / 16 / 0 / 2 | unchanged | - |
+
+The cost is recorded with the benefit: **L7 goes up by one**, which is the same trade this project has
+paid before when more text is drawn honestly rather than squeezed into place. The per-box typography
+measurement (`type_map.py`) is flat - 74 boxes, `faithful` 36 -> 35, `shrunk` 31 -> 31, `flattened` 6
+-> 6, `mixed` 1 -> 2 - so the fix does not change the *drawn sizes*; it changes *which text* is drawn,
+which is why the criterion that moved is the readability floor and the untranslated count, not the
+shrink count. Two instruments, two answers, and both belong in the record.
+
+This is the first A/B in the campaign where D1 has moved at all. Until now every attempt at the shrink
+ladder (the writer's own box, tighter leading, widening a narrow box) came back flat or worse; the
+lever turns out to be *what the model is asked for*, not how the fitting pass is tuned.
+
+The re-run is kept at `_artifacts/heldout/live/tr_tck_5237_ab` (untracked, like everything under
+`_artifacts/`), so the comparison site can be regenerated from the improved pages rather than the older
+run - its `tr_tck_5237` images currently come from before this fix.
+
+
 ## Gece nöbeti: kısaltma merdiveni neden hiç istek atmıyor (TR -> EN)
 
 `fit.shorten_below_scale` (`_SHRUNK_ATTEMPTS = 2`) yolunun ölçümü iki aletle yapıldı:
