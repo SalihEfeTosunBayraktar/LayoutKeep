@@ -50,7 +50,7 @@ def test_the_left_half_is_the_source_and_the_right_half_the_translation(tmp_path
 
     with pymupdf.open(str(out)) as dual:
         page = dual[0]
-        left = pymupdf.Rect(0, 0, page.rect.width / 2, page.rect.height)
+        pymupdf.Rect(0, 0, page.rect.width / 2, page.rect.height)
         words_left = " ".join(w[4] for w in page.get_text("words") if w[0] < page.rect.width / 2)
         words_right = " ".join(w[4] for w in page.get_text("words") if w[0] >= page.rect.width / 2)
     assert "ORIGINAL" in words_left, "the source page should be on the left"
