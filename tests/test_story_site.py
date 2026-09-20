@@ -23,10 +23,16 @@ ROOT = Path(__file__).resolve().parents[1]
 STORY = ROOT / "docs/story"
 
 
-def _generate(tmp_path: Path) -> Path:
-    """Run the real generator into `tmp_path`, with the real Markdown sources."""
+def _copy_sources(tmp_path: Path) -> Path:
+    """The real Markdown sources in a temporary story directory."""
     story = tmp_path / "story"
+    if story.exists():
+        shutil.rmtree(story)
     shutil.copytree(STORY, story, ignore=shutil.ignore_patterns("*.html"))
+    return story
+
+
+def _run_generator(story: Path) -> None:
     result = subprocess.run(
         [
             sys.executable,
@@ -41,6 +47,12 @@ def _generate(tmp_path: Path) -> Path:
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+def _generate(tmp_path: Path) -> Path:
+    """Run the real generator into `tmp_path`, with the real Markdown sources."""
+    story = _copy_sources(tmp_path)
+    _run_generator(story)
     return story
 
 
@@ -68,8 +80,14 @@ def test_every_generated_link_resolves(tmp_path) -> None:
 
 
 def test_a_missing_translation_falls_back_visibly(tmp_path) -> None:
-    """A half-finished translation must read as half-finished, not as a broken page."""
-    story = _generate(tmp_path)
+    """A half-finished translation must read as half-finished, not as a broken page.
+
+    Deterministic on purpose: the translation is deleted from the temporary copy rather than
+    relying on some chapter not being translated yet (which changes as translations land).
+    """
+    story = _copy_sources(tmp_path)
+    (story / "en" / "04-hatalar.md").unlink()
+    _run_generator(story)
     translated = story / "en" / "04-hatalar.html"
     assert translated.exists()
     html = translated.read_text(encoding="utf-8")

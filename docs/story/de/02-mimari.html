@@ -67,7 +67,7 @@
 </nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
 <h1>2. Mimari: boru hattının her parçası</h1>
 <p>Bu bölüm, depodaki kodun nasıl bir araya geldiğini anlatır — hangi modül ne yapar, neden o sınırda durur, ve o sınırı çizmek hangi hatayı önledi. Sayılar bu depodan (<code>wc -l</code>, 2026-09-20).</p>
-<p><img alt="LayoutKeep çeviri hattı" src="architecture.png"></p>
+<p><img alt="LayoutKeep çeviri hattı" src="../architecture.png"></p>
 <h2>2.1 Genel akış</h2>
 <pre><code>oku → DocIR → segmentle → sağlayıcı zinciri → sığdır → yaz → doğrula → işaretle</code></pre>
 <p>Her aşama bir sonrakinin girdisini üretir ve <strong>hiçbiri diğerinin işini yapmaz</strong>. Bu ayrım teorik değil: her sınır, bir hatanın düzeltilmesiyle çizildi. Örneğin "sığdırma çeviriden ayrı bir aşama olmalı" (D3) kuralı, modelin "şu cümleyi kısalt" isteğine cevap verirken çeviri kalitesini bozmasından sonra yazıldı — model artık kısaltma istemini yalnız <em>ikinci</em> turda ve yalnız sığdırma aşamasında görür.</p>
