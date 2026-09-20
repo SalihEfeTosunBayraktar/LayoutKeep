@@ -18,6 +18,7 @@ from typing import Any
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -193,7 +194,23 @@ class TweaksDialog(QDialog):
         self._footer.setProperty("class", "muted")
         self._footer.setWordWrap(True)
 
+        # Hazır ayar: birkaç değeri birlikte değiştiren tek seçim. Değerler yine aynı doğrulanmış
+        # yoldan yazılır, yani sonrasında tek tek düzenlenebilir ve dialogda görünür.
+        self._profile = QComboBox()
+        self._profile.addItem(UIStrings.PROFILE_CUSTOM, "")
+        self._profile.addItem(UIStrings.PROFILE_DRAFT, "draft")
+        self._profile.addItem(UIStrings.PROFILE_QUALITY, "quality")
+        self._profile.setToolTip(UIStrings.PROFILE_HINT)
+        self._sync_profile()
+        self._profile.currentIndexChanged.connect(self._on_profile_changed)
+
+        profile_row = QHBoxLayout()
+        profile_row.addWidget(QLabel(UIStrings.PROFILE_LABEL))
+        profile_row.addWidget(self._profile)
+        profile_row.addWidget(QLabel(UIStrings.PROFILE_HINT), 1)
+
         layout = QVBoxLayout(self)
+        layout.addLayout(profile_row)
         layout.addWidget(tabs)
         layout.addWidget(self._footer)
         layout.addLayout(bottom)
@@ -300,6 +317,33 @@ class TweaksDialog(QDialog):
             if value is not None:
                 tunables.set_value(key, value)
         tunables.save()
+        self.applied.emit()
+
+    def _sync_profile(self) -> None:
+        """Point the combo at the profile the settings currently match (or "custom")."""
+        from layoutkeep.core import profiles
+
+        matched = profiles.current() or ""
+        index = self._profile.findData(matched)
+        self._profile.blockSignals(True)
+        self._profile.setCurrentIndex(index if index >= 0 else 0)
+        self._profile.blockSignals(False)
+
+    def _on_profile_changed(self, _index: int) -> None:
+        from layoutkeep.core import profiles
+
+        chosen = self._profile.currentData() or ""
+        if not chosen:
+            return
+        try:
+            profiles.apply(chosen)
+        except ValueError as error:
+            self._footer.setText(str(error))
+            return
+        # The widgets show the values the dialog will save: a profile that moved them behind the
+        # dialog's back would be overwritten by the next OK press.
+        for key, editor in self._editors.items():
+            _set_editor_value(editor, tunables.get(key))
         self.applied.emit()
 
     def _apply_and_close(self) -> None:
