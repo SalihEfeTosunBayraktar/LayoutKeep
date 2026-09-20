@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>4. Hata kataloğu: on altı vaka — LayoutKeep</title>
-<meta name="description" content="4. Hata kataloğu: on altı vaka — LayoutKeep — sıfırdan bugüne">
+<title>4. The bug catalogue: sixteen cases — LayoutKeep</title>
+<meta name="description" content="4. The bug catalogue: sixteen cases — LayoutKeep — from nothing to now">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -57,14 +57,15 @@
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="../../">← LayoutKeep</a>
 <nav class="story-langs">
-  <span class='here'>Türkçe</span> <a href='en/04-hatalar.html'>English</a> <a href='de/04-hatalar.html'>Deutsch</a>
+  <a href='../04-hatalar.html'>Türkçe</a> <span class='here'>English</span> <a href='../de/04-hatalar.html'>Deutsch</a>
 </nav>
 <nav class="story-nav">
-  <a href="index.html">Giriş</a>
+  <a href="index.html">Introduction</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <span class='here'>4</span> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><h1>4. Hata kataloğu: on dört vaka, belirtiden teste</h1>
+</nav><p class="untranslated"><em>This chapter has not been translated yet; the Turkish original is shown below.</em></p>
+<h1>4. Hata kataloğu: on dört vaka, belirtiden teste</h1>
 <p>Bu bölüm projenin hafızasıdır. Her vaka şu kalıpta yazılıdır: <strong>belirti</strong> (kim, nasıl fark etti), <strong>araştırma</strong> (hangi ölçüm yapıldı), <strong>kök neden</strong> (kodun neresi, neden öyle yazılmıştı), <strong>çözüm</strong> (ne değişti), <strong>kanıt</strong> (hangi test/ölçüm). Kasten sıralı değil, önem sırasına göre.</p>
 <h2>4.1 "Model bulunamadı" — hata mesajı yalan söylüyordu</h2>
 <p><strong>Belirti.</strong> LM Studio'da model yüklü, uygulama "Model bulunamadı" diyor. Model değiştirildi, sunucu yeniden başlatıldı, hiçbiri işe yaramadı.</p>
@@ -157,9 +158,9 @@
 <p><strong>Belirti (kullanıcı kriteri).</strong> <em>"açık kaynaklı olan içerikleri githubda yayınla gerisi lokalde kalsın."</em></p>
 <p><strong>Araştırma.</strong> İzlenen dosya taraması: <code>tests/layout_eval/</code> altında 62 JPEG vardı; ikisi telifli bir ders kitabının sayfaları (<code>computer-systems-Architecture.pdf</code>), biri kişisel bir tarama (<code>Notes_...</code>), artı bir <code>run.log</code>. Toplam izlenen depo: <strong>36 MB</strong>.</p>
 <p><strong>Çözüm.</strong> Telifli/kişisel görüntüler <strong>izlemeden çıkarıldı</strong> (dosyalar diskte kaldı, README'lerine "telif nedeniyle yayından çıkarıldı, komutlarla yeniden üretilebilir" notu düşüldü). Kamu malı NASA görüntüleri kaldı. <code>.gitignore</code> kuralları eklendi. İkinci geçişte bir alt klasördeki zoom'lar da (ilk taramada gözden kaçmıştı) çıkarıldı. <strong>İzlenen depo: 36 MB → 12 MB.</strong></p>
-<p><strong>Ders.</strong> İlk tarama yeterli değildi; desen eşleşmesi alt klasörleri kapsamıyordu. Tekrar taramak "gereksiz titizlik" değil, tamamlanmış işin parçasıydı.</p><p class="pager"><a href="03-olcum.html">← önceki bölüm</a> · <a href="05-model.html">sonraki bölüm →</a></p>
+<p><strong>Ders.</strong> İlk tarama yeterli değildi; desen eşleşmesi alt klasörleri kapsamıyordu. Tekrar taramak "gereksiz titizlik" değil, tamamlanmış işin parçasıydı.</p><p class="pager"><a href="03-olcum.html">← previous chapter</a> · <a href="05-model.html">next chapter →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  This page is generated from <code>docs/STORY.md</code> by <code>tools/story_site.py</code>. Comparison site: <a href="../../comparison/">original ↔ translation</a>.
 </footer>
 </main>
 </body>

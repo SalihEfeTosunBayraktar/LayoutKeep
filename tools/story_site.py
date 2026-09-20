@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 #: The page's own styling: light and dark, no external requests, no framework.
 TEMPLATE = """<!doctype html>
-<html lang="tr">
+<html lang="{lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -66,6 +66,12 @@ TEMPLATE = """<!doctype html>
   .story-nav a {{ text-decoration: none; padding: .1rem .35rem; }}
   .story-nav .here {{ background: var(--accent); color: #fff; border-radius: 6px;
                       padding: .1rem .45rem; font-weight: 600; }}
+  .story-langs {{ display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }}
+  .story-langs a, .story-langs .here {{ padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }}
+  .story-langs .here {{ background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }}
+  .untranslated {{ border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }}
   .pager {{ display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
             padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }}
   footer {{ margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }}
@@ -73,11 +79,11 @@ TEMPLATE = """<!doctype html>
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="{home}">← LayoutKeep</a>
+{switcher}
 {body}
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
-  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  {footer}
 </footer>
 </main>
 </body>
@@ -194,105 +200,254 @@ def markdown_to_html(markdown: str) -> str:
     return "\n".join(out)
 
 
-#: Chapters are rendered in this order; the index links them and each page carries prev/next.
+#: Chapters are rendered in this order. The titles live with the languages below: a translated
+#: page showing a Turkish title would be worse than not translating it at all.
 CHAPTERS = [
-    ("01-problem", "1. Problem: kayıpsız çeviri ne demek"),
-    ("02-mimari", "2. Mimari: boru hattının her parçası"),
-    ("03-olcum", "3. Ölçüm disiplini"),
-    ("04-hatalar", "4. Hata kataloğu: on dört vaka"),
-    ("05-model", "5. Model seçimi ve IBM Docling"),
-    ("06-urun", "6. Ürünleşme: motordan uygulamaya"),
-    ("07-sinirlar", "7. Dürüst sınırlar ve dersler"),
-    ("08-kaynaklar", "8. Dış kaynaklar ve atıflar"),
+    "01-problem",
+    "02-mimari",
+    "03-olcum",
+    "04-hatalar",
+    "05-model",
+    "06-urun",
+    "07-sinirlar",
+    "08-kaynaklar",
 ]
+
+#: The languages the story is published in. Turkish is the original and lives in `docs/story/`;
+#: the others live beside it in their own directory (`docs/story/en/04-hatalar.md`). A chapter
+#: without a translation falls back to the original with a visible note, so a half-finished
+#: translation reads as half-finished rather than as a broken page - and adding a language is one
+#: entry here plus the translated files, nothing else.
+LANGUAGES: dict[str, dict] = {
+    "tr": {
+        "label": "Türkçe",
+        "dir": "",
+        "index_title": "Giriş",
+        "page_title": "LayoutKeep — sıfırdan bugüne",
+        "description": "LayoutKeep'in tam kaydı: ne denendi, ne kırıldı, hangi kök neden ölçüldü.",
+        "prev": "← önceki bölüm",
+        "next": "sonraki bölüm →",
+        "intro": "← giriş",
+        "missing": "",
+        "footer": (
+            'Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile '
+            'üretildi. Karşılaştırma sitesi: <a href="{root}comparison/">orijinal ↔ çeviri</a>.'
+        ),
+        "titles": {
+            "01-problem": "1. Problem: kayıpsız çeviri ne demek",
+            "02-mimari": "2. Mimari: boru hattının her parçası",
+            "03-olcum": "3. Ölçüm disiplini",
+            "04-hatalar": "4. Hata kataloğu: on altı vaka",
+            "05-model": "5. Model seçimi ve IBM Docling",
+            "06-urun": "6. Ürünleşme: motordan uygulamaya",
+            "07-sinirlar": "7. Dürüst sınırlar ve dersler",
+            "08-kaynaklar": "8. Dış kaynaklar ve atıflar",
+        },
+    },
+    "en": {
+        "label": "English",
+        "dir": "en",
+        "index_title": "Introduction",
+        "page_title": "LayoutKeep — from nothing to now",
+        "description": "The full record of LayoutKeep: what was tried, what broke, which root cause was measured.",
+        "prev": "← previous chapter",
+        "next": "next chapter →",
+        "intro": "← introduction",
+        "missing": (
+            "<p class=\"untranslated\"><em>This chapter has not been translated yet; the Turkish "
+            "original is shown below.</em></p>\n"
+        ),
+        "footer": (
+            'This page is generated from <code>docs/STORY.md</code> by '
+            '<code>tools/story_site.py</code>. Comparison site: '
+            '<a href="{root}comparison/">original ↔ translation</a>.'
+        ),
+        "titles": {
+            "01-problem": "1. The problem: what lossless translation means",
+            "02-mimari": "2. Architecture: every part of the pipeline",
+            "03-olcum": "3. Measurement discipline",
+            "04-hatalar": "4. The bug catalogue: sixteen cases",
+            "05-model": "5. Choosing the model, and IBM Docling",
+            "06-urun": "6. From engine to product",
+            "07-sinirlar": "7. Honest limits and lessons",
+            "08-kaynaklar": "8. External sources and citations",
+        },
+    },
+    "de": {
+        "label": "Deutsch",
+        "dir": "de",
+        "index_title": "Einführung",
+        "page_title": "LayoutKeep — von null bis heute",
+        "description": "Die vollständige Aufzeichnung von LayoutKeep: was versucht wurde, was brach, welche Ursache gemessen wurde.",
+        "prev": "← voriges Kapitel",
+        "next": "nächstes Kapitel →",
+        "intro": "← Einführung",
+        "missing": (
+            "<p class=\"untranslated\"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das "
+            "türkische Original.</em></p>\n"
+        ),
+        "footer": (
+            'Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> '
+            'erzeugt. Vergleichsseite: <a href="{root}comparison/">Original ↔ Übersetzung</a>.'
+        ),
+        "titles": {
+            "01-problem": "1. Das Problem: Was verlustfreie Übersetzung bedeutet",
+            "02-mimari": "2. Architektur: jedes Teil der Pipeline",
+            "03-olcum": "3. Messdisziplin",
+            "04-hatalar": "4. Der Fehlerkatalog: sechzehn Fälle",
+            "05-model": "5. Die Modellwahl und IBM Docling",
+            "06-urun": "6. Vom Motor zum Produkt",
+            "07-sinirlar": "7. Ehrliche Grenzen und Lehren",
+            "08-kaynaklar": "8. Externe Quellen und Zitate",
+        },
+    },
+}
 
 #: A small nav strip under the title: the reader is three pages deep and needs a way back.
 NAV_TEMPLATE = """<nav class="story-nav">
-  <a href="index.html">Giriş</a>
+  <a href="index.html">{index}</a>
+  {links}
+</nav>"""
+
+#: The language switch, one link per language, the current one marked. Every page carries it, so a
+#: reader who lands on a chapter in the wrong language is one click from the right one.
+SWITCH_TEMPLATE = """<nav class="story-langs">
   {links}
 </nav>"""
 
 
-def _nav(current: str) -> str:
+def _switch(language: str, slug: str | None) -> str:
+    """The language strip for a page, with paths relative to that page's own directory."""
     links = []
-    for slug, title in CHAPTERS:
-        number = title.split(".")[0]
+    for code, spec in LANGUAGES.items():
+        page = f"{slug}.html" if slug else "index.html"
+        if code == language:
+            links.append(f"<span class='here'>{spec['label']}</span>")
+            continue
+        if spec["dir"]:
+            target = f"../{spec['dir']}/{page}" if language != "tr" else f"{spec['dir']}/{page}"
+        else:
+            target = f"../{page}" if language != "tr" else page
+        links.append(f"<a href='{target}'>{spec['label']}</a>")
+    return SWITCH_TEMPLATE.format(links=" ".join(links))
+
+
+def _nav(language: str, current: str) -> str:
+    spec = LANGUAGES[language]
+    links = []
+    for slug in CHAPTERS:
+        number = spec["titles"][slug].split(".")[0]
         if slug == current:
             links.append(f"<span class='here'>{number}</span>")
         else:
             links.append(f"<a href='{slug}.html'>{number}</a>")
-    return NAV_TEMPLATE.format(links=" ".join(links))
+    return NAV_TEMPLATE.format(index=spec["index_title"], links=" ".join(links))
 
 
-def _pager(current: str) -> str:
+def _pager(language: str, current: str) -> str:
     """Previous / next links, so a chapter can be read straight through."""
-    slugs = [slug for slug, _title in CHAPTERS]
-    if current not in slugs:
+    spec = LANGUAGES[language]
+    if current not in CHAPTERS:
         return ""
-    position = slugs.index(current)
+    position = CHAPTERS.index(current)
     parts = []
     if position > 0:
-        parts.append(f"<a href=\"{slugs[position - 1]}.html\">← önceki bölüm</a>")
+        parts.append(f"<a href=\"{CHAPTERS[position - 1]}.html\">{spec['prev']}</a>")
     else:
-        parts.append("<a href=\"index.html\">← giriş</a>")
-    if position + 1 < len(slugs):
-        parts.append(f"<a href=\"{slugs[position + 1]}.html\">sonraki bölüm →</a>")
+        parts.append(f"<a href=\"index.html\">{spec['intro']}</a>")
+    if position + 1 < len(CHAPTERS):
+        parts.append(f"<a href=\"{CHAPTERS[position + 1]}.html\">{spec['next']}</a>")
     return "<p class=\"pager\">" + " · ".join(parts) + "</p>"
 
 
-def _chapter_body(path: Path) -> str:
+def _chapter_body(path: Path, depth: int) -> str:
     """A chapter's HTML, with link and image paths re-based for the page it lands on.
 
     Chapters live in `docs/story/` and reference `architecture.png` beside them, which is the same
-    relative path on the page - so only `../screenshots/` (used by the index) needs rewriting. The
-    index's table of contents points at `story/01-problem.md` so the links work on GitHub; on the
-    page those have to become `01-problem.html`, which is the page that actually exists there.
+    relative path on the page in the original language - and one level up from a translated page,
+    which sits in its own directory. The index's table of contents points at `story/01-problem.md`
+    so the links work on GitHub; on the page those have to become `01-problem.html`.
     """
     body = markdown_to_html(path.read_text(encoding="utf-8"))
-    body = body.replace('src="story/', 'src="').replace('src="screenshots/', 'src="../screenshots/')
+    up = "../" * depth
+    body = body.replace('src="story/', f'src="{up}').replace(
+        'src="screenshots/', f'src="{up}../screenshots/'
+    )
     return re.sub(r'href="story/([0-9]{2}-[a-z]+)\.md"', r'href="\1.html"', body)
+
+
+def _source_for(language: str, slug: str | None, source: Path, story_dir: Path) -> tuple[Path, bool]:
+    """The Markdown to render for a page, and whether it is a fallback to the Turkish original.
+
+    The index is `docs/STORY.md`; a chapter is `docs/story/<slug>.md`. A translation sits in the
+    language's own directory with the same name (`index.md`, `04-hatalar.md`).
+    """
+    spec = LANGUAGES[language]
+    original = source if slug is None else story_dir / f"{slug}.md"
+    if not spec["dir"]:
+        return original, False
+    translated = story_dir / spec["dir"] / ("index.md" if slug is None else f"{slug}.md")
+    return (translated, False) if translated.exists() else (original, True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=ROOT / "docs/STORY.md")
     parser.add_argument("--story-dir", type=Path, default=ROOT / "docs/story")
-    parser.add_argument("--out", type=Path, default=ROOT / "docs/story/index.html")
-    parser.add_argument("--title", default="LayoutKeep — sıfırdan bugüne")
-    parser.add_argument(
-        "--description",
-        default="LayoutKeep'in tam kaydı: ne denendi, ne kırıldı, hangi kök neden ölçüldü.",
-    )
+    parser.add_argument("--only", default="", help="render one language only (default: all)")
     args = parser.parse_args()
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    body = _chapter_body(args.source)
-    args.out.write_text(
-        TEMPLATE.format(title=html.escape(args.title), description=html.escape(args.description), body=body),
-        encoding="utf-8",
-    )
-    print(f"{args.source.name} -> {args.out.name} ({len(body)} karakter gövde)")
-
     written = 0
-    for slug, title in CHAPTERS:
-        source = args.story_dir / f"{slug}.md"
-        if not source.exists():
-            print(f"  ! {source.name} yok, atlandı")
+    for code, spec in LANGUAGES.items():
+        if args.only and code != args.only:
             continue
-        page = _chapter_body(source)
-        page = _nav(slug) + page + _pager(slug)
-        target = args.story_dir / f"{slug}.html"
-        target.write_text(
+        out_dir = args.story_dir / spec["dir"] if spec["dir"] else args.story_dir
+        out_dir.mkdir(parents=True, exist_ok=True)
+        depth = 1 if spec["dir"] else 0
+        root = "../" * (depth + 1)
+        home = "../" * (depth + 1)
+
+        source, fell_back = _source_for(code, None, args.source, args.story_dir)
+        body = _chapter_body(source, depth)
+        if fell_back and spec["missing"]:
+            body = spec["missing"] + body
+        (out_dir / "index.html").write_text(
             TEMPLATE.format(
-                title=html.escape(title + " — LayoutKeep"),
-                description=html.escape(f"LayoutKeep proje tarihçesi, bölüm: {title}."),
-                body=page,
+                lang=code,
+                title=html.escape(spec["page_title"]),
+                description=html.escape(spec["description"]),
+                home=home,
+                switcher=_switch(code, None),
+                body=body,
+                footer=spec["footer"].format(root=root),
             ),
             encoding="utf-8",
         )
+        print(f"[{code}] {source.name} -> {out_dir.name}/index.html ({len(body)} karakter gövde)")
         written += 1
-        print(f"  {source.name} -> {target.name} ({len(page)} karakter gövde)")
-    print(f"toplam {written} bölüm sayfası + giriş")
+
+        for slug in CHAPTERS:
+            source, fell_back = _source_for(code, slug, args.source, args.story_dir)
+            page = _chapter_body(source, depth)
+            if fell_back and spec["missing"]:
+                page = spec["missing"] + page
+            title = spec["titles"][slug]
+            (out_dir / f"{slug}.html").write_text(
+                TEMPLATE.format(
+                    lang=code,
+                    title=html.escape(f"{title} — LayoutKeep"),
+                    description=html.escape(f"{title} — {spec['page_title']}"),
+                    home=home,
+                    switcher=_switch(code, slug),
+                    body=_nav(code, slug) + page + _pager(code, slug),
+                    footer=spec["footer"].format(root=root),
+                ),
+                encoding="utf-8",
+            )
+            written += 1
+        if fell_back:
+            print(f"[{code}] {written} sayfa yazıldı (eksik çeviriler orijinalden)")
+    print(f"toplam {written} sayfa, {len(LANGUAGES)} dil")
     return 0
 
 

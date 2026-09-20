@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>5. Model seçimi ve IBM Docling — LayoutKeep</title>
-<meta name="description" content="5. Model seçimi ve IBM Docling — LayoutKeep — sıfırdan bugüne">
+<title>5. Die Modellwahl und IBM Docling — LayoutKeep</title>
+<meta name="description" content="5. Die Modellwahl und IBM Docling — LayoutKeep — von null bis heute">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -57,14 +57,15 @@
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="../../">← LayoutKeep</a>
 <nav class="story-langs">
-  <span class='here'>Türkçe</span> <a href='en/05-model.html'>English</a> <a href='de/05-model.html'>Deutsch</a>
+  <a href='../05-model.html'>Türkçe</a> <a href='../en/05-model.html'>English</a> <span class='here'>Deutsch</span>
 </nav>
 <nav class="story-nav">
-  <a href="index.html">Giriş</a>
+  <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <span class='here'>5</span> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><h1>5. Model seçimi: hangi model, neden — ve IBM Docling meselesi</h1>
+</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
+<h1>5. Model seçimi: hangi model, neden — ve IBM Docling meselesi</h1>
 <p>Bu bölümde iki ayrı model kararı var ve ikisi sık karıştırılıyor:</p>
 <ul><li><strong>Çeviriyi yapan model</strong> (LLM): yerel <code>google/gemma-4-e4b</code>, LM Studio üzerinden.</li><li><strong>Sayfanın düzenini bulan model</strong>: IBM Docling'in <strong>Heron</strong> düzen dedektörü (ONNX).</li><li>Ayrıca <strong>üçüncü bir hat</strong>: projeye özel ince ayar (Qwen2.5-7B QLoRA), ayrı bir çalışma.</li></ul>
 <p>"Neden IBM modeline geçtik" sorusunun cevabı üçüncü değil <strong>ikinci</strong> satırdır: çeviriyi IBM modeli yapmıyor; IBM'in modeli <em>sayfayı anlıyor</em>. Aşağıda her kararın gerekçesi ve ölçümü var.</p>
@@ -155,9 +156,9 @@
 <tr><td>Bulut çeviri (isteğe bağlı)</td><td>OpenAI uyumlu uç noktalar, DeepL</td><td>Güçlü modeller; kullanıcı açıkça seçerse</td></tr>
 <tr><td>Kalite garantisi</td><td><code>verify.py</code> + sözlük + bellek</td><td>Modelin zayıflığını belge bütünlüğüne taşımaz</td></tr>
 </tbody>
-</table><p class="pager"><a href="04-hatalar.html">← önceki bölüm</a> · <a href="06-urun.html">sonraki bölüm →</a></p>
+</table><p class="pager"><a href="04-hatalar.html">← voriges Kapitel</a> · <a href="06-urun.html">nächstes Kapitel →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>
 </main>
 </body>

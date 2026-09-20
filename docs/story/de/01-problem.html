@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>1. Problem: kayıpsız çeviri ne demek — LayoutKeep</title>
-<meta name="description" content="1. Problem: kayıpsız çeviri ne demek — LayoutKeep — sıfırdan bugüne">
+<title>1. Das Problem: Was verlustfreie Übersetzung bedeutet — LayoutKeep</title>
+<meta name="description" content="1. Das Problem: Was verlustfreie Übersetzung bedeutet — LayoutKeep — von null bis heute">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -57,14 +57,15 @@
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="../../">← LayoutKeep</a>
 <nav class="story-langs">
-  <span class='here'>Türkçe</span> <a href='en/01-problem.html'>English</a> <a href='de/01-problem.html'>Deutsch</a>
+  <a href='../01-problem.html'>Türkçe</a> <a href='../en/01-problem.html'>English</a> <span class='here'>Deutsch</span>
 </nav>
 <nav class="story-nav">
-  <a href="index.html">Giriş</a>
+  <a href="index.html">Einführung</a>
   <span class='here'>1</span> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><h1>1. Problem: "kayıpsız çeviri" tam olarak ne demek</h1>
+</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
+<h1>1. Problem: "kayıpsız çeviri" tam olarak ne demek</h1>
 <p>Bu bölüm, projenin çözmeye çalıştığı problemi tanımlar, neden zor olduğunu ölçülerle anlatır ve dışarıdaki çözümlerle karşılaştırır. Sonraki bölümler bu problem etrafında kurulan mimariyi, ölçümleri ve hataları anlatır.</p>
 <h2>1.1 Tanım</h2>
 <p>Bir PDF'i çevirmek, metni başka bir dilde yeniden yazmak demek değildir — o kolaydır: belgeyi okuyup metni çıkarır, modele verir, yeni bir belge üretirsiniz. Zor olan, <strong>sayfanın kendisini korumaktır</strong>: aynı sayfa boyutu, aynı sütun düzeni, aynı kutuya aynı yerde oturan metin, aynı başlık hiyerarşisi, aynı tablo ızgarası, aynı görseller, aynı dipnotlar. Okuyucu iki belgeyi yan yana koyduğunda "aynı kitabın başka bir dildeki baskısı" görmeli, "yeniden dizilmiş bir özet" değil.</p>
@@ -137,9 +138,9 @@
 <p>(L2, D1, D2, OCR güveni, korunan değer kaybı, biçim kaybı...).</p>
 <ol><li><strong>Kaynak ile çıktı sayfa sayfa karşılaştırılabilir.</strong> L1–L10 kuralları bunu sayar; denetim</li></ol>
 <p>çıktısı (<code>audit.json</code>) her koşunun yanında durur ve karşılaştırma sitesinde yayınlanır.</p>
-<p>Bu tanımın pratik sonucu: projenin başarısı "güzel görünüyor" ile değil, <strong>kalan bayrak sayısı</strong> ile ölçülür — ve o sayı her koşuda yazılır, kötü çıktığında da yazılır.</p><p class="pager"><a href="index.html">← giriş</a> · <a href="02-mimari.html">sonraki bölüm →</a></p>
+<p>Bu tanımın pratik sonucu: projenin başarısı "güzel görünüyor" ile değil, <strong>kalan bayrak sayısı</strong> ile ölçülür — ve o sayı her koşuda yazılır, kötü çıktığında da yazılır.</p><p class="pager"><a href="index.html">← Einführung</a> · <a href="02-mimari.html">nächstes Kapitel →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>
 </main>
 </body>

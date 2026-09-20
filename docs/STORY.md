@@ -18,9 +18,9 @@
 |---|---|---|
 | Desteklenen biçimler | PDF → PDF, EPUB, DOCX, PNG/JPG, LKPROJ | `capabilities.py` matrisi, iki yönlü testli |
 | Kayıpsızlık kriteri | **10 kayıp (L1–L10) + 3 kalite eşiği (D1–D3)** | `verify.py`; kriterler denetleyicinin kendisinden okunur |
-| Yayınlanan ölçüm seti | **22 belge**, 276 görsel, 0 "eski kayıt" | karşılaştırma sitesi (her belge kendi denetim sayılarıyla) |
+| Yayınlanan ölçüm seti | **24 belge**, 288 görsel, 0 "eski kayıt" | karşılaştırma sitesi (her belge kendi denetim sayılarıyla) |
 | En büyük gerçek koşu | 220 sayfalık istatistik kitabı, 55 parça, ~106 dakika | `translate_book.py`, `--workers 7` |
-| Test paketi | **1192 test**, 138 dosya | `.venv/Scripts/python.exe -m pytest -q` |
+| Test paketi | **1256 test**, 138 dosya | `.venv/Scripts/python.exe -m pytest -q` |
 | Kaynak kod | ~24.000 satır (`src/`), 56 denetim aracı | `wc -l`, `tools/audit/` |
 | Uygulama | tek dosya Windows exe (kurulumsuz), ~173 MB | PyInstaller onefile |
 | Çalışma zamanı modeli | `google/gemma-4-e4b`, LM Studio, varsayılan 2 işçi | yerel; belge makineden çıkmaz |
@@ -39,7 +39,7 @@ sonra hatalar, sonra model kararları, sonra ürün, sonra dürüst sınırlar v
 | 1 | [Problem: "kayıpsız çeviri" tam olarak ne demek](story/01-problem.md) | Tanım, dört ölçülmüş zorluk, dış araçlarla karşılaştırma tablosu, sözleşme (D1–D7) |
 | 2 | [Mimari: boru hattının her parçası](story/02-mimari.md) | Modüller ve satır sayıları, DocIR, okuyucular, sağlayıcı zinciri, sığdırma, yazıcılar, denetleyici |
 | 3 | [Ölçüm disiplini](story/03-olcum.md) | L1–L10 + D1–D3 tablosu, 56 denetim aracı, **ölçümün kendisinin üç kez yanılması** |
-| 4 | [Hata kataloğu: on dört vaka](story/04-hatalar.md) | Her vaka: belirti → araştırma → kök neden → çözüm → kanıt |
+| 4 | [Hata kataloğu: on altı vaka](story/04-hatalar.md) | Her vaka: belirti → araştırma → kök neden → çözüm → kanıt |
 | 5 | [Model seçimi ve IBM Docling meselesi](story/05-model.md) | Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı |
 | 6 | [Ürünleşme: motordan uygulamaya](story/06-urun.md) | Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, **çift dilli PDF**, sürümler, karşılaştırma sitesi |
 | 7 | [Dürüst sınırlar ve dersler](story/07-sinirlar.md) | Bugün çalışmayanlar, yol haritası, sekiz ders |
@@ -64,7 +64,7 @@ on the page"*.
 | 18 Eyl | Kayıpsızlık kampanyası: L kriterlerinin genişletilmesi, `lossless_audit`, held-out seti |
 | 19 Eyl | Çok işçili parça çevirisi (`--workers`), `--resume`, bellek ve sözlük sağlayıcıları, karşılaştırma sitesinin ilk sürümü |
 | 19–20 Eyl (gece) | 220 sayfalık kitap (55 parça, ~106 dk); L10'un ölçüm hatası; reflow'un iki ölçümü; sözlük/bellek arayüzde; yardım ve karşılama; yüzen çubuk |
-| 20 Eyl | Ürünleşme ve düzeltmeler: **uygulamada paralellik**, aralık davranışı, hizalama (justify), ölü ayar anahtarı, telif temizliği, sürümler **v0.9.1 → v0.9.5** |
+| 20 Eyl | Ürünleşme ve düzeltmeler: **uygulamada paralellik**, aralık davranışı, hizalama (justify), ölü ayar anahtarı, telif temizliği, sürümler **v0.9.1 → v0.9.7** |
 
 ---
 

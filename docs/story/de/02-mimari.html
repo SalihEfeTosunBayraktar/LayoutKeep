@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>2. Mimari: boru hattının her parçası — LayoutKeep</title>
-<meta name="description" content="2. Mimari: boru hattının her parçası — LayoutKeep — sıfırdan bugüne">
+<title>2. Architektur: jedes Teil der Pipeline — LayoutKeep</title>
+<meta name="description" content="2. Architektur: jedes Teil der Pipeline — LayoutKeep — von null bis heute">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -57,14 +57,15 @@
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="../../">← LayoutKeep</a>
 <nav class="story-langs">
-  <span class='here'>Türkçe</span> <a href='en/02-mimari.html'>English</a> <a href='de/02-mimari.html'>Deutsch</a>
+  <a href='../02-mimari.html'>Türkçe</a> <a href='../en/02-mimari.html'>English</a> <span class='here'>Deutsch</span>
 </nav>
 <nav class="story-nav">
-  <a href="index.html">Giriş</a>
+  <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <span class='here'>2</span> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><h1>2. Mimari: boru hattının her parçası</h1>
+</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
+<h1>2. Mimari: boru hattının her parçası</h1>
 <p>Bu bölüm, depodaki kodun nasıl bir araya geldiğini anlatır — hangi modül ne yapar, neden o sınırda durur, ve o sınırı çizmek hangi hatayı önledi. Sayılar bu depodan (<code>wc -l</code>, 2026-09-20).</p>
 <p><img alt="LayoutKeep çeviri hattı" src="architecture.png"></p>
 <h2>2.1 Genel akış</h2>
@@ -124,9 +125,9 @@ yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (ayn
 <p>DOCX ve EPUB yazıcıları aynı DocIR'ı kendi biçimlerine döker. <code>writers/converter.py</code> biçim çiftlerini yönetir ve D7 gereği <strong>yalnız ölçülmüş</strong> çiftleri sunar.</p>
 <h2>2.8 Denetleyici: projenin ayırt edici parçası</h2>
 <p><code>verify.py</code> çıktıyı kaynakla karşılaştırır ve on kayıp türünü sayar (L1–L10), üç de kalite eşiğini (D1–D3). Denetim <strong>iki taraflıdır</strong>: hem yazma öncesi DocIR üzerinde, hem yazılmış PDF'in kendisi üzerinde çalışır. İkincisi kritik — çünkü hataların bir kısmı yalnız <em>çizimde</em> oluşur (üst üste binen metin, sayfa dışına taşan kelime, figür üstüne düşen yazı).</p>
-<p>Denetim yalnız rapor etmez: kaybı bulduğunda <strong>yeniden sorar</strong> (<code>ask_again</code>), düzeltilebileni düzeltir, kalanı gerekçesiyle işaretler. Kullanıcı arayüzünde gördüğü "inceleme kuyruğu" bu işaretlerdir — her satırın bir nedeni vardır ve o neden Türkçe yazılıdır.</p><p class="pager"><a href="01-problem.html">← önceki bölüm</a> · <a href="03-olcum.html">sonraki bölüm →</a></p>
+<p>Denetim yalnız rapor etmez: kaybı bulduğunda <strong>yeniden sorar</strong> (<code>ask_again</code>), düzeltilebileni düzeltir, kalanı gerekçesiyle işaretler. Kullanıcı arayüzünde gördüğü "inceleme kuyruğu" bu işaretlerdir — her satırın bir nedeni vardır ve o neden Türkçe yazılıdır.</p><p class="pager"><a href="01-problem.html">← voriges Kapitel</a> · <a href="03-olcum.html">nächstes Kapitel →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>
 </main>
 </body>

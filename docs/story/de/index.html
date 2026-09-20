@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LayoutKeep — sıfırdan bugüne</title>
-<meta name="description" content="LayoutKeep&#x27;in tam kaydı: ne denendi, ne kırıldı, hangi kök neden ölçüldü.">
+<title>LayoutKeep — von null bis heute</title>
+<meta name="description" content="Die vollständige Aufzeichnung von LayoutKeep: was versucht wurde, was brach, welche Ursache gemessen wurde.">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -57,10 +57,11 @@
 </head>
 <body>
 <main>
-<a class="home" href="../">← LayoutKeep</a>
+<a class="home" href="../../">← LayoutKeep</a>
 <nav class="story-langs">
-  <span class='here'>Türkçe</span> <a href='en/index.html'>English</a> <a href='de/index.html'>Deutsch</a>
+  <a href='../index.html'>Türkçe</a> <a href='../en/index.html'>English</a> <span class='here'>Deutsch</span>
 </nav>
+<p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
 <h1>Sıfırdan bugüne LayoutKeep</h1>
 <p><strong>Ölçülmüş bir mühendislik hikâyesi: ne denedik, ne kırıldı, neyi düzelttik, neyi geri aldık.</strong></p>
 <blockquote><strong>English abstract.</strong> LayoutKeep translates PDF, EPUB and DOCX documents without moving anything on the page: every text box keeps its position and its size, figures stay where they were, tables keep their rows. This document is the project's full record - how it started, what was tried and abandoned (including a full rewrite and a fine-tuning campaign), which bugs were found and how each root cause was measured, why the runtime model is a local one and why the layout detector is IBM Docling's Heron, and what is still known to be broken. Every number here comes from a command that is written down next to it.</blockquote>
@@ -143,7 +144,7 @@
 <tr><td>220 sayfalık kitap</td><td>55</td><td>L2=2, L6=4, L7=1, L8=1, L10=0, D1=801 (küçük punto sınıfı)</td></tr>
 </tbody>
 </table>
-<p><img alt="Karşılaştırma sitesi" src="site.png"></p>
+<p><img alt="Karşılaştırma sitesi" src="../site.png"></p>
 <p><em>Yayınlanan karşılaştırma sitesi: solda orijinal, sağda çeviri, üstte o belgenin denetim sayıları.</em></p>
 <p><strong>Bilinen sınırlar (özet):</strong> tablo başlıklarındaki <strong>sayı şeritleri</strong> dizilişini kaybedebilir; kaynakça satırları bazen kaynak dilde kalır (L2, işaretli); yoğun formlarda okunabilirlik tabanının altına inen bloklar vardır (D1); taranmış sayfalar OCR kalitesine bağlıdır ve düşük güvenle işaretlenir; <strong>sağdan sola yazı sistemleri uygulanmamıştır</strong>; kalite modelin becerisidir. Ayrıntılı liste ve yol haritası: <a href="07-sinirlar.html">Bölüm 7</a>.</p>
 <hr>
@@ -152,7 +153,7 @@
 <hr>
 <p>*Bu belge depodaki <code>docs/CONTRACT.md</code>, <code>docs/campaign/JOURNAL.md</code>, <code>docs/MEASUREMENTS.md</code>, <code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code>, <code>docs/FEATURE-ROADMAP.md</code> dosyalarından, <code>_artifacts/heldout/**/audit.json</code> denetim kayıtlarından ve git geçmişinden derlendi.*</p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>
 </main>
 </body>
