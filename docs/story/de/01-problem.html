@@ -64,82 +64,81 @@
 <nav class="story-nav">
   <a href="index.html">Einführung</a>
   <span class='here'>1</span> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>1. The problem: what "lossless translation" actually means</h1>
-<p>This chapter defines the problem the project set out to solve, shows with measurements why it is hard, and compares it with what exists outside. The chapters after it describe the architecture built around that problem, the measurements, and the bugs.</p>
-<h2>1.1 The definition</h2>
-<p>Translating a PDF is not the same as rewriting its text in another language — that part is easy: read the document, extract the text, hand it to a model, produce a new document. The hard part is <strong>keeping the page itself</strong>: the same page size, the same column layout, text sitting in the same box in the same place, the same heading hierarchy, the same table grid, the same figures, the same footnotes. A reader putting the two documents side by side should see "the same book in another language", not "a summary that was laid out again".</p>
-<p>This project states that goal as: <strong>every translatable block is drawn in its source box, in typography close to the source's, keeping the source's position; nothing untranslatable disappears silently — it is either preserved or flagged.</strong></p>
-<h2>1.2 Why it is hard: four measured facts</h2>
-<p><strong>1) Text length changes, boxes do not.</strong> English→Turkish was measured at <strong>0.93x</strong> in this project (the ratio of character counts over the same segments) — so the translation is, on average, a little shorter than the source. Averages mislead: a heading goes <code>Introduction</code> → <code>Giriş</code> at half the length while a sentence can grow 60% (<code>state of the art</code> → <code>son teknoloji ürünü</code>). Text that grows in a fixed box either overflows or is shrunk, and shrinking has a readability floor (in this project <strong>0.85</strong> — blocks that go below it are flagged as D1).</p>
-<p><strong>2) PDF is not a reflowable format.</strong> PDF is a <em>print</em> format: every glyph has a fixed position, and the file has no concept of a "paragraph". Writing translated text into it requires recovering the page's <em>structure</em> first — which run of text is a paragraph, which is a heading, which is a table cell, which is a page number. That recovery (reading order, block merging, column splitting) is the most heavily tested part of the project, and most bugs come from it.</p>
-<p><strong>3) The kind of source document sets the quality directly.</strong> The differences we measured:</p>
+</nav><h1>1. Das Problem: was „verlustfreie Übersetzung" genau bedeutet</h1>
+<p>Dieses Kapitel definiert das Problem, das sich das Projekt gestellt hat, zeigt mit Messungen, warum es schwer ist, und vergleicht es mit dem, was außerhalb existiert. Die folgenden Kapitel beschreiben die Architektur, die um dieses Problem gebaut wurde, die Messungen und die Fehler.</p>
+<h2>1.1 Die Definition</h2>
+<p>Ein PDF zu übersetzen ist nicht dasselbe, wie seinen Text in einer anderen Sprache neu zu schreiben — das ist der leichte Teil: das Dokument lesen, den Text extrahieren, ihn einem Modell geben, ein neues Dokument erzeugen. Der schwere Teil ist, <strong>die Seite selbst zu erhalten</strong>: dieselbe Seitengröße, dasselbe Spaltenlayout, Text in derselben Box an derselben Stelle, dieselbe Überschriftenhierarchie, dasselbe Tabellenraster, dieselben Abbildungen, dieselben Fußnoten. Legt ein Leser die beiden Dokumente nebeneinander, soll er „dasselbe Buch in einer anderen Sprache" sehen, nicht „eine Zusammenfassung, die neu gesetzt wurde".</p>
+<p>Dieses Projekt formuliert das Ziel so: <strong>jeder übersetzbare Block wird in seiner Quellbox gezeichnet, in Typografie nahe der Quelle, an der Position der Quelle; nichts Unübersetzbares verschwindet still — es wird entweder erhalten oder markiert.</strong></p>
+<h2>1.2 Warum es schwer ist: vier gemessene Tatsachen</h2>
+<p><strong>1) Die Textlänge ändert sich, die Boxen nicht.</strong> Englisch→Türkisch wurde in diesem Projekt mit <strong>0,93x</strong> gemessen (das Verhältnis der Zeichenzahlen über dieselben Segmente) — die Übersetzung ist also im Mittel etwas kürzer als die Quelle. Mittelwerte täuschen: eine Überschrift wird von <code>Introduction</code> zu <code>Giriş</code> halb so lang, während ein Satz um 60% wachsen kann (<code>state of the art</code> → <code>son teknoloji ürünü</code>). Text, der in einer festen Box wächst, läuft entweder über oder wird verkleinert, und das Verkleinern hat eine Lesbarkeitsschwelle (in diesem Projekt <strong>0,85</strong> — Blöcke darunter werden als D1 markiert).</p>
+<p><strong>2) PDF ist kein umbrechbares Format.</strong> PDF ist ein <em>Druckformat</em>: jedes Glyph hat eine feste Position, und der Begriff „Absatz" existiert in der Datei nicht. Übersetzten Text hineinzuschreiben verlangt zuerst, die <em>Struktur</em> der Seite zurückzugewinnen — welcher Textlauf ein Absatz ist, welcher eine Überschrift, welcher eine Tabellenzelle, welcher eine Seitenzahl. Diese Rückgewinnung (Lesereihenfolge, Blockzusammenführung, Spaltentrennung) ist der am stärksten getestete Teil des Projekts, und die meisten Fehler kommen von dort.</p>
+<p><strong>3) Die Art des Quelldokuments bestimmt die Qualität direkt.</strong> Die gemessenen Unterschiede:</p>
 <table>
 <thead><tr>
-<th>Source kind</th>
-<th>What happens</th>
-<th>Measurement</th>
+<th>Quellenart</th>
+<th>Was passiert</th>
+<th>Messung</th>
 </tr></thead>
 <tbody>
-<tr><td>Digital PDF (has a text layer)</td><td>The best case; typography, font name, size and colour are readable</td><td>NIST journal: 4 chunks, 114 blocks, D1 <strong>52</strong> → 0 with reflow</td></tr>
-<tr><td>Scanned PDF (an image)</td><td>Needs OCR; character errors and a confidence score come into play</td><td>NASA scan: the low-confidence block is <strong>flagged</strong> with "low OCR confidence (0.62)"</td></tr>
-<tr><td>Mixed (text + image)</td><td>Decided page by page; the text-over-figure trap</td><td>Scanned pages are excluded (the L10 rule, see Chapter 3)</td></tr>
-<tr><td>EPUB</td><td>Layout lives in CSS; reflowable but still preservable</td><td>95%+ fidelity on the rich fixture</td></tr>
-<tr><td>DOCX</td><td>OOXML is handled directly (<code>python-docx</code> is deliberately not used)</td><td>A public-domain NIST DOCX joined the test sources</td></tr>
-<tr><td>PNG/JPG</td><td>The OCR path only; page layout is recovered from the drawing</td><td>Page image → PDF → the same pipeline</td></tr>
+<tr><td>Digitales PDF (mit Textebene)</td><td>Der beste Fall; Typografie, Schriftname, Größe und Farbe sind lesbar</td><td>NIST-Journal: 4 Teile, 114 Blöcke, D1 <strong>52</strong> → 0 mit reflow</td></tr>
+<tr><td>Gescanntes PDF (ein Bild)</td><td>Braucht OCR; Zeichenfehler und ein Vertrauenswert kommen ins Spiel</td><td>NASA-Scan: der Block mit geringem Vertrauen wird mit „low OCR confidence (0.62)" <strong>markiert</strong></td></tr>
+<tr><td>Gemischt (Text + Bild)</td><td>Seite für Seite entschieden; die Falle Text-über-Abbildung</td><td>Gescannte Seiten werden ausgenommen (die L10-Regel, siehe Kapitel 3)</td></tr>
+<tr><td>EPUB</td><td>Das Layout lebt in CSS; umbrechbar, aber erhaltbar</td><td>Über 95% Treue auf dem Rich-Fixture</td></tr>
+<tr><td>DOCX</td><td>OOXML wird direkt verarbeitet (<code>python-docx</code> wird bewusst nicht benutzt)</td><td>Ein gemeinfreies NIST-DOCX kam zu den Testquellen</td></tr>
+<tr><td>PNG/JPG</td><td>Nur der OCR-Pfad; das Seitenlayout wird aus der Zeichnung zurückgewonnen</td><td>Seitenbild → PDF → dieselbe Pipeline</td></tr>
 </tbody>
 </table>
-<p><strong>4) The model's language ability sets the ceiling.</strong> However good the pipeline is, the model is what writes the sentence. Results from the local <code>google/gemma-4-e4b</code> (LM Studio) are weaker on terminology consistency than cloud models, which is why the glossary (forcing terms) and the memory (same text, same translation) were put <em>under</em> the model rather than on top of it: even when the model gets it wrong, terminology and consistency are guaranteed by the pipeline.</p>
-<h2>1.3 What exists outside</h2>
-<p>The difference table below is compiled from BabelDOC's own comparison table (arXiv 2605.10845, Tables 1–2), mineru-translate's feature list, and commercial tools (Doclingo, Lara Translate, Doctranslate, Bluente). The "here" column is verified against the code in this repository.</p>
+<p><strong>4) Die Sprachfähigkeit des Modells setzt die Obergrenze.</strong> So gut die Pipeline auch ist — das Modell schreibt den Satz. Ergebnisse des lokalen <code>google/gemma-4-e4b</code> (LM Studio) sind bei Terminologie-Konsistenz schwächer als die von Cloud-Modellen, weshalb das Glossar (Termine erzwingen) und das Gedächtnis (gleicher Text, gleiche Übersetzung) <em>unter</em> das Modell gelegt wurden statt darüber: selbst wenn das Modell sich irrt, sind Terminologie und Konsistenz von der Pipeline garantiert.</p>
+<h2>1.3 Was es außerhalb gibt</h2>
+<p>Die folgende Differenztabelle ist aus BabelDOCs eigener Vergleichstabelle (arXiv 2605.10845, Tabellen 1–2), der Funktionsliste von mineru-translate und kommerziellen Werkzeugen (Doclingo, Lara Translate, Doctranslate, Bluente) zusammengestellt. Die Spalte „hier" ist gegen den Code in diesem Repository geprüft.</p>
 <table>
 <thead><tr>
-<th>Feature</th>
-<th>Who has it</th>
-<th>Here</th>
+<th>Funktion</th>
+<th>Wer sie hat</th>
+<th>Hier</th>
 </tr></thead>
 <tbody>
-<tr><td>Bilingual output (source + translation)</td><td>BabelDOC, mineru-translate, Doclingo, Lara</td><td><strong>in the PDF output</strong> (side by side, or alternating pages) and on the site</td></tr>
-<tr><td>Glossary constraint</td><td>BabelDOC (<code>--glossary</code> CSV), DeepL, Lara</td><td><strong>yes</strong> (JSON or CSV/TSV, checked in the prompt and the output, edited inside the application)</td></tr>
-<tr><td>Automatic term extraction</td><td>BabelDOC</td><td><strong>yes</strong> — "suggest from document" in the glossary editor</td></tr>
-<tr><td>Cross-page context</td><td>BabelDOC</td><td>partial (<code>context_before/after</code>)</td></tr>
-<tr><td>Overlap-resolution ladder (shrink → squeeze → push down)</td><td>mineru-translate</td><td>partial (<code>--fit-mode reflow</code>, experimental, off by default)</td></tr>
-<tr><td>Translation cache across runs</td><td>mineru-translate</td><td><strong>yes</strong> (an SQLite memory, verified on a real 2,555-segment run)</td></tr>
-<tr><td>Translating text inside figures and tables</td><td>BabelDOC</td><td>no (deliberate)</td></tr>
-<tr><td>An editor / post-editing</td><td>Doclingo, Lara</td><td>no (there is a review queue, not editing)</td></tr>
-<tr><td>A plugin ecosystem (Zotero, Word)</td><td>BabelDOC/PDFMathTranslate</td><td>no (deliberate)</td></tr>
-<tr><td><strong>Page-by-page loss audit (L1–L10)</strong></td><td><strong>not seen elsewhere</strong></td><td><strong>yes</strong> — against the source, on every run</td></tr>
-<tr><td>Review flag with a reason</td><td>partial</td><td><strong>yes</strong> — the reason is written for every flag (the book run)</td></tr>
-<tr><td>A comparison site built from real held-out documents</td><td>no</td><td><strong>yes</strong> — 24 documents, with a slider and their audit numbers</td></tr>
-<tr><td>Runtime settings (context window, thresholds)</td><td>partial</td><td><strong>yes</strong> — 30 settings, all wired to code (Chapter 4, case 11)</td></tr>
+<tr><td>Zweisprachige Ausgabe (Quelle + Übersetzung)</td><td>BabelDOC, mineru-translate, Doclingo, Lara</td><td><strong>in der PDF-Ausgabe</strong> (nebeneinander oder abwechselnde Seiten) und auf der Seite</td></tr>
+<tr><td>Glossar-Zwang</td><td>BabelDOC (<code>--glossary</code> CSV), DeepL, Lara</td><td><strong>ja</strong> (JSON oder CSV/TSV, im Prompt und in der Ausgabeprüfung, im Programm editierbar)</td></tr>
+<tr><td>Automatische Terminologie-Extraktion</td><td>BabelDOC</td><td><strong>ja</strong> — „aus dem Dokument vorschlagen" im Glossar-Editor</td></tr>
+<tr><td>Kontext über Seitengrenzen</td><td>BabelDOC</td><td>teilweise (<code>context_before/after</code>)</td></tr>
+<tr><td>Überlappungsleiter (verkleinern → enger setzen → nach unten schieben)</td><td>mineru-translate</td><td>teilweise (<code>--fit-mode reflow</code>, experimentell, standardmäßig aus)</td></tr>
+<tr><td>Übersetzungs-Cache über Läufe hinweg</td><td>mineru-translate</td><td><strong>ja</strong> (ein SQLite-Gedächtnis, an einem echten Lauf mit 2.555 Segmenten geprüft)</td></tr>
+<tr><td>Text in Abbildungen und Tabellen übersetzen</td><td>BabelDOC</td><td>nein (bewusst)</td></tr>
+<tr><td>Ein Editor / Nachbearbeitung</td><td>Doclingo, Lara</td><td>nein (es gibt eine Prüfliste, keine Bearbeitung)</td></tr>
+<tr><td>Ein Plugin-Ökosystem (Zotero, Word)</td><td>BabelDOC/PDFMathTranslate</td><td>nein (bewusst)</td></tr>
+<tr><td><strong>Seite-für-Seite-Verlustprüfung (L1–L10)</strong></td><td><strong>nirgends gesehen</strong></td><td><strong>ja</strong> — gegen die Quelle, bei jedem Lauf</td></tr>
+<tr><td>Prüfmarke mit Begründung</td><td>teilweise</td><td><strong>ja</strong> — für jede Marke ist der Grund geschrieben (der Buchlauf)</td></tr>
+<tr><td>Eine Vergleichsseite aus echten Held-out-Dokumenten</td><td>nein</td><td><strong>ja</strong> — 24 Dokumente, mit Schieberegler und ihren Prüfzahlen</td></tr>
+<tr><td>Laufzeiteinstellungen (Kontextfenster, Schwellen)</td><td>teilweise</td><td><strong>ja</strong> — 30 Einstellungen, alle an Code gebunden (Kapitel 4, Fall 11)</td></tr>
 </tbody>
 </table>
-<p>The critical difference: tools outside aim for <strong>output that looks good</strong>; this project aims to <strong>count what is lost</strong>. Without the second, a claim of "lossless" is an unmeasurable marketing sentence.</p>
-<h2>1.4 The contract: seven decisions that are not up for negotiation</h2>
-<p>The project's <code>docs/CONTRACT.md</code> writes down seven architectural rules. They are not arbitrary — each one was written after a bug:</p>
-<ul><li><strong>D1 — DocIR is the single source of truth.</strong> A format-independent intermediate document model;</li></ul>
-<p>readers produce it, writers consume it. The translation layer does not know about PDF.</p>
-<ul><li><strong>D2 — The translation layer knows nothing about layout.</strong> A provider sees only text; box, font</li></ul>
-<p>size and position never leak into it. This is what makes the model replaceable and the providers parallelisable.</p>
-<ul><li><strong>D3 — Fitting is a separate stage.</strong> It runs <em>after</em> translation; the decisions that make text</li></ul>
-<p>fit (shrink, ask for a shorter rendering, push down) do not affect translation quality.</p>
-<ul><li><strong>D4 — Latin script, but ready for RTL.</strong> Right-to-left scripts are <em>not implemented</em>; the schema</li></ul>
-<p>carries a <code>direction</code> field.</p>
-<ul><li><strong>D5 — Everything must be resumable.</strong> An interrupted run continues where it stopped; the</li></ul>
-<p>document is <em>not</em> shrunk when a page range is applied (that rule was implemented wrongly twice, see Chapter 4, case 12).</p>
-<ul><li><strong>D6 — Translation quality is tracked with segment flags.</strong> Every block is either translated or</li></ul>
-<p>has a written <em>reason</em> why it was not.</p>
-<ul><li><strong>D7 — A conversion is offered only after it has been measured.</strong> Unmeasured format pairs are</li></ul>
-<p>disabled in the interface.</p>
-<h2>1.5 The operational definition of "lossless"</h2>
-<p>The definition that makes the word measurable is written at the top of <code>docs/campaign/JOURNAL.md</code> and has three parts:</p>
-<ol><li><strong>No translatable block disappears.</strong> Every block either appears translated in the output or</li></ol>
-<p>stays as it was in the source; neither is an L3/L4 violation.</p>
-<ol><li><strong>No untranslated block stays silent.</strong> Every block that could not be translated is flagged</li></ol>
-<p><em>with a reason</em> (L2, D1, D2, OCR confidence, a lost protected value, a lost style…).</p>
-<ol><li><strong>Source and output can be compared page by page.</strong> The L1–L10 rules count exactly that; the</li></ol>
-<p>audit output (<code>audit.json</code>) sits beside every run and is published on the comparison site.</p>
-<p>The practical consequence: the project's success is measured not by "it looks good" but by <strong>the number of flags that remain</strong> — and that number is written for every run, including the runs where it comes out bad.</p><p class="pager"><a href="index.html">← Einführung</a> · <a href="02-mimari.html">nächstes Kapitel →</a></p>
+<p>Der entscheidende Unterschied: Werkzeuge draußen zielen auf <strong>eine Ausgabe, die gut aussieht</strong>; dieses Projekt zielt darauf, <strong>zu zählen, was verloren geht</strong>. Ohne das Zweite ist die Behauptung „verlustfrei" ein nicht messbarer Werbesatz.</p>
+<h2>1.4 Der Vertrag: sieben Entscheidungen, die nicht verhandelbar sind</h2>
+<p>Die Datei <code>docs/CONTRACT.md</code> schreibt sieben Architekturregeln fest. Sie sind nicht willkürlich — jede wurde nach einem Fehler geschrieben:</p>
+<ul><li><strong>D1 — DocIR ist die einzige Wahrheitsquelle.</strong> Ein formatunabhängiges Zwischendokumentmodell;</li></ul>
+<p>Leser erzeugen es, Schreiber verbrauchen es. Die Übersetzungsschicht kennt PDF nicht.</p>
+<ul><li><strong>D2 — Die Übersetzungsschicht kennt kein Layout.</strong> Ein Provider sieht nur Text; Box, Schriftgröße</li></ul>
+<p>und Position gelangen nie hinein. Das macht das Modell austauschbar und die Provider parallelisierbar.</p>
+<ul><li><strong>D3 — Das Einpassen ist eine eigene Stufe.</strong> Es läuft <em>nach</em> der Übersetzung; die Entscheidungen,</li></ul>
+<p>die Text passend machen (verkleinern, um eine kürzere Fassung bitten, nach unten schieben), beeinflussen die Übersetzungsqualität nicht.</p>
+<ul><li><strong>D4 — Lateinische Schrift, aber bereit für RTL.</strong> Rechts-nach-links-Schriften sind *nicht</li></ul>
+<p>umgesetzt*; das Schema trägt ein <code>direction</code>-Feld.</p>
+<ul><li><strong>D5 — Alles muss fortsetzbar sein.</strong> Ein unterbrochener Lauf macht dort weiter, wo er aufhörte;</li></ul>
+<p>beim Anwenden eines Seitenbereichs wird das Dokument <em>nicht</em> verkleinert (diese Regel wurde zweimal falsch umgesetzt, siehe Kapitel 4, Fall 12).</p>
+<ul><li><strong>D6 — Übersetzungsqualität wird mit Segmentmarken verfolgt.</strong> Jeder Block ist entweder übersetzt</li></ul>
+<p>oder hat einen geschriebenen <em>Grund</em>, warum nicht.</p>
+<ul><li><strong>D7 — Eine Konvertierung wird erst angeboten, wenn sie gemessen ist.</strong> Ungemessene Formatpaare</li></ul>
+<p>sind in der Oberfläche deaktiviert.</p>
+<h2>1.5 Die operative Definition von „verlustfrei"</h2>
+<p>Die Definition, die das Wort messbar macht, steht am Anfang von <code>docs/campaign/JOURNAL.md</code> und hat drei Teile:</p>
+<ol><li><strong>Kein übersetzbarer Block verschwindet.</strong> Jeder Block erscheint entweder übersetzt in der Ausgabe</li></ol>
+<p>oder bleibt wie in der Quelle; keines von beiden ist ein L3/L4-Verstoß.</p>
+<ol><li><strong>Kein unübersetzter Block bleibt stumm.</strong> Jeder Block, der nicht übersetzt werden konnte, wird</li></ol>
+<p><em>mit einem Grund</em> markiert (L2, D1, D2, OCR-Vertrauen, ein verlorener geschützter Wert, ein verlorener Stil…).</p>
+<ol><li><strong>Quelle und Ausgabe sind Seite für Seite vergleichbar.</strong> Genau das zählen die Regeln L1–L10; die</li></ol>
+<p>Prüfausgabe (<code>audit.json</code>) liegt neben jedem Lauf und wird auf der Vergleichsseite veröffentlicht.</p>
+<p>Die praktische Folge: Der Erfolg des Projekts wird nicht an „es sieht gut aus" gemessen, sondern an <strong>der Zahl der Marken, die bleiben</strong> — und diese Zahl wird für jeden Lauf geschrieben, auch für die, in denen sie schlecht ausfällt.</p><p class="pager"><a href="index.html">← Einführung</a> · <a href="02-mimari.html">nächstes Kapitel →</a></p>
 <footer>
   Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
 </footer>

@@ -64,116 +64,119 @@
 <nav class="story-nav">
   <a href="index.html">Einführung</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <span class='here'>6</span> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
-</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
-<h1>6. From engine to product</h1>
-<p>An engine that is correct but unusable is not a finished project. This chapter describes the steps from "a library" to "an application anyone can download and run", and which user complaint each step was born from.</p>
-<h2>6.1 The welcome screen</h2>
-<p><strong>The complaint:</strong> <em>"there should be a welcome and explanation screen on first launch: how to do a first translation, what each setting is for, the local provider, and so on — quite detailed, with the language and theme selectable right there."</em></p>
-<p>The welcome has four pages and opens on the <strong>first run</strong>:</p>
-<ol><li><strong>What it does</strong> — it translates a document inside its own boxes; a three-sentence summary and the</li></ol>
-<p>definition of "lossless".</p>
-<ol><li><strong>How to run it</strong> — drag and drop, choosing a language, choosing a provider; local vs cloud.</li><li><strong>Which setting does what</strong> — the arithmetic of the context window and slot count (7 workers + an</li></ol>
-<p>8192 window = ~1.2k tokens per request), the fitting thresholds, protected values.</p>
-<ol><li><strong>Language and theme</strong> — the interface language (TR/EN/DE) and the light/dark theme are chosen</li></ol>
-<p>here.</p>
-<p>The welcome is marked <strong>per version</strong>: a new version is a new welcome. (That is the permanent fix for the "no welcome screen appeared" complaint — section 4.5.)</p>
-<h2>6.2 Help: the criteria, explained to the user</h2>
-<p><strong>The complaint:</strong> <em>"there should be plenty of help and explanation so any user can work it out."</em></p>
-<p>The help screen has seven sections and explains <strong>the engine's own criteria</strong>: the first translation, choosing a provider, what the settings mean, review flags (what each flag means), the losslessness criteria (L1–L10 + D1–D3, with their names), where the outputs are (<code>.lkproj</code>, the memory, the logs, portable mode), and troubleshooting.</p>
-<p>The rule: help never promises something the code does not do. Every section describes a behaviour that really works in that release — and when a behaviour changes, the help text changes with it (visible in the release notes: when the default parallelism went 7→2, three separate texts were updated).</p>
-<h2>6.3 The glossary and the memory, inside the interface</h2>
-<p><strong>The complaint:</strong> <em>"where is the glossary?"</em> (section 4.6)</p>
-<ul><li><strong>Glossary</strong>: choose a file (JSON or CSV/TSV), <strong>edit it as a table</strong> inside the application (add</li></ul>
-<p>and remove rows, load from a file, save as), and it is applied both in the prompt and in the output check. The glossary's fingerprint enters the memory key — when you change the glossary, old translations are not silently reused.</p>
-<ul><li><strong>Memory</strong>: SQLite, across runs. The completion screen shows the <strong>hit rate</strong>. A real run</li></ul>
-<p>accumulated 2,555 segments; restarting the same document never calls the model for those.</p>
-<h2>6.4 The floating bar and the window switch</h2>
-<p><strong>The complaints:</strong> <em>"the pill and the main window are visible at the same time, and hiding the big window hides the small one — fix that"</em> + <em>"when I close the pill I cannot get it back."</em></p>
-<p>On long runs the window needs to be able to go to the back. The answer is a switch that works both ways:</p>
-<ul><li>The <strong>▤ "switch to the small window"</strong> button in the title hides the window and progress continues</li></ul>
-<p>in the floating bar (it is enabled while a run is going).</p>
-<ul><li><strong>"Back to the window"</strong> on the bar brings it back; minimising the window does <strong>not</strong> hide the bar</li></ul>
-<p>(the ownership relation was removed — section 4.7).</p>
-<ul><li>The bar shows the progress percentage, the phase, the segment counters and the file name. If the</li></ul>
-<p>name does not fit it is shortened, but the <strong>full name stays in a tooltip</strong> (a name you cannot verify is a name that does not help).</p>
-<h2>6.5 The page range does what it promises</h2>
-<p><strong>The complaint:</strong> <em>"should it not output only the range I selected?"</em> (section 4.12)</p>
-<p>When a range is chosen:</p>
-<ul><li><strong>Translated</strong>: only the selected pages.</li><li><strong>Output</strong>: only the selected pages (the writer is handed a slice of the source).</li><li><strong>Project (<code>.lkproj</code>)</strong>: the <strong>whole</strong> document — the review screen shows the rest too, and</li></ul>
-<p>re-exporting never silently shortens the document.</p>
-<p>The interface says what will happen the moment a range is chosen (TR/EN/DE). This behaviour is pinned by 11 tests and was measured on a real 15-page corpus PDF: the range "1-2" → a 2-page output, a 15-page project.</p>
-<h2>6.6 The bilingual PDF</h2>
-<p><strong>What was asked for:</strong> the comparison site shows source and translation side by side, but the PDF output does not.</p>
-<p><code>--dual side|alternate</code> (and a checkbox in the interface): <code>side</code> puts the source on the left and the translation on the right of every page (the page width doubles), <code>alternate</code> puts the translation after every source page (the page count doubles). The design decision was <strong>not to touch the pipeline</strong>: the composition is done afterwards, from two finished files, because the audit pairs source page N with output page N and a bilingual document would break that pairing. So the translated PDF and <code>audit.json</code> stay exactly as they were; the bilingual file is written beside them. On an interrupted run only the pages both documents have are composed, and the count is reported. The plan and the measurement: <code>docs/DUAL-OUTPUT-PLAN.md</code>.</p>
-<h2>6.7 The glossary: term candidates from the document</h2>
-<p><strong>Roadmap item 5.</strong> The glossary is the pipeline's strongest quality lever (a term is forced in the prompt and checked in the output), but filling it by hand means reading the document and noticing the repeats — a machine's job. <code>core/terms.py</code> finds the phrases that <strong>recur</strong> in the document: one to three words, not starting or ending with a function word, appearing at least N times, not a number. The ranking is frequency × length.</p>
-<p>This is a <strong>frequency rule</strong>, not an understanding of meaning — the docstring says so plainly. The result is a list that opens in the editor with <strong>empty target cells</strong>; a human writes the translations, and nothing enters a run until the user saves. A term already in the glossary is not suggested. 9 tests; two of them talk to the editor over a real PDF page.</p>
-<h2>6.8 Setting presets</h2>
-<p>The settings screen shows thirty values; the honest answer to "which should I change for a quick draft" is "the few that carry meaning together". There are two presets:</p>
+</nav><h1>6. Vom Motor zum Produkt</h1>
+<p>Ein Motor, der korrekt, aber unbenutzbar ist, ist kein fertiges Projekt. Dieses Kapitel beschreibt die Schritte von „einer Bibliothek" zu „einer Anwendung, die jeder herunterladen und starten kann", und aus welcher Nutzerbeschwerde jeder Schritt geboren wurde.</p>
+<h2>6.1 Der Willkommensbildschirm</h2>
+<p><strong>Die Beschwerde:</strong> <em>„beim ersten Start sollte es einen Willkommens- und Erklärungsbildschirm geben: wie man eine erste Übersetzung macht, wofür welche Einstellung gut ist, der lokale Anbieter und so weiter — recht ausführlich, mit Sprache und Thema gleich dort wählbar."</em></p>
+<p>Das Willkommen hat vier Seiten und öffnet beim <strong>ersten Lauf</strong>:</p>
+<ol><li><strong>Was es tut</strong> — es übersetzt ein Dokument in seinen eigenen Boxen; eine Zusammenfassung in drei</li></ol>
+<p>Sätzen und die Definition von „verlustfrei".</p>
+<ol><li><strong>Wie man es startet</strong> — Ziehen und Ablegen, Sprachwahl, Anbieterwahl; lokal gegen Cloud.</li><li><strong>Welche Einstellung was tut</strong> — die Rechnung von Kontextfenster und Slotzahl (7 Arbeiter + ein</li></ol>
+<p>8192er Fenster = ~1,2k Token pro Anfrage), die Einpass-Schwellen, geschützte Werte.</p>
+<ol><li><strong>Sprache und Thema</strong> — die Oberflächensprache (TR/EN/DE) und das helle/dunkle Thema werden hier</li></ol>
+<p>gewählt.</p>
+<p>Das Willkommen wird <strong>pro Version</strong> markiert: eine neue Version ist ein neues Willkommen. (Das ist die dauerhafte Lösung für die Beschwerde „es kam kein Willkommensbildschirm" — Abschnitt 4.5.)</p>
+<h2>6.2 Hilfe: die Kriterien, dem Nutzer erklärt</h2>
+<p><strong>Die Beschwerde:</strong> <em>„es sollte reichlich Hilfe und Erklärung geben, damit jeder Nutzer zurechtkommt."</em></p>
+<p>Der Hilfebildschirm hat sieben Abschnitte und erklärt <strong>die Kriterien des Motors selbst</strong>: die erste Übersetzung, die Anbieterwahl, was die Einstellungen bedeuten, die Prüfmarken (was jede Marke heißt), die Verlustfreiheitskriterien (L1–L10 + D1–D3, mit ihren Namen), wo die Ausgaben liegen (<code>.lkproj</code>, das Gedächtnis, die Protokolle, der portable Modus) und die Fehlersuche.</p>
+<p>Die Regel: Die Hilfe verspricht nie etwas, was der Code nicht tut. Jeder Abschnitt beschreibt ein Verhalten, das in dieser Version wirklich funktioniert — und wenn sich ein Verhalten ändert, ändert sich der Hilfetext mit (sichtbar in den Versionshinweisen: als die Standard-Parallelität von 7 auf 2 ging, wurden drei getrennte Texte aktualisiert).</p>
+<h2>6.3 Glossar und Gedächtnis in der Oberfläche</h2>
+<p><strong>Die Beschwerde:</strong> <em>„wo ist das Glossar?"</em> (Abschnitt 4.6)</p>
+<ul><li><strong>Glossar</strong>: eine Datei wählen (JSON oder CSV/TSV), sie <strong>im Programm als Tabelle bearbeiten</strong></li></ul>
+<p>(Zeilen hinzufügen und entfernen, aus einer Datei laden, speichern unter), und sie wird sowohl im Prompt als auch in der Ausgabeprüfung angewandt. Der Fingerabdruck des Glossars geht in den Gedächtnisschlüssel ein — ändert man das Glossar, werden alte Übersetzungen nicht still wiederverwendet.</p>
+<ul><li><strong>Gedächtnis</strong>: SQLite, über Läufe hinweg. Der Abschlussbildschirm zeigt die <strong>Trefferquote</strong>. Ein</li></ul>
+<p>echter Lauf sammelte 2.555 Segmente; ein Neustart desselben Dokuments ruft das Modell für diese nie.</p>
+<h2>6.4 Die schwebende Leiste und der Fensterwechsel</h2>
+<p><strong>Die Beschwerden:</strong> <em>„die Pille und das Hauptfenster sind gleichzeitig sichtbar, und das Verstecken des großen Fensters versteckt das kleine — behebe das"</em> + <em>„wenn ich die Pille schließe, kann ich sie nicht zurückholen."</em></p>
+<p>Bei langen Läufen muss das Fenster nach hinten können. Die Antwort ist ein Wechsel in beide Richtungen:</p>
+<ul><li>Der Knopf <strong>▤ „zum kleinen Fenster wechseln"</strong> in der Titelleiste versteckt das Fenster, und der</li></ul>
+<p>Fortschritt läuft in der schwebenden Leiste weiter (aktiv, solange ein Lauf läuft).</p>
+<ul><li><strong>„Zurück zum Fenster"</strong> auf der Leiste bringt es zurück; das Minimieren des Fensters versteckt die</li></ul>
+<p>Leiste <strong>nicht</strong> (die Besitzbeziehung wurde entfernt — Abschnitt 4.7).</p>
+<ul><li>Die Leiste zeigt Prozent, Phase, Segmentzähler und den Dateinamen. Passt der Name nicht, wird er</li></ul>
+<p>gekürzt, aber der <strong>volle Name bleibt im Tooltip</strong> (ein Name, den man nicht prüfen kann, ist kein hilfreicher Name).</p>
+<h2>6.5 Der Seitenbereich hält, was er verspricht</h2>
+<p><strong>Die Beschwerde:</strong> <em>„sollte es nicht nur den gewählten Bereich ausgeben?"</em> (Abschnitt 4.12)</p>
+<p>Wird ein Bereich gewählt:</p>
+<ul><li><strong>Übersetzt</strong>: nur die gewählten Seiten.</li><li><strong>Ausgabe</strong>: nur die gewählten Seiten (dem Schreiber wird ein Ausschnitt der Quelle übergeben).</li><li><strong>Projekt (<code>.lkproj</code>)</strong>: das <strong>ganze</strong> Dokument — der Prüfbildschirm zeigt auch den Rest, und ein</li></ul>
+<p>erneuter Export verkürzt das Dokument nie still.</p>
+<p>Die Oberfläche sagt in dem Moment, in dem ein Bereich gewählt wird, was passieren wird (TR/EN/DE). Dieses Verhalten ist mit 11 Tests festgenagelt und wurde auf einer echten 15-seitigen Corpus-PDF gemessen: der Bereich „1-2" → eine 2-seitige Ausgabe, ein 15-seitiges Projekt.</p>
+<h2>6.6 Das zweisprachige PDF</h2>
+<p><strong>Was gewünscht war:</strong> Die Vergleichsseite zeigt Quelle und Übersetzung nebeneinander, die PDF-Ausgabe tut das nicht.</p>
+<p><code>--dual side|alternate</code> (und ein Kästchen in der Oberfläche): <code>side</code> setzt auf jeder Seite die Quelle nach links und die Übersetzung nach rechts (die Seitenbreite verdoppelt sich), <code>alternate</code> setzt die Übersetzung hinter jede Quellseite (die Seitenzahl verdoppelt sich). Die Designentscheidung war, <strong>die Pipeline nicht anzufassen</strong>: Die Zusammenstellung geschieht danach, aus zwei fertigen Dateien, weil die Prüfung Quellseite N mit Ausgabeseite N paart und ein zweisprachiges Dokument diese Paarung bräche. Die übersetzte PDF und <code>audit.json</code> bleiben also genau wie sie waren; die zweisprachige Datei wird daneben geschrieben. Bei einem unterbrochenen Lauf werden nur die Seiten zusammengestellt, die beide Dokumente haben, und die Zahl wird berichtet. Plan und Messung: <code>docs/DUAL-OUTPUT-PLAN.md</code>.</p>
+<h2>6.7 Das Glossar: Terminvorschläge aus dem Dokument</h2>
+<p><strong>Roadmap-Punkt 5.</strong> Das Glossar ist der stärkste Qualitätshebel der Pipeline (ein Term wird im Prompt erzwungen und in der Ausgabe geprüft), aber es von Hand zu füllen heißt, das Dokument zu lesen und die Wiederholungen zu bemerken — eine Arbeit für eine Maschine. <code>core/terms.py</code> findet die Wendungen, die sich im Dokument <strong>wiederholen</strong>: ein bis drei Wörter, nicht mit einem Funktionswort beginnend oder endend, mindestens N-mal vorkommend, keine Zahl. Die Rangfolge ist Häufigkeit × Länge.</p>
+<p>Das ist eine <strong>Häufigkeitsregel</strong>, kein Verständnis von Bedeutung — der Docstring sagt das deutlich. Das Ergebnis ist eine Liste, die im Editor mit <strong>leeren Zielzellen</strong> aufgeht; ein Mensch schreibt die Übersetzungen, und nichts geht in einen Lauf, bevor der Nutzer speichert. Ein Term, der schon im Glossar steht, wird nicht vorgeschlagen. 9 Tests; zwei davon sprechen über eine echte PDF-Seite mit dem Editor.</p>
+<h2>6.8 Einstellungsprofile</h2>
+<p>Der Einstellungsbildschirm zeigt dreißig Werte; die ehrliche Antwort auf „welche sollte ich für einen schnellen Entwurf ändern" ist „die wenigen, die gemeinsam Sinn tragen". Es gibt zwei Profile:</p>
 <table>
 <thead><tr>
-<th>Preset</th>
-<th>What changes</th>
-<th>Who it is for</th>
+<th>Profil</th>
+<th>Was sich ändert</th>
+<th>Für wen</th>
 </tr></thead>
 <tbody>
-<tr><td><strong>Fast draft</strong></td><td>7 parallel requests, readability floor 0.80, shorter-rendering requests off</td><td>A first pass to read; type shrinks in tight boxes</td></tr>
-<tr><td><strong>Publication quality</strong></td><td>2 requests, floor 0.85, shortening threshold 0.95 (the measured defaults)</td><td>An output worth keeping; a short rendering costs one extra model round</td></tr>
+<tr><td><strong>Schneller Entwurf</strong></td><td>7 parallele Anfragen, Lesbarkeitsschwelle 0,80, Bitten um Kürzeres aus</td><td>Ein erster Durchgang zum Lesen; in engen Boxen schrumpft die Schrift</td></tr>
+<tr><td><strong>Publikationsqualität</strong></td><td>2 Anfragen, Schwelle 0,85, Kürzungsschwelle 0,95 (die gemessenen Voreinstellungen)</td><td>Eine Ausgabe zum Behalten; eine kurze Fassung kostet eine zusätzliche Modellrunde</td></tr>
 </tbody>
 </table>
-<p>The values are written through the same validated path and the editors update immediately; <code>current()</code> names a preset only when <strong>every</strong> value matches, and says "custom" when one was edited by hand. The default installation already is "publication quality". The interface note says plainly that chunked command-line jobs re-read the values on every new chunk.</p>
-<h2>6.9 Releases and the publishing flow</h2>
-<p>The application is published as a <strong>single file</strong> (<code>LayoutKeep.exe</code>, ~173 MB, onefile) through GitHub Releases. The flow:</p>
-<ol><li>The version in <code>pyproject.toml</code> + <code>__init__.py</code> is raised.</li><li>It is built with <code>PyInstaller packaging/layoutkeep_onefile.spec --noconfirm --clean</code>.</li><li>The full test suite runs.</li><li>Tag + release; <strong>the downloaded file's SHA-256 is compared against the local build</strong>.</li></ol>
-<p>The published versions and what each brought:</p>
+<p>Die Werte werden über denselben geprüften Weg geschrieben und die Editoren aktualisieren sich sofort; <code>current()</code> nennt ein Profil nur, wenn <strong>jeder</strong> Wert passt, und sagt „benutzerdefiniert", sobald einer von Hand geändert wurde. Die Standardinstallation ist bereits „Publikationsqualität". Der Hinweis in der Oberfläche sagt deutlich, dass geteilte Kommandozeilen-Läufe die Werte bei jedem neuen Teil neu lesen.</p>
+<h2>6.9 Versionen und der Veröffentlichungsweg</h2>
+<p>Die Anwendung wird als <strong>einzelne Datei</strong> veröffentlicht (<code>LayoutKeep.exe</code>, ~173 MB, onefile) über GitHub Releases. Der Weg:</p>
+<ol><li>Die Version in <code>pyproject.toml</code> + <code>__init__.py</code> wird erhöht.</li><li>Gebaut wird mit <code>PyInstaller packaging/layoutkeep_onefile.spec --noconfirm --clean</code>.</li><li>Die vollständige Testsuite läuft.</li><li>Tag + Release; <strong>die SHA-256 der heruntergeladenen Datei wird mit dem lokalen Build verglichen</strong>.</li></ol>
+<p>Die veröffentlichten Versionen und was jede brachte:</p>
 <table>
 <thead><tr>
 <th>Version</th>
-<th>What it brought</th>
+<th>Was sie brachte</th>
 </tr></thead>
 <tbody>
-<tr><td>0.9.1</td><td>The first public release: welcome, help, the glossary/memory interface, the review queue</td></tr>
-<tr><td>0.9.2</td><td>The bar ↔ window switch; the welcome per version; Roman-numeral protection (a toggle)</td></tr>
-<tr><td>0.9.3</td><td>The ▤ button + help texts</td></tr>
-<tr><td>0.9.4</td><td><strong>The application sends its requests in parallel</strong> (in waves, merged in document order)</td></tr>
-<tr><td>0.9.5</td><td>The dead setting key wired; the parallelism default down to 2; the bar's tooltip; a range narrows the output</td></tr>
-<tr><td>0.9.6</td><td><strong>The packaged application can open its own dialogs</strong> — 0.9.5 raised <code>ImportError</code> on the help and glossary screens because <code>help_dialog</code> and <code>glossary_dialog</code> were missing from the PyInstaller list (found by the project's own <code>check_spec.py</code>; three modules had been missing for several releases)</td></tr>
-<tr><td>0.9.7</td><td>The completion screen tells two kinds of review flag apart: how many are <strong>shortened boxes</strong> (a page-layout problem, which re-translating cannot fix). The help screen explains what a flag means</td></tr>
+<tr><td>0.9.1</td><td>Die erste öffentliche Version: Willkommen, Hilfe, die Glossar-/Gedächtnis-Oberfläche, die Prüfliste</td></tr>
+<tr><td>0.9.2</td><td>Der Wechsel Leiste ↔ Fenster; das Willkommen pro Version; Schutz römischer Zahlen (umschaltbar)</td></tr>
+<tr><td>0.9.3</td><td>Der ▤-Knopf + Hilfetexte</td></tr>
+<tr><td>0.9.4</td><td><strong>Die Anwendung schickt ihre Anfragen parallel</strong> (in Wellen, in Dokumentreihenfolge zusammengeführt)</td></tr>
+<tr><td>0.9.5</td><td>Der tote Einstellungsschlüssel angebunden; die Standard-Parallelität auf 2; der Tooltip der Leiste; ein Bereich verengt die Ausgabe</td></tr>
+<tr><td>0.9.6</td><td><strong>Die gepackte Anwendung kann ihre eigenen Dialoge öffnen</strong> — 0.9.5 warf auf dem Hilfe- und dem Glossarbildschirm <code>ImportError</code>, weil <code>help_dialog</code> und <code>glossary_dialog</code> in der PyInstaller-Liste fehlten (gefunden von der eigenen <code>check_spec.py</code>-Prüfung des Projekts; drei Module fehlten seit mehreren Versionen)</td></tr>
+<tr><td>0.9.7</td><td>Der Abschlussbildschirm unterscheidet zwei Arten von Prüfmarken: wie viele <strong>gekürzte Boxen</strong> sind (ein Layoutproblem, das Neuübersetzen nicht löst). Der Hilfebildschirm erklärt, was eine Marke heißt</td></tr>
 </tbody>
 </table>
-<h2>6.10 The comparison site</h2>
-<p><strong>What was asked for:</strong> <em>"a slider web site where I can compare the original sources and their translations side by side, for every example."</em></p>
-<p>The site is generated under <code>docs/comparison/</code> and published on GitHub Pages:</p>
-<ul><li><strong>A single-document viewer</strong>: original on the left, translation on the right, a draggable divider in</li></ul>
-<p>the middle; zoom with the wheel; page navigation with the keyboard.</p>
-<ul><li><strong>An audit summary per document</strong>: the L and D numbers, the page count, the model, the date.</li><li><strong>24 documents</strong>: arXiv papers, the NIST journal and form, IRS forms, a NASA report (digital and</li></ul>
-<p>scanned), Project Gutenberg books, a public-domain DOCX, two scanned pages.</p>
-<ul><li><strong>Development runs</strong> are hidden by default and one checkbox away — the published list is made of</li></ul>
-<p>real documents.</p>
-<ul><li><strong>The copyright rule</strong>: only openly licensed or public-domain sources are published; copyrighted</li></ul>
-<p>ones (<code>NOT_PUBLISHABLE</code>) stay on the user's disk only.</p>
-<p>Images load per document (lazily): the whole archive is ~49 MB, which means ~1 MB of traffic per visitor. The NASA document's 6997×3163 renders were capped at 3200px (10.4 MB → 1.9 MB) — more than enough for zooming, and half the data per document.</p>
-<h2>6.11 GitHub Pages: the landing page and the links</h2>
-<ul><li><strong>The root</strong> (<code>/LayoutKeep/</code>): the landing page — the download, the comparison site and the story.</li><li><strong><code>/docs/comparison/</code></strong>: the comparison site.</li><li><strong><code>/docs/story/</code></strong>: this document (multi-page), <strong>in three languages</strong> with a switcher; a chapter</li></ul>
-<p>without a translation yet shows the Turkish original behind a visible note.</p>
-<ul><li><strong>The old address</strong> (<code>docs/comparison.html</code>): the old 4.4 MB single-file page, turned into a</li></ul>
-<p><strong>redirect</strong> so shared links do not break.</p>
-<ul><li><strong>The READMEs</strong> (EN/TR): the download link goes through <code>releases/latest</code>; the showcase buttons</li></ul>
-<p>point at the current site; the "where the code in this branch stands" note is permanent in both languages (a push once deleted it; it was put back and is now kept on both sides).</p>
-<h2>6.12 Scale: today's numbers</h2>
+<h2>6.10 Die Vergleichsseite</h2>
+<p><strong>Was gewünscht war:</strong> <em>„eine Slider-Website, auf der ich die Originalquellen und ihre Übersetzungen nebeneinander vergleichen kann, für alle Beispiele."</em></p>
+<p>Die Seite wird unter <code>docs/comparison/</code> erzeugt und auf GitHub Pages veröffentlicht:</p>
+<ul><li><strong>Ein Einzeldokument-Betrachter</strong>: Original links, Übersetzung rechts, ein ziehbarer Trenner in der</li></ul>
+<p>Mitte; Zoom mit dem Rad; Seitennavigation mit der Tastatur.</p>
+<ul><li><strong>Eine Prüfzusammenfassung pro Dokument</strong>: die L- und D-Zahlen, die Seitenzahl, das Modell, das</li></ul>
+<p>Datum.</p>
+<ul><li><strong>24 Dokumente</strong>: arXiv-Arbeiten, das NIST-Journal und -Formular, IRS-Formulare, ein NASA-Bericht</li></ul>
+<p>(digital und gescannt), Project-Gutenberg-Bücher, ein gemeinfreies DOCX, zwei gescannte Seiten.</p>
+<ul><li><strong>Entwicklungsläufe</strong> sind standardmäßig verborgen und ein Kästchen entfernt — die veröffentlichte</li></ul>
+<p>Liste besteht aus echten Dokumenten.</p>
+<ul><li><strong>Die Urheberrechtsregel</strong>: Nur offen lizenzierte oder gemeinfreie Quellen werden veröffentlicht;</li></ul>
+<p>geschützte (<code>NOT_PUBLISHABLE</code>) bleiben nur auf der Platte des Nutzers.</p>
+<p>Die Bilder werden pro Dokument geladen (faul): Das gesamte Archiv ist ~49 MB, was ~1 MB Verkehr pro Besucher bedeutet. Die 6997×3163-Renderings des NASA-Dokuments wurden auf 3200px begrenzt (10,4 MB → 1,9 MB) — mehr als genug zum Zoomen und die Hälfte der Daten pro Dokument.</p>
+<h2>6.11 GitHub Pages: die Startseite und die Links</h2>
+<ul><li><strong>Die Wurzel</strong> (<code>/LayoutKeep/</code>): die Startseite — der Download, die Vergleichsseite und die</li></ul>
+<p>Geschichte.</p>
+<ul><li><strong><code>/docs/comparison/</code></strong>: die Vergleichsseite.</li><li><strong><code>/docs/story/</code></strong>: dieses Dokument (mehrseitig), <strong>in drei Sprachen</strong> mit einem Umschalter; ein</li></ul>
+<p>Kapitel ohne Übersetzung zeigt hinter einem sichtbaren Hinweis das Englische (oder, wenn auch das fehlt, das türkische Original).</p>
+<ul><li><strong>Die alte Adresse</strong> (<code>docs/comparison.html</code>): die alte 4,4-MB-Einseiterdatei, in eine</li></ul>
+<p><strong>Weiterleitung</strong> verwandelt, damit geteilte Links nicht brechen.</p>
+<ul><li><strong>Die READMEs</strong> (EN/TR): Der Download-Link läuft über <code>releases/latest</code>; die Schaltflächen zeigen</li></ul>
+<p>auf die aktuelle Seite; der Hinweis „wo der Code in diesem Zweig steht" ist in beiden Sprachen dauerhaft (ein Push löschte ihn einmal; er wurde zurückgeholt und wird nun auf beiden Seiten gehalten).</p>
+<h2>6.12 Maßstab: die heutigen Zahlen</h2>
 <table>
 <thead><tr>
 <th></th>
-<th>Value</th>
+<th>Wert</th>
 </tr></thead>
 <tbody>
-<tr><td>Source code</td><td>~24,000 lines (<code>src/</code>), 133 files</td></tr>
-<tr><td>Tests</td><td><strong>1,256 tests</strong>, 138 test files</td></tr>
-<tr><td>Audit tools</td><td>56 (<code>tools/audit/</code>)</td></tr>
-<tr><td>Largest real run</td><td>a 220-page book, 55 chunks, ~106 minutes</td></tr>
-<tr><td>Largest single document</td><td>841 pages (when fully translated, ~23% in one run)</td></tr>
-<tr><td>Comparison site</td><td>24 documents, 288 images</td></tr>
-<tr><td>Settings</td><td>30, all wired to code and tested</td></tr>
+<tr><td>Quellcode</td><td>~24.000 Zeilen (<code>src/</code>), 133 Dateien</td></tr>
+<tr><td>Tests</td><td><strong>1.256 Tests</strong>, 138 Testdateien</td></tr>
+<tr><td>Prüfwerkzeuge</td><td>56 (<code>tools/audit/</code>)</td></tr>
+<tr><td>Größter echter Lauf</td><td>ein 220-seitiges Buch, 55 Teile, ~106 Minuten</td></tr>
+<tr><td>Größtes einzelnes Dokument</td><td>841 Seiten (vollständig übersetzt ~23% in einem Lauf)</td></tr>
+<tr><td>Vergleichsseite</td><td>25 Dokumente, 304 Bilder</td></tr>
+<tr><td>Einstellungen</td><td>30, alle an Code gebunden und getestet</td></tr>
 </tbody>
 </table><p class="pager"><a href="05-model.html">← voriges Kapitel</a> · <a href="07-sinirlar.html">nächstes Kapitel →</a></p>
 <footer>
