@@ -2042,5 +2042,9 @@ the asset is 173,007,377 bytes. A `sha256sum` comparison printed a stray `\` esc
 of the second hash (coreutils marks an escaped filename), which looks like a mismatch and is not one -
 `cmp` is the check to reach for.
 
-One defect noted while walking, not yet fixed: the floating progress bar is visible at startup with
-`Hazırlanıyor… · 0/0 parça` before any job exists, on both launches.
+**Noted while walking, then disproved - the floating bar at startup is the designed hand-over.**
+The bar showing `Hazırlanıyor… · 0/0 parça` before any job existed looked like a stale window; it is
+not. `main_window.changeEvent` watches `WindowStateChange` and hands the run to the bar whenever the
+window is minimized (`if self.isMinimized() or not self.isVisible()`, `main_window.py:127`). The exe
+was launched with `-WindowStyle Minimized`, so the bar was doing exactly its job, and both launches
+told the same story because both used the same launch flag. Launch it normally and the window stays.
