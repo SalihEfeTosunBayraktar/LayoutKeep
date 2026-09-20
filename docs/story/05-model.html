@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Model seçimi ve IBM Docling — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 5. Model seçimi ve IBM Docling.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <span class='here'>5</span> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>5. Model seçimi: hangi model, neden — ve IBM Docling meselesi</h1>
+<p>Bu bölümde iki ayrı model kararı var ve ikisi sık karıştırılıyor:</p>
+<ul><li><strong>Çeviriyi yapan model</strong> (LLM): yerel <code>google/gemma-4-e4b</code>, LM Studio üzerinden.</li><li><strong>Sayfanın düzenini bulan model</strong>: IBM Docling'in <strong>Heron</strong> düzen dedektörü (ONNX).</li><li>Ayrıca <strong>üçüncü bir hat</strong>: projeye özel ince ayar (Qwen2.5-7B QLoRA), ayrı bir çalışma.</li></ul>
+<p>"Neden IBM modeline geçtik" sorusunun cevabı üçüncü değil <strong>ikinci</strong> satırdır: çeviriyi IBM modeli yapmıyor; IBM'in modeli <em>sayfayı anlıyor</em>. Aşağıda her kararın gerekçesi ve ölçümü var.</p>
+<h2>5.1 Çeviri modeli: neden yerel</h2>
+<p>Projenin varsayılanı <strong>yerel</strong> çalışmaktır ve bu bir tercih değil, tasarım eksenidir:</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Yerel (LM Studio)</th>
+<th>Bulut (OpenAI uyumlu, DeepL)</th>
+</tr></thead>
+<tbody>
+<tr><td>Belge makineden çıkar mı</td><td><strong>hayır</strong></td><td>evet</td></tr>
+<tr><td>Ücret</td><td>yok</td><td>genelde var</td></tr>
+<tr><td>Hız</td><td>GPU'ya bağlı</td><td>ağ + sağlayıcı</td></tr>
+<tr><td>Kalite</td><td>modele bağlı (küçük modellerde daha zayıf)</td><td>genelde daha güçlü</td></tr>
+<tr><td>Paralellik</td><td>sunucunun yuva sayısı</td><td>sağlayıcı sınırı</td></tr>
+</tbody>
+</table>
+<p>Bulut <strong>desteklenir</strong> (sağlayıcı ayarlarından uç nokta eklenir, "Test Et" ile anahtar kaydedilmeden denenir) — ama varsayılan değildir. Sebep basit: bu proje bir <em>belge</em> aracıdır ve kullanıcının belgesi (telifli kitap, kişisel tarama, kurumsal form) çoğu zaman makineden çıkmamalıdır. Yerel-önce olmak, "kayıpsız" iddiasının yanında duran ikinci bir sözdür.</p>
+<p>Yerel tarafta <strong>tek model kuralı</strong> vardır: makinede tek bir model yüklenir ve istekler sırayla gider (paralel yuvalar hariç). Bu, GPU belleği paylaşıldığında model değiştirmenin getirdiği yükleme cezasını ve kararsızlığı önler. Ölçülen sonuç: 220 sayfalık kitap, 55 parça, ~106 dakika.</p>
+<h2>5.2 Kalite tavanı ve boru hattının cevabı</h2>
+<p>Küçük bir yerel modelin dil becerisi sınırlıdır. Projenin cevabı "daha iyi model bulmak" değil, <strong>modelin üstüne değil altına mekanizma koymak</strong> oldu:</p>
+<ul><li><strong>Korunan değerler</strong> (sayılar, ölçüler, DOI/URL, parça numaraları, Romen rakamları) modele hiç</li></ul>
+<p>gösterilmez — model yanlış yapsa bile kaybolmazlar.</p>
+<ul><li><strong>Sözlük</strong> terimleri zorlar (istemde + çıktı denetiminde): model "hypothesis"ı bir yerde</li></ul>
+<p>"hipotez", başka yerde "varsayım" yapamaz.</p>
+<ul><li><strong>Bellek</strong> aynı metne aynı çeviriyi verir (koşular arası, SQLite).</li><li><strong>Tekrarları birleştir</strong> aynı kaynağın farklı çevirilerini çoğunluğa hizalar.</li><li><strong>Doğrulayıcı</strong> kaybı bulur, yeniden sorar, kalanı gerekçesiyle işaretler.</li></ul>
+<p>Bu yaklaşımın ölçülmüş karşılığı: modelin zayıflığı <em>metnin akıcılığında</em> kalır, <em>belgenin bütünlüğünde</em> değil.</p>
+<h2>5.3 IBM Docling (Heron) düzen dedektörü — asıl "IBM modeli"</h2>
+<h3>Neden gerekliydi</h3>
+<p>Okuma hattının klasik yöntemi <strong>XY-cut</strong>: sayfayı yatay/dikey boşluk çizgilerinden keserek bloklar bulur. Hizalanmış, temiz sayfalarda iyi çalışır; karmaşık sayfalarda çöker:</p>
+<ul><li>kutu içinde kutu (form alanları), resim altı yazılar (figure caption), iki sütun arasına sıkışmış</li></ul>
+<p>formüller, sayfa kenarına taşan dipnotlar;</p>
+<ul><li>taranmış sayfalar (çizgi yok, yalnız pikseller).</li></ul>
+<p>Bu durumlarda yanlış okunan şey <em>metin</em> değil, <strong>bölge sınırıdır</strong>: bir başlık paragrafın içine karışır, bir dipnot gövdeye girer, bir tablo satırı ayrı blok olur. Sonuç: çeviri doğru ama yerleşim yanlış — yani kullanıcının şikâyet ettiği şey.</p>
+<h3>Ne yapıldı</h3>
+<p>IBM Research'ün geliştirdiği <strong>Docling</strong> projesinin düzen modeli (<code>docling-layout-heron-onnx</code>) eklendi. Model sayfayı görüntü olarak görür ve bölgeleri sınıflandırır: başlık, paragraf, tablo, şekil, liste, dipnot. ONNX olarak <strong>yerelde</strong> koşar (CPU'da bile), yani yerel-önce ilkesini bozmaz.</p>
+<ul><li>Komut satırında <code>--layout-detector</code> ile açılır; arayüzde varsayılan açıktır.</li><li>Yalnız gerekli yerde çalışır: sayfa metin katmanıyla okunabiliyorsa ve yapı basitse XY-cut</li></ul>
+<p>yeterlidir; model taranmış/karmaşık sayfalarda devreye girer.</p>
+<h3>Ölçüm: gerçekten ne değişti</h3>
+<p>10 kitap sayfası üzerinde <strong>dört panelli</strong> karşılaştırma üretildi: <code>orijinal | eski koşu | XY-cut | dedektörlü</code>. Ölçülen metrik: "çıktıda hâlâ İngilizce kalan düzyazı" ve "sayfadan taşan kelime".</p>
+<table>
+<thead><tr>
+<th></th>
+<th>İngilizce kalan düzyazı</th>
+<th>Sayfadan taşan kelime</th>
+</tr></thead>
+<tbody>
+<tr><td>Eski koşu (524 sayfa, model yok)</td><td>6/82 (%7)</td><td>0</td></tr>
+<tr><td>XY-cut</td><td>6/82 (%7)</td><td>0</td></tr>
+<tr><td><strong>Dedektörlü</strong></td><td><strong>1/82 (%1)</strong></td><td>0</td></tr>
+</tbody>
+</table>
+<p>Ayrıca modelin <strong>yalnız başına</strong> ne yaptığı da kaydedildi (<code>tests/layout_eval/2026-09-16_heron_pure/</code>): her bölge, modelin döndürdüğü hâliyle çizildi — XY-cut yok, paragraf kuralı yok, sıralama yok. Bu "temiz taban", sonradan eklenen her kuralın <strong>ölçülmüş</strong> bir tabana göre eklenmesini sağladı; "model şunu da bulur herhalde" diye varsayım yapılmadı.</p>
+<h3>V2 planı: neden yeniden yazmadık</h3>
+<p>Aynı dönemde bir <strong>V2 planı</strong> yazıldı: boru hattını Gemini ile baştan kurmak, düzen modelini merkeze almak. Plan dokümanı <code>docs/YENI_MIMARI_VE_GECIS_PLANI.md</code> olarak duruyor. Plan uygulanmadı, çünkü:</p>
+<ol><li>Yeniden yazım, kayıpsızlık denetimini (L1–L10) ve 1.000'den fazla testi geçersiz kılardı.</li><li>Çalışan motorda <strong>tek bir eksik</strong> vardı: karmaşık sayfalarda bölge bulma. Bunu çözmek için</li></ol>
+<p>modeli <em>mevcut</em> okuyucuya eklemek yeterliydi — öyle de yapıldı.</p>
+<ol><li>V2 dalı (<code>v2-vision-layout</code>) çakışmasız birleşmiyordu (6 çakışma); zorla birleştirmek, ölçülmüş</li></ol>
+<p>davranışları ölçülmemiş olanlarla değiştirmek olurdu.</p>
+<p>Yani "IBM modeline geçiş" bir <strong>yeniden yazım değil</strong>, mevcut boru hattına eklenen bir <strong>okuma yeteneği</strong> oldu. Planın işe yarayan parçası alındı, gerisi arşivde duruyor — ve bu karar da yazılı: <em>kanıtsız düzeltme taşınmaz, kanıtsız yeniden yazım da taşınmaz.</em></p>
+<h2>5.4 Üçüncü hat: projeye özel ince ayar (LayoutKeepLLM)</h2>
+<p>Ayrı bir çalışma kolu (kendi klasöründe), iki hedefi birlikte kovalıyor:</p>
+<ol><li><strong>Uygulamanın tel protokolüne uyum</strong>: çok segmentli JSON yanıtı, <code>&lt;0&gt;…&lt;/0&gt;</code> işaretleri,</li></ol>
+<p>U+E000–U+E001 aralığındaki korunan değer token'ları, bağlam/uzunluk sınırları. Amaç, modelin "serbest metin" değil <strong>protokol</strong> üretmesi.</p>
+<ol><li><strong>Akademik düzeyde tutarlı EN↔TR çeviri</strong> — yani yalnız doğru değil, terim tutarlılığı olan.</li></ol>
+<p>Tasarım kararları:</p>
+<ul><li>Taban model <strong>Qwen2.5-7B-Instruct</strong>; eğitim <strong>Kaggle'da QLoRA</strong> (yerel GPU'da değil).</li><li>Veri omurgası <strong>elle yazılmış alan-uzmanı çiftler</strong> (üretici: <code>01_Dataset/build_dataset.py</code>,</li></ul>
+<p>korpus: <code>_dataset_corpus.py</code>); toplam ~6.000 kayıt.</p>
+<ul><li><strong>OPUS-100 reddedildi</strong>: EN-TR kısmı ölçüldü, haber ve günlük konuşma ağırlıklı — bu projenin</li></ul>
+<p>çevirdiği şey akademik/teknik belge. "Bol veri" ile "doğru veri" aynı şey değil.</p>
+<ul><li>Eğitim betiği <strong>TRL'e bağımlı değil</strong> (düz <code>transformers.Trainer</code> + <code>apply_chat_template</code>),</li></ul>
+<p>çünkü TRL'in <code>SFTConfig</code> API'si sürümler arasında değişiyor ve notebook Kaggle'da kırılıyordu.</p>
+<p>Bu hat, ürünün bugünkü sürümünde <strong>kullanılmıyor</strong>: çalışma zamanı modeli gemma. İnce ayar, kalite tavanını yükseltmek için duran bir yol; ölçüm ölçütü aynı: L/D tablosu ve terim tutarlılığı.</p>
+<h2>5.5 Özet: hangi model neyi yapıyor</h2>
+<table>
+<thead><tr>
+<th>Katman</th>
+<th>Model/araç</th>
+<th>Neden o</th>
+</tr></thead>
+<tbody>
+<tr><td>Sayfa düzeni (taranmış/karmaşık)</td><td>IBM Docling <strong>Heron</strong> ONNX</td><td>Bölge sınıflandırmasında XY-cut'ın çöktüğü yerde çalışır; yerel koşar; ölçülmüş kazanç 6/82 → 1/82</td></tr>
+<tr><td>Metin çıkarma (dijital)</td><td>PyMuPDF</td><td>Metin katmanı varsa en doğru kaynak; tipografi bilgisi taşır</td></tr>
+<tr><td>OCR (taranmış)</td><td>RapidOCR (PP-OCR modelleri)</td><td>Güven skoru verir; düşük güven işaretlenir</td></tr>
+<tr><td>Çeviri</td><td><code>google/gemma-4-e4b</code> (LM Studio)</td><td>Yerel, ücretsiz, yuvalara paralel; belge makineden çıkmaz</td></tr>
+<tr><td>Bulut çeviri (isteğe bağlı)</td><td>OpenAI uyumlu uç noktalar, DeepL</td><td>Güçlü modeller; kullanıcı açıkça seçerse</td></tr>
+<tr><td>Kalite garantisi</td><td><code>verify.py</code> + sözlük + bellek</td><td>Modelin zayıflığını belge bütünlüğüne taşımaz</td></tr>
+</tbody>
+</table><p class="pager"><a href="04-hatalar.html">← önceki bölüm</a> · <a href="06-urun.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>

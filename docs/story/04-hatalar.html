@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Hata kataloğu: on dört vaka — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 4. Hata kataloğu: on dört vaka.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <span class='here'>4</span> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>4. Hata kataloğu: on dört vaka, belirtiden teste</h1>
+<p>Bu bölüm projenin hafızasıdır. Her vaka şu kalıpta yazılıdır: <strong>belirti</strong> (kim, nasıl fark etti), <strong>araştırma</strong> (hangi ölçüm yapıldı), <strong>kök neden</strong> (kodun neresi, neden öyle yazılmıştı), <strong>çözüm</strong> (ne değişti), <strong>kanıt</strong> (hangi test/ölçüm). Kasten sıralı değil, önem sırasına göre.</p>
+<h2>4.1 "Model bulunamadı" — hata mesajı yalan söylüyordu</h2>
+<p><strong>Belirti.</strong> LM Studio'da model yüklü, uygulama "Model bulunamadı" diyor. Model değiştirildi, sunucu yeniden başlatıldı, hiçbiri işe yaramadı.</p>
+<p><strong>Araştırma.</strong> Sağlayıcı yanıtının <strong>gövdesi</strong> açıldı (ilk denemede yalnız HTTP durum koduna bakılıyordu). Gövdede şu yazıyordu: <code>Context size has been exceeded</code>.</p>
+<p><strong>Kök neden.</strong> İki ayar birbirini yiyordu: LM Studio <code>-c 8192</code> (8 KB bağlam) ile ve uygulama <strong>7 paralel istek</strong> ile çalışıyordu. Bağlam penceresi yuvalara <strong>bölünür</strong> — 7 işçi 8192'lik pencerede istek başına ~1.2k token alır ve uzun bir paragraf bunu aşar. Sunucu, taşan isteği "bağlam aşıldı" diye reddediyor; sağlayıcı katmanı bunu "model bulunamadı" diye sarmalıyordu.</p>
+<p><strong>Çözüm.</strong> Üç katmanlı: (a) hata gövdesi okunur ve mesaj gerçeği söyler, (b) taşma artık ölümcül değil — parça cümle sınırından bölünüp yeniden sorulur, (c) yardım ve karşılama ekranları bu matematiği açıkça yazar: <em>"bağlam penceresi yuvalara bölünür; 7 işçi için <code>-c 32768</code> önerilir"</em>.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_providers_*</code> hata gövdesi çözümlemesi; kitap koşusu 32768 ile 220 sayfa tamamlandı. Bu vaka ayrıca <strong>varsayılan paralelliğin 2'ye çekilmesine</strong> gerekçe oldu (Bölüm 4.10).</p>
+<h2>4.2 Yüzen çubuk: heap çökmesi (0xc0000374)</h2>
+<p><strong>Belirti.</strong> Uzun koşularda uygulama ansızın kapanıyor; Windows olay günlüğünde <code>0xc0000374</code> (heap corruption).</p>
+<p><strong>Araştırma.</strong> Çökme, yüzen ilerleme çubuğu açıkken oluyordu. Çubuk, ana pencereden bağımsız bir pencere; sürükleme yardımcısı (<code>WindowDrag</code>) pencereyi tutuyordu.</p>
+<p><strong>Kök neden.</strong> <code>WindowDrag</code> nesnesi yalnız yerel değişkende tutuluyordu; Python onu topladığında Qt tarafındaki sinyal bağlantıları hâlâ ona işaret ediyordu — C++ tarafı serbest bırakılmış Python nesnesine dokunuyordu. Klasik "sahipliği kim tutuyor" hatası.</p>
+<p><strong>Çözüm.</strong> Sürükleme yardımcısı pencereye <strong>güçlü referansla</strong> bağlandı (<code>self._drag = WindowDrag(...)</code>) — nesne pencereyle birlikte yaşar, pencereyle birlikte ölür.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_ui_floating_progress.py</code> (11 test) + çubuk artık kitap koşusunun tamamında açık kalabiliyor.</p>
+<h2>4.3 Aynı metin defalarca çevriliyordu</h2>
+<p><strong>Belirti.</strong> Uzun bir belgede aynı cümle (örneğin bir form etiketi, bir başlık) onlarca kez modele gidiyordu; koşu gereksiz yavaştı ve aynı metne <strong>farklı</strong> çeviriler çıkabiliyordu.</p>
+<p><strong>Araştırma.</strong> IRS formunda tek bir etiketin 40'tan fazla tekrarı vardı. İstek günlüğüne bakıldı: her tekrar ayrı istek.</p>
+<p><strong>Kök neden.</strong> Boru hattı her bloğu bağımsız çeviriyordu; tekrar kavramı yoktu.</p>
+<p><strong>Çözüm.</strong> <code>providers/dedupe.py</code>: aynı kaynak metin bir kez çevrilir, sonuç tüm tekrarlara dağıtılır (<code>--no-repeats</code> ile kapatılabilir). Ek olarak <code>core/repeats.py</code> <strong>farklı</strong> çevirileri çoğunluğa hizalar — yani "Chapter" bir yerde "Bölüm", başka yerde "Kısım" kalmaz.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_providers_dedupe.py</code>, <code>tests/test_core_repeats.py</code>; IRS koşusunda istek sayısı belirgin biçimde düştü, terim tutarlılığı arttı.</p>
+<h2>4.4 Kırılan ve küçülen satırlar — ve ölçülüp geri alınan düzeltme</h2>
+<p><strong>Belirti.</strong> Kullanıcı, çıktı sayfalarında satırların kırıldığını ve bazı blokların gereğinden çok küçüldüğünü bildirdi.</p>
+<p><strong>Araştırma.</strong> Hipotez: "blok kutusu genişletilirse satır kırılmaz". Kutuyu genişletme denendi: kırılan satır sayısı <strong>12 → 12</strong> (hiç değişmedi). Hipotez ölçümle çürütüldü.</p>
+<p><strong>Kök neden.</strong> Gerçek sebep sığdırma merdivenindeydi: çeviri kutuya sığmadığında blok hemen küçültülüyordu; oysa önce <strong>kısaltma isteme</strong> (modelden daha kısa çeviri) hakkı vardı.</p>
+<p><strong>Çözüm.</strong> Sığdırma sırası yeniden düzenlendi: küçült → kısaltma iste → aşağı it → işaretle. Genişletme denemesi <strong>geri alındı</strong> ve gerekçesi koda yazıldı (kanıtsız düzeltme taşınmaz).</p>
+<p><strong>Kanıt.</strong> <code>type_drift</code> "okunamaz boyutta" sayısı IRS'te 14 → 2; kırılan satırlar için <code>tests/test_pdf_writer_widen.py</code> geri alma kararını belgeler.</p>
+<h2>4.5 Karşılama ekranı görünmüyordu (kendi doğrulama koşum yüzünden)</h2>
+<p><strong>Belirti.</strong> Kullanıcı: "yeni 9.1 sürümlü exe'de herhangi bir karşılama ekranı çıkmadı."</p>
+<p><strong>Araştırma.</strong> Ayar kayıt defterinde <code>welcome_shown = true</code> görünüyordu. Kim yazmıştı? Karşılama ekranını test eden <strong>kendi otomatik koşularım</strong> — test bitince bayrağı geri almıyorlardı.</p>
+<p><strong>Kök neden.</strong> Karşılama bir kez gösterilip işaretleniyordu; hem testler hem de gerçek kullanıcı aynı bayrağı paylaşıyordu. Ayrıca kullanıcı yeni bir sürüm indirdiğinde ne olduğunu göremiyordu.</p>
+<p><strong>Çözüm.</strong> İki değişiklik: (a) otomatik testler <code>LAYOUTKEEP_NO_WELCOME</code> kaçış anahtarıyla çalışır, (b) karşılama artık <strong>sürüm bazlı</strong> işaretlenir — yeni sürüm yeni karşılamadır, ne değiştiğini kullanıcı ilk açılışta görür.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_ui_welcome*.py</code> + kayıt defterinde <code>welcome_shown_version = 0.9.3</code>.</p>
+<h2>4.6 Sözlük ve bellek yalnız komut satırında vardı</h2>
+<p><strong>Belirti.</strong> Kullanıcı sözlük (terim zorlama) ve çeviri belleği özelliklerini duydu, arayüzde bulamadı: "sözlük nerede?"</p>
+<p><strong>Araştırma.</strong> Kod taraması: <code>providers/glossary.py</code> ve <code>providers/memory.py</code> vardı, testleri vardı, <strong>arayüzden çağrılmıyordu</strong>. Kullanıcı için "olmayan özellik" ile "görünmeyen özellik" arasında fark yoktur.</p>
+<p><strong>Kök neden.</strong> Özellikler motor katmanında eklenmiş, arayüz bağlantısı sonraya bırakılmıştı ve sonra hiç yapılmamıştı.</p>
+<p><strong>Çözüm.</strong> İkisi de arayüze bağlandı: sözlük dosyası (JSON <strong>veya</strong> CSV/TSV) seçilebilir, uygulama içinde <strong>tablo olarak düzenlenebilir</strong> (satır ekle/sil, dosyadan yükle, farklı kaydet), sözlüğün parmak izi bellek anahtarına girer (sözlük değişince eski çeviriler geçersiz olur) ve tamamlanma ekranı bellek isabetini gösterir.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_ui_glossary*.py</code>, <code>tests/test_ui_settings_memory*.py</code>.</p>
+<h2>4.7 Yüzen çubuk ana pencereyi rehin alıyordu</h2>
+<p><strong>Belirti.</strong> Kullanıcı: "pill'i kapatınca geri açamıyorum" + "aynı anda hem pill hem ana pencere görünüyor".</p>
+<p><strong>Araştırma.</strong> Çubuk, ana pencerenin <strong>sahipli</strong> (owned) penceresiydi: ana pencere küçültülünce çubuk da kayboluyor, ama çubuk kapatıldığında geri getirecek bir yol kalmıyordu.</p>
+<p><strong>Kök neden.</strong> Sahiplik ilişkisi yanlış kurulmuştu: çubuk ana pencereden bağımsız yaşamalı, ama pencereyle <strong>birlikte</strong> görünmelidir; ayrıca geçiş iki yönlü olmalıydı.</p>
+<p><strong>Çözüm.</strong> Çubuk sahiplikten çıkarıldı; başlığa <strong>▤ "Küçük pencereye geç"</strong> düğmesi eklendi (koşu sürerken etkin) ve çubuktaki "Pencereye dön" ile geri dönülüyor. Pencere küçültülünce çubuk kaybolmuyor.</p>
+<p><strong>Kanıt.</strong> 7 test (<code>tests/test_ui_floating_pairing.py</code>), v0.9.2/v0.9.3 sürüm notları.</p>
+<h2>4.8 Uygulama istekleri tek tek gönderiyordu</h2>
+<p><strong>Belirti (kullanıcı).</strong> <em>"paralel 7 slot ayarlı olsa da aynı anda sadece 1 slot yolluyor bu bir hata olmalı."</em></p>
+<p><strong>Araştırma.</strong> İki yol karşılaştırıldı: komut satırı (<code>translate_book.py</code>) parçaları <code>ThreadPoolExecutor</code> ile paralel çeviriyordu; uygulamanın işçisi (<code>ui/worker.py</code>) <strong>tek tek</strong> istek gönderiyordu. Yani 7 yuva ayarı yalnız komut satırında işe yarıyordu — kitap koşuları hızlı, uygulama koşuları yavaştı.</p>
+<p><strong>Kök neden.</strong> Paralellik özelliği CLI'da eklenmiş, arayüzün çeviri döngüsüne hiç taşınmamıştı. (Bu, 4.6'nın kardeşi: motor yeteneği arayüzde yok.)</p>
+<p><strong>Çözüm.</strong> Döngü <strong>dalga dalga</strong> çalışacak şekilde yazıldı: her dalgada <code>translation.workers</code> kadar batch paralel gider, dalga sonunda duraklat/iptal kontrol edilir, sonuçlar <strong>belge sırasına göre</strong> birleştirilir (hangi isteğin önce bittiğine bağlı değildir). Her paralel iş parçası kendi sağlayıcı zincirini alır — dedupe önbelleği ve bellek bağlantısı paylaşılırsa yarış olurdu. Döngü <code>worker.py</code>'den <code>ui/translation_loop.py</code>'ye taşındı (tek sorumluluk).</p>
+<p><strong>Kanıt.</strong> <code>tests/test_ui_translation_parallel.py</code>: (a) eşzamanlılık gerçekten &gt;1, (b) tek işçide sıralı kalır, (c) çıktı belge sırasında. Süit 1192 test yeşil.</p>
+<h2>4.9 OCR gürültüsü sessiz değil</h2>
+<p><strong>Belirti.</strong> NASA taramasında dekoratif başlık "Naga Merorautigs Frogrom Amerika" diye okundu.</p>
+<p><strong>Araştırma.</strong> OCR güven skoru o blok için 0.62'ydi (eşik 0.75).</p>
+<p><strong>Kök neden.</strong> Gürültü OCR'ın doğasında var; sorun gürültü değil, <strong>sessizlik</strong> olurdu.</p>
+<p><strong>Çözüm.</strong> Düşük güvenli bloklar çıktıya yazılır ama <strong>"OCR güveni düşük (0.62)"</strong> gerekçesiyle inceleme kuyruğuna düşer. Kullanıcı neyin şüpheli olduğunu bilir.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_ocr_confidence*.py</code>; jurnal notu (2026-09-20).</p>
+<h2>4.10 Varsayılan paralellik fazla agresifti</h2>
+<p><strong>Belirti (kullanıcı).</strong> <em>"default paralellik 1 veya 2 olabilir."</em></p>
+<p><strong>Araştırma.</strong> 4.1'in matematiği: tek bir yerel GPU'da 7 eşzamanlı istek bağlam penceresini bölüşür, istek başına token düşer, küçük modellerde kalite kaybı ve taşma riski artar.</p>
+<p><strong>Çözüm.</strong> <code>translation.workers</code> varsayılanı <strong>7 → 2</strong>. Yuva sayısı elveren sunucularda (örneğin LM Studio <code>-c 32768 --parallel 7</code>) kullanıcı yükseltir; ayarın uyarı metni bunu söyler. Komut satırı araçlarının yedek sabiti de 2'ye çekildi ki tek bir hikâye olsun.</p>
+<p><strong>Kanıt.</strong> <code>tests/test_parallel_workers.py</code> + <code>tests/test_core_tunables_wired.py</code>.</p>
+<h2>4.11 Ayar ekranındaki ölü anahtar</h2>
+<p><strong>Belirti (kullanıcı).</strong> <em>"uygulamanın arayüzüne bağlanmamış ayarları bul ve uygulamaya bağla."</em></p>
+<p><strong>Araştırma.</strong> Bildirilen 30 ayarın anahtarları, <code>src/</code> içinde okunan anahtarlarla karşılaştırıldı (statik tarama + dolaylı okumalar için sabit adları da arandı). Sonuç: <strong>bir</strong> ölü anahtar — <code>timeout.first_batch_s</code>: ayar ekranında görünüyor, kaydediliyor ve <strong>hiçbir şey okumuyordu</strong> (ilk partinin zaman aşımı sabitten geliyordu). Ayrıca ayar ekranının 30/30 gösterdiği de ölçüldü.</p>
+<p><strong>Çözüm.</strong> Anahtar worker'a bağlandı (soğuk modelin ilk yanıtı dakikalarca sürebilir; bu makinenin özelliği, kodun değil). Beş test eklendi: <em>bildirilen her ayar kodda geçmeli</em>, ilk-parti ayarının zaman aşımına ulaştığı, warm partinin ondan etkilenmediği, varsayılanın 2 olduğu, ayar ekranının her bildirileni gösterdiği.</p>
+<p><strong>Ders.</strong> Çalışmayan bir anahtar, hiç olmayan bir anahtardan kötüdür — çalışanlara olan güveni harcar.</p>
+<h2>4.12 Sayfa aralığı çıktıyı daraltmıyordu</h2>
+<p><strong>Belirti (kullanıcı).</strong> 841 sayfalık kitapta aralık seçildi; çıktı yine <strong>tüm kitap</strong> geldi: <em>"ama sadece seçtiğim aralığı çıktı vermesi gerekmez mi, neden tüm kitabı vermiş."</em></p>
+<p><strong>Araştırma.</strong> Çıktı PDF'i: 841 sayfa, 194'ünde Türkçe (%23 — seçilen aralık), gerisi İngilizce. Motor aralığı <strong>yalnız çeviriye</strong> uyguluyordu; çıktı, kaynağın tamamının kopyasıydı.</p>
+<p><strong>Kök neden 1 (tarihsel).</strong> Bu bilinçli bir karardı ve yazılıydı: bir zamanlar aralık belgeden sayfa <strong>silerek</strong> uygulanmış, proje yalnız seçili sayfaları saklayınca inceleme kaybolmuş ve yeniden dışa aktarma sessizce kısalmıştı (CONTRACT.md, D5). Doğru çözüm aralığı <strong>ikiye ayırmaktı</strong>: yazılan kopyaya uygula, kaydedilen projede tüm sayfaları tut.</p>
+<p><strong>Kök neden 2 (ölçümle çıktı).</strong> İlk denemede belge içinden sayfaları düşürmek yetmedi — çıktı yine 841 sayfa geldi, çünkü PDF yazıcısı sayfaları <strong>kaynak dosyadan</strong> çiziyor. Yazıcıya kaynağın <strong>dilimi</strong> verildi; dilimdeki sayfalar 0..n olarak yeniden numaralandı ki doğrulama sayfa N'i N ile karşılaştırsın, proje ise özgün numaraları korusun (sayfalar kopyalanarak — paylaşılan nesneleri yerinde değiştirmek projeyi bozardı).</p>
+<p><strong>Çözüm.</strong> <code>_output_document</code> + <code>_source_slice</code>; arayüzde aralık seçilince ne olacağı yazıyor (RANGE_HINT, tr/en/de). <strong>Kanıt:</strong> 11 yeni test + eski D5 testi yeni sözleşmeye çevrildi — gerçek 15 sayfalık corpus PDF'inde aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa.</p>
+<h2>4.13 İki yana yaslı paragraflar sola yaslı çıkıyordu</h2>
+<p><strong>Belirti (kullanıcı).</strong> <em>"sayı başlık hizalamaları çevirilerde kaybolmuş."</em></p>
+<p><strong>Araştırma.</strong> <code>type_drift</code> arXiv 19113'te 4 gövde paragrafını <code>right → left</code> diye işaretledi. Satır satır bakıldığında kaynak iki yana yaslı (her satır 72→540, son satır kısa), çıktı sola yaslı ve sağ kenarı tırtıklı.</p>
+<p><strong>Kök neden.</strong> Yazıcı blokları HTML kutusuyla çiziyor ve orada <code>text-align: justify</code> zaten destekli; eksik olan <strong>okuyucunun hiç "justify" üretmemesiydi</strong> (yalnız left/right/center).</p>
+<p><strong>Çözüm.</strong> Üç şartlı kural: sol kenarlar düz + son satır kısa + son satırın <strong>sol kenarı</strong> gövdeyle aynı. Üçüncüsü kritik — ortalanmış başlığın satırları da kısalır, ama son satır ortadan başlar; o şart olmadan NASA kapak başlığı merkezden kayıyordu (test yakaladı).</p>
+<p><strong>Kanıt.</strong> 19 hizalama testi + 218 okuyucu/layout testi; iki eski test yeni sözleşmeye çevrildi, dört yeni test eklendi.</p>
+<h2>4.14 Klasör düzeni: telifli sayfa görüntüleri depoda</h2>
+<p><strong>Belirti (kullanıcı kriteri).</strong> <em>"açık kaynaklı olan içerikleri githubda yayınla gerisi lokalde kalsın."</em></p>
+<p><strong>Araştırma.</strong> İzlenen dosya taraması: <code>tests/layout_eval/</code> altında 62 JPEG vardı; ikisi telifli bir ders kitabının sayfaları (<code>computer-systems-Architecture.pdf</code>), biri kişisel bir tarama (<code>Notes_...</code>), artı bir <code>run.log</code>. Toplam izlenen depo: <strong>36 MB</strong>.</p>
+<p><strong>Çözüm.</strong> Telifli/kişisel görüntüler <strong>izlemeden çıkarıldı</strong> (dosyalar diskte kaldı, README'lerine "telif nedeniyle yayından çıkarıldı, komutlarla yeniden üretilebilir" notu düşüldü). Kamu malı NASA görüntüleri kaldı. <code>.gitignore</code> kuralları eklendi. İkinci geçişte bir alt klasördeki zoom'lar da (ilk taramada gözden kaçmıştı) çıkarıldı. <strong>İzlenen depo: 36 MB → 12 MB.</strong></p>
+<p><strong>Ders.</strong> İlk tarama yeterli değildi; desen eşleşmesi alt klasörleri kapsamıyordu. Tekrar taramak "gereksiz titizlik" değil, tamamlanmış işin parçasıydı.</p><p class="pager"><a href="03-olcum.html">← önceki bölüm</a> · <a href="05-model.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>

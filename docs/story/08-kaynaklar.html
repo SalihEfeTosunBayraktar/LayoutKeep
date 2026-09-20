@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8. Dış kaynaklar ve atıflar — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 8. Dış kaynaklar ve atıflar.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <span class='here'>8</span>
+</nav><h1>8. Dış kaynaklar ve atıflar</h1>
+<p>Bu proje ayakta durmak için başkalarının işine yaslanıyor. Aşağıda her kaynağın <strong>projedeki rolü</strong> ve lisansı var. (Aynı tablo <code>CREDITS.md</code> dosyasında da tutulur; burası gerekçeleriyle birlikte genişletilmiş hâlidir.)</p>
+<h2>8.1 Motor ve altyapı</h2>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Projedeki rolü</th>
+<th>Lisans</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://pymupdf.readthedocs.io/">PyMuPDF</a></td><td>PDF okuma ve yazma motoru; metin katmanı, tipografi, görsel çıkarma, redaksiyon, HTML kutusu çizimi</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://doc.qt.io/qtforpython/">Qt / PySide6</a></td><td>Masaüstü arayüzü: pencere, yüzen çubuk, karşılama, tablolar, tema</td><td>LGPL-3.0</td></tr>
+<tr><td><a href="https://pytest.org/">pytest</a></td><td>1.192 testin koşum altyapısı</td><td>MIT</td></tr>
+<tr><td><a href="https://pyinstaller.org/">PyInstaller</a></td><td>Tek dosya <code>.exe</code> üretimi</td><td>GPL-2.0 (özel istisna ile)</td></tr>
+<tr><td><a href="https://github.com/RapidAI/RapidOCR">RapidOCR</a> (PP-OCR modelleri)</td><td>Taranmış sayfalarda OCR; güven skoru üretir</td><td>Apache-2.0</td></tr>
+</tbody>
+</table>
+<h2>8.2 Düzen modeli (IBM Docling)</h2>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Projedeki rolü</th>
+<th>Lisans</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://huggingface.co/docling-project/docling-layout-heron-onnx">IBM Docling — Heron düzen modeli</a></td><td>Taranmış/karmaşık sayfalarda bölge sınıflandırması (başlık, paragraf, tablo, şekil, dipnot). ONNX olarak yerelde koşar</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/docling-project/docling">Docling (proje)</a></td><td>Modelin geldiği çerçeve; mimari fikirleri (sayfa görüntüsünden yapı çıkarma)</td><td>MIT</td></tr>
+</tbody>
+</table>
+<p>Kararın gerekçesi ve ölçümü Bölüm 5.3'te: 10 kitap sayfası üzerinde dört panelli karşılaştırmada "hâlâ İngilizce kalan düzyazı" 6/82 → 1/82. Modelin <strong>yalnız başına</strong> çıktısı da kaydedildi (<code>tests/layout_eval/2026-09-16_heron_pure/</code>) ki sonradan eklenen her kural ölçülmüş bir tabana göre eklensin.</p>
+<h2>8.3 Çeviri modelleri</h2>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Projedeki rolü</th>
+<th>Lisans</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://huggingface.co/google/gemma-4-e4b">google/gemma-4-e4b</a> (LM Studio üzerinden)</td><td>Varsayılan yerel çeviri modeli</td><td>Gemma Terms of Use</td></tr>
+<tr><td><a href="https://lmstudio.ai/">LM Studio</a></td><td>Yerel model sunucusu (OpenAI uyumlu uç nokta, paralel yuvalar, bağlam ayarı)</td><td>Özel (ücretsiz kullanım)</td></tr>
+<tr><td><a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B-Instruct</a></td><td>İnce ayar hattının taban modeli (ayrı çalışma, Bölüm 5.4)</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://huggingface.co/docs/transformers/">Hugging Face Transformers</a> + PEFT/QLoRA</td><td>İnce ayar (Kaggle'da, TRL'e bağımlı olmadan)</td><td>Apache-2.0</td></tr>
+</tbody>
+</table>
+<h2>8.4 Karşılaştırma noktaları (kod alınmadı, fikir ve ölçüt alındı)</h2>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Neyi karşılaştırdık</th>
+<th>Lisans</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/funstory-ai/BabelDOC">BabelDOC</a></td><td>Paralel PDF çevirisi; "kayıpsız" iddiası ve kendi karşılaştırma tablosu (arXiv 2605.10845)</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/Byaidu/PDFMathTranslate">PDFMathTranslate</a></td><td>PDF çevirisi; formül/görsel koruma yaklaşımı</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/opendatalab/MinerU">MinerU</a> / mineru-translate</td><td>Belge anlama hattı; çift dilli çıktı, önbellek</td><td>AGPL-3.0</td></tr>
+<tr><td>Ticari derlemeler (Doclingo, Lara Translate, Doctranslate, Bluente)</td><td>Özellik kapsamı ve fiyatlandırma</td><td>—</td></tr>
+</tbody>
+</table>
+<p><strong>Kod alınmadı.</strong> Bu projedeki hiçbir satır yukarıdaki araçlardan kopyalanmadı; tablo yalnızca "dışarıda ne var, bizde ne yok" sorusunu ölçülebilir kılmak için var (<code>docs/FEATURE-ROADMAP.md</code>).</p>
+<h2>8.5 Test kaynakları (held-out set)</h2>
+<p>Ölçüm için kullanılan belgeler ve lisans durumları. Telifli olanlar <strong>depoya girmez</strong> ve siteye yayınlanmaz (<code>NOT_PUBLISHABLE</code>); yalnız kullanıcının diskinde kalır.</p>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Tür</th>
+<th>Durum</th>
+</tr></thead>
+<tbody>
+<tr><td>NIST Journal of Research (dergi sayıları)</td><td>Dijital PDF</td><td>Kamu malı (ABD federal) — yayınlanır</td></tr>
+<tr><td>NIST IR 6643 (vapor pressure)</td><td><strong>Taranmış</strong> PDF</td><td>Kamu malı — yayınlanır</td></tr>
+<tr><td>NIST dergisinden üretilmiş DOCX</td><td>DOCX</td><td>Kamu malı (projenin kendi PDF→DOCX hattıyla üretildi) — yayınlanır</td></tr>
+<tr><td>NASA NTRS raporu + NASA grant formu</td><td>Dijital + taranmış</td><td>Kamu malı — yayınlanır</td></tr>
+<tr><td>arXiv makaleleri (19113, 19145, 2510.03959, 2605.18014)</td><td>Dijital PDF</td><td>arXiv lisansı — yayınlanır</td></tr>
+<tr><td>IRS formları (i1040gi, p505)</td><td>Form PDF</td><td>Kamu malı (ABD federal) — yayınlanır</td></tr>
+<tr><td>Project Gutenberg kitapları (The Time Machine, Think Python, cookbook)</td><td>EPUB/PDF</td><td>Kamu malı / açık lisans — yayınlanır</td></tr>
+<tr><td>Wikipedia sayfaları</td><td>PDF</td><td>CC BY-SA — yayınlanır</td></tr>
+<tr><td>Introductory Statistics (Sheldon M. Ross)</td><td>Kitap PDF</td><td><strong>Telifli</strong> — yalnız yerelde</td></tr>
+<tr><td>computer-systems-Architecture</td><td>Kitap PDF</td><td><strong>Telifli</strong> — yalnız yerelde (görüntüleri depodan çıkarıldı)</td></tr>
+</tbody>
+</table>
+<h2>8.6 Yöntem ve mühendislik kaynakları</h2>
+<table>
+<thead><tr>
+<th>Kaynak</th>
+<th>Neyi etkiledi</th>
+</tr></thead>
+<tbody>
+<tr><td>Google DESIGN.md / tasarım token'ları</td><td>Arayüz renk paletinin token'lardan gelmesi kuralı (hardcoded hex yasak)</td></tr>
+<tr><td>Apple HIG, Material Design (genel ilkeler)</td><td>Karşılama/yardım ekranlarının yapısı, boşluk ve tipografi ölçeği</td></tr>
+<tr><td>ISO 639 dil kodları</td><td>Dil seçimi ve algılama</td></tr>
+<tr><td>Unicode özel kullanım alanı (U+E000–U+E001)</td><td>Korunan değerlerin modele görünmez şekilde taşınması</td></tr>
+<tr><td>Portable Document Format spec (ISO 32000)</td><td>PDF yazımı ve redaksiyon davranışının doğrulanması</td></tr>
+</tbody>
+</table>
+<h2>8.7 Bu belgenin kendi kaynakları</h2>
+<p>Bu hikâye uydurulmadı; şu dosyalardan ve ölçümlerden derlendi:</p>
+<ul><li><code>docs/CONTRACT.md</code> — mimari değişmezler (D1–D7)</li><li><code>docs/campaign/JOURNAL.md</code> — gün gün ölçüm jurnalı (vakaların birincil kaynağı)</li><li><code>docs/MEASUREMENTS.md</code>, <code>docs/BENCHMARK.md</code> — sayılar</li><li><code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code> — kayıpsızlık durumu</li><li><code>docs/FEATURE-ROADMAP.md</code> — dış karşılaştırma ve açık işler</li><li><code>_artifacts/heldout/**/audit.json</code> — her koşunun denetim sayıları</li><li><code>git log</code> — tarihler ve kararlar</li></ul><p class="pager"><a href="07-sinirlar.html">← önceki bölüm</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>

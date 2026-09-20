@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Problem: kayıpsız çeviri ne demek — LayoutKeep</title>
+<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 1. Problem: kayıpsız çeviri ne demek.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../">← LayoutKeep</a>
+<nav class="story-nav">
+  <a href="index.html">Giriş</a>
+  <span class='here'>1</span> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>1. Problem: "kayıpsız çeviri" tam olarak ne demek</h1>
+<p>Bu bölüm, projenin çözmeye çalıştığı problemi tanımlar, neden zor olduğunu ölçülerle anlatır ve dışarıdaki çözümlerle karşılaştırır. Sonraki bölümler bu problem etrafında kurulan mimariyi, ölçümleri ve hataları anlatır.</p>
+<h2>1.1 Tanım</h2>
+<p>Bir PDF'i çevirmek, metni başka bir dilde yeniden yazmak demek değildir — o kolaydır: belgeyi okuyup metni çıkarır, modele verir, yeni bir belge üretirsiniz. Zor olan, <strong>sayfanın kendisini korumaktır</strong>: aynı sayfa boyutu, aynı sütun düzeni, aynı kutuya aynı yerde oturan metin, aynı başlık hiyerarşisi, aynı tablo ızgarası, aynı görseller, aynı dipnotlar. Okuyucu iki belgeyi yan yana koyduğunda "aynı kitabın başka bir dildeki baskısı" görmeli, "yeniden dizilmiş bir özet" değil.</p>
+<p>Bu proje o hedefi şöyle tanımlıyor: <strong>her çevrilebilir blok, kaynaktaki kutusunda, kaynağın tipografisine yakın biçimde, kaynağın konumunu koruyarak çizilir; çevrilemeyen hiçbir şey sessizce kaybolmaz — ya korunur ya işaretlenir.</strong></p>
+<h2>1.2 Neden zor: dört ölçülmüş gerçek</h2>
+<p><strong>1) Metin uzunluğu değişir, kutular değişmez.</strong> İngilizce→Türkçe bu projede <strong>0.93x</strong> ölçüldü (aynı segmentlerin karakter sayısı oranı) — yani çeviri ortalama olarak kaynaktan biraz kısa. Ortalama yanıltıcı: bir başlık <code>Introduction</code> → <code>Giriş</code> diye yarıya inerken, bir cümle <code>state of the art</code> → <code>son teknoloji ürünü</code> diye %60 büyüyebilir. Sabit bir kutuda büyüyen metin ya taşar ya küçültülür; küçültmenin de bir okunabilirlik tabanı vardır (bu projede <strong>0.85</strong> — altına inen bloklar D1 olarak işaretlenir).</p>
+<p><strong>2) PDF yeniden akıtan bir biçim değildir.</strong> PDF bir <em>baskı</em> biçimidir: her glifin yeri bellidir, "paragraf" diye bir kavram dosyada yoktur. Çeviri metnini yazmak için önce sayfanın <em>yapısını</em> geri kazanmak gerekir — hangi metin bir paragraf, hangisi başlık, hangisi tablo hücresi, hangisi sayfa numarası. Bu geri kazanım (reading order, blok birleştirme, sütun ayrımı) projenin en çok test edilen parçasıdır ve hataların çoğu burada çıkar.</p>
+<p><strong>3) Kaynak belge türü kaliteyi doğrudan belirler.</strong> Ölçtüğümüz farklar:</p>
+<table>
+<thead><tr>
+<th>Kaynak türü</th>
+<th>Ne olur</th>
+<th>Ölçüm</th>
+</tr></thead>
+<tbody>
+<tr><td>Dijital PDF (metin katmanı var)</td><td>En iyi durum; tipografi, font adı, punto, renk okunabilir</td><td>NIST dergisi: 4 parça, 114 blok, D1 <strong>52</strong> → reflow ile 0</td></tr>
+<tr><td>Taranmış PDF (görüntü)</td><td>OCR gerekir; harf hataları ve güven skoru devreye girer</td><td>NASA taraması: düşük güvenli blok "OCR güveni düşük (0.62)" ile <strong>işaretlenir</strong></td></tr>
+<tr><td>Karma (metin + görüntü)</td><td>Sayfa sayfa karar verilir; görsel üstü yazı tuzağı</td><td>Tarama sayfaları hariç tutulur (L10 kuralı, bkz. Bölüm 3)</td></tr>
+<tr><td>EPUB</td><td>Düzen CSS'te; akışkan ama yine de korunabilir</td><td>Rich fixture'da %95+ sadakat</td></tr>
+<tr><td>DOCX</td><td>OOXML doğrudan işlenir (<code>python-docx</code> bilinçli olarak kullanılmaz)</td><td>Kamu malı NIST DOCX test kaynağı eklendi</td></tr>
+<tr><td>PNG/JPG</td><td>Yalnız OCR yolu; sayfa düzeni çizimden çıkarılır</td><td>Sayfa görüntüsü → PDF → aynı boru hattı</td></tr>
+</tbody>
+</table>
+<p><strong>4) Modelin dil becerisi tavanı belirler.</strong> Boru hattı ne kadar iyi olursa olsun, cümleyi kuran modeldir. Yerel <code>google/gemma-4-e4b</code> (LM Studio) ile alınan sonuçlar, bulut modellerine göre terim tutarlılığında zayıf; bu yüzden sözlük (terim zorlama) ve bellek (aynı metne aynı çeviri) mekanizmaları modelin üstüne değil, <em>altına</em> konuldu: model yanlış yapsa bile terim ve tutarlılık boru hattında garanti edilir.</p>
+<h2>1.3 Dışarıda ne var</h2>
+<p>BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2), mineru-translate'in özellik listesinden ve ticari araçlardan (Doclingo, Lara Translate, Doctranslate, Bluente) derlenen fark tablosu. "Bizde" kolonu bu depodaki kodla doğrulanmıştır.</p>
+<table>
+<thead><tr>
+<th>Özellik</th>
+<th>Kimde var</th>
+<th>Bizde</th>
+</tr></thead>
+<tbody>
+<tr><td>Çift dilli çıktı (kaynak+çeviri almaşık sayfalar)</td><td>BabelDOC, mineru-translate, Doclingo, Lara</td><td>sitede var, <strong>PDF çıktısında yok</strong></td></tr>
+<tr><td>Terim sözlüğü kısıtı</td><td>BabelDOC (<code>--glossary</code> CSV), DeepL, Lara</td><td><strong>var</strong> (JSON veya CSV/TSV, istem + çıktı denetimi, uygulama içi düzenleyici)</td></tr>
+<tr><td>Otomatik terim çıkarımı</td><td>BabelDOC</td><td>yok</td></tr>
+<tr><td>Sayfa-ötesi bağlam</td><td>BabelDOC</td><td>kısmi (<code>context_before/after</code>)</td></tr>
+<tr><td>Örtüşme çözümü kademesi (küçült → sıkıştır → aşağı it)</td><td>mineru-translate</td><td>kısmi (<code>--fit-mode reflow</code>, deneysel, varsayılan kapalı)</td></tr>
+<tr><td>Koşular arası çeviri önbelleği</td><td>mineru-translate</td><td><strong>var</strong> (SQLite bellek, 2.555 segmentlik gerçek koşuda doğrulandı)</td></tr>
+<tr><td>Görsel/tablo içi metin çevirisi</td><td>BabelDOC</td><td>yok (bilinçli)</td></tr>
+<tr><td>Editör / sonradan düzeltme</td><td>Doclingo, Lara</td><td>yok (inceleme kuyruğu var, düzenleme yok)</td></tr>
+<tr><td>Eklenti ekosistemi (Zotero, Word)</td><td>BabelDOC/PDFMathTranslate</td><td>yok (bilinçli)</td></tr>
+<tr><td><strong>Sayfa sayfa kayıpsızlık denetimi (L1–L10)</strong></td><td><strong>görünmüyor</strong></td><td><strong>var</strong> — kaynağa karşı, her koşuda</td></tr>
+<tr><td>İnceleme bayrağı + gerekçe</td><td>kısmi</td><td><strong>var</strong> — 4.614 bayrağın gerekçesi yazılı (kitap koşusu)</td></tr>
+<tr><td>Gerçek held-out örneklerden karşılaştırma sitesi</td><td>yok</td><td><strong>var</strong> — 22 belge, kaydırıcılı, denetim sayılarıyla</td></tr>
+<tr><td>Çalışma anında ayar (bağlam penceresi, eşikler)</td><td>kısmi</td><td><strong>var</strong> — 30 ayar, hepsi koda bağlı (Bölüm 4, vaka 11)</td></tr>
+</tbody>
+</table>
+<p>Kritik fark şu: dışarıdaki araçlar <strong>çıktının iyi görünmesini</strong> hedefler; bu proje <strong>kaybı saymayı</strong> hedefler. İkincisi olmadan "kayıpsız" iddiası ölçülemez bir reklam cümlesidir.</p>
+<h2>1.4 Sözleşme: pazarlık konusu olmayan yedi karar</h2>
+<p>Projenin <code>docs/CONTRACT.md</code> dosyası, mimarinin tartışmaya kapalı yedi kuralını yazar. Bunlar keyfi değil — her biri bir hatanın ardından yazıldı:</p>
+<ul><li><strong>D1 — DocIR tek doğruluk kaynağıdır.</strong> Biçimden bağımsız ara belge modeli; okuyucular onu</li></ul>
+<p>üretir, yazıcılar onu tüketir. Çeviri katmanı PDF'i bilmez.</p>
+<ul><li><strong>D2 — Çeviri katmanı düzenden habersizdir.</strong> Sağlayıcı yalnız metin görür; kutu, punto, konum</li></ul>
+<p>bilgisi oraya sızmaz. Bu, modeli değiştirmeyi ve sağlayıcıları paralel çalıştırmayı mümkün kılar.</p>
+<ul><li><strong>D3 — Sığdırma ayrı bir aşamadır.</strong> Çeviriden <em>sonra</em> çalışır; kutuya sığdırma kararları</li></ul>
+<p>(küçült, kısaltma iste, aşağı it) çeviri kalitesini etkilemez.</p>
+<ul><li><strong>D4 — Latin alfabesi, ama RTL'e hazır.</strong> Sağdan sola yazı sistemleri <em>uygulanmadı</em>; şema</li></ul>
+<p><code>direction</code> alanını taşır.</p>
+<ul><li><strong>D5 — Her şey sürdürülebilir olmalı.</strong> Kesilen koşu kaldığı yerden devam eder; aralık</li></ul>
+<p>uygulanırken belge <em>küçültülmez</em> (bu kural iki kez yanlış uygulandı, bkz. Bölüm 4, vaka 12).</p>
+<ul><li><strong>D6 — Çeviri kalitesi segment bayraklarıyla izlenir.</strong> Her blok ya çevrilmiştir ya da <em>neden</em></li></ul>
+<p>çevrilmediği yazılıdır.</p>
+<ul><li><strong>D7 — Bir dönüşüm ancak ölçüldükten sonra sunulur.</strong> Ölçülmemiş biçim çifti arayüzde kapalıdır.</li></ul>
+<h2>1.5 "Kayıpsız"ın operasyonel tanımı</h2>
+<p>Sözü ölçülebilir hale getiren tanım <code>docs/campaign/JOURNAL.md</code>'nin başında yazılıdır ve üç maddeden oluşur:</p>
+<ol><li><strong>Hiçbir çevrilebilir blok kaybolmaz.</strong> Her blok çıktıda ya çevrilmiş ya da kaynaktaki hâliyle</li></ol>
+<p>durur; ikisi de değilse L3/L4 ihlalidir.</p>
+<ol><li><strong>Hiçbir çevrilmemiş blok sessiz kalmaz.</strong> Çevrilemeyen her blok bir <em>gerekçeyle</em> işaretlenir</li></ol>
+<p>(L2, D1, D2, OCR güveni, korunan değer kaybı, biçim kaybı...).</p>
+<ol><li><strong>Kaynak ile çıktı sayfa sayfa karşılaştırılabilir.</strong> L1–L10 kuralları bunu sayar; denetim</li></ol>
+<p>çıktısı (<code>audit.json</code>) her koşunun yanında durur ve karşılaştırma sitesinde yayınlanır.</p>
+<p>Bu tanımın pratik sonucu: projenin başarısı "güzel görünüyor" ile değil, <strong>kalan bayrak sayısı</strong> ile ölçülür — ve o sayı her koşuda yazılır, kötü çıktığında da yazılır.</p><p class="pager"><a href="index.html">← giriş</a> · <a href="02-mimari.html">sonraki bölüm →</a></p>
+<footer>
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
+  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+</footer>
+</main>
+</body>
+</html>
