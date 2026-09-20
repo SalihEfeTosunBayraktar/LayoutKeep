@@ -462,6 +462,17 @@ class TranslationWorker(QThread):
             if slice_path is not None:
                 slice_path.unlink(missing_ok=True)
 
+        # Çift dilli çıktı, doğrulamadan SONRA yazılır: doğrulama asıl (tek dilli) PDF'i denetler
+        # ve gerekirse yeniden yazar; çift dilli dosya onun yanına, son hâlinden üretilir.
+        dual_mode = getattr(config, "dual_mode", "") or ""
+        if dual_mode and src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf":
+            from layoutkeep.writers.dual_pdf import compose_dual
+
+            dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
+            self.status.emit("writing bilingual copy")
+            composed = compose_dual(src, out, dual_path, dual_mode)
+            self.status.emit(f"bilingual copy: {composed} pages ({dual_mode})")
+
         project_path = config.project_path or str(out.with_suffix(".lkproj"))
         save_project(doc, project_path)
         stats = self._collect_stats(translated)

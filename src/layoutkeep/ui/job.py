@@ -41,3 +41,5 @@ class JobConfig:
     glossary_path: str | None = None
     project_path: str | None = None
     page_range: str = ""
+    #: "" (kapalı), "side" (aynı sayfada yan yana) veya "alternate" (almaşık sayfalar).
+    dual_mode: str = ""

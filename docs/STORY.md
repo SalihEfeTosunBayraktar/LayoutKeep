@@ -41,7 +41,7 @@ sonra hatalar, sonra model kararları, sonra ürün, sonra dürüst sınırlar v
 | 3 | [Ölçüm disiplini](story/03-olcum.md) | L1–L10 + D1–D3 tablosu, 56 denetim aracı, **ölçümün kendisinin üç kez yanılması** |
 | 4 | [Hata kataloğu: on dört vaka](story/04-hatalar.md) | Her vaka: belirti → araştırma → kök neden → çözüm → kanıt |
 | 5 | [Model seçimi ve IBM Docling meselesi](story/05-model.md) | Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı |
-| 6 | [Ürünleşme: motordan uygulamaya](story/06-urun.md) | Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, sürümler, karşılaştırma sitesi |
+| 6 | [Ürünleşme: motordan uygulamaya](story/06-urun.md) | Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, **çift dilli PDF**, sürümler, karşılaştırma sitesi |
 | 7 | [Dürüst sınırlar ve dersler](story/07-sinirlar.md) | Bugün çalışmayanlar, yol haritası, sekiz ders |
 | 8 | [Dış kaynaklar ve atıflar](story/08-kaynaklar.md) | Her bağımlılığın rolü ve lisansı, test kaynaklarının hukuki durumu |
 

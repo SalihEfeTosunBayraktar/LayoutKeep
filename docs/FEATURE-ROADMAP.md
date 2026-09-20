@@ -64,9 +64,12 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    okumuyordu; worker'a bağlandı ve "bildirilen her ayar kodda geçmeli" testi eklendi. Kalan:
    ayarları profillere ayırma (ör. "hızlı taslak" / "yayın kalitesi" ön ayarları).
 
-1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Kilidi kolay: aynı sayfayı iki
-   kez yazıp sayfa boyutunu ikiye katlamak ya da sayfa sırasını değiştirmek; `pdf_writer` zaten
-   sayfa bazlı. Ölçüm: çıktı sayfa sayısı = 2×kaynak (almaşık) ve L1–L10 bozulmuyor.
+1. ~~Çift dilli PDF çıktısı~~ **yapıldı (2026-09-20)**: `--dual side|alternate` (CLI) + arayüzde
+   "Çift dilli PDF" kutusu. Boru hattına dokunulmadı: birleştirme sonradan, iki bitmiş dosyadan
+   yapılır, böylece çevrilmiş PDF ve `audit.json` değişmez (denetim sayfa N'i N ile eşler).
+   `writers/dual_pdf.py`, 5 test + 5 arayüz testi; gerçek koşuyla görsel doğrulama. Plan:
+   `docs/DUAL-OUTPUT-PLAN.md`. Kalan: kaynak ve çeviriyi **aynı sayfada üst üste** gösterme
+   seçeneği (şu an yalnız yan yana ve almaşık).
 2. ~~Sözlüğü ve belleği arayüzün parçası yapmak~~ **yapıldı (2026-09-20)**: sözlük dosyası ve bellek
    anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
    farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
