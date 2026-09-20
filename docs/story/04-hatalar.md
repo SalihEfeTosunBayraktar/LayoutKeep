@@ -237,6 +237,27 @@ dört yeni test eklendi. **Gerçek koşuda doğrulama (aynı gün):** 220 sayfal
 `type_drift` hizalama bayrağı **0** çıktı (düzeltmeden önce aynı ölçüm arXiv'da 4 bayrak
 veriyordu). Yani karar okuyucudan yazıcıya, yazıcıdan çizilmiş sayfaya kadar taşındı.
 
+## 4.16 Derlenmiş uygulama yardım ekranını açamıyordu
+
+**Belirti.** Yok — kimse fark etmemişti. Projenin kendi spec denetimi (`tools/audit/check_spec.py`)
+buldu: PyInstaller'ın paketlediği modül listesinde **altı** modül eksikti.
+
+**Araştırma.** `check_spec.py` statik analizi çalıştırıp spec'in `hiddenimports` listesiyle
+karşılaştırıyor. Eksikler: `ui.help_dialog` ve `ui.glossary_dialog` (ikisi de bir menü
+işleyicisinden açılıyor, statik analiz görmüyor), `fitting.figures`, ve 0.9.5'te eklenen
+`core.terms`, `core.profiles`, `writers.dual_pdf` (üçü de fonksiyon içinde import ediliyor).
+
+**Neden ciddi.** Üçü **birkaç sürümdür** eksikti: yayınlanan exe'de yardım ekranına ya da sözlük
+düzenleyiciye dokunan kullanıcı `ImportError` alırdı. Testler kaynaktan koştuğu için yeşildi;
+ekran görüntüleri de kaynaktan alınıyordu. Yani "iki kapı" dersinin üçüncü biçimi: **kaynak ve
+paket, iki ayrı üründür.**
+
+**Çözüm.** Altı modül spec'e eklendi; denetim artık "every lazy import is reachable, no stale
+names" diyor. Sürüm 0.9.6 olarak yeniden derlendi ve yayınlandı.
+
+**Ders.** Paketlenmiş ürünün yolu, kaynak ağacın yolundan farklıdır. `check_spec.py` bu yüzden
+var — ve bir denetim aracının değeri, kimsenin şikâyet etmediği bir hatayı bulduğunda anlaşılır.
+
 ## 4.15 Ölçüm ile çizim farklı satır yüksekliği kullanıyordu (uykuda bir hata)
 
 **Belirti.** Yok — hata uykudaydı. Sığdırma merdivenine "satır aralığını sık" adımı eklenirken

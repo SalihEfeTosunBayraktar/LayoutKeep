@@ -74,7 +74,10 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
    farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
    bellek isabeti. Kalan: otomatik terim adayları ve sözlüğü dışa aktarma.
-4. **Örtüşme çözümü**: `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
+4. **Örtüşme çözümü** (2026-09-20 ölçümü: satır aralığı adımı denendi, **geri alındı** — geçişin
+   kendi fontuyla hiçbir bloğu kurtarmıyor, yazılmış sayfada iki kol birebir aynı. Taşan blokların
+   derdi satır değil **kutu**: `room_below` kutuyu 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Asıl
+   kol bu madde): `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
    **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
@@ -89,9 +92,12 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    kayıtlı çevirileri yeniden yazar — model gerekmez, A/B aynı girdiyle yapılır. **Not:** bu
    değişiklik `fitting/`'i etkilediği için çalışan bir koşu sürerken yapılmaz (her parça yeni
    süreç başlatır → parçalar arası tutarsızlık olur).
-5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (sözlük
-   düzenleyicisine "belgeden öner" düğmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen
-   sözlükle örtüşmesi.
+5. ~~Otomatik terim adayları~~ **yapıldı (2026-09-20)**: `core/terms.py` (sıklık kuralı, dürüstçe
+   "anlama değil tekrar" diye yazılı) + sözlük düzenleyicisinde **"Belgeden öner"** düğmesi
+   (kurulumdaki dosyayı okur, adayları boş hedef hücreleriyle ekler, hedef sütununu insan yazar).
+   Dışlama kuralı: sözlükte zaten olan terim önerilmez. 9 test. Kalan: adayları çok dilli
+   stopword listeleriyle iyileştirmek ve terim adaylarını **önizlemeli** göstermek (şu an
+   doğrudan satır ekliyor).
 6. **Küçük editör**: inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazma. Emek:
    yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri bozulmadan.
 7. **Sayfa-ötesi bağlam**: parça sınırında önceki parçanın son 2 bloğunu isteme eklemek. Emek:

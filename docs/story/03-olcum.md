@@ -101,6 +101,31 @@ sayılmaz, sağa yaslı iki satır sağ kalır). **Aynı gün gerçek koşuda:**
 parçalarında 70 uzun gövde bloğunun 26'sı "justify" okundu ve `type_drift` hizalama bayrağı 0
 çıktı — düzeltme ölçümden çizilmiş sayfaya kadar doğrulandı.
 
+### Üçüncü vaka: sonda, geçişin sormadığı soruyu yanıtladı (2026-09-20)
+
+Kitapta en büyük inceleme bayrağı sınıfı "çeviri kutuya sığmadı" (42 parçada 6.014 bloğun 1.130'u).
+Merdivene bir **satır aralığı adımı** eklendi: kutu okunabilirlik tabanında bile sığmıyorsa, modele
+sormadan önce satırları sıkılaştır. Adım çalışıyordu — sentetik bir kutuda testleri geçti.
+
+Ölçüm iki kez yapıldı ve **ikisi farklı cevap verdi**:
+
+- *Sonda* (kayıtlı koşunun çevirileri üzerinde ölçüm): 158 taşan bloğun **20'si** kurtuluyor.
+- *Enstrümanlı geçiş* (fonksiyon sarmalanıp sayıldı): 6 parçada adım **14 kez çağrıldı, 0 kez
+  sığdırdı**.
+- *Yazılmış sayfa A/B'si* (20 parça, iki kol): **birebir aynı** — D1=627, D3=0, tüm L aynı.
+
+Fark tek bir satırdı: sonda `block.dominant_style()` ile ölçüyordu, geçiş ise
+`_as_drawn(...)` ile — hedef dilin **ikame fontu** çözülmüş stil. İki fontun metrikleri farklı ve
+sonda, motorun hiç sormadığı bir soruyu yanıtlıyordu.
+
+**Sonuç:** adım geri alındı (dal birleştirilmedi, girişim `bbf5958` olarak jurnalde duruyor).
+Ölçüm göstermiyorsa değişiklik geri alınır kuralı burada bir *sondayı* değil, bir *fikri*
+kurtardı. İki enstrüman (`fit_probe.py`, `fit_ab.py`) kaldı; ikisi de model harcamıyor.
+
+**Sıradaki kol da bu ölçümden çıktı:** kurtulmayan 138 bloğun derdi satır değil **kutu** —
+`room_below` bir bloğun ölçülen kutusunu sonraki bloğa değmemek için 6pt'ye eziyor ve 6pt'ye
+hiçbir şey sığmaz. Yani asıl iş örtüşme/yer açma (yol haritası 4), merdiven değil.
+
 ## 3.4 Ölçüm altyapısının kuralları
 
 Bu üç vakadan çıkan ve artık yazılı olan kurallar:
@@ -113,6 +138,10 @@ Bu üç vakadan çıkan ve artık yazılı olan kurallar:
 3. **Yanlış çıkan bir sayı, düzeltilmiş sayıyla birlikte yazılır.** Bu depoda "182 → 0" gibi
    ifadeler bilinçli: eski sayının yanlış olduğunu gizlemek, yeni sayıya duyulan güveni de
    götürürdü.
-4. **Varsayılan, kanıtlanmış kayıp varsa kapalıdır.** `reflow` modu NIST'te D1'i 52→0 yaptı ama
+4. **Sonda ile boru hattı anlaşmazsa, boru hattı enstrümanlanır.** Bir değişikliği ölçen sonda
+   motorun kullandığı girdileri kullanmalı (stil dahil: geçiş `_as_drawn` ile ölçer, blok stiliyle
+   değil). Anlaşmazlıkta doğru hamle, test edilen fonksiyonu sarmalayıp saymaktır — sondayı
+   düzeltmek değil.
+5. **Varsayılan, kanıtlanmış kayıp varsa kapalıdır.** `reflow` modu NIST'te D1'i 52→0 yaptı ama
    IRS'te L7'yi 0→1 yaptı; kazanç belgeye bağlı, kayıp kayıpsızlık ihlali — o yüzden mod var,
    varsayılan değil.
