@@ -1837,3 +1837,38 @@ caught the original English/Turkish mixing on its own.
 
 Noted for later: one test is marked `xfail` but passes (an expected-failure marker left behind by a
 fix). `strict=False` keeps it harmless, and it is a small, separate piece of tidying.
+
+## The glued footnote number, measured: not a merge, and not a regression
+
+The owner reported that section numbers and headings come out glued to the text that follows
+("34 gibi icerik yazarken sayi baslik hizalamalari kaybolmus"). `type_drift.py` over the recorded
+runs put numbers on it: `arxiv_19145_r2` carries 16 blocks drawn larger than the reader's style,
+3 with a changed alignment and 61 below the readability floor; `tr_tmk_4721` 0/0/13,
+`tr_tck_5237` 1/2/10, `tr_cmk_5271` 0/0/3.
+
+Two hypotheses died on the way, both worth keeping:
+
+1. **The reader was not merging anything.** A first look at the written page showed
+   `'10 9 8k vocabulary'` as one block while the source had them apart, so the reader's
+   `_merge_wrapped_lines` looked guilty. Replaying the same recorded chunk through the reader with
+   the layout model off (`read_pdf`, 89 blocks) kept `'8k vocabulary'` in its own block, and the
+   written page puts it back at the *identical* bbox (137.4, 70.5, 193.3, 83.9), same size, same
+   face. The apparent merge was PyMuPDF grouping the two runs when the written page is re-extracted
+   - a measurement artifact, not a defect. Nothing was changed, so nothing had to be reverted.
+2. **The glue is in the source, and the model is faithful to it.** The footnote line of the same
+   document reads `'14Because several of these differences are small, we addi-'` in the *source*,
+   with the marker span at 6.0 pt touching the 9.1 pt text - a LaTeX superscript with no space in
+   the text layer. The output carries `'14Bu farkliliklarin bircogu kucuk oldugundan'`, which is
+   the right translation of exactly what was read.
+
+**What is actually lost is the inline size.** The marker is set in 6.0 pt in the source and comes
+out at 8.9 pt in the output: the writer gives a block one style, so a smaller run inside it - a
+superscript marker, a footnote reference, a formula fragment set apart from the surrounding prose -
+is drawn at the block's size. That is the visible change the owner noticed, and it is a real
+limitation of the block-level writer rather than a reader bug. Preserving per-run sizes inside a
+block is a feature-sized change (it needs its own A/B against `type_drift.py` and the written-page
+comparison), so it is recorded here as the next candidate rather than patched blind.
+
+Still open from the same scan, and genuinely unexplained: the 16 *inflated* blocks on
+`arxiv_19145_r2` are all equation fragments (`'= Cafter(s) -Cbefore(s)'` at 1.37x,
+`'N D <-N D -nD s1,s2.'` at 1.62x), so the inflated set is the formula path, not prose.
