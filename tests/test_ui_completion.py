@@ -125,6 +125,39 @@ def test_a_clean_run_says_nothing_about_flags(qtbot):
     assert "0 segment" not in widget._stats_label.text()
 
 
+def test_the_box_flags_are_told_apart_from_the_text_ones(qtbot):
+    """A flag whose cause is the box is a layout problem, and the screen must say so.
+
+    Measured on the book: most flags are boxes `room_below` crushed to 6pt, where nothing fits at
+    any length - a user reading only "N segments need review" would try rephrasing, which cannot
+    help. The count is what tells the two apart.
+    """
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("tr")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(segments_flagged=37, flagged_box_crushed=29))
+
+    text = widget._stats_label.text()
+    assert "37" in text
+    assert "29" in text, text
+
+
+def test_a_run_without_box_flags_does_not_mention_them(qtbot):
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("tr")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(segments_flagged=5, flagged_box_crushed=0))
+
+    assert "5" in widget._stats_label.text()
+    assert "kutu kısaltmasından" not in widget._stats_label.text()
+
+
 def test_without_stats_the_block_stays_hidden(qtbot):
     """A failure path must not leave an empty labelled section behind."""
     widget = CompletionWidget()
