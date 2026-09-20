@@ -184,46 +184,71 @@ def _publishable(run: Path) -> bool:
     return not any("_".join(stem[:index]) in NOT_PUBLISHABLE for index in range(1, len(stem) + 1))
 
 
-def _live_documents(runs: int = 8, per_run: int = 4) -> list[Document]:
-    """The newest live runs: the freshest code, run against a real model, chunk by chunk.
+#: A run name carries how it was produced, not which document it is: `cookbook_1907_r2` is the
+#: second re-run of `cookbook_1907`, and `fresh_pdfmt_r6_2` is the third chunk of the sixth
+#: revision of `fresh_pdfmt`.
+_RUN_SUFFIX = re.compile(r"(?:_r\d+)?(?:_\d+)?$")
 
-    Eight rather than two: re-running a document after a fix lands should put *that* document's
-    new pages on the site, and a handful of re-runs is exactly what a fix produces.
+
+def _base_name(name: str) -> str:
+    """The document a run directory belongs to, without the revision or chunk numbering."""
+    return _RUN_SUFFIX.sub("", name) or name
+
+
+def _live_documents(per_document: int = 12) -> list[Document]:
+    """The freshest live run of each document, all of its chunks, as one entry.
+
+    WHY THIS EXISTS: a live run is written chunk by chunk (`cookbook_1907_r2` holds chunk_0000.pdf
+    and thirty-odd more), and showing one entry per chunk filled the sidebar with `cookbook_1907_0`,
+    `..._1`, `..._2` - the same document four times, each looking like a separate sample. Grouping
+    by the base name also lets a re-run *replace* the entry it is a re-run of, which is the whole
+    point of running it again after a fix.
     """
-    documents: list[Document] = []
-    newest = [
-        run
-        for run in sorted(LIVE.iterdir(), key=lambda path: path.stat().st_mtime)
-        if run.is_dir() and _publishable(run)
-    ][-runs:]
+    groups: dict[str, list[Path]] = {}
+    for run in LIVE.iterdir():
+        if run.is_dir() and _publishable(run):
+            groups.setdefault(_base_name(run.name), []).append(run)
+
     head = _head_commit()
-    for run in newest:
-        sources = sorted((run / "src").glob("chunk_*.pdf")) if (run / "src").exists() else []
-        outputs = sorted((run / "out").glob("t_*.pdf")) if (run / "out").exists() else []
-        for index, (source, output) in enumerate(list(zip(sources, outputs, strict=False))[:per_run]):
+    documents: list[Document] = []
+    for base, runs in sorted(groups.items()):
+        newest = max(runs, key=lambda path: path.stat().st_mtime)
+        sources = sorted((newest / "src").glob("chunk_*.pdf")) if (newest / "src").exists() else []
+        outputs = sorted((newest / "out").glob("t_*.pdf")) if (newest / "out").exists() else []
+        pairs: list[tuple[Path, int, Path, int]] = []
+        for source, output in list(zip(sources, outputs, strict=False))[:per_document]:
             with pymupdf.open(output) as chunk:
-                pairs = [(source, page, output, page) for page in range(chunk.page_count)]
-            recorded = _run_commit(run)
-            documents.append(
-                Document(
-                    name=f"{run.name}_{index}",
-                    title=f"{run.name} parça {index}",
-                    pairs=pairs,
-                    note="en güncel kod, gerçek model",
-                    commit=recorded,
-                    stale=(
-                        f"kayıt {recorded} (güncel değil)"
-                        if recorded and recorded != head
-                        else ""
-                    ),
-                    origin=f"live/{run.name}",
-                )
+                pairs.extend((source, page, output, page) for page in range(chunk.page_count))
+        if not pairs:
+            continue
+        recorded = _run_commit(newest)
+        documents.append(
+            Document(
+                name=base,
+                title=base,
+                pairs=pairs,
+                note="en güncel kod, gerçek model",
+                commit=recorded,
+                stale=(
+                    f"kayıt {recorded} (güncel değil)" if recorded and recorded != head else ""
+                ),
+                origin=f"live/{newest.name}",
             )
+        )
     return documents
 
 
 def collect(include_live: bool = True) -> list[Document]:
-    return _campaign_documents() + (_live_documents() if include_live else [])
+    """Every sample, freshest first, with a re-run standing in for the run it replaced.
+
+    The old run is not deleted - its page images are the evidence of what that engine produced -
+    but it is not shown as a separate entry either once the same document has been run again on
+    current code: two entries for one document read as two samples.
+    """
+    live = _live_documents() if include_live else []
+    fresh = {document.name for document in live}
+    campaign = [document for document in _campaign_documents() if _base_name(document.name) not in fresh]
+    return live + campaign
 
 
 def _save(pix, stem: Path) -> str:
