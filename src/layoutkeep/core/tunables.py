@@ -272,6 +272,25 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
 
     Tunable(
+        key="fitting.reflow",
+        label="Sığdırma: blokları aşağı iterek büyüt (reflow)",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="Sığdırma",
+        help_text=(
+            "Kapalıyken (strict) her blok kendi kutusuna sığdırılmaya çalışılır ve sığmayan blok "
+            "küçültülür ya da inceleme kuyruğuna düşer. Açıkken sığmayan blok daha fazla satıra "
+            "yayılır ve altındaki bloklar aşağı itilir (mineru-translate'in kademesinin bizdeki "
+            "karşılığı)."
+        ),
+        warning=(
+            "Ölçüm (NIST dergisi, 4 parça, 114 blok): strict D1=52 (sığmadı diye işaretlenen blok), "
+            "reflow D1=0; L1-L10 aynı kaldı. Sayfa düzeni daha çok değişir, çünkü bloklar aşağı "
+            "kayar - akışkan olmayan formlarda denemeden açma."
+        ),
+    ),
+    Tunable(
         key="fit.min_scale",
         label="En küçük yazı tipi ölçeği",
         default=0.85,

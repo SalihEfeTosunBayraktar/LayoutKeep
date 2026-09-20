@@ -551,7 +551,11 @@ def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
         )
         return again[0].target if again and again[0].target else segment.target
 
-    mode = FitMode.REFLOW if args.fit_mode == "reflow" else FitMode.STRICT
+    # The flag wins when it is given; otherwise the same setting the application reads decides,
+    # so the two cannot disagree about how a document is fitted (they did: the CLI could reflow
+    # while the application always used strict).
+    chosen = args.fit_mode or ("reflow" if tunables.get("fitting.reflow") else "strict")
+    mode = FitMode.REFLOW if chosen == "reflow" else FitMode.STRICT
 
     def on_fitted(seg, block, result) -> None:
         # fit_segment is pure - it reports what would fit. Writing the result back is ours.
@@ -649,7 +653,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="after writing, check the output for losses and ask the model again "
                          "for lost text up to N times; what remains is flagged for review "
                          "(0 checks and flags without asking again)")
-    tr.add_argument("--fit-mode", choices=["strict", "reflow"], default="strict",
+    tr.add_argument("--fit-mode", choices=["strict", "reflow"], default=None,
                     help="strict keeps the original boxes; reflow lets blocks grow (PDF only)")
     tr.add_argument("--memory", default=None, metavar="PATH",
                     help="SQLite translation memory; reuses earlier translations of repeated text")

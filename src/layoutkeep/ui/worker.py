@@ -609,7 +609,7 @@ class TranslationWorker(QThread):
             doc,
             segments,
             retranslate=retranslate,
-            mode=FitMode.STRICT,
+            mode=FitMode.REFLOW if tunables.get("fitting.reflow") else FitMode.STRICT,
             target_lang=config.target_lang,
             on_fitted=on_fitted,
         )
