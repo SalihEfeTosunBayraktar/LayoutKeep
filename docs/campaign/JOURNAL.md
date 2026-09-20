@@ -1951,3 +1951,32 @@ change is still read on both directions before it is kept), but it is a rule abo
 evidence of a TR->EN loss. **Before either the inline-size design or any per-language-pair knobs are
 built, `type_drift` has to measure per run/line instead of per block**, or every judgement it feeds
 will keep mixing boxes with the runs inside them.
+
+## A per-box instrument replaces the confounded ratio
+
+`tools/audit/type_map.py` prints, for every box, the *set of point sizes* the source prints there and
+the set the written page prints there, then names the difference (`faithful` / `flattened` / `shrunk`
+/ `grown` / `mixed`). It pairs `out/t_NNNN.pdf` with `src/chunk_NNNN.pdf` and matches boxes by
+overlap, so no model is needed. Five recorded runs:
+
+| run | direction | boxes | faithful | shrunk | flattened | grown | mixed |
+|---|---|---|---|---|---|---|---|
+| arxiv_19145_r2 | EN->TR | 737 | 396 | **317 (43%)** | 15 | 1 | 8 |
+| tr_tmk_4721 | TR->EN | 354 | 275 | 64 | 9 | 6 | - |
+| tr_tck_5237 | TR->EN | 74 | 36 | 31 | 6 | - | 1 |
+| tr_cmk_5271 | TR->EN | 240 | 174 | 52 | 10 | 4 | 4 |
+| en_sbb_plan_12 | TR->EN | 1137 | 1046 | 70 (6%) | 9 | - | 12 |
+
+Two things this settles:
+
+1. **The inline-size loss is real but small.** `flattened` - the source had a small run and the
+   written page prints everything at the box's larger size - is 6-15 boxes per document, not the
+   61-13-10 block counts the confounded ratio suggested. It is worth fixing (a glued footnote
+   marker is visible), but it is not where the quality goes.
+2. **The lever is the shrink, and it follows the direction.** TR->EN from a Turkish source comes back
+   with 43% of boxes shrunk on the arXiv document, while Turkish produced from English shrinks only
+   6% on the SBB plan. Turkish is the longer target language, and a box whose translation is longer
+   is a box the ladder squeezes. That is the same asymmetry `FitLayer.EXPANDED`, `MIN_FILL` and
+   `HEAVY_SHRINK` were designed around - the module's own answer to it is to ask for a shorter
+   rendering (`fit.shorten_below_scale`), which is the path to instrument next: for the shrunk boxes,
+   did the shorten request fire, and did it arrive inside the budget.
