@@ -27,7 +27,8 @@ LayoutKeep/
 │   ├── MEASUREMENTS.md   Older measurement results
 │   ├── PACKAGING.md      Building the exe
 │   ├── MAP.md            (this file)
-│   ├── comparison.html   The published EN/TR page comparison (one document, ten pages)
+│   ├── comparison/       The published EN/TR comparison site (every document, with audits)
+│   ├── comparison.html   Redirect to it, for links shared before the site existed
 │   ├── comparison/       The generated side-by-side site: every held-out sample, original
 │   │                     against translation, with a draggable divider
 │   │                     (tools/audit/comparison_site.py)
