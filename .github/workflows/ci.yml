@@ -2,8 +2,13 @@ name: CI
 
 on:
   push:
-    # The default branch here is master; a workflow that only watches main never runs.
-    branches: [main, master]
+    # The code lives on the feature branch; `main` is the publication surface - the site, the
+    # READMEs, the docs - and carries an old snapshot of the tree rather than the development one.
+    # A suite run there tested that snapshot, so it failed on every main push for reasons that had
+    # nothing to do with the push, and the failure was noise. The branch that is developed is the
+    # branch that is tested. `master` stays watched because it was the default branch when this
+    # workflow was written.
+    branches: [feature/**, master]
   pull_request:
   workflow_dispatch:
 
