@@ -14,6 +14,17 @@ Tek dosya EXE üretilir (güncel standart — CLI ve masaüstü için tek `dist\
 
 Çıktı: `dist\LayoutKeep.exe`
 
+**Derleme ~8 dakika sürer ve izlenen arka plan işleri ~20. dakikada kesilir**, bu yüzden uzun
+derlemeleri ayrı kabukta başlat ve günlük dosyasından izle (projenin uzun iş kuralı):
+
+```powershell
+Start-Process -FilePath cmd.exe -ArgumentList '/c "<proje>\packaging\build.bat"' -WindowStyle Minimized
+```
+Kabuk betiğinin içi: `python -m PyInstaller packaging\layoutkeep_onefile.spec --noconfirm --clean`
+çıktısını `%LOCALAPPDATA%\Temp\lk_build.txt`'e yaz, sonuna `exit=%ERRORLEVEL%` ve
+`dist\LayoutKeep.exe` boyutunu ekle. **Derleme bittikten sonra exe'yi sür** (bkz. `docs/MAP.md`
+"paketlenmiş exe ancak sürüldüğünde biter") — yalnız derlenmiş dosya teslim sayılmaz.
+
 `packaging\layoutkeep.spec` (eski çoklu-klasör varyantı) CI'da ve arşivde durur; el ile üretimde
 kullanılmaz. `keyring` arka ucunu çalışma anında import ettiği için `hiddenimports`'a elle
 eklendi; yoksa API anahtarı saklama paketlenmiş yapıda sessizce bozulur.
@@ -100,5 +111,5 @@ açık depolarda ücretsiz, özel depolarda pahalı. Depo özel kalacaksa macOS 
 | macOS yapısı | ⬜ Apple Developer hesabı gerekiyor |
 | Linux yapısı | ⬜ AppImage/Flatpak paketleme yazılmadı |
 | Kod imzalama | ⬜ sertifika kararı bekliyor |
-| Font paketleme | ⬜ onay bekliyor |
+| Font paketleme | ✅ tamamlandı (17 dosya, OFL 1.1, lisans metinleriyle) |
 | Otomatik güncelleme | ⬜ Faz 2 |
