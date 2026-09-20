@@ -23,13 +23,13 @@ from layoutkeep.ui.worker import (
 
 
 def _job(tmp_path, **kwargs) -> JobConfig:
-    defaults = dict(
-        input_path=str(tmp_path / "in.pdf"),
-        output_path=str(tmp_path / "out.pdf"),
-        source_lang="English",
-        target_lang="Turkish",
-        provider=ProviderConfig(kind="fake", base_url="", model="fake", api_key=""),
-    )
+    defaults = {
+        "input_path": str(tmp_path / "in.pdf"),
+        "output_path": str(tmp_path / "out.pdf"),
+        "source_lang": "English",
+        "target_lang": "Turkish",
+        "provider": ProviderConfig(kind="fake", base_url="", model="fake", api_key=""),
+    }
     defaults.update(kwargs)
     return JobConfig(**defaults)
 

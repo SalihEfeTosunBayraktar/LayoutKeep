@@ -191,6 +191,22 @@ def capture(theme_dark: bool) -> list[Path]:
     written.append(target)
     bar.hide()
 
+    # 9. the help screen: what the flags mean, generated from the checker's own labels
+    from layoutkeep.ui.help_dialog import HelpDialog
+
+    help_screen = HelpDialog(window)
+    help_screen.show()
+    settle()
+    target = OUT_DIR / f"09_help_{suffix}.png"
+    help_screen.grab().save(str(target))
+    written.append(target)
+    help_screen._list.setCurrentRow(4)  # the criteria section
+    settle()
+    target = OUT_DIR / f"09_help_criteria_{suffix}.png"
+    help_screen.grab().save(str(target))
+    written.append(target)
+    help_screen.hide()
+
     window.close()
     return written
 

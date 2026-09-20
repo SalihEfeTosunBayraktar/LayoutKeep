@@ -94,6 +94,7 @@ class MainWindow(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self._header.tweaks_requested.connect(self._open_tweaks)
+        self._header.help_requested.connect(self.show_help)
         layout.addWidget(self._header)
         layout.addWidget(self._stack)
 
@@ -243,6 +244,12 @@ class MainWindow(QWidget):
         self._completion.set_output_path(self._last_output_path)
         self._stack.setCurrentWidget(self._completion)
         self._header.set_active_step(3)
+
+    def show_help(self) -> None:
+        """Open the help screen; the header's "?" and the welcome screen both land here."""
+        from layoutkeep.ui.help_dialog import show_help
+
+        show_help(self)
 
     def _maybe_show_welcome(self) -> None:
         """First run only: the introduction, unless it has already been dismissed."""

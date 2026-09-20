@@ -7,6 +7,7 @@ from __future__ import annotations
 
 _TRANSLATIONS: dict[str, dict[str, str]] = {
     "tr": {
+        "HELP_TITLE": "Yardım",
         "TWEAKS_BROWSE": "Gözat…",
         "TWEAKS_GLOSSARY_TIP": "JSON sözlük dosyası seç: {\"kaynak terim\": \"hedef terim\"}",
         "TWEAKS_GLOSSARY_FILTER": "JSON sözlük (*.json);;Tüm dosyalar (*)",
@@ -141,6 +142,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Eksik Bilgi",
     },
     "en": {
+        "HELP_TITLE": "Help",
         "TWEAKS_BROWSE": "Browse…",
         "TWEAKS_GLOSSARY_TIP": "Pick a JSON glossary file: {\"source term\": \"target term\"}",
         "TWEAKS_GLOSSARY_FILTER": "JSON glossary (*.json);;All files (*)",
@@ -275,6 +277,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "ERR_INCOMPLETE_INFO": "Incomplete Information",
     },
     "de": {
+        "HELP_TITLE": "Hilfe",
         "TWEAKS_BROWSE": "Durchsuchen…",
         "TWEAKS_GLOSSARY_TIP": "JSON-Glossardatei wählen: {\"Quellbegriff\": \"Zielbegriff\"}",
         "TWEAKS_GLOSSARY_FILTER": "JSON-Glossar (*.json);;Alle Dateien (*)",
