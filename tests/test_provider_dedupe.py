@@ -196,3 +196,33 @@ def _dedupe_stats_of(provider) -> dict[str, int]:
     from layoutkeep.cli import _dedupe_stats
 
     return _dedupe_stats(provider)
+
+
+def test_a_capped_repeat_is_answered_within_its_budget() -> None:
+    """The fit pass caps a shorten request (`max_len`); the canonical reply, produced without a
+    cap, can be longer than it - a capped asker then goes to the provider itself rather than
+    receiving a translation that ignores its budget (the same rule `providers/cached.py` applies
+    to a memory hit)."""
+
+    class _ShortProvider:
+        def __init__(self) -> None:
+            self.caps: list[int | None] = []
+
+        def translate(self, segments, src_lang, tgt_lang, glossary=None, on_progress=None):
+            self.caps += [s.max_len for s in segments]
+            return [
+                Segment(block_id=s.block_id, source=s.source, target=f"TR::{s.source}",
+                        max_len=s.max_len)
+                for s in segments
+            ]
+
+    inner = _ShortProvider()
+    first = Segment(block_id="b1", source=_REPEATED)  # uncapped: gets the long answer
+    repeat = Segment(block_id="b9", source=_REPEATED, max_len=10)  # capped: too long, asks itself
+
+    out = DedupeProvider(inner).translate([first, repeat], "en", "tr")
+
+    assert inner.caps == [None, 10], "the second request is the capped repeat, which the shared answer could not serve"
+    assert out[1].max_len == 10
+    # The uncapped occurrence still got the shared answer.
+    assert out[0].target == f"TR::{_REPEATED}"

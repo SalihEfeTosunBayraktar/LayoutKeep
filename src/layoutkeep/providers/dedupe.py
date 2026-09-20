@@ -58,11 +58,6 @@ class DedupeProvider:
             return self.inner.translate(segments, src_lang, tgt_lang, glossary, on_progress)
 
         keys = {seg.block_id: share_key(seg.source) for seg in segments}
-        # A repeat is answered from its first occurrence only when both requests want the same
-        # thing: the fit pass asks one segment for a shorter rendering (`max_len`, the shrink
-        # ladder) while a sister occurrence wants no cap - sharing the uncapped answer would
-        # hand the capping segment a text that ignores its budget.
-        capped = {seg.block_id: seg.max_len for seg in segments}
         first: dict[str, Segment] = {}
         unique: list[Segment] = []
         skipped_chars = 0
@@ -70,15 +65,10 @@ class DedupeProvider:
             key = keys[seg.block_id]
             if key is None:
                 unique.append(seg)
-            elif key in first and capped[first[key].block_id] == capped[seg.block_id]:
+            elif key in first:
                 skipped_chars += len(seg.source)  # a repeat: answered from its first occurrence
             else:
-                if key in first:
-                    # A differing request (e.g. the fit pass caps one repeat and not its
-                    # sister): forward this copy, the canonical answer stays `first[key]`.
-                    pass
-                else:
-                    first[key] = seg
+                first[key] = seg
                 unique.append(seg)
         saved = len(segments) - len(unique)
         self.totals["shared"] += len(first)
@@ -95,16 +85,19 @@ class DedupeProvider:
             )
         }
         out: list[Segment] = []
-        # A repeat whose request differs from the canonical one (the fit pass's `max_len`) is
-        # answered only by its own reply, never by the sister's.
         for seg in segments:
             key = keys[seg.block_id]
-            if (key is not None and key in first
-                    and first[key].block_id != seg.block_id
-                    and capped[first[key].block_id] == capped[seg.block_id]):
+            if key is not None and key in first:
                 reply = answered.get(first[key].block_id)
             else:
                 reply = answered.get(seg.block_id)
+            # A capped request (the fit pass's shorten ladder) must not be answered with a text
+            # that ignores its budget: the canonical reply was produced WITHOUT the cap, so when
+            # it is longer than the asker's budget the asker is sent to the provider itself
+            # instead - the same rule `providers/cached.py` applies to a memory hit.
+            if reply is not None and seg.max_len and len(reply.target) > seg.max_len:
+                fresh = self._ask([seg], src_lang, tgt_lang, glossary, None, 0, 1, 0)
+                reply = fresh[0] if fresh else None
             out.append(seg if reply is None else _as(reply, seg))
         return out
 
