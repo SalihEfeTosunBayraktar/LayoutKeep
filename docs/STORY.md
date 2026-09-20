@@ -189,6 +189,19 @@ sonunda duraklat/iptal kontrol edilir, sonuçlar **belge sırasına göre** birl
 iş parçası kendi sağlayıcı zincirini alır (dedupe önbelleği ve bellek bağlantısı paylaşılırsa yarış
 olurdu). Üç yeni test: eşzamanlılık gerçekten >1, tek işçide sıralı, çıktı belge sırasında.
 
+### 5.11 Ayar ekranındaki ölü anahtar
+
+**Belirti (kullanıcı isteği):** *"uygulamanın arayüzüne bağlanmamış ayarları bul ve uygulamaya bağla."*
+**Ölçüm:** Bildirilen 30 ayarın anahtarları, `src/` içinde okunan anahtarlarla karşılaştırıldı.
+Bir tanesi — `timeout.first_batch_s` — ayar ekranında **görünüyor, kaydediliyor ve hiçbir şey
+okumuyordu**: ilk partinin zaman aşımı sabitten geliyordu. Ayrıca ayar ekranının 30/30 gösterdiği
+de ölçüldü.
+**Çözüm:** Anahtar worker'a bağlandı (warm partiler kendi sabitini korur). Beş test: "bildirilen her
+ayar kodda geçmeli" (ölü anahtar bir daha sızmasın), ilk-parti ayarının zaman aşımına ulaştığı,
+warm partinin ondan etkilenmediği, varsayılan paralelliğin 2 olduğu, ayar ekranının her bildirileni
+gösterdiği. **Ders:** çalışmayan bir anahtar, hiç olmayan bir anahtardan kötüdür — çalışanlara olan
+güveni harcar.
+
 ### 5.10 Tarama gürültüsü sessiz değil
 
 **Belirti:** NASA taramasında dekoratif başlık "Naga Merorautigs Frogrom Amerika" diye okundu.
@@ -300,7 +313,9 @@ Bugünkü durum (ölçülmüş):
 *Yayınlanan karşılaştırma sitesi: solda orijinal, sağda çeviri, üstte o belgenin denetim sayıları
 (`arxiv_19113` örneğinde: 8 sayfa · denetim L6 1, D1 68, D2 23).*
 
-**Bilinen sınırlar:** kaynakça satırları ve numaralı başlıklar bazen kaynak dilde kalır (L2, işaretli);
+**Bilinen sınırlar:** tablo başlıklarındaki **sayı şeritleri** (bir satır boyunca ayrı x
+konumlarına dağılmış salt sayı dizileri) çeviride tek bir sola yaslı bloğa düşebilir — sayılar
+korunur, dizilişleri kaybolur; kaynakça satırları ve numaralı başlıklar bazen kaynak dilde kalır (L2, işaretli);
 yoğun formlarda okunabilirlik tabanının altına inen bloklar vardır (D1; `reflow` modu bu sınıfı
 kaldırır ama sabit düzenlerde metni üst üste bindirebilir, o yüzden varsayılan kapalıdır); taranmış
 sayfalar OCR kalitesine bağlıdır ve düşük güvenle işaretlenir; **sağdan sola yazı sistemleri
