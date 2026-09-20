@@ -1980,3 +1980,43 @@ Two things this settles:
    `HEAVY_SHRINK` were designed around - the module's own answer to it is to ask for a shorter
    rendering (`fit.shorten_below_scale`), which is the path to instrument next: for the shrunk boxes,
    did the shorten request fire, and did it arrive inside the budget.
+
+## Driving the shipped exe, and the two defects only that could find
+
+The release rule is that the exe is done when it has been *driven*, not when it has been built
+(0.9.8's `dist/LayoutKeep.exe`, 173,006,812 bytes). Walked it by accessibility tree, background
+delivery, while the user slept:
+
+- It starts (two processes, the one-file bootstrap and the app) and raises the **floating progress
+  bar** with its own controls: `Duraklat`, `Pencereye dön`, minimize.
+- The **welcome screen** opens with the five page dots, the interface language picker and the theme
+  button *on the first page*, `Bir daha gösterme`, `Atla` / `İleri` / `Geri` - the first-run
+  experience the user asked for is real and reachable.
+- The **setup screen** carries the header (logo, 1-2-3 step marker, language, `?`, theme, settings),
+  the drop zone with the supported-format list, output format, output path, source/target language
+  (`auto` -> `tr`), document type, provider (`LM Studio (1234)`) and `Çeviriyi Başlat`.
+- The **help dialog** lists eight topics, among them `Kayıpsızlık kriterleri` and `Çevirinin
+  kalitesini ne belirler` - the in-app explanation the project treats as a feature.
+- About twenty-five minutes of use left **no `crash.log`** (`%LOCALAPPDATA%\LayoutKeep\`).
+
+Two defects came out of it, both invisible to the suite because a test never switches the language
+and never reads a widget's wording:
+
+1. **The welcome screen's second page said the worker default was 7**, and `core/tunables.py` has
+   set `translation.workers` to 2 since the default was lowered - Turkish even contradicted itself,
+   with the provider page two paragraphs later already saying 2. Corrected in tr/en/de (`9db30c5`).
+2. **A label and a button did not follow the language.** The setup card showed an *English*
+   dual-output hint among Turkish labels, and the help dialog's button read `Close`.
+   `JobSetupWidget` read `UIStrings.DUAL_HINT` / `RANGE_HINT` once in `__init__` and
+   `retranslate_ui()` refreshed every other label but those; the button's text comes from
+   `QDialogButtonBox`, i.e. Qt's own catalog, which is not installed. Fixed with a `CLOSE_BTN` key in
+   three languages and a refresh in `retranslate_ui()`, plus
+   `tests/test_ui_strings_follow_language.py` - **proven red on the base by stashing the fix**
+   (`0f23538`).
+
+**Not yet carried by the shipped file:** both fixes are in the source; the 0.9.8 exe still shows the
+old strings, so the next build is the one that carries them.
+
+**Next in this walk** (not done): the provider settings dialog's `Test Et` button, which is the one
+free end-to-end proof that the *built* exe reaches a model server (`Bağlantı çalışıyor - N model
+bulundu`).
