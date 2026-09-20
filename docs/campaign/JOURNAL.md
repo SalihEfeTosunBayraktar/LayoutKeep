@@ -1725,3 +1725,37 @@ The same evening, the day's measurements, for the record:
   correction, and the review-reason split that reached the completion screen in 0.9.7.
 - Releases today: **v0.9.1 through v0.9.7**, each verified by downloading the asset and comparing its
   SHA-256 with the local build.
+
+## 2026-09-20, evening — the other direction (TR -> EN)
+
+Every run so far had gone English -> Turkish. The user asked for the reverse: five Turkish documents
+of at least 60 pages, translated to English, plus the opposite direction tried as well.
+
+The Turkish side needed sources first, and the usual one was closed: **mevzuat.gov.tr does not answer
+from this machine at all** (curl times out with no response, not even a 4xx). The Ministry of Family
+and Social Services mirrors the same law texts and answers fine, so the set came together from two
+hosts that work:
+
+| document | pages | direction | licence |
+|---|---|---|---|
+| Türk Ceza Kanunu (5237) | 88 | tr -> en | law, no copyright (FSEK art. 31) |
+| Ceza Muhakemesi Kanunu (5271) | 91 | tr -> en | law, no copyright |
+| Türk Medeni Kanunu (4721) | 162 | tr -> en | law, no copyright |
+| On İkinci Kalkınma Planı (2024-2028) | 253 | tr -> en | state publication |
+| On Birinci Kalkınma Planı (2019-2023) | 198 | tr -> en | state publication |
+| Twelfth Development Plan (English edition) | 263 | **en -> tr** | state publication |
+
+All six are publishable (no third-party rights), so unlike the Ross book they can go on the
+comparison site once they have run.
+
+`tools/run_tr_en_campaign.bat` runs them smallest-first, detached, logging to
+`%LOCALAPPDATA%\Temp\lk_tr_campaign.txt`. It opens with a **two-chunk smoke run of the new
+direction** and aborts the whole campaign if that fails — a direction that has never been exercised
+should not be trusted with six hours of model time. It passed: 8 pages in 5.4 minutes, `smoke exit=0`,
+and the main run's first two chunks then finished in 21 and 22 seconds because the translation memory
+already held those pages.
+
+Measured rate: ~1 minute per page (4-page chunks, 7 workers) — the same rate the Ross book ran at.
+So the full set is a night's work: the three laws land first, the reverse direction in the middle,
+the two plans after that. Every step is `--resume`-safe; relaunching the same file picks up at the
+first chunk that has no `.lkproj` yet.
