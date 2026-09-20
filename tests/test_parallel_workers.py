@@ -20,20 +20,21 @@ from tools.audit.translate_book import DEFAULT_WORKERS as BOOK_DEFAULT_WORKERS
 from tools.audit.translate_epub import DEFAULT_WORKERS as EPUB_DEFAULT_WORKERS
 
 
-def test_tunable_translation_workers_defaults_to_seven():
-    # Tunable paralel iş parçacığı varsayılanının 7 olduğunu doğrular / Verifies tunable defaults to 7
+def test_tunable_translation_workers_defaults_to_two():
+    # Varsayılan 2'dir: tek yerel GPU'da yedi eşzamanlı istek bağlamı bölüşüp istek başına
+    # token'ı düşürür; yuva sayısı elverince kullanıcı yükseltir.
     val = tunables.get("translation.workers")
-    assert val == 7
+    assert val == 2
 
 
-def test_translate_book_default_workers_is_seven():
-    # translate_book varsayılan işçi sayısının 7 olduğunu doğrular / Verifies translate_book default is 7
-    assert BOOK_DEFAULT_WORKERS == 7
+def test_translate_book_fallback_workers_match_the_tunable():
+    # Tunable okunamazsa kullanılan yedek, tunable varsayılanıyla aynı olmalı (2)
+    assert BOOK_DEFAULT_WORKERS == 2
 
 
-def test_translate_epub_default_workers_is_seven():
-    # translate_epub varsayılan işçi sayısının 7 olduğunu doğrular / Verifies translate_epub default is 7
-    assert EPUB_DEFAULT_WORKERS == 7
+def test_translate_epub_fallback_workers_match_the_tunable():
+    # Tunable okunamazsa kullanılan yedek, tunable varsayılanıyla aynı olmalı (2)
+    assert EPUB_DEFAULT_WORKERS == 2
 
 
 def test_translate_book_cli_args_respect_default_workers(tmp_path: Path):

@@ -53,7 +53,15 @@ def test_bar_shows_document_phase_counters_and_percent(qtbot, ui_language):
     bar.set_phase("translating")
     bar.set_progress(10, 44)
 
-    assert "Introductory_Statistics.pdf" in bar._title.text()
+    # The title is elided to _TITLE_ROOM on purpose, so its exact text depends on the machine's
+    # font metrics - asserting the full name there made this test flaky under load. What must hold
+    # is that the bar knows the whole name and hands it to the reader (tooltip), and that the
+    # visible label is the elided form of that name rather than something else.
+    assert bar._document == "Introductory_Statistics.pdf"
+    assert bar._title.toolTip() == "Introductory_Statistics.pdf"
+    visible = bar._title.text()
+    assert visible
+    assert visible.replace("…", "").startswith("Introductor")
     assert UIStrings.STATUS_TRANSLATING in bar._detail.text()
     assert UIStrings.FLOAT_SEGMENTS.format(done=10, total=44) in bar._detail.text()
     assert bar._percent.text() == "23%"

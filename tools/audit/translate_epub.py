@@ -21,7 +21,10 @@ from layoutkeep.writers.epub_writer import write_epub
 _INTERESTING = ("segments", "fitting", "review", "wrote", "error", "Error", "Traceback", "references")
 
 #: LM Studio 7 paralel slot kapasitesine uygun varsayılan işçi sayısı / Default worker count matching LM Studio's 7 parallel slots
-DEFAULT_WORKERS = 7
+# The fallback when the tunable cannot be read. It matches `translation.workers`
+# (2): one local GPU sharing its context across seven requests is a worse first run
+# than a modest two, and the user raises it when the server has the slots.
+DEFAULT_WORKERS = 2
 
 
 def split_epub_chapters(src: Path, work: Path, chapters_per_chunk: int) -> list[tuple[int, Path]]:

@@ -297,7 +297,10 @@ class FloatingProgress(QFrame):
 
     def _refresh(self) -> None:
         metrics = QFontMetrics(self._title.font())
+        # The title is elided to fit the bar, so the full name is kept in the tooltip: an elided
+        # name a reader cannot recover is a name they cannot check against the file they chose.
         self._title.setText(metrics.elidedText(self._document, Qt.TextElideMode.ElideMiddle, _TITLE_ROOM))
+        self._title.setToolTip(self._document)
         done, total = self._counts
         percent = 100 if self._state == "done" else round(done / total * 100) if total else 0
         self._percent.setText(f"{percent}%")
