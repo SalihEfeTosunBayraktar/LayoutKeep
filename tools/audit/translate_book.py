@@ -127,6 +127,27 @@ def merge(parts: list[Path], out: Path) -> int:
     return pages
 
 
+def _retry_failed(failed: list[tuple[int, Path]], work: Path, args) -> int:
+    """Give every failed chunk one more try, sequentially. Returns how many still fail.
+
+    WHY THIS EXISTS: a campaign runs for hours, and a chunk can fail for a reason that has nothing to
+    do with the model - the Eleventh Development Plan's first chunk died on a reshape error in the
+    writer, wrote neither an output nor a progress marker, and the document could not be merged while
+    nobody was watching. The retry is deliberately single and sequential: a chunk that fails twice is
+    a real failure, and retrying it beside the others would put another request in flight against the
+    same model server.
+    """
+    if not failed:
+        return 0
+    print(f"retrying {len(failed)} failed chunk(s) once", flush=True)
+    still_failing = 0
+    for index, path in sorted(failed):
+        _out, code, tail = translate_chunk(path, work / "out" / f"t_{index:04d}.pdf", args)
+        print(f"  retry chunk {index:04d}: {'ok  ' if code == 0 else 'FAIL'} {tail}", flush=True)
+        still_failing += code != 0
+    return still_failing
+
+
 def main() -> int:
     # Windows konsolunda Unicode/Türkçe kodlama hatalarını önler / Prevent Windows console Unicode encoding errors
     if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -206,6 +227,8 @@ def main() -> int:
 
     outputs: list[Path] = []
     failures = 0
+    failed: list[tuple[int, Path]] = []
+    by_index = dict(chunks)
     started = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = {
@@ -217,6 +240,7 @@ def main() -> int:
             _out, code, tail = future.result()
             if code != 0:
                 failures += 1
+                failed.append((index, by_index[index]))
             status = "ok " if code == 0 else "FAIL"
             # Wall time per finished chunk ALREADY reflects the workers running at once, so
             # dividing it by the worker count again double-counts the parallelism. The first
@@ -233,6 +257,12 @@ def main() -> int:
                 f"(~{left / 60:.0f} min left)",
                 flush=True,
             )
+
+    # One second try for a chunk that failed. Nobody is watching at 03:00 and the whole document is
+    # otherwise left unmerged: the Eleventh Development Plan's first chunk failed for eleven hours on
+    # a defect that had nothing to do with the model, wrote neither an output nor a progress marker,
+    # and the merge refused the document.
+    failures = _retry_failed(failed, work, args)
 
     outputs = [work / "out" / f"t_{index:04d}.pdf" for index, _ in chunks]
     missing = [p for p in outputs if not p.exists()]
