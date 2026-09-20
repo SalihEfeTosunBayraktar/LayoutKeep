@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>7. Dürüst sınırlar ve dersler — LayoutKeep</title>
-<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 7. Dürüst sınırlar ve dersler.">
+<meta name="description" content="7. Dürüst sınırlar ve dersler — LayoutKeep — sıfırdan bugüne">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -44,6 +44,12 @@
   .story-nav a { text-decoration: none; padding: .1rem .35rem; }
   .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
                       padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
   .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
             padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
@@ -52,6 +58,9 @@
 <body>
 <main>
 <a class="home" href="../">← LayoutKeep</a>
+<nav class="story-langs">
+  <span class='here'>Türkçe</span> <a href='en/07-sinirlar.html'>English</a> <a href='de/07-sinirlar.html'>Deutsch</a>
+</nav>
 <nav class="story-nav">
   <a href="index.html">Giriş</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <span class='here'>7</span> <a href='08-kaynaklar.html'>8</a>
@@ -65,15 +74,15 @@
 <p><strong>Sağdan sola yazı sistemleri uygulanmadı.</strong> Şema <code>direction</code> alanını taşıyor (D4), yazıcı bunu kullanmıyor. Arapça/İbranice bir belge bugün doğru çevrilmez — ve arayüz bunu <em>söylemez</em>, çünkü desteklenen diller listesinde görünmüyorlar.</p>
 <p><strong>Kalite modelin becerisidir.</strong> Boru hattı kaybı engeller, akıcılığı üretmez. Yerel küçük modelle elde edilen metin, bulut modelinden zayıftır; bu fark sözlük ve bellekle azaltılır, yok edilmez.</p>
 <p><strong>İnceleme kuyruğu okunur, düzenlenemez.</strong> Bayrakların gerekçesi yazılı ama kullanıcı çeviriyi uygulama içinde düzeltip yeniden yazamıyor. Bu, yol haritasındaki en yüksek emekli iş.</p>
-<p><strong>Çift dilli PDF çıktısı yok.</strong> Site karşılaştırmayı sunuyor; PDF'in kendisi almaşık sayfalı üretilemiyor (BabelDOC'ta var).</p>
+<p><strong>İnceleme kuyruğu düzenlenemiyor</strong> (yukarıda): bayrağın gerekçesi var, düzeltme yok. Yol haritasının en yüksek emekli işi.</p>
 <h2>7.2 Yol haritası (etki / emek sırasına göre)</h2>
-<ol><li><strong>Çift dilli PDF çıktısı</strong> (<code>--dual page|alternate</code>). Emek: orta. Ölçüm: çıktı sayfa sayısı</li></ol>
-<p>2×kaynak, L1–L10 bozulmuyor.</p>
-<ol><li><strong>Örtüşme çözümü kademesi</strong> — <code>reflow</code>'u deneysel olmaktan çıkarıp kademeli hâle getirmek</li></ol>
-<p>(küçült → satır aralığını sık → aşağı it), D1=801'i ve "okunamaz boyut" sayısını düşürmek.</p>
-<ol><li><strong>Otomatik terim adayları</strong> — belgede sık geçen isim öbeklerini sözlük düzenleyiciye önermek.</li><li><strong>Küçük editör</strong> — inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazmak.</li><li><strong>Sayfa-ötesi bağlam</strong> — parça sınırında önceki parçanın son bloklarını isteme eklemek; L2 ve</li></ol>
+<p>Önceki yol haritasının 1, 3 ve 7. maddeleri <strong>yayınlandı</strong>: çift dilli PDF, belgeden terim adayları, ayar profilleri. Kalanlar, bugünkü durumlarıyla:</p>
+<ol><li><strong>Örtüşme kademesi</strong> (küçült → satır aralığını sık → aşağı it). Satır aralığı adımı tek başına</li></ol>
+<p>2026-09-20'de yazıldı, ölçüldü ve <strong>geri alındı</strong>: geçişin kendi ikame fontuyla hiçbir bloğu kurtarmadı, yazılmış sayfa A/B'si iki kolda aynıydı. Ölçüm asıl işi de gösterdi: bayraklı blokların çoğu satır değil <strong>kutu</strong> eksiğidir (<code>room_below</code> ölçülen kutuyu 6pt'ye ezebiliyor). Emek: orta-yüksek. Ölçüm: D1 ve "okunamaz boyut" sayısı, L7 ile birlikte okunur.</p>
+<ol><li><strong>Küçük editör</strong> — inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazmak. Emek: yüksek.</li><li><strong>Sayfa-ötesi bağlam</strong> — parça sınırında önceki parçanın son bloklarını isteme eklemek; L2 ve</li></ol>
 <p>D2'yi düşürmesi beklenir.</p>
-<ol><li><strong>Aralık için görsel sayfa seçici</strong> — küçük önizlemelerle aralık seçmek.</li><li><strong>Ayar profilleri</strong> — "hızlı taslak" / "yayın kalitesi" ön ayarları.</li></ol>
+<ol><li><strong>Aralık için görsel sayfa seçici</strong> — küçük önizlemelerle aralık seçmek.</li><li><strong>Sınırların arayüze taşınması</strong> — D1/kutu ayrımı tamamlanma ekranında (0.9.7); kaynakça notu</li></ol>
+<p>henüz değil.</p>
 <h2>7.3 Dersler</h2>
 <p><strong>1. Ölçüm, özellikten önce gelir.</strong> "Kayıpsız" iddiası ancak sayılabilirse anlamlıdır. Bu projede her özellik bir <em>sayıyla</em> geldi: L/D tablosu, <code>type_drift</code>, dört panelli görsel karşılaştırma.</p>
 <p><strong>2. Yanlış ölçüm, ölçümsüzlükten kötüdür.</strong> L10'un yarısı, "bariz büyük font"un tamamı ve hizalama bayraklarının bir kısmı <strong>ölçüm hatasıydı</strong> (Bölüm 3.3). Üçü de ancak ölçüm aracının kendisi denetlenerek bulundu. Kural: bir sayı şüpheliyse, önce araca bak.</p>
@@ -81,11 +90,10 @@
 <p><strong>4. Aynı yeteneğin iki kapısı olmalı: komut satırı ve arayüz.</strong> İki kez aynı hatayı yaptık: sözlük/bellek CLI'da vardı, arayüzde yoktu (4.6); paralellik CLI'da vardı, uygulamada yoktu (4.8). Ders: bir yetenek eklendiğinde <strong>iki kapı da</strong> bağlanmalı, yoksa kullanıcı için yoktur.</p>
 <p><strong>5. Görünmeyen ayar, çalışmayan ayardır.</strong> <code>timeout.first_batch_s</code> ayar ekranında duruyordu ve hiçbir şeyi değiştirmiyordu (4.11). Artık "bildirilen her ayar kodda geçmeli" diye bir test var.</p>
 <p><strong>6. Varsayılan muhafazakâr olmalı.</strong> Paralellik 7'den 2'ye indi: agresif varsayılan, kullanıcının ilk deneyimini (ve küçük modellerde kaliteyi) bozar. Kullanıcı yükseltebilir; düşürmeyi akıl etmesi gerekmez.</p>
-<p><strong>7. Kullanıcı geri bildirimi en iyi test setidir.</strong> Bu belgedeki vakaların çoğu kullanıcı cümlesiyle başlar: <em>"paralel 7 slot ayarlı olsa da 1 slot yolluyor"</em>, <em>"neden tüm kitabı vermiş"</em>, <em>"bariz daha büyük font"</em>, <em>"pill'i kapatınca geri açamıyorum"</em>. Hiçbiri 1.192 testin yakaladığı türden değildi — hepsi <em>kullanım</em> sırasında çıktı. Test süiti regresyonu tutar, kullanım yeni hatayı bulur.</p>
+<p><strong>7. Kullanıcı geri bildirimi en iyi test setidir.</strong> Bu belgedeki vakaların çoğu kullanıcı cümlesiyle başlar: <em>"paralel 7 slot ayarlı olsa da 1 slot yolluyor"</em>, <em>"neden tüm kitabı vermiş"</em>, <em>"bariz daha büyük font"</em>, <em>"pill'i kapatınca geri açamıyorum"</em>. Hiçbiri 1.256 testin yakaladığı türden değildi — hepsi <em>kullanım</em> sırasında çıktı. Test süiti regresyonu tutar, kullanım yeni hatayı bulur.</p>
 <p><strong>8. Telif ve gizlilik mimarinin parçasıdır.</strong> Hangi içeriğin yayınlanacağı (<code>NOT_PUBLISHABLE</code>), belgenin makineden çıkmaması (yerel-önce), ve deponun temizlenmesi (36 MB → 12 MB) sonradan eklenen özellikler değil; tasarımın parçası olmalıydı ve oldu.</p><p class="pager"><a href="06-urun.html">← önceki bölüm</a> · <a href="08-kaynaklar.html">sonraki bölüm →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
-  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
 </footer>
 </main>
 </body>

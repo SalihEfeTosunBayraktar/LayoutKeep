@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Choosing the model, and IBM Docling — LayoutKeep</title>
+<meta name="description" content="5. Choosing the model, and IBM Docling — LayoutKeep — from nothing to now">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../05-model.html'>Türkçe</a> <span class='here'>English</span> <a href='../de/05-model.html'>Deutsch</a>
+</nav>
+<nav class="story-nav">
+  <a href="index.html">Introduction</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <span class='here'>5</span> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>5. Choosing the model: which one, why — and the IBM Docling question</h1>
+<p>There are two separate model decisions in this chapter and they are often confused:</p>
+<ul><li><strong>The model that translates</strong> (an LLM): the local <code>google/gemma-4-e4b</code>, through LM Studio.</li><li><strong>The model that finds the page's layout</strong>: IBM Docling's <strong>Heron</strong> layout detector (ONNX).</li><li>Plus a <strong>third track</strong>: a project-specific fine-tune (Qwen2.5-7B QLoRA), a separate effort.</li></ul>
+<p>The answer to "why did we move to the IBM model" is the <strong>second</strong> row, not the third: the IBM model does not do the translating; IBM's model <em>understands the page</em>. Each decision's reasoning and measurement is below.</p>
+<h2>5.1 The translation model: why local</h2>
+<p>The project's default is to run <strong>locally</strong>, and that is not a preference but a design axis:</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Local (LM Studio)</th>
+<th>Cloud (OpenAI-compatible, DeepL)</th>
+</tr></thead>
+<tbody>
+<tr><td>Does the document leave the machine</td><td><strong>no</strong></td><td>yes</td></tr>
+<tr><td>Cost</td><td>none</td><td>usually some</td></tr>
+<tr><td>Speed</td><td>depends on the GPU</td><td>network + provider</td></tr>
+<tr><td>Quality</td><td>depends on the model (weaker on small ones)</td><td>usually stronger</td></tr>
+<tr><td>Parallelism</td><td>the server's slot count</td><td>the provider's limit</td></tr>
+</tbody>
+</table>
+<p>Cloud is <strong>supported</strong> (add an endpoint in the provider settings, try it with "Test" before saving a key) — but it is not the default. The reason is simple: this is a tool for <em>documents</em>, and a user's document (a copyrighted book, a personal scan, a corporate form) usually should not leave the machine. Being local-first is a second promise standing next to the claim of "lossless".</p>
+<p>On the local side there is a <strong>one-model rule</strong>: a single model is loaded on the machine and requests go through it (apart from the parallel slots). That avoids the loading penalty and the instability of swapping models while GPU memory is shared. The measured result: a 220-page book, 55 chunks, ~106 minutes.</p>
+<h2>5.2 The quality ceiling, and the pipeline's answer</h2>
+<p>A small local model's language ability is limited. The project's answer was not "find a better model" but <strong>putting mechanisms under the model rather than on top of it</strong>:</p>
+<ul><li><strong>Protected values</strong> (numbers, measurements, DOIs/URLs, part numbers, Roman numerals) are never</li></ul>
+<p>shown to the model — even if the model gets it wrong, they cannot be lost.</p>
+<ul><li><strong>The glossary</strong> forces terms (in the prompt and in the output check): the model cannot render</li></ul>
+<p>"hypothesis" as "hipotez" in one place and "varsayım" in another.</p>
+<ul><li><strong>The memory</strong> gives the same text the same translation (across runs, in SQLite).</li><li><strong>Unify repeats</strong> aligns differing translations of the same source to the majority.</li><li><strong>The checker</strong> finds a loss, asks again, and flags what remains with its reason.</li></ul>
+<p>The measured consequence of this approach: the model's weakness stays in <em>the fluency of the text</em>, not in <em>the integrity of the document</em>.</p>
+<h2>5.3 The IBM Docling (Heron) layout detector — the actual "IBM model"</h2>
+<h3>Why it was needed</h3>
+<p>The reading pipeline's classical method is <strong>XY-cut</strong>: it finds blocks by cutting the page along horizontal and vertical gaps. It works well on aligned, clean pages and collapses on complex ones:</p>
+<ul><li>a box inside a box (form fields), captions under pictures, formulas squeezed between two columns,</li></ul>
+<p>footnotes spilling into the margin;</p>
+<ul><li>scanned pages (no lines, only pixels).</li></ul>
+<p>In those cases what is misread is not the <em>text</em> but the <strong>region boundary</strong>: a heading merges into a paragraph, a footnote enters the body, a table row becomes a block of its own. The result: the translation is right and the placement is wrong — which is exactly what the user complains about.</p>
+<h3>What was done</h3>
+<p>The layout model from IBM Research's <strong>Docling</strong> project (<code>docling-layout-heron-onnx</code>) was added. The model looks at the page as an image and classifies its regions: heading, paragraph, table, figure, list, footnote. It runs as ONNX <strong>locally</strong> (even on CPU), so it does not break the local-first principle.</p>
+<ul><li>It is enabled on the command line with <code>--layout-detector</code>; in the interface it is on by default.</li><li>It only runs where it is needed: if a page can be read through its text layer and the structure is</li></ul>
+<p>simple, XY-cut is enough; the model comes in on scanned or complex pages.</p>
+<h3>The measurement: what actually changed</h3>
+<p>A <strong>four-panel</strong> comparison was produced over 10 book pages: <code>original | old run | XY-cut | with the detector</code>. The metric measured: "prose still left in English in the output" and "words past the page edge".</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Prose left in English</th>
+<th>Words past the page edge</th>
+</tr></thead>
+<tbody>
+<tr><td>Old run (524 pages, no model)</td><td>6/82 (7%)</td><td>0</td></tr>
+<tr><td>XY-cut</td><td>6/82 (7%)</td><td>0</td></tr>
+<tr><td><strong>With the detector</strong></td><td><strong>1/82 (1%)</strong></td><td>0</td></tr>
+</tbody>
+</table>
+<p>What the model does <strong>on its own</strong> was recorded as well (<code>tests/layout_eval/2026-09-16_heron_pure/</code>): every region drawn exactly as the model returned it — no XY-cut, no paragraph rules, no ordering. That "clean baseline" is what let every rule added later be added against a <strong>measured</strong> floor; no one assumed "the model probably finds this too".</p>
+<h3>The V2 plan: why we did not rewrite</h3>
+<p>A <strong>V2 plan</strong> was written around the same time: rebuild the pipeline around Gemini, with the layout model at its centre. The plan document sits at <code>docs/YENI_MIMARI_VE_GECIS_PLANI.md</code>. It was never applied, because:</p>
+<ol><li>A rewrite would invalidate the losslessness audit (L1–L10) and more than 1,000 tests.</li><li>The working engine had <strong>exactly one gap</strong>: finding regions on complex pages. Adding the model to</li></ol>
+<p>the <em>existing</em> reader was enough to close it — and that is what was done.</p>
+<ol><li>The V2 branch (<code>v2-vision-layout</code>) did not merge without conflicts (six of them); forcing it</li></ol>
+<p>would have replaced measured behaviour with unmeasured behaviour.</p>
+<p>So "moving to the IBM model" was not a <strong>rewrite</strong> but a <strong>reading capability</strong> added to the existing pipeline. The useful part of the plan was taken and the rest sits in the archive — and that decision is written down too: <em>an unproven fix is not kept, and neither is an unproven rewrite.</em></p>
+<h2>5.4 The third track: a project-specific fine-tune (LayoutKeepLLM)</h2>
+<p>A separate workstream (in its own folder), chasing two goals at once:</p>
+<ol><li><strong>Conforming to the application's wire protocol</strong>: a multi-segment JSON answer, <code>&lt;0&gt;…&lt;/0&gt;</code></li></ol>
+<p>markers, protected-value tokens in the U+E000–U+E001 range, context/length limits. The aim is for the model to produce a <strong>protocol</strong>, not free text.</p>
+<ol><li><strong>Academically consistent EN↔TR translation</strong> — not merely correct, but terminologically</li></ol>
+<p>consistent.</p>
+<p>The design decisions:</p>
+<ul><li>Base model <strong>Qwen2.5-7B-Instruct</strong>; training <strong>QLoRA on Kaggle</strong> (not on the local GPU).</li><li>The dataset's backbone is <strong>hand-written domain-expert pairs</strong> (generator:</li></ul>
+<p><code>01_Dataset/build_dataset.py</code>, corpus: <code>_dataset_corpus.py</code>); about 6,000 records in total.</p>
+<ul><li><strong>OPUS-100 was rejected</strong>: its EN-TR portion was measured and is weighted towards news and everyday</li></ul>
+<p>speech — while what this project translates is academic and technical documents. "Plenty of data" and "the right data" are not the same thing.</p>
+<ul><li>The training script <strong>does not depend on TRL</strong> (a plain <code>transformers.Trainer</code> plus</li></ul>
+<p><code>apply_chat_template</code>), because TRL's <code>SFTConfig</code> API changes between versions and the notebook kept breaking on Kaggle.</p>
+<p>This track is <strong>not used</strong> by the product as it stands: the runtime model is gemma. The fine-tune is a path kept for raising the quality ceiling; its measuring stick is the same: the L/D table and terminology consistency.</p>
+<h2>5.5 Summary: which model does what</h2>
+<table>
+<thead><tr>
+<th>Layer</th>
+<th>Model/tool</th>
+<th>Why that one</th>
+</tr></thead>
+<tbody>
+<tr><td>Page layout (scanned/complex)</td><td>IBM Docling <strong>Heron</strong> ONNX</td><td>Works where XY-cut collapses on region classification; runs locally; measured gain 6/82 → 1/82</td></tr>
+<tr><td>Text extraction (digital)</td><td>PyMuPDF</td><td>The most accurate source when a text layer exists; carries typography</td></tr>
+<tr><td>OCR (scanned)</td><td>RapidOCR (PP-OCR models)</td><td>Gives a confidence score; low confidence is flagged</td></tr>
+<tr><td>Translation</td><td><code>google/gemma-4-e4b</code> (LM Studio)</td><td>Local, free, parallel across slots; the document never leaves the machine</td></tr>
+<tr><td>Cloud translation (optional)</td><td>OpenAI-compatible endpoints, DeepL</td><td>Stronger models; only if the user chooses them</td></tr>
+<tr><td>Quality guarantee</td><td><code>verify.py</code> + the glossary + the memory</td><td>Does not let the model's weakness reach the document's integrity</td></tr>
+</tbody>
+</table><p class="pager"><a href="04-hatalar.html">← previous chapter</a> · <a href="06-urun.html">next chapter →</a></p>
+<footer>
+  This page is generated from <code>docs/STORY.md</code> by <code>tools/story_site.py</code>. Comparison site: <a href="../../comparison/">original ↔ translation</a>.
+</footer>
+</main>
+</body>
+</html>

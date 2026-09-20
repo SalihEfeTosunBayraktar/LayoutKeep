@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7. Honest limits and lessons — LayoutKeep</title>
+<meta name="description" content="7. Honest limits and lessons — LayoutKeep — from nothing to now">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../07-sinirlar.html'>Türkçe</a> <span class='here'>English</span> <a href='../de/07-sinirlar.html'>Deutsch</a>
+</nav>
+<nav class="story-nav">
+  <a href="index.html">Introduction</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <span class='here'>7</span> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>7. Honest limits, open work, and lessons</h1>
+<p>The most valuable part of an engineering document is the part that writes down what does not work. This chapter is not polished.</p>
+<h2>7.1 Today's limits (measured)</h2>
+<p><strong>Bibliographies and numbered headings.</strong> On the book run L2 = 2: bibliography rows and some numbered headings stay in the source language. They are <em>flagged</em> (not silent) but not translated — because those rows are treated as "not translatable": most consist of an author name, a journal name, a year and a page range, and translating them goes against academic citation convention. The decision is deliberate, but the user sometimes reads it as "missing translation"; it needs explaining better in the interface.</p>
+<p><strong>Blocks below the readability floor (D1).</strong> Long translations get shrunk; on the book 801 blocks sit below the floor. <code>--fit-mode reflow</code> removes much of that class (D1 52 → 0 on the NIST journal) but can draw text over text in fixed layouts (L7 0 → 1 on the IRS form). So it is <strong>off</strong> by default: a proven loss outranks a measured gain.</p>
+<p><strong>Scanned pages depend on OCR quality.</strong> Low-confidence blocks are flagged, not corrected. Clean 300 dpi scans are reliable; skewed, stained or low-resolution ones are not. The NASA scan and NIST's scanned vapour-pressure report test that path.</p>
+<p><strong>Number strips.</strong> Runs of bare numbers spread across a table heading (for example <code>11 34 56 79 101 124</code>) can collapse into one flush-left block: the numbers survive but their <strong>arrangement</strong> is lost. This happens where the table structure reduces to plain text; the fix goes through widening table detection.</p>
+<p><strong>Right-to-left scripts are not implemented.</strong> The schema carries a <code>direction</code> field (D4); the writer does not use it. An Arabic or Hebrew document is not translated correctly today — and the interface does not say so, because those languages do not appear in the supported list.</p>
+<p><strong>Quality is the model's ability.</strong> The pipeline prevents loss; it does not produce fluency. Text from a small local model is weaker than a cloud model's; the glossary and the memory narrow that gap but do not remove it.</p>
+<p><strong>The review queue can be read, not edited.</strong> Flags carry their reason, but the user cannot correct a translation inside the application and write it out again. This is the highest-effort item on the roadmap.</p>
+<h2>7.2 The roadmap (in order of impact / effort)</h2>
+<p>Items 1, 3 and 7 of the earlier roadmap have since <strong>shipped</strong> — the bilingual PDF, term candidates from the document, and the setting presets. What is left, with today's state:</p>
+<ol><li><strong>The overlap ladder</strong> (shrink → tighten the leading → push down). The leading step alone was</li></ol>
+<p>built, measured and <strong>reverted</strong> on 2026-09-20: with the pass's own substituted font it rescued no block, and the written-page A/B was identical in both arms. The measurement also showed where the real work is: most flagged blocks are short of <strong>box</strong>, not of lines (<code>room_below</code> can crush a measured box to six points). Effort: medium-high. Measure: D1 and the "unreadable size" count, read together with L7.</p>
+<ol><li><strong>A small editor</strong> — correcting flagged blocks inside the application and writing the document</li></ol>
+<p>out again. Effort: high.</p>
+<ol><li><strong>Cross-page context</strong> — adding the previous chunk's last blocks to the request at a chunk</li></ol>
+<p>boundary; expected to bring L2 and D2 down.</p>
+<ol><li><strong>A visual page picker for the range</strong> — choosing a range from small previews.</li><li><strong>Reading the current limits into the interface</strong> — the D1/box distinction is now on the</li></ol>
+<p>completion screen (0.9.7); the bibliography note is not.</p>
+<h2>7.3 Lessons</h2>
+<p><strong>1. Measurement comes before the feature.</strong> The claim of "lossless" is only meaningful if it can be counted. In this project every feature arrived with a <em>number</em>: the L/D table, <code>type_drift</code>, the four-panel visual comparison.</p>
+<p><strong>2. A wrong measurement is worse than no measurement.</strong> Half of L10, all of "obviously bigger type", and part of the alignment flags were <strong>measurement bugs</strong> (section 3.3). All three were found only by auditing the measuring tool itself. The rule: when a number looks doubtful, look at the tool first.</p>
+<p><strong>3. An unproven fix is not kept — and neither is an unproven rewrite.</strong> The block-widening attempt was refuted by measurement (12 → 12) and reverted. The V2 rewrite plan would have thrown away 1,000+ tests for one gap; instead the gap was added to the existing engine.</p>
+<p><strong>4. The same capability needs two doors: the command line and the interface.</strong> We made the same mistake twice: the glossary and the memory existed in the CLI and not in the interface (4.6); parallelism existed in the CLI and not in the application (4.8). The lesson: when a capability is added, <strong>both doors</strong> must be wired, or for the user it does not exist.</p>
+<p><strong>5. A setting you cannot see is a setting that does not work.</strong> <code>timeout.first_batch_s</code> sat in the settings screen and changed nothing (4.11). There is now a test that says "every declared setting must be read".</p>
+<p><strong>6. Defaults must be conservative.</strong> Parallelism came down from 7 to 2: an aggressive default spoils the user's first experience (and quality on small models). The user can raise it; they should not have to think of lowering it.</p>
+<p><strong>7. User feedback is the best test set.</strong> Most cases in this document start with a user's sentence: <em>"even with 7 slots it sends 1"</em>, <em>"why did it give the whole book"</em>, <em>"obviously bigger type"</em>, <em>"when I close the pill I cannot get it back."</em> None of them were the kind the 1,256 tests catch — they all came out in <em>use</em>. The test suite holds regressions down; use finds the new bug.</p>
+<p><strong>8. Copyright and privacy are part of the architecture.</strong> Which content gets published (<code>NOT_PUBLISHABLE</code>), the document not leaving the machine (local-first), and the repository being cleaned up (36 MB → 12 MB) were not features added later; they should have been part of the design from the start, and now are.</p><p class="pager"><a href="06-urun.html">← previous chapter</a> · <a href="08-kaynaklar.html">next chapter →</a></p>
+<footer>
+  This page is generated from <code>docs/STORY.md</code> by <code>tools/story_site.py</code>. Comparison site: <a href="../../comparison/">original ↔ translation</a>.
+</footer>
+</main>
+</body>
+</html>

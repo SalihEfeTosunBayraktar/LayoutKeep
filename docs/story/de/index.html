@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LayoutKeep — von null bis heute</title>
+<meta name="description" content="Die vollständige Aufzeichnung von LayoutKeep: was versucht wurde, was brach, welche Ursache gemessen wurde.">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../index.html'>Türkçe</a> <a href='../en/index.html'>English</a> <span class='here'>Deutsch</span>
+</nav>
+<h1>LayoutKeep, von null bis heute</h1>
+<p><strong>Eine gemessene Ingenieursgeschichte: was wir versucht, was gebrochen ist, was wir behoben und was wir wieder zurückgenommen haben.</strong></p>
+<blockquote><strong>English abstract.</strong> LayoutKeep translates PDF, EPUB and DOCX documents without moving anything on the page: every text box keeps its position and its size, figures stay where they were, tables keep their rows. This document is the project's full record — how it started, what was tried and abandoned, which bugs were found and how each root cause was measured, why the runtime model is a local one and why the layout detector is IBM Docling's Heron, and what is still known to be broken. Every number comes from a command written down next to it. (English original: <a href="../en/"><code>../en/</code></a>; Türkçe özgün: <a href="../"><code>../</code></a>.)</blockquote>
+<hr>
+<h2>0. Die Zusammenfassung, in Zahlen</h2>
+<table>
+<thead><tr>
+<th>Was</th>
+<th>Wert</th>
+<th>Wie gemessen</th>
+</tr></thead>
+<tbody>
+<tr><td>Unterstützte Formate</td><td>PDF → PDF, EPUB, DOCX, PNG/JPG, LKPROJ</td><td>die <code>capabilities.py</code>-Matrix, in beide Richtungen getestet</td></tr>
+<tr><td>Verlustfreiheits-Kriterium</td><td><strong>10 Verlustarten (L1–L10) + 3 Qualitätsschwellen (D1–D3)</strong></td><td><code>verify.py</code>; die Kriterien werden aus dem Prüfer selbst gelesen</td></tr>
+<tr><td>Veröffentlichtes Messset</td><td><strong>24 Dokumente</strong>, 288 Bilder, 0 „veralteter Eintrag"</td><td>die Vergleichsseite (jedes Dokument mit seinen Prüfzahlen)</td></tr>
+<tr><td>Größter echter Lauf</td><td>ein 220-seitiges Statistik-Lehrbuch, 55 Teile, ~106 Minuten</td><td><code>translate_book.py</code>, <code>--workers 7</code></td></tr>
+<tr><td>Testsuite</td><td><strong>1.256 Tests</strong>, 138 Dateien</td><td><code>.venv/Scripts/python.exe -m pytest -q</code></td></tr>
+<tr><td>Quellcode</td><td>~24.000 Zeilen (<code>src/</code>), 56 Prüfwerkzeuge</td><td><code>wc -l</code>, <code>tools/audit/</code></td></tr>
+<tr><td>Die Anwendung</td><td>eine einzelne Windows-exe (ohne Installation), ~173 MB</td><td>PyInstaller onefile</td></tr>
+<tr><td>Laufzeitmodell</td><td><code>google/gemma-4-e4b</code>, LM Studio, standardmäßig 2 Arbeiter</td><td>lokal; das Dokument verlässt die Maschine nicht</td></tr>
+<tr><td>Layoutmodell</td><td>IBM Docling <strong>Heron</strong> (ONNX, lokal)</td><td>Regionsklassifikation auf gescannten und komplexen Seiten</td></tr>
+</tbody>
+</table>
+<hr>
+<h2>1. Wie dieses Dokument zu lesen ist</h2>
+<p>Die Geschichte ist in acht Kapitel geteilt. Jedes steht für sich; in der Reihenfolge gelesen ergeben sie die Logik des Projekts: zuerst das Problem, dann die Architektur, dann die <strong>Messung</strong> (denn jede Entscheidung ruht auf einer Zahl), dann die Fehler, dann die Modellentscheidungen, dann das Produkt, dann die ehrlichen Grenzen und die Quellen.</p>
+<table>
+<thead><tr>
+<th>#</th>
+<th>Kapitel</th>
+<th>Was darin steht</th>
+</tr></thead>
+<tbody>
+<tr><td>1</td><td><a href="../en/01-problem.html">Das Problem: was „verlustfreie Übersetzung" genau bedeutet</a></td><td>Eine Definition, vier gemessene Schwierigkeiten, ein Vergleich mit anderen Werkzeugen, der Vertrag (D1–D7)</td></tr>
+<tr><td>2</td><td><a href="../en/02-mimari.html">Architektur: jedes Teil der Pipeline</a></td><td>Module und Zeilenzahlen, DocIR, Leser, die Provider-Kette, das Einpassen, die Schreiber, der Prüfer</td></tr>
+<tr><td>3</td><td><a href="../en/03-olcum.html">Messdisziplin</a></td><td>Die Tabelle L1–L10 + D1–D3, 56 Prüfwerkzeuge, <strong>die vier Male, in denen die Messung selbst falsch lag</strong></td></tr>
+<tr><td>4</td><td><a href="../en/04-hatalar.html">Der Fehlerkatalog: sechzehn Fälle</a></td><td>Jeder Fall: Symptom → Untersuchung → Ursache → Lösung → Beleg</td></tr>
+<tr><td>5</td><td><a href="../en/05-model.html">Die Modellwahl und die IBM-Docling-Frage</a></td><td>Die Local-first-Entscheidung, das Heron-Layoutmodell (warum, gemessen), warum der V2-Plan nie gebaut wurde, die Feinabstimmung</td></tr>
+<tr><td>6</td><td><a href="../en/06-urun.html">Vom Motor zum Produkt</a></td><td>Willkommen, Hilfe, Glossar/Gedächtnis, die schwebende Leiste, der Seitenbereich, <strong>das zweisprachige PDF</strong>, Versionen, die Vergleichsseite</td></tr>
+<tr><td>7</td><td><a href="../en/07-sinirlar.html">Ehrliche Grenzen und Lehren</a></td><td>Was heute nicht funktioniert, die Roadmap, acht Lehren</td></tr>
+<tr><td>8</td><td><a href="../en/08-kaynaklar.html">Externe Quellen und Zitate</a></td><td>Rolle und Lizenz jeder Abhängigkeit, der rechtliche Status der Testquellen</td></tr>
+</tbody>
+</table>
+<p>Die Kapitel 1–8 liegen auf Englisch vor; die türkischen Originale stehen unter <a href="../"><code>../</code></a>. Eine Übersetzung ins Deutsche entsteht nach und nach — ein Kapitel ohne Übersetzung zeigt an dieser Stelle sichtbar das englische Original.</p>
+<p>Die Markdown-Dateien liegen im Repository: <code>docs/story/01-problem.md</code> … <code>docs/story/08-kaynaklar.md</code> (Englisch unter <code>docs/story/en/</code>).</p>
+<hr>
+<h2>2. Eine kurze Chronologie</h2>
+<p>Das Projekt begann am <strong>10. September 2026</strong> mit einem einzigen Satz: <em>„translate a document without moving anything on the page"</em>.</p>
+<table>
+<thead><tr>
+<th>Datum</th>
+<th>Was geschah</th>
+</tr></thead>
+<tbody>
+<tr><td>10. Sep</td><td>Die erste funktionierende Pipeline: PDF → PDF, DocIR entstand, der Vertrag wurde geschrieben; der erste „verlustfreie" Bericht erwies sich als falsch (er sah nur den Textfluss an) und die <strong>Rich-Fixture</strong>-Regel kam</td></tr>
+<tr><td>11.–13. Sep</td><td>EPUB/DOCX-Pfade, Tests für Text-über-Bild und Tabellen, die ersten Messungen an echten Dokumenten</td></tr>
+<tr><td>14. Sep</td><td>Der Einpass-Durchlauf, die Kürzungsleiter, die ersten Messungen der <code>reflow</code>-Idee</td></tr>
+<tr><td>15.–16. Sep</td><td>Die Desktop-Anwendung (PySide6): Einrichtung, Fortschritt, Abschluss; Provider-Einstellungen; das <strong>IBM-Docling-Heron</strong>-Layoutmodell</td></tr>
+<tr><td>17. Sep</td><td>Klassifikation der Quellenart (digital/gescannt/gemischt), die OCR-Vertrauensschwelle, der vierteilige visuelle Vergleich</td></tr>
+<tr><td>18. Sep</td><td>Die Verlustfreiheits-Kampagne: Erweiterung der L-Kriterien, <code>lossless_audit</code>, das Held-out-Set</td></tr>
+<tr><td>19. Sep</td><td>Übersetzung in Teilen mit mehreren Arbeitern (<code>--workers</code>), <code>--resume</code>, Glossar- und Gedächtnis-Provider, die erste Version der Vergleichsseite</td></tr>
+<tr><td>19.–20. Sep (Nacht)</td><td>Das 220-seitige Buch (55 Teile, ~106 Min.); der Messfehler bei L10; zwei Messungen zu reflow; Glossar/Gedächtnis in der Oberfläche; Hilfe und Willkommen; die schwebende Leiste</td></tr>
+<tr><td>20. Sep</td><td>Produktreife und Korrekturen: <strong>Parallelität in der Anwendung</strong>, das Verhalten des Seitenbereichs, Ausrichtung (Blocksatz), ein toter Einstellungsschlüssel, die Urheberrechts-Bereinigung, Versionen <strong>v0.9.1 → v0.9.7</strong></td></tr>
+</tbody>
+</table>
+<hr>
+<h2>3. Der heutige Stand, Dokument für Dokument</h2>
+<p>Jede Zahl stammt aus der <code>audit.json</code> des jeweiligen Laufs; die Vergleichsseite zeigt sie neben dem Dokument.</p>
+<table>
+<thead><tr>
+<th>Dokument</th>
+<th>Teile</th>
+<th>Verbleibende echte Verluste</th>
+</tr></thead>
+<tbody>
+<tr><td>Wikipedia ×2 (neu übersetzt)</td><td>19 / 33</td><td>L2-Zeilen; <strong>L10 = 0</strong></td></tr>
+<tr><td>cookbook_1907</td><td>35</td><td>L6=2, D1 (kleine Schrift)</td></tr>
+<tr><td>mushrooms_1895_sample</td><td>41</td><td>L2=1, L6=1</td></tr>
+<tr><td>NIST-Journal / NISTIR-Scan</td><td>8 / 6</td><td>L1 Teillauf; <strong>L2–L10 = 0</strong></td></tr>
+<tr><td>IRS-Formular (48 Teile)</td><td>48</td><td>L7 (ein dichtes Formular; mit ausgeschaltetem reflow gemessen)</td></tr>
+<tr><td>Das 220-seitige Buch</td><td>55</td><td>L2=2, L6=4, L7=1, L8=1, L10=0, D1=801 (die Klasse der kleinen Schrift)</td></tr>
+</tbody>
+</table>
+<p><img alt="Die Vergleichsseite" src="../site.png"></p>
+<p><em>Die veröffentlichte Vergleichsseite: links das Original, rechts die Übersetzung, darüber die Prüfzahlen des Dokuments.</em></p>
+<p><strong>Bekannte Grenzen (kurz):</strong> <strong>Zahlenreihen</strong> in Tabellenüberschriften können ihre Anordnung verlieren; Literaturzeilen bleiben manchmal in der Ausgangssprache (L2, markiert); auf dichten Formularen fallen manche Blöcke unter die Lesbarkeitsschwelle (D1); gescannte Seiten hängen von der OCR-Qualität ab und werden bei geringem Vertrauen markiert; <strong>Rechts-nach-links-Schriften sind nicht umgesetzt</strong>; die Qualität ist die Fähigkeit des Modells. Die ausführliche Liste und die Roadmap: <a href="../en/07-sinirlar.html">Kapitel 7</a>.</p>
+<hr>
+<h2>4. Die Zusammenfassung in einem Satz</h2>
+<p>Ein Dokument in eine andere Sprache zu übersetzen ist einfach; es zu übersetzen <strong>und dabei die Seite dort zu lassen, wo sie ist</strong>, ist schwer — und dieses Projekt tut das Zweite und beweist es, <strong>indem es die Verluste zählt</strong>: jeder Lauf wird Seite für Seite gegen die Quelle geprüft, jeder Verlust wird entweder behoben oder mit seinem Grund markiert, und keine Zahl wird verborgen.</p>
+<hr>
+<p>*Dieses Dokument wurde aus <code>docs/CONTRACT.md</code>, <code>docs/campaign/JOURNAL.md</code>, <code>docs/MEASUREMENTS.md</code>, <code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code>, <code>docs/FEATURE-ROADMAP.md</code>, den <code>_artifacts/heldout/**/audit.json</code>-Aufzeichnungen und der Git-Historie zusammengestellt.*</p>
+<footer>
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
+</footer>
+</main>
+</body>
+</html>

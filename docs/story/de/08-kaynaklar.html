@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8. Externe Quellen und Zitate — LayoutKeep</title>
+<meta name="description" content="8. Externe Quellen und Zitate — LayoutKeep — von null bis heute">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../08-kaynaklar.html'>Türkçe</a> <a href='../en/08-kaynaklar.html'>English</a> <span class='here'>Deutsch</span>
+</nav>
+<nav class="story-nav">
+  <a href="index.html">Einführung</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <span class='here'>8</span>
+</nav><p class="untranslated"><em>Dieses Kapitel ist noch nicht übersetzt; unten steht das türkische Original.</em></p>
+<h1>8. External sources and citations</h1>
+<p>This project stands on other people's work. Below is each source's <strong>role in the project</strong> and its licence. (The same table is kept in <code>CREDITS.md</code>; this is the longer version with the reasoning.)</p>
+<h2>8.1 Engine and infrastructure</h2>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://pymupdf.readthedocs.io/">PyMuPDF</a></td><td>The PDF reading and writing engine; text layer, typography, image extraction, redaction, drawing HTML boxes</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://doc.qt.io/qtforpython/">Qt / PySide6</a></td><td>The desktop interface: window, floating bar, welcome, tables, theme</td><td>LGPL-3.0</td></tr>
+<tr><td><a href="https://pytest.org/">pytest</a></td><td>The runner for 1,256 tests</td><td>MIT</td></tr>
+<tr><td><a href="https://pyinstaller.org/">PyInstaller</a></td><td>Producing the single-file <code>.exe</code></td><td>GPL-2.0 (with the usual exception)</td></tr>
+<tr><td><a href="https://github.com/RapidAI/RapidOCR">RapidOCR</a> (PP-OCR models)</td><td>OCR on scanned pages; produces a confidence score</td><td>Apache-2.0</td></tr>
+</tbody>
+</table>
+<h2>8.2 The layout model (IBM Docling)</h2>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://huggingface.co/docling-project/docling-layout-heron-onnx">IBM Docling — the Heron layout model</a></td><td>Region classification on scanned and complex pages (heading, paragraph, table, figure, footnote). Runs locally as ONNX</td><td>MIT</td></tr>
+<tr><td><a href="https://github.com/docling-project/docling">Docling (the project)</a></td><td>The framework the model comes from; its architectural ideas (recovering structure from a page image)</td><td>MIT</td></tr>
+</tbody>
+</table>
+<p>The reasoning and the measurement are in section 5.3: in a four-panel comparison over 10 book pages, "prose still left in English" went 6/82 → 1/82. The model's output <strong>on its own</strong> was recorded as well (<code>tests/layout_eval/2026-09-16_heron_pure/</code>), so that every rule added later was added against a measured floor.</p>
+<h2>8.3 Translation models</h2>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>Its role here</th>
+<th>Licence</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://huggingface.co/google/gemma-4-e4b">google/gemma-4-e4b</a> (through LM Studio)</td><td>The default local translation model</td><td>Gemma Terms of Use</td></tr>
+<tr><td><a href="https://lmstudio.ai/">LM Studio</a></td><td>The local model server (OpenAI-compatible endpoint, parallel slots, context setting)</td><td>Proprietary (free to use)</td></tr>
+<tr><td><a href="https://huggingface.co/Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B-Instruct</a></td><td>The base model of the fine-tuning track (a separate effort, section 5.4)</td><td>Apache-2.0</td></tr>
+<tr><td><a href="https://huggingface.co/docs/transformers/">Hugging Face Transformers</a> + PEFT/QLoRA</td><td>Fine-tuning (on Kaggle, without depending on TRL)</td><td>Apache-2.0</td></tr>
+</tbody>
+</table>
+<h2>8.4 Comparison points (no code taken, ideas and yardsticks taken)</h2>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>What we compared</th>
+<th>Licence</th>
+</tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/funstory-ai/BabelDOC">BabelDOC</a></td><td>Parallel PDF translation; its "lossless" claim and its own comparison table (arXiv 2605.10845)</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/Byaidu/PDFMathTranslate">PDFMathTranslate</a></td><td>PDF translation; its approach to preserving formulas and figures</td><td>AGPL-3.0</td></tr>
+<tr><td><a href="https://github.com/opendatalab/MinerU">MinerU</a> / mineru-translate</td><td>Document-understanding pipelines; bilingual output, caching</td><td>AGPL-3.0</td></tr>
+<tr><td>Commercial roundups (Doclingo, Lara Translate, Doctranslate, Bluente)</td><td>Feature coverage and pricing</td><td>—</td></tr>
+</tbody>
+</table>
+<p><strong>No code was taken.</strong> Not a line in this project was copied from the tools above; the table exists only to make the question "what exists outside, what is missing here" measurable (<code>docs/FEATURE-ROADMAP.md</code>).</p>
+<h2>8.5 Test sources (the held-out set)</h2>
+<p>The documents used for measurement, and their licence status. Copyrighted ones <strong>do not enter the repository</strong> and are not published on the site (<code>NOT_PUBLISHABLE</code>); they stay on the user's disk only.</p>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>Kind</th>
+<th>Status</th>
+</tr></thead>
+<tbody>
+<tr><td>NIST Journal of Research (journal issues)</td><td>Digital PDF</td><td>Public domain (US federal) — published</td></tr>
+<tr><td>NIST IR 6643 (vapour pressure)</td><td><strong>Scanned</strong> PDF</td><td>Public domain — published</td></tr>
+<tr><td>A DOCX produced from the NIST journal</td><td>DOCX</td><td>Public domain (made with the project's own PDF→DOCX path) — published</td></tr>
+<tr><td>NASA NTRS report + NASA grant form</td><td>Digital + scanned</td><td>Public domain — published</td></tr>
+<tr><td>arXiv papers (19113, 19145, 2510.03959, 2605.18014)</td><td>Digital PDF</td><td>arXiv licence — published</td></tr>
+<tr><td>IRS forms (i1040gi, p505)</td><td>Form PDF</td><td>Public domain (US federal) — published</td></tr>
+<tr><td>Project Gutenberg #31061, Cajori — A History of Mathematics (556 pages)</td><td>PDF, formula-dense</td><td>Public domain — published</td></tr>
+<tr><td>Project Gutenberg books (The Time Machine, Think Python, cookbook)</td><td>EPUB/PDF</td><td>Public domain / open licence — published</td></tr>
+<tr><td>Wikipedia pages</td><td>PDF</td><td>CC BY-SA — published</td></tr>
+<tr><td>Introductory Statistics (Sheldon M. Ross)</td><td>Book PDF</td><td><strong>Copyrighted</strong> — local only</td></tr>
+<tr><td>computer-systems-Architecture</td><td>Book PDF</td><td><strong>Copyrighted</strong> — local only (its images were removed from the repository)</td></tr>
+</tbody>
+</table>
+<h2>8.6 Method and engineering sources</h2>
+<table>
+<thead><tr>
+<th>Source</th>
+<th>What it influenced</th>
+</tr></thead>
+<tbody>
+<tr><td>Google DESIGN.md / design tokens</td><td>The rule that the interface palette comes from tokens (no hardcoded hex)</td></tr>
+<tr><td>Apple HIG, Material Design (general principles)</td><td>The structure of the welcome and help screens, the spacing and type scale</td></tr>
+<tr><td>ISO 639 language codes</td><td>Language selection and detection</td></tr>
+<tr><td>The Unicode private use area (U+E000–U+E001)</td><td>Carrying protected values invisibly to the model</td></tr>
+<tr><td>The Portable Document Format spec (ISO 32000)</td><td>Verifying PDF writing and redaction behaviour</td></tr>
+</tbody>
+</table>
+<h2>8.7 This document's own sources</h2>
+<p>This story was not invented; it was assembled from these files and measurements:</p>
+<ul><li><code>docs/CONTRACT.md</code> — the architectural invariants (D1–D7)</li><li><code>docs/campaign/JOURNAL.md</code> — the day-by-day measurement journal (the primary source for the cases)</li><li><code>docs/MEASUREMENTS.md</code>, <code>docs/BENCHMARK.md</code> — the numbers</li><li><code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code> — the losslessness status</li><li><code>docs/FEATURE-ROADMAP.md</code> — the outside comparison and the open work</li><li><code>_artifacts/heldout/**/audit.json</code> — every run's audit numbers</li><li><code>git log</code> — dates and decisions</li></ul><p class="pager"><a href="07-sinirlar.html">← voriges Kapitel</a></p>
+<footer>
+  Diese Seite wird von <code>tools/story_site.py</code> aus <code>docs/STORY.md</code> erzeugt. Vergleichsseite: <a href="../../comparison/">Original ↔ Übersetzung</a>.
+</footer>
+</main>
+</body>
+</html>

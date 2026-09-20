@@ -50,7 +50,7 @@ kaynakça satırı, D1'in 801'i ise uzun çevirilerin küçültülmesi — hepsi
 
 Araçların ortak kuralı: **çıktı makine okunur** (JSON) ve **iddia taşımaz**, sayı taşır.
 
-## 3.3 Ölçümün kendisi üç kez yanıldı
+## 3.3 Ölçümün kendisi dört kez yanıldı
 
 ### Vaka A: L10 yanlış pozitifleri — sayıların yarısı ölçüm hatasıydı
 
@@ -101,7 +101,7 @@ sayılmaz, sağa yaslı iki satır sağ kalır). **Aynı gün gerçek koşuda:**
 parçalarında 70 uzun gövde bloğunun 26'sı "justify" okundu ve `type_drift` hizalama bayrağı 0
 çıktı — düzeltme ölçümden çizilmiş sayfaya kadar doğrulandı.
 
-### Üçüncü vaka: sonda, geçişin sormadığı soruyu yanıtladı (2026-09-20)
+### Vaka D: sonda, geçişin sormadığı soruyu yanıtladı (2026-09-20)
 
 Kitapta en büyük inceleme bayrağı sınıfı "çeviri kutuya sığmadı" (42 parçada 6.014 bloğun 1.130'u).
 Merdivene bir **satır aralığı adımı** eklendi: kutu okunabilirlik tabanında bile sığmıyorsa, modele
@@ -128,7 +128,7 @@ hiçbir şey sığmaz. Yani asıl iş örtüşme/yer açma (yol haritası 4), me
 
 ## 3.4 Ölçüm altyapısının kuralları
 
-Bu üç vakadan çıkan ve artık yazılı olan kurallar:
+Bu dört vakadan çıkan ve artık yazılı olan kurallar:
 
 1. **Ölçüm aracının kendisi test edilir.** `text_over_image.py`'nin düzeltmesi, eski koşular
    üzerinde yeniden koşularak doğrulandı: gerçek vakayı (wikipedia 13/13) yakalamaya devam etti,

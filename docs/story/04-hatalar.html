@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>4. Hata kataloğu: on dört vaka — LayoutKeep</title>
-<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 4. Hata kataloğu: on dört vaka.">
+<title>4. Hata kataloğu: on altı vaka — LayoutKeep</title>
+<meta name="description" content="4. Hata kataloğu: on altı vaka — LayoutKeep — sıfırdan bugüne">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -44,6 +44,12 @@
   .story-nav a { text-decoration: none; padding: .1rem .35rem; }
   .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
                       padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
   .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
             padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
@@ -52,6 +58,9 @@
 <body>
 <main>
 <a class="home" href="../">← LayoutKeep</a>
+<nav class="story-langs">
+  <span class='here'>Türkçe</span> <a href='en/04-hatalar.html'>English</a> <a href='de/04-hatalar.html'>Deutsch</a>
+</nav>
 <nav class="story-nav">
   <a href="index.html">Giriş</a>
   <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <span class='here'>4</span> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
@@ -150,8 +159,7 @@
 <p><strong>Çözüm.</strong> Telifli/kişisel görüntüler <strong>izlemeden çıkarıldı</strong> (dosyalar diskte kaldı, README'lerine "telif nedeniyle yayından çıkarıldı, komutlarla yeniden üretilebilir" notu düşüldü). Kamu malı NASA görüntüleri kaldı. <code>.gitignore</code> kuralları eklendi. İkinci geçişte bir alt klasördeki zoom'lar da (ilk taramada gözden kaçmıştı) çıkarıldı. <strong>İzlenen depo: 36 MB → 12 MB.</strong></p>
 <p><strong>Ders.</strong> İlk tarama yeterli değildi; desen eşleşmesi alt klasörleri kapsamıyordu. Tekrar taramak "gereksiz titizlik" değil, tamamlanmış işin parçasıydı.</p><p class="pager"><a href="03-olcum.html">← önceki bölüm</a> · <a href="05-model.html">sonraki bölüm →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
-  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
 </footer>
 </main>
 </body>

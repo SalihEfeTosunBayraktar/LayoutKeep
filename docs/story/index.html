@@ -44,6 +44,12 @@
   .story-nav a { text-decoration: none; padding: .1rem .35rem; }
   .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
                       padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
   .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
             padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
@@ -52,6 +58,9 @@
 <body>
 <main>
 <a class="home" href="../">← LayoutKeep</a>
+<nav class="story-langs">
+  <span class='here'>Türkçe</span> <a href='en/index.html'>English</a> <a href='de/index.html'>Deutsch</a>
+</nav>
 <h1>Sıfırdan bugüne LayoutKeep</h1>
 <p><strong>Ölçülmüş bir mühendislik hikâyesi: ne denedik, ne kırıldı, neyi düzelttik, neyi geri aldık.</strong></p>
 <blockquote><strong>English abstract.</strong> LayoutKeep translates PDF, EPUB and DOCX documents without moving anything on the page: every text box keeps its position and its size, figures stay where they were, tables keep their rows. This document is the project's full record - how it started, what was tried and abandoned (including a full rewrite and a fine-tuning campaign), which bugs were found and how each root cause was measured, why the runtime model is a local one and why the layout detector is IBM Docling's Heron, and what is still known to be broken. Every number here comes from a command that is written down next to it.</blockquote>
@@ -66,9 +75,9 @@
 <tbody>
 <tr><td>Desteklenen biçimler</td><td>PDF → PDF, EPUB, DOCX, PNG/JPG, LKPROJ</td><td><code>capabilities.py</code> matrisi, iki yönlü testli</td></tr>
 <tr><td>Kayıpsızlık kriteri</td><td><strong>10 kayıp (L1–L10) + 3 kalite eşiği (D1–D3)</strong></td><td><code>verify.py</code>; kriterler denetleyicinin kendisinden okunur</td></tr>
-<tr><td>Yayınlanan ölçüm seti</td><td><strong>22 belge</strong>, 276 görsel, 0 "eski kayıt"</td><td>karşılaştırma sitesi (her belge kendi denetim sayılarıyla)</td></tr>
+<tr><td>Yayınlanan ölçüm seti</td><td><strong>24 belge</strong>, 288 görsel, 0 "eski kayıt"</td><td>karşılaştırma sitesi (her belge kendi denetim sayılarıyla)</td></tr>
 <tr><td>En büyük gerçek koşu</td><td>220 sayfalık istatistik kitabı, 55 parça, ~106 dakika</td><td><code>translate_book.py</code>, <code>--workers 7</code></td></tr>
-<tr><td>Test paketi</td><td><strong>1192 test</strong>, 138 dosya</td><td><code>.venv/Scripts/python.exe -m pytest -q</code></td></tr>
+<tr><td>Test paketi</td><td><strong>1256 test</strong>, 138 dosya</td><td><code>.venv/Scripts/python.exe -m pytest -q</code></td></tr>
 <tr><td>Kaynak kod</td><td>~24.000 satır (<code>src/</code>), 56 denetim aracı</td><td><code>wc -l</code>, <code>tools/audit/</code></td></tr>
 <tr><td>Uygulama</td><td>tek dosya Windows exe (kurulumsuz), ~173 MB</td><td>PyInstaller onefile</td></tr>
 <tr><td>Çalışma zamanı modeli</td><td><code>google/gemma-4-e4b</code>, LM Studio, varsayılan 2 işçi</td><td>yerel; belge makineden çıkmaz</td></tr>
@@ -88,7 +97,7 @@
 <tr><td>1</td><td><a href="01-problem.html">Problem: "kayıpsız çeviri" tam olarak ne demek</a></td><td>Tanım, dört ölçülmüş zorluk, dış araçlarla karşılaştırma tablosu, sözleşme (D1–D7)</td></tr>
 <tr><td>2</td><td><a href="02-mimari.html">Mimari: boru hattının her parçası</a></td><td>Modüller ve satır sayıları, DocIR, okuyucular, sağlayıcı zinciri, sığdırma, yazıcılar, denetleyici</td></tr>
 <tr><td>3</td><td><a href="03-olcum.html">Ölçüm disiplini</a></td><td>L1–L10 + D1–D3 tablosu, 56 denetim aracı, <strong>ölçümün kendisinin üç kez yanılması</strong></td></tr>
-<tr><td>4</td><td><a href="04-hatalar.html">Hata kataloğu: on dört vaka</a></td><td>Her vaka: belirti → araştırma → kök neden → çözüm → kanıt</td></tr>
+<tr><td>4</td><td><a href="04-hatalar.html">Hata kataloğu: on altı vaka</a></td><td>Her vaka: belirti → araştırma → kök neden → çözüm → kanıt</td></tr>
 <tr><td>5</td><td><a href="05-model.html">Model seçimi ve IBM Docling meselesi</a></td><td>Yerel-önce kararı, Heron düzen modeli (neden, ölçüm), V2 planı neden uygulanmadı, ince ayar hattı</td></tr>
 <tr><td>6</td><td><a href="06-urun.html">Ürünleşme: motordan uygulamaya</a></td><td>Karşılama, yardım, sözlük/bellek, yüzen çubuk, aralık, <strong>çift dilli PDF</strong>, sürümler, karşılaştırma sitesi</td></tr>
 <tr><td>7</td><td><a href="07-sinirlar.html">Dürüst sınırlar ve dersler</a></td><td>Bugün çalışmayanlar, yol haritası, sekiz ders</td></tr>
@@ -113,7 +122,7 @@
 <tr><td>18 Eyl</td><td>Kayıpsızlık kampanyası: L kriterlerinin genişletilmesi, <code>lossless_audit</code>, held-out seti</td></tr>
 <tr><td>19 Eyl</td><td>Çok işçili parça çevirisi (<code>--workers</code>), <code>--resume</code>, bellek ve sözlük sağlayıcıları, karşılaştırma sitesinin ilk sürümü</td></tr>
 <tr><td>19–20 Eyl (gece)</td><td>220 sayfalık kitap (55 parça, ~106 dk); L10'un ölçüm hatası; reflow'un iki ölçümü; sözlük/bellek arayüzde; yardım ve karşılama; yüzen çubuk</td></tr>
-<tr><td>20 Eyl</td><td>Ürünleşme ve düzeltmeler: <strong>uygulamada paralellik</strong>, aralık davranışı, hizalama (justify), ölü ayar anahtarı, telif temizliği, sürümler <strong>v0.9.1 → v0.9.5</strong></td></tr>
+<tr><td>20 Eyl</td><td>Ürünleşme ve düzeltmeler: <strong>uygulamada paralellik</strong>, aralık davranışı, hizalama (justify), ölü ayar anahtarı, telif temizliği, sürümler <strong>v0.9.1 → v0.9.7</strong></td></tr>
 </tbody>
 </table>
 <hr>
@@ -143,8 +152,7 @@
 <hr>
 <p>*Bu belge depodaki <code>docs/CONTRACT.md</code>, <code>docs/campaign/JOURNAL.md</code>, <code>docs/MEASUREMENTS.md</code>, <code>docs/KAYIPSIZ_MOD_DURUM.md</code>, <code>docs/LOSSLESS-REPORT.md</code>, <code>docs/FEATURE-ROADMAP.md</code> dosyalarından, <code>_artifacts/heldout/**/audit.json</code> denetim kayıtlarından ve git geçmişinden derlendi.*</p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
-  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
 </footer>
 </main>
 </body>

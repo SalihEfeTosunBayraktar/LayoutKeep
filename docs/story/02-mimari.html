@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2. Mimari: boru hattının her parçası — LayoutKeep</title>
-<meta name="description" content="LayoutKeep proje tarihçesi, bölüm: 2. Mimari: boru hattının her parçası.">
+<meta name="description" content="2. Mimari: boru hattının her parçası — LayoutKeep — sıfırdan bugüne">
 <style>
   :root {
     --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
@@ -44,6 +44,12 @@
   .story-nav a { text-decoration: none; padding: .1rem .35rem; }
   .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
                       padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
   .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
             padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
   footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
@@ -52,6 +58,9 @@
 <body>
 <main>
 <a class="home" href="../">← LayoutKeep</a>
+<nav class="story-langs">
+  <span class='here'>Türkçe</span> <a href='en/02-mimari.html'>English</a> <a href='de/02-mimari.html'>Deutsch</a>
+</nav>
 <nav class="story-nav">
   <a href="index.html">Giriş</a>
   <a href='01-problem.html'>1</a> <span class='here'>2</span> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
@@ -110,6 +119,7 @@ yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (ayn
 <p>çoğunluk çevirisine hizalanır. Böylece "Chapter" bir yerde "Bölüm", başka yerde "Kısım" olmaz.</p>
 <h2>2.6 Sığdırma</h2>
 <p>Çeviri kutuya sığmazsa sırasıyla denenir: <strong>küçült</strong> (0.85 tabanına kadar) → <strong>kısaltma iste</strong> (modelden daha kısa çeviri) → <strong>aşağı it</strong> (altında boşluk varsa bloğu büyüt) → <strong>işaretle</strong>. <code>--fit-mode reflow</code> ek bir kademe ekler (satır aralığını sıkma + aşağı itme) ama varsayılan <strong>kapalı</strong>: NIST dergisinde D1'i 52'den 0'a indirdi, ancak IRS formunda aşağı itilen bloklar hareketsiz metne çarptı (L7 0→1). Yani kazanç belgeye bağlı, kayıp ise kayıpsızlık ihlali — kural: <em>kanıtlanmış kayıp varsa varsayılan kapalı.</em></p>
+<p><strong>Satır aralığı adımı</strong> (modele sormadan önce satırları sıkılaştırma) 2026-09-20'de yazıldı, ölçüldü ve <strong>geri alındı</strong>: geçişin kendi ikame fontuyla kitapta hiçbir bloğu kurtarmadı ve yazılmış sayfa A/B'si iki kolda birebir aynı çıktı. Ölçüm büyük soruyu da yanıtladı: bayraklı blokların çoğu satır değil <strong>kutu</strong> eksiğidir — <code>room_below</code> bir bloğun ölçülen kutusunu sonraki bloğa değmemek için altı puntoya kadar kısaltabiliyor ve altı puntoya hiçbir şey sığmaz. Ayrıntı: Bölüm 3 ve <code>docs/campaign/JOURNAL.md</code>.</p>
 <h2>2.7 Yazıcılar ve yazma kararı</h2>
 <p>PDF yazıcısı sayfayı <strong>kaynak dosyadan</strong> çizer: her blok kendi kutusunda redakte edilip yeniden yazılır. Değişmeyen bloklara dokunulmaz (bir ad, bir belge kodu, bir üstbilgi olduğu gibi kalır — silip yeniden çizmek tipografisini kaybettirir). Bloklar HTML kutusu + CSS ile çizilir; bu, hizalama (ortala, sağa yasla, iki yana yasla) ve yazı tipi eşlemesi için tarayıcı motorunun işini kullanmak demektir.</p>
 <p>DOCX ve EPUB yazıcıları aynı DocIR'ı kendi biçimlerine döker. <code>writers/converter.py</code> biçim çiftlerini yönetir ve D7 gereği <strong>yalnız ölçülmüş</strong> çiftleri sunar.</p>
@@ -117,8 +127,7 @@ yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (ayn
 <p><code>verify.py</code> çıktıyı kaynakla karşılaştırır ve on kayıp türünü sayar (L1–L10), üç de kalite eşiğini (D1–D3). Denetim <strong>iki taraflıdır</strong>: hem yazma öncesi DocIR üzerinde, hem yazılmış PDF'in kendisi üzerinde çalışır. İkincisi kritik — çünkü hataların bir kısmı yalnız <em>çizimde</em> oluşur (üst üste binen metin, sayfa dışına taşan kelime, figür üstüne düşen yazı).</p>
 <p>Denetim yalnız rapor etmez: kaybı bulduğunda <strong>yeniden sorar</strong> (<code>ask_again</code>), düzeltilebileni düzeltir, kalanı gerekçesiyle işaretler. Kullanıcı arayüzünde gördüğü "inceleme kuyruğu" bu işaretlerdir — her satırın bir nedeni vardır ve o neden Türkçe yazılıdır.</p><p class="pager"><a href="01-problem.html">← önceki bölüm</a> · <a href="03-olcum.html">sonraki bölüm →</a></p>
 <footer>
-  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi.
-  Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
+  Bu sayfa <code>docs/STORY.md</code> dosyasından <code>tools/story_site.py</code> ile üretildi. Karşılaştırma sitesi: <a href="../comparison/">orijinal ↔ çeviri</a>.
 </footer>
 </main>
 </body>

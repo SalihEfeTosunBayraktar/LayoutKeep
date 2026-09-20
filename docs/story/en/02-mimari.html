@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Architecture: every part of the pipeline — LayoutKeep</title>
+<meta name="description" content="2. Architecture: every part of the pipeline — LayoutKeep — from nothing to now">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../02-mimari.html'>Türkçe</a> <span class='here'>English</span> <a href='../de/02-mimari.html'>Deutsch</a>
+</nav>
+<nav class="story-nav">
+  <a href="index.html">Introduction</a>
+  <a href='01-problem.html'>1</a> <span class='here'>2</span> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <a href='06-urun.html'>6</a> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>2. Architecture: every part of the pipeline</h1>
+<p>This chapter describes how the code in the repository fits together — what each module does, why it stops at that boundary, and which bug drawing that boundary prevented. The numbers come from this repository (<code>wc -l</code>, 2026-09-20).</p>
+<p><img alt="The LayoutKeep translation pipeline" src="../architecture.png"></p>
+<h2>2.1 The overall flow</h2>
+<pre><code>read → DocIR → segment → provider chain → fit → write → verify → flag</code></pre>
+<p>Every stage produces the next one's input and <strong>none of them does another's job</strong>. The separation is not theoretical: each boundary was drawn while fixing a bug. The rule "fitting must be a stage of its own" (D3), for example, was written after the model, answering a request to "make this sentence shorter", damaged translation quality — the model now sees a shortening request only on the <em>second</em> pass and only in the fitting stage.</p>
+<h2>2.2 Modules and their sizes</h2>
+<table>
+<thead><tr>
+<th>Module</th>
+<th>Lines</th>
+<th>Responsibility</th>
+<th>The boundary rule</th>
+</tr></thead>
+<tbody>
+<tr><td><code>readers/</code></td><td>3,819</td><td>PDF, EPUB, DOCX and image readers</td><td>The output is DocIR only; a reader writes nothing</td></tr>
+<tr><td><code>core/</code></td><td>2,519</td><td>DocIR, protection, number words, settings, page ranges</td><td>Knows no format; data only</td></tr>
+<tr><td><code>providers/</code></td><td>2,718</td><td>The provider chain: dedupe, memory, glossary, protection, splitting, retry</td><td>Knows no layout (D2)</td></tr>
+<tr><td><code>fitting/</code></td><td>1,881</td><td>Fitting into a box, growing, figure collisions, text-over-image</td><td>Does not ask for translations; it measures</td></tr>
+<tr><td><code>writers/</code></td><td>3,196</td><td>PDF, DOCX and EPUB writers + converters</td><td>Decides nothing; it draws</td></tr>
+<tr><td><code>ocr/</code></td><td>726</td><td>Reading scanned pages, the layout detector (IBM Docling Heron)</td><td>Supplies data to the reader</td></tr>
+<tr><td><code>ui/</code></td><td>7,864</td><td>The PySide6 interface, the worker, the floating bar, welcome, help, the glossary editor</td><td>Calls the engine, never copies it</td></tr>
+<tr><td><code>verify.py</code></td><td>576</td><td>The L1–L10 and D1–D3 checks + repair</td><td>The CLI and the interface run the same file</td></tr>
+<tr><td><code>cli.py</code></td><td>703</td><td>The command line</td><td>The same engine, a different door</td></tr>
+</tbody>
+</table>
+<p>That the interface is larger than the engine is not an accident: every convenience the user sees (the welcome screen, help, the glossary table, the floating bar, the review queue) lives there. The engine was kept small — because the engine's correctness depends on how testable it is.</p>
+<h2>2.3 DocIR: why a format-independent intermediate model</h2>
+<p><code>core/docir.py</code> carries this chain:</p>
+<pre><code>Document → Page → Block → Line → Span</code></pre>
+<ul><li><strong>Block</strong> is a translatable unit: <code>text</code>, <code>bbox</code>, <code>role</code> (title/paragraph/table/caption/…),</li></ul>
+<p><code>align</code>, <code>direction</code>, <code>rotation</code>, <code>source_ref</code> (which page it came from), <code>table_id/row/col</code>.</p>
+<ul><li><strong>Line/Span</strong> carry typography: font family, size, bold/italic, colour.</li><li><strong>Segment</strong> is the translation unit: <code>source</code> (text with protected values masked), <code>target</code>,</li></ul>
+<p><code>block_id</code>, flags and reasons.</p>
+<p>Why a model of its own? Because the transformation between readers and writers goes <strong>both ways</strong>: PDF→DOCX, DOCX→EPUB, EPUB→PDF all pass through the same intermediate model and the same audit. Without it, every format pair would need a pipeline of its own, and each would have its own bugs.</p>
+<p><strong>Protected values.</strong> Numbers, measurements, DOIs/URLs, part numbers, dates and (toggleable) Roman numerals are <strong>never shown to the model</strong>: they are lifted out of the text and replaced with invisible placeholders in the U+E000–U+E001 range, then put back after translation. That makes it structurally impossible for the model to invent or drop a number. On the book run this rule brought the "numbers were lost" flag down to 49 cases — most of what remains are number groups inside tables.</p>
+<h2>2.4 Readers</h2>
+<p><strong>The PDF reader</strong> (<code>readers/pdf_reader.py</code>) uses two paths: the text layer when there is one, OCR when there is not. The decision is made page by page — two of a book's 841 pages can be scans (measured) and only those two go through OCR. Reading order runs XY-cut (horizontal/vertical splitting) with column separation, then line merging and paragraph rules.</p>
+<p><strong>The layout detector (IBM Docling Heron).</strong> XY-cut looks at the page's <em>lines</em>: it finds aligned blocks. On complex pages (a box inside a box, a caption under a picture, a formula squeezed between two columns) it is not enough. So the <code>docling-project/docling-layout-heron-onnx</code> model was added: it looks at the page as an image and classifies it region by region (heading, paragraph, table, figure, footnote). The model is enabled with <code>--layout-detector</code> and is on by default in the interface. Its effect was measured: in a four-panel comparison over 10 book pages (original | old run | XY-cut | with the detector), the detector cut "prose still left in English" from 6/82 to 1/82.</p>
+<p><strong>The EPUB and DOCX readers</strong> handle their own formats' structure directly. In DOCX, <code>python-docx</code> is deliberately <strong>not used</strong>: that library re-serialises the document, which rewrites everything that has to be preserved (style ids, relationships, content controls). OOXML is read directly.</p>
+<h2>2.5 The provider chain</h2>
+<p>The order matters — each link makes the one above it unnecessary:</p>
+<pre><code>protection (mask)  →  dedupe (translate the same text once)  →  memory (across runs)  →
+glossary (forcing terms)  →  the model call  →  splitting (sentence by sentence if it echoes)  →
+retry (ask again for what came back empty)  →  unify repeats (one translation per source)</code></pre>
+<ul><li><strong>dedupe</strong>: the same text appears dozens of times in a document (headings, table labels, form</li></ul>
+<p>fields). It is translated once; on the IRS form this cuts the request count noticeably.</p>
+<ul><li><strong>memory</strong> (<code>providers/memory.py</code>): SQLite, across runs. A real run accumulated 2,555 segments,</li></ul>
+<p>and when the user restarted the same book those segments never went to the model at all.</p>
+<ul><li><strong>splitting</strong> (<code>providers/split.py</code>): sometimes the model hands the paragraph back unchanged.</li></ul>
+<p>The paragraph is then cut into sentences and each one asked separately — the problem is not "the model is lazy" but attention drifting over a long context, and asking sentence by sentence gets past it.</p>
+<ul><li><strong>unify repeats</strong> (<code>core/repeats.py</code>): if the same source was translated differently in different</li></ul>
+<p>places, it is aligned to the majority rendering. So "Chapter" does not become "Bölüm" in one place and "Kısım" in another.</p>
+<h2>2.6 Fitting</h2>
+<p>If a translation does not fit its box, these are tried in order: <strong>shrink</strong> (down to the 0.85 floor) → <strong>ask for a shorter rendering</strong> (a shorter translation from the model) → <strong>push down</strong> (grow the block if there is room below it) → <strong>flag</strong>. <code>--fit-mode reflow</code> adds a step (tightening the leading and pushing down) but is <strong>off</strong> by default: on the NIST journal it took D1 from 52 to 0, but on the IRS form the pushed-down blocks ran into untouched text (L7 0→1). The gain depends on the document while the loss is a losslessness violation — the rule is: <em>a proven loss means the default stays off.</em></p>
+<p>A <strong>leading step</strong> (tighten the line spacing before asking the model for a shorter text) was built on 2026-09-20, measured, and <strong>reverted</strong>: with the fitting pass's own substituted font it rescued no block on the book, and the written-page A/B came back identical in both arms. The measurement also answered the bigger question: most flagged blocks are not short of lines, they are short of <em>box</em> — <code>room_below</code> can shorten a block's measured box to six points to keep it clear of the next one, and nothing fits in six points. See Chapter 3 and <code>docs/campaign/JOURNAL.md</code>.</p>
+<h2>2.7 Writers, and the decision to write</h2>
+<p>The PDF writer draws the page <strong>from the source file</strong>: each block is redacted in its own box and written again. Blocks that did not change are left alone (a name, a document code, a running header stays exactly as it was — erasing and redrawing it loses its typography). Blocks are drawn with an HTML box plus CSS, which means using the browser engine's work for alignment (centre, right, justify) and font mapping.</p>
+<p>The DOCX and EPUB writers pour the same DocIR into their own formats. <code>writers/converter.py</code> manages the format pairs and, per D7, offers <strong>only measured</strong> pairs.</p>
+<h2>2.8 The checker: the part that sets the project apart</h2>
+<p><code>verify.py</code> compares the output against the source and counts ten kinds of loss (L1–L10) and three quality thresholds (D1–D3). The audit runs on <strong>both sides</strong>: on the DocIR before writing, and on the written PDF itself. The second is critical — some bugs only appear <em>in the drawing</em> (text overlapping text, a word past the page edge, text landing on a figure).</p>
+<p>The audit does not merely report: when it finds a loss it <strong>asks again</strong> (<code>ask_again</code>), mends what can be mended, and flags the rest with its reason. The "review queue" the user sees in the interface is exactly those flags — every row has a reason, and the reason is written in the interface's language.</p><p class="pager"><a href="01-problem.html">← previous chapter</a> · <a href="03-olcum.html">next chapter →</a></p>
+<footer>
+  This page is generated from <code>docs/STORY.md</code> by <code>tools/story_site.py</code>. Comparison site: <a href="../../comparison/">original ↔ translation</a>.
+</footer>
+</main>
+</body>
+</html>

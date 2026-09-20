@@ -108,6 +108,13 @@ yeniden deneme (yanıtsız kalanı tekrar sor)  →  tekrarları birleştir (ayn
 hareketsiz metne çarptı (L7 0→1). Yani kazanç belgeye bağlı, kayıp ise kayıpsızlık ihlali —
 kural: *kanıtlanmış kayıp varsa varsayılan kapalı.*
 
+**Satır aralığı adımı** (modele sormadan önce satırları sıkılaştırma) 2026-09-20'de yazıldı,
+ölçüldü ve **geri alındı**: geçişin kendi ikame fontuyla kitapta hiçbir bloğu kurtarmadı ve
+yazılmış sayfa A/B'si iki kolda birebir aynı çıktı. Ölçüm büyük soruyu da yanıtladı: bayraklı
+blokların çoğu satır değil **kutu** eksiğidir — `room_below` bir bloğun ölçülen kutusunu sonraki
+bloğa değmemek için altı puntoya kadar kısaltabiliyor ve altı puntoya hiçbir şey sığmaz. Ayrıntı:
+Bölüm 3 ve `docs/campaign/JOURNAL.md`.
+
 ## 2.7 Yazıcılar ve yazma kararı
 
 PDF yazıcısı sayfayı **kaynak dosyadan** çizer: her blok kendi kutusunda redakte edilip yeniden

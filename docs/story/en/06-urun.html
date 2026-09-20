@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. From engine to product — LayoutKeep</title>
+<meta name="description" content="6. From engine to product — LayoutKeep — from nothing to now">
+<style>
+  :root {
+    --bg: #ffffff; --text: #1a1f27; --muted: #5b6675; --border: #e3e8ee;
+    --accent: #1d6fd6; --code-bg: #f5f7fa; --card: #f8fafc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b; --text: #e8ecf1; --muted: #98a2b3; --border: #2a3038;
+      --accent: #4c9aff; --code-bg: #1c2028; --card: #1a1e25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16.5px/1.7 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 54rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; }
+  h2 { font-size: 1.45rem; margin: 2.6rem 0 .8rem; padding-top: 1.2rem; border-top: 1px solid var(--border); }
+  h3 { font-size: 1.12rem; margin: 1.8rem 0 .5rem; }
+  h4 { font-size: 1rem; margin: 1.4rem 0 .4rem; }
+  p, li { color: var(--text); }
+  a { color: var(--accent); }
+  img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; display: block; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: .95rem; display: block; overflow-x: auto; }
+  th, td { border: 1px solid var(--border); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08rem .3rem; font-size: .9em; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; overflow-x: auto; }
+  pre code { background: none; border: none; padding: 0; }
+  blockquote { margin: 1.2rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent);
+                background: var(--card); border-radius: 0 8px 8px 0; color: var(--muted); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+  em { color: var(--muted); }
+  .home { display: inline-block; margin-bottom: 1.5rem; font-size: .92rem; }
+  .story-nav { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+                margin: 0 0 2rem; padding: .55rem .7rem; border: 1px solid var(--border);
+                border-radius: 10px; background: var(--card); font-size: .9rem; }
+  .story-nav a { text-decoration: none; padding: .1rem .35rem; }
+  .story-nav .here { background: var(--accent); color: #fff; border-radius: 6px;
+                      padding: .1rem .45rem; font-weight: 600; }
+  .story-langs { display: flex; gap: .4rem; align-items: center; margin: 0 0 1.2rem; font-size: .88rem; }
+  .story-langs a, .story-langs .here { padding: .1rem .5rem; border: 1px solid var(--border);
+                                        border-radius: 999px; text-decoration: none; }
+  .story-langs .here { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .untranslated { border-left: 3px solid var(--accent); background: var(--card);
+                   padding: .5rem .8rem; border-radius: 0 8px 8px 0; }
+  .pager { display: flex; justify-content: space-between; gap: 1rem; margin: 3rem 0 0;
+            padding-top: 1.2rem; border-top: 1px solid var(--border); font-size: .95rem; }
+  footer { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">← LayoutKeep</a>
+<nav class="story-langs">
+  <a href='../06-urun.html'>Türkçe</a> <span class='here'>English</span> <a href='../de/06-urun.html'>Deutsch</a>
+</nav>
+<nav class="story-nav">
+  <a href="index.html">Introduction</a>
+  <a href='01-problem.html'>1</a> <a href='02-mimari.html'>2</a> <a href='03-olcum.html'>3</a> <a href='04-hatalar.html'>4</a> <a href='05-model.html'>5</a> <span class='here'>6</span> <a href='07-sinirlar.html'>7</a> <a href='08-kaynaklar.html'>8</a>
+</nav><h1>6. From engine to product</h1>
+<p>An engine that is correct but unusable is not a finished project. This chapter describes the steps from "a library" to "an application anyone can download and run", and which user complaint each step was born from.</p>
+<h2>6.1 The welcome screen</h2>
+<p><strong>The complaint:</strong> <em>"there should be a welcome and explanation screen on first launch: how to do a first translation, what each setting is for, the local provider, and so on — quite detailed, with the language and theme selectable right there."</em></p>
+<p>The welcome has four pages and opens on the <strong>first run</strong>:</p>
+<ol><li><strong>What it does</strong> — it translates a document inside its own boxes; a three-sentence summary and the</li></ol>
+<p>definition of "lossless".</p>
+<ol><li><strong>How to run it</strong> — drag and drop, choosing a language, choosing a provider; local vs cloud.</li><li><strong>Which setting does what</strong> — the arithmetic of the context window and slot count (7 workers + an</li></ol>
+<p>8192 window = ~1.2k tokens per request), the fitting thresholds, protected values.</p>
+<ol><li><strong>Language and theme</strong> — the interface language (TR/EN/DE) and the light/dark theme are chosen</li></ol>
+<p>here.</p>
+<p>The welcome is marked <strong>per version</strong>: a new version is a new welcome. (That is the permanent fix for the "no welcome screen appeared" complaint — section 4.5.)</p>
+<h2>6.2 Help: the criteria, explained to the user</h2>
+<p><strong>The complaint:</strong> <em>"there should be plenty of help and explanation so any user can work it out."</em></p>
+<p>The help screen has seven sections and explains <strong>the engine's own criteria</strong>: the first translation, choosing a provider, what the settings mean, review flags (what each flag means), the losslessness criteria (L1–L10 + D1–D3, with their names), where the outputs are (<code>.lkproj</code>, the memory, the logs, portable mode), and troubleshooting.</p>
+<p>The rule: help never promises something the code does not do. Every section describes a behaviour that really works in that release — and when a behaviour changes, the help text changes with it (visible in the release notes: when the default parallelism went 7→2, three separate texts were updated).</p>
+<h2>6.3 The glossary and the memory, inside the interface</h2>
+<p><strong>The complaint:</strong> <em>"where is the glossary?"</em> (section 4.6)</p>
+<ul><li><strong>Glossary</strong>: choose a file (JSON or CSV/TSV), <strong>edit it as a table</strong> inside the application (add</li></ul>
+<p>and remove rows, load from a file, save as), and it is applied both in the prompt and in the output check. The glossary's fingerprint enters the memory key — when you change the glossary, old translations are not silently reused.</p>
+<ul><li><strong>Memory</strong>: SQLite, across runs. The completion screen shows the <strong>hit rate</strong>. A real run</li></ul>
+<p>accumulated 2,555 segments; restarting the same document never calls the model for those.</p>
+<h2>6.4 The floating bar and the window switch</h2>
+<p><strong>The complaints:</strong> <em>"the pill and the main window are visible at the same time, and hiding the big window hides the small one — fix that"</em> + <em>"when I close the pill I cannot get it back."</em></p>
+<p>On long runs the window needs to be able to go to the back. The answer is a switch that works both ways:</p>
+<ul><li>The <strong>▤ "switch to the small window"</strong> button in the title hides the window and progress continues</li></ul>
+<p>in the floating bar (it is enabled while a run is going).</p>
+<ul><li><strong>"Back to the window"</strong> on the bar brings it back; minimising the window does <strong>not</strong> hide the bar</li></ul>
+<p>(the ownership relation was removed — section 4.7).</p>
+<ul><li>The bar shows the progress percentage, the phase, the segment counters and the file name. If the</li></ul>
+<p>name does not fit it is shortened, but the <strong>full name stays in a tooltip</strong> (a name you cannot verify is a name that does not help).</p>
+<h2>6.5 The page range does what it promises</h2>
+<p><strong>The complaint:</strong> <em>"should it not output only the range I selected?"</em> (section 4.12)</p>
+<p>When a range is chosen:</p>
+<ul><li><strong>Translated</strong>: only the selected pages.</li><li><strong>Output</strong>: only the selected pages (the writer is handed a slice of the source).</li><li><strong>Project (<code>.lkproj</code>)</strong>: the <strong>whole</strong> document — the review screen shows the rest too, and</li></ul>
+<p>re-exporting never silently shortens the document.</p>
+<p>The interface says what will happen the moment a range is chosen (TR/EN/DE). This behaviour is pinned by 11 tests and was measured on a real 15-page corpus PDF: the range "1-2" → a 2-page output, a 15-page project.</p>
+<h2>6.6 The bilingual PDF</h2>
+<p><strong>What was asked for:</strong> the comparison site shows source and translation side by side, but the PDF output does not.</p>
+<p><code>--dual side|alternate</code> (and a checkbox in the interface): <code>side</code> puts the source on the left and the translation on the right of every page (the page width doubles), <code>alternate</code> puts the translation after every source page (the page count doubles). The design decision was <strong>not to touch the pipeline</strong>: the composition is done afterwards, from two finished files, because the audit pairs source page N with output page N and a bilingual document would break that pairing. So the translated PDF and <code>audit.json</code> stay exactly as they were; the bilingual file is written beside them. On an interrupted run only the pages both documents have are composed, and the count is reported. The plan and the measurement: <code>docs/DUAL-OUTPUT-PLAN.md</code>.</p>
+<h2>6.7 The glossary: term candidates from the document</h2>
+<p><strong>Roadmap item 5.</strong> The glossary is the pipeline's strongest quality lever (a term is forced in the prompt and checked in the output), but filling it by hand means reading the document and noticing the repeats — a machine's job. <code>core/terms.py</code> finds the phrases that <strong>recur</strong> in the document: one to three words, not starting or ending with a function word, appearing at least N times, not a number. The ranking is frequency × length.</p>
+<p>This is a <strong>frequency rule</strong>, not an understanding of meaning — the docstring says so plainly. The result is a list that opens in the editor with <strong>empty target cells</strong>; a human writes the translations, and nothing enters a run until the user saves. A term already in the glossary is not suggested. 9 tests; two of them talk to the editor over a real PDF page.</p>
+<h2>6.8 Setting presets</h2>
+<p>The settings screen shows thirty values; the honest answer to "which should I change for a quick draft" is "the few that carry meaning together". There are two presets:</p>
+<table>
+<thead><tr>
+<th>Preset</th>
+<th>What changes</th>
+<th>Who it is for</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>Fast draft</strong></td><td>7 parallel requests, readability floor 0.80, shorter-rendering requests off</td><td>A first pass to read; type shrinks in tight boxes</td></tr>
+<tr><td><strong>Publication quality</strong></td><td>2 requests, floor 0.85, shortening threshold 0.95 (the measured defaults)</td><td>An output worth keeping; a short rendering costs one extra model round</td></tr>
+</tbody>
+</table>
+<p>The values are written through the same validated path and the editors update immediately; <code>current()</code> names a preset only when <strong>every</strong> value matches, and says "custom" when one was edited by hand. The default installation already is "publication quality". The interface note says plainly that chunked command-line jobs re-read the values on every new chunk.</p>
+<h2>6.9 Releases and the publishing flow</h2>
+<p>The application is published as a <strong>single file</strong> (<code>LayoutKeep.exe</code>, ~173 MB, onefile) through GitHub Releases. The flow:</p>
+<ol><li>The version in <code>pyproject.toml</code> + <code>__init__.py</code> is raised.</li><li>It is built with <code>PyInstaller packaging/layoutkeep_onefile.spec --noconfirm --clean</code>.</li><li>The full test suite runs.</li><li>Tag + release; <strong>the downloaded file's SHA-256 is compared against the local build</strong>.</li></ol>
+<p>The published versions and what each brought:</p>
+<table>
+<thead><tr>
+<th>Version</th>
+<th>What it brought</th>
+</tr></thead>
+<tbody>
+<tr><td>0.9.1</td><td>The first public release: welcome, help, the glossary/memory interface, the review queue</td></tr>
+<tr><td>0.9.2</td><td>The bar ↔ window switch; the welcome per version; Roman-numeral protection (a toggle)</td></tr>
+<tr><td>0.9.3</td><td>The ▤ button + help texts</td></tr>
+<tr><td>0.9.4</td><td><strong>The application sends its requests in parallel</strong> (in waves, merged in document order)</td></tr>
+<tr><td>0.9.5</td><td>The dead setting key wired; the parallelism default down to 2; the bar's tooltip; a range narrows the output</td></tr>
+<tr><td>0.9.6</td><td><strong>The packaged application can open its own dialogs</strong> — 0.9.5 raised <code>ImportError</code> on the help and glossary screens because <code>help_dialog</code> and <code>glossary_dialog</code> were missing from the PyInstaller list (found by the project's own <code>check_spec.py</code>; three modules had been missing for several releases)</td></tr>
+<tr><td>0.9.7</td><td>The completion screen tells two kinds of review flag apart: how many are <strong>shortened boxes</strong> (a page-layout problem, which re-translating cannot fix). The help screen explains what a flag means</td></tr>
+</tbody>
+</table>
+<h2>6.10 The comparison site</h2>
+<p><strong>What was asked for:</strong> <em>"a slider web site where I can compare the original sources and their translations side by side, for every example."</em></p>
+<p>The site is generated under <code>docs/comparison/</code> and published on GitHub Pages:</p>
+<ul><li><strong>A single-document viewer</strong>: original on the left, translation on the right, a draggable divider in</li></ul>
+<p>the middle; zoom with the wheel; page navigation with the keyboard.</p>
+<ul><li><strong>An audit summary per document</strong>: the L and D numbers, the page count, the model, the date.</li><li><strong>24 documents</strong>: arXiv papers, the NIST journal and form, IRS forms, a NASA report (digital and</li></ul>
+<p>scanned), Project Gutenberg books, a public-domain DOCX, two scanned pages.</p>
+<ul><li><strong>Development runs</strong> are hidden by default and one checkbox away — the published list is made of</li></ul>
+<p>real documents.</p>
+<ul><li><strong>The copyright rule</strong>: only openly licensed or public-domain sources are published; copyrighted</li></ul>
+<p>ones (<code>NOT_PUBLISHABLE</code>) stay on the user's disk only.</p>
+<p>Images load per document (lazily): the whole archive is ~49 MB, which means ~1 MB of traffic per visitor. The NASA document's 6997×3163 renders were capped at 3200px (10.4 MB → 1.9 MB) — more than enough for zooming, and half the data per document.</p>
+<h2>6.11 GitHub Pages: the landing page and the links</h2>
+<ul><li><strong>The root</strong> (<code>/LayoutKeep/</code>): the landing page — the download, the comparison site and the story.</li><li><strong><code>/docs/comparison/</code></strong>: the comparison site.</li><li><strong><code>/docs/story/</code></strong>: this document (multi-page), <strong>in three languages</strong> with a switcher; a chapter</li></ul>
+<p>without a translation yet shows the Turkish original behind a visible note.</p>
+<ul><li><strong>The old address</strong> (<code>docs/comparison.html</code>): the old 4.4 MB single-file page, turned into a</li></ul>
+<p><strong>redirect</strong> so shared links do not break.</p>
+<ul><li><strong>The READMEs</strong> (EN/TR): the download link goes through <code>releases/latest</code>; the showcase buttons</li></ul>
+<p>point at the current site; the "where the code in this branch stands" note is permanent in both languages (a push once deleted it; it was put back and is now kept on both sides).</p>
+<h2>6.12 Scale: today's numbers</h2>
+<table>
+<thead><tr>
+<th></th>
+<th>Value</th>
+</tr></thead>
+<tbody>
+<tr><td>Source code</td><td>~24,000 lines (<code>src/</code>), 133 files</td></tr>
+<tr><td>Tests</td><td><strong>1,256 tests</strong>, 138 test files</td></tr>
+<tr><td>Audit tools</td><td>56 (<code>tools/audit/</code>)</td></tr>
+<tr><td>Largest real run</td><td>a 220-page book, 55 chunks, ~106 minutes</td></tr>
+<tr><td>Largest single document</td><td>841 pages (when fully translated, ~23% in one run)</td></tr>
+<tr><td>Comparison site</td><td>24 documents, 288 images</td></tr>
+<tr><td>Settings</td><td>30, all wired to code and tested</td></tr>
+</tbody>
+</table><p class="pager"><a href="05-model.html">← previous chapter</a> · <a href="07-sinirlar.html">next chapter →</a></p>
+<footer>
+  This page is generated from <code>docs/STORY.md</code> by <code>tools/story_site.py</code>. Comparison site: <a href="../../comparison/">original ↔ translation</a>.
+</footer>
+</main>
+</body>
+</html>
