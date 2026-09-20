@@ -15,7 +15,10 @@ LayoutKeep/
 │   ├── output/           Test outputs, comparisons, .lkproj files
 │   ├── e2e/              End-to-end manual test inputs and their .out.* results
 │   ├── reports/          Test, lint and demo reports
-│   └── unpacked/         Unpacked EPUB inputs, for reading the XHTML directly
+│   ├── unpacked/         Unpacked EPUB inputs, for reading the XHTML directly
+│   ├── heldout/          The held-out campaign: sources/, runs/, live/ and its scripts -
+│   │                     what "lossless" is measured against (docs/campaign/HELDOUT.md)
+│   └── gemini_v2/        Artefacts of the abandoned V2 clone, kept out of the tree
 ├── build/  dist/         PyInstaller intermediate output and the built exe (not in git)
 ├── docs/                 Architecture, measurements and usage
 │   ├── CONTRACT.md       The architectural rules, binding on everyone
@@ -24,7 +27,13 @@ LayoutKeep/
 │   ├── MEASUREMENTS.md   Older measurement results
 │   ├── PACKAGING.md      Building the exe
 │   ├── MAP.md            (this file)
-│   ├── comparison.html   The published EN/TR page comparison
+│   ├── comparison/       The published EN/TR comparison site (every document, with audits)
+│   ├── comparison.html   Redirect to it, for links shared before the site existed
+│   ├── comparison/       The generated side-by-side site: every held-out sample, original
+│   │                     against translation, with a draggable divider
+│   │                     (tools/audit/comparison_site.py)
+│   ├── KAYIPSIZ_MOD_DURUM.md  What lossless mode does today, measured, in Turkish
+│   ├── campaign/         The held-out campaign: HELDOUT.md (the runs) and JOURNAL.md (the log)
 │   ├── notes/            Working notes, in Turkish, for work that is not current
 │   └── mockups/          Logo and interface mockups, dark and light
 ├── packaging/            PyInstaller spec files

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html"><strong>See a translated document side by side →</strong></a><br>
+  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/"><strong>See a translated document side by side →</strong></a><br>
   <sub>Ten pages of an academic paper, English and Turkish, under a divider you drag.</sub>
 </p>
 
@@ -105,12 +105,12 @@ from an empty checkout.
 
 ![Where the time goes](docs/images/bench_10_pages.png)
 
-**[Open the page-by-page comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — all ten pages, English and Turkish
+**[Open the page-by-page comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/)** — all ten pages, English and Turkish
 overlaid with a divider you drag across. It is a single self-contained file (the renders travel
 inside it), rebuilt from the current output by
 [`tools/make_comparison_page.py`](tools/make_comparison_page.py), so it can never show a
 comparison of something the pipeline no longer does. The file itself is
-[`docs/comparison.html`](docs/comparison.html) if you would rather open it from a clone.
+[`docs/comparison/`](docs/comparison/index.html) if you would rather open it from a clone.
 
 **[And the wider comparison](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/index.html)** — the same draggable divider over
 **every held-out sample**: arXiv papers, two IRS instruction books, a NASA scan, a PLOS article,

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html"><strong>Çevrilmiş bir belgeyi yan yana görün →</strong></a><br>
+  <a href="https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/"><strong>Çevrilmiş bir belgeyi yan yana görün →</strong></a><br>
   <sub>Akademik bir makalenin on sayfası, İngilizce ve Türkçe, sürüklenebilir bir ayırıcı altında.</sub>
 </p>
 
@@ -104,7 +104,7 @@ yeniden kurulabilir.
 
 ![Süre nereye gidiyor](docs/images/bench_10_pages.png)
 
-**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison.html)** — on sayfanın tamamı, İngilizce ve Türkçe, üzerinde sürüklediğiniz bir ayırıcıyla.
+**[Sayfa sayfa karşılaştırmayı açın](https://salihefetosunbayraktar.github.io/LayoutKeep/docs/comparison/)** — on sayfanın tamamı, İngilizce ve Türkçe, üzerinde sürüklediğiniz bir ayırıcıyla.
 Kendi kendine yeten tek bir dosya (görseller içinde
 taşınıyor) ve güncel çıktıdan
 [`tools/make_comparison_page.py`](tools/make_comparison_page.py) ile yeniden üretiliyor; yani
