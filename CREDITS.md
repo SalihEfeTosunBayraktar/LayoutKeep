@@ -62,6 +62,12 @@ Nothing was taken from a real publication, so the repository can publish the doc
 images made from them without a licence question. The academic paper's authors, journal, figures
 and measurements are all invented.
 
+The comparison site under [`docs/comparison/`](docs/comparison/) is the deliberate exception: its
+page images are rendered from the public-domain and openly licensed sources listed below, never
+from the copyrighted ones. A run whose source must not be republished is named in the site
+generator's `NOT_PUBLISHABLE` set, so it cannot reach a page even by accident — the commercial
+textbook the owner lent for testing is the one entry there today.
+
 ## Measurement sources (not redistributed)
 
 The lossless work is measured on real documents, kept out of the repository in
@@ -80,6 +86,9 @@ Saying which documents those findings came from is part of the finding:
 | `archive_cookbook_1907`, `archive_mushrooms_1895` | [Internet Archive](https://archive.org/) scans | Public domain (pre-1930 US publication) |
 | `wpa_poster_mathematics` | [Library of Congress](https://www.loc.gov/) WPA posters | Public domain |
 | `nist_jres_v98n1`, `nist_ir6643_vapor_pressure` | [NIST Technical Series Publications](https://nvlpubs.nist.gov/) | US government work, public domain. Added 2026-09-20: the first is a dense digital journal issue (text layer, figures, equations), the second is a scan with almost no text layer and is used to exercise the OCR path |
+| `gutenberg_31061_history_of_mathematics` | [Project Gutenberg](https://www.gutenberg.org/) #31061 — Florian Cajori, *A History of Mathematics* (556 pp) | Public domain. Added 2026-09-20: the source densest in mathematical notation, used to exercise the prose/formula split |
+| `tr_tck_5237`, `tr_cmk_5271`, `tr_tmk_4721` | Turkish statutes 5237, 5271 and 4721, mirrored by the Ministry of Family and Social Services | **No copyright**: Turkish law carries none (FSEK art. 31). Added 2026-09-20 as the first Turkish *source* documents — every earlier run translated into Turkish, these translate out of it |
+| `tr_plan_12`, `tr_plan_11`, `sbb_development_plan_12_en` | Presidency Strategy and Budget Office — the Twelfth (2024-2028) and Eleventh (2019-2023) Development Plans in Turkish, and the English edition of the Twelfth | State publication, freely distributable. The English edition runs the opposite direction (en → tr) as a control against its own Turkish original |
 
 The model used to test the pipeline locally is **Gemma** (`google/gemma-4-e4b`, quantised GGUF)
 served by [LM Studio](https://lmstudio.ai/). Its weights are used under Google's Gemma terms of
@@ -109,6 +118,13 @@ what is already out there rather than as if it were:
 - **Commercial document translators** (Doclingo, Lara Translate, Doctranslate, DeepL, Google
   Translate) — for the comparison of what they do and do not preserve, per the roundups in the
   roadmap's sources. None of their output is used here, and no claim is made about their internals.
+
+- **System One decision models** — [TypeSafe's Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+  (hosted, closed, $0.042/MTok) and [Laya](https://github.com/NandhaKishorM/laya) (Apache-2.0,
+  `pip install laya`): non-autoregressive engines that return calibrated probabilities over typed
+  questions instead of text. **Not used by the pipeline** — it cannot generate the translations —
+  but three parts of it are decisions rather than generation, and the measurements behind adding
+  one are in [`docs/research/system-one-models.html`](docs/research/system-one-models.html).
 
 What this project has that the list above does not: a **page-by-page loss audit against the source**
 (L1–L10, `verify.py`), review flags that carry their reason into the application, and a comparison
