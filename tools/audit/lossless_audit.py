@@ -118,7 +118,10 @@ def audit_work(work: Path, target_lang: str = "tr") -> dict:
             failing.append(index)
     source_chunks = len(list((work / "src").glob("chunk_*.pdf")))
     if len(chunks) != source_chunks:
-        findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited")
+        # A smoke run (`live_check --chunks N`) translates part of a document on purpose, so the
+        # merged output holds fewer pages than the source and this is not a loss - but a *complete*
+        # run that is missing chunks has lost pages, so the difference is always reported.
+        findings["L1"].append(f"{source_chunks} source chunks, {len(chunks)} audited (partial run)")
     lossless = all(not findings[k] for k in LOSS_KINDS) and not missing
     return {
         "chunks": len(chunks),

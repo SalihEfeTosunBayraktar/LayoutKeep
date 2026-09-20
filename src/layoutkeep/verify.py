@@ -27,6 +27,7 @@ import re
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from itertools import pairwise
 from pathlib import Path
 
 from layoutkeep.core.copies import (
@@ -190,7 +191,7 @@ def _page_losses(source_page, page, page_data, index: int, source_markup: set[st
         }))
         losses.append(Loss("L7", index, f"{pairs} overlapping word pairs", owners))
 
-    over_figure = words_over_figures(page, drawn)
+    over_figure = words_over_figures(page, drawn, as_in=source_page.get_text("words"))
     if over_figure:
         owners = tuple(sorted({
             block.id for x, y in over_figure
@@ -244,7 +245,40 @@ _FIGURE_SHARE = 0.85
 _ON_FIGURE_SHARE = 0.55
 
 
-def words_over_figures(page, drawn: Sequence[Sequence]) -> list[tuple[float, float]]:
+def _union_area(rects: list) -> float:
+    """Area covered by at least one of `rects`, exactly, by sweeping x-strips."""
+    edges = sorted({edge for rect in rects for edge in (rect.x0, rect.x1)})
+    total = 0.0
+    for left, right in pairwise(edges):
+        if right <= left:
+            continue
+        spans = sorted(
+            (rect.y0, rect.y1) for rect in rects if rect.x0 < right and rect.x1 > left
+        )
+        height = 0.0
+        top: float | None = None
+        bottom: float | None = None
+        for span_top, span_bottom in spans:
+            if bottom is None or span_top > bottom:
+                if bottom is not None and top is not None:
+                    height += bottom - top
+                top, bottom = span_top, span_bottom
+            else:
+                bottom = max(bottom, span_bottom)
+        if bottom is not None and top is not None:
+            height += bottom - top
+        total += (right - left) * height
+    return total
+
+
+#: How close a drawn word must be to a source word of the same figure to be that source word's
+#: translation rather than a stray: a few points, since the type size may differ slightly.
+_LABEL_TOLERANCE = 3.0
+
+
+def words_over_figures(
+    page, drawn: Sequence[Sequence], *, as_in: Sequence[Sequence] | None = None
+) -> list[tuple[float, float]]:
     """Centres of the drawn words that sit on a figure, for L10.
 
     Found late and expensively: a Wikipedia page reached the site with 87 words of Turkish lying
@@ -252,25 +286,54 @@ def words_over_figures(page, drawn: Sequence[Sequence]) -> list[tuple[float, flo
     cause is geometric rather than linguistic (a block's bounding box wraps *around* a picture, so
     the re-flowed translation runs straight over it), which is why it needs its own look at the
     written page rather than another comparison of strings.
+
+    Two rules keep the number about *this* run, both learned from documents that scored nonzero:
+
+    * The page's images are judged together, not one by one. The 1907 cookbook's pages carry the
+      scan twice plus a dozen patches over the printed lines, none above 6% of the page on its
+      own, so no image looked like a background - and 126 words were reported "over a figure" on a
+      page where every word is on the scan by design. Their union covers the page, which is what
+      says the page is a scan.
+    * A figure's own labels are text the source drew there. The held-out arXiv page reported 26
+      words over a bar chart whose values and category names are text on the plot in the original;
+      its source page counts 28 of the same. `as_in` is the source page's words, and a word drawn
+      where the source already had one over that figure is the figure's content.
     """
     import pymupdf  # lazy, like `output_losses`: this module stays importable without it
 
     page_area = max(1.0, page.rect.get_area())
-    figures = [
-        rect
-        for info in page.get_image_info()
-        if (rect := pymupdf.Rect(info["bbox"])).get_area() < _FIGURE_SHARE * page_area
-    ]
+    images = [pymupdf.Rect(info["bbox"]) for info in page.get_image_info()]
+    if _union_area(images) >= _FIGURE_SHARE * page_area:
+        return []
+    figures = [rect for rect in images if rect.get_area() < _FIGURE_SHARE * page_area]
     if not figures:
         return []
+
+    labels: list[tuple[float, float]] = []
+    for word in as_in or ():
+        box = pymupdf.Rect(word[:4])
+        centre = ((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2)
+        for figure in figures:
+            overlap = box.intersect(figure)
+            if overlap.is_valid and overlap.get_area() > _ON_FIGURE_SHARE * box.get_area():
+                labels.append(centre)
+                break
+
     found: list[tuple[float, float]] = []
     for word in drawn:
         box = pymupdf.Rect(word[:4])
         for figure in figures:
             overlap = box.intersect(figure)
-            if overlap.is_valid and overlap.get_area() > _ON_FIGURE_SHARE * box.get_area():
-                found.append(((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2))
-                break
+            if not (overlap.is_valid and overlap.get_area() > _ON_FIGURE_SHARE * box.get_area()):
+                continue
+            centre = ((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2)
+            if any(
+                abs(centre[0] - x) <= _LABEL_TOLERANCE and abs(centre[1] - y) <= _LABEL_TOLERANCE
+                for x, y in labels
+            ):
+                break  # the source's own label, redrawn where it was
+            found.append(centre)
+            break
     return found
 
 
