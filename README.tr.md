@@ -28,6 +28,11 @@ LLM, ya da OpenAI-uyumlu herhangi bir bulut uç noktası. Belgelerinin makineden
 
 ---
 
+> **Bu daldaki kodun durumu.** `main` son gözden geçirilmiş sürümü taşır; aşağıdaki ekran
+> görüntülerini, karşılaştırma sitesini ve yol haritasını üreten kampanya
+> `feature/lossless-campaign-continuation` dalında yaşar ve bilerek buraya birleştirilmemiştir.
+> Belgeler ve görseller yayında; üretildikleri kod ise yayınlanmadan önce gözden geçirilir.
+
 ## Bu iş neden zor, ve bu proje tam olarak ne vadediyor
 
 Tam otomatik, düzeni koruyan çeviri diye bir şey yok — ne burada ne de herhangi bir ticari üründe.
