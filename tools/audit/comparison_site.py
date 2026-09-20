@@ -330,7 +330,9 @@ PAGE_TEMPLATE = """<!doctype html>
   h2 {{ font-size:16px; margin:4px 0 2px; }}
   .meta {{ color:var(--muted); font-size:13px; margin-bottom:12px; }}
   .meta.stale {{ color:var(--warn); }}
-  nav button.stale {{ border-color:var(--warn); }}
+  .devtoggle {{ display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted-foreground); padding: 4px 2px; }}
+.devtoggle input {{ accent-color: var(--accent); }}
+nav button.stale {{ border-color:var(--warn); }}
   .viewport {{ overflow:auto; max-height:82vh; border:1px solid var(--line); border-radius:10px; background:#14171d; }}
   .stage {{ position:relative; width:100%; touch-action:none; cursor:ew-resize; }}
   .stage img {{ display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }}
@@ -451,15 +453,31 @@ window.addEventListener("keydown", (event) => {{
 }});
 
 const nav = $("docs");
-DATA.forEach((doc, index) => {{
-  const button = document.createElement("button");
-  button.innerHTML = `${{doc.title}}<small>${{doc.pages.length}} sayfa${{doc.stale ? " · eski kayıt" : ""}}</small>`;
-  button.classList.toggle("stale", Boolean(doc.stale));
-  button.onclick = () => showDocument(index);
-  nav.append(button);
-}});
+// The sidebar is the shop window: the `fresh_*` entries are the fixture runs this project uses
+// to measure itself (one page each, named after the fixture), not documents anyone came to read.
+// They stay one checkbox away rather than gone, because they are the evidence behind the
+// numbers in the reports.
+const toggle = document.createElement("label");
+toggle.className = "devtoggle";
+toggle.innerHTML = `<input type="checkbox" id="showdev"> <span>geliştirme koşularını göster</span>`;
+nav.append(toggle);
+toggle.querySelector("input").onchange = () => renderNav();
+
+function renderNav() {{
+  [...nav.querySelectorAll("button")].forEach((b) => b.remove());
+  const showDev = toggle.querySelector("input").checked;
+  DATA.forEach((doc, index) => {{
+    if (doc.dev && !showDev) return;
+    const button = document.createElement("button");
+    button.innerHTML = `${{doc.title}}<small>${{doc.pages.length}} sayfa${{doc.stale ? " · eski kayıt" : ""}}</small>`;
+    button.classList.toggle("stale", Boolean(doc.stale));
+    button.onclick = () => showDocument(index);
+    nav.append(button);
+  }});
+}}
+renderNav();
 setRatio(0.5);
-showDocument(0);
+showDocument(DATA.findIndex((d) => !d.dev) || 0);
 </script>
 </body>
 </html>
@@ -489,6 +507,7 @@ def main() -> int:
                 "losses": document.losses,
                 "note": document.note,
                 "stale": document.stale,
+                "dev": document.name.startswith("fresh_"),
                 "pages": pages,
             }
         )
