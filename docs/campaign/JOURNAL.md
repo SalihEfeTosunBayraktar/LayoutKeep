@@ -2020,3 +2020,27 @@ old strings, so the next build is the one that carries them.
 **Next in this walk** (not done): the provider settings dialog's `Test Et` button, which is the one
 free end-to-end proof that the *built* exe reaches a model server (`Bağlantı çalışıyor - N model
 bulundu`).
+
+## 0.9.9: the build that carries the language fixes, driven before it was published
+
+The exe in the 0.9.8 release predates the two language defects found by driving it, so the source
+fixes reached nobody yet. Rebuilt with the documented recipe (`packaging/build.bat`, detached, log
+polled - the script now exists in the tree instead of being retyped per release), which produced
+173,007,377 bytes against 0.9.8's 173,006,812.
+
+Driven before publishing, as the rule requires. The first-run screen did not open this time (the
+setting remembers it has been seen), so the decisive check was the setup screen in a Turkish window:
+the dual-output hint now reads `'Çevrilmiş dosyanın yanına, kaynağı da içeren ikinci bir PDF
+yazılır. Denetim ve asıl çıktı değişmez.'`, where before the fix that same label was English in the
+middle of Turkish ones. That is the fix, in the built artefact, on the page. No `crash.log` after the
+walk.
+
+`v0.9.9` is published with bilingual notes (the changed behaviour, and the measured known limits:
+dense forms below the readability floor, L2 rows on an arXiv bibliography, OCR dependence, no RTL).
+The published asset was downloaded back and compared: **`cmp -s` says byte-for-byte identical**, and
+the asset is 173,007,377 bytes. A `sha256sum` comparison printed a stray `\` escape marker in front
+of the second hash (coreutils marks an escaped filename), which looks like a mismatch and is not one -
+`cmp` is the check to reach for.
+
+One defect noted while walking, not yet fixed: the floating progress bar is visible at startup with
+`Hazırlanıyor… · 0/0 parça` before any job exists, on both launches.
