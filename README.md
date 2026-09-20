@@ -72,9 +72,9 @@ they were. The source document and the translated output are in
 |---|---|---|
 | ![Settings](docs/screenshots/04_settings_basic_light.png) | ![Advanced settings](docs/screenshots/05_settings_advanced_light.png) | ![Floating progress bar](docs/screenshots/08_floating_bar_light.png) |
 
-| Help, in the application | What the flags and criteria mean | When it finishes |
+| Help, in the application | What the flags and criteria mean | Editing the glossary |
 |---|---|---|
-| ![Help](docs/screenshots/09_help_light.png) | ![Loss criteria](docs/screenshots/09_help_criteria_light.png) | ![Completion](docs/screenshots/03_completion_light.png) |
+| ![Help](docs/screenshots/09_help_light.png) | ![Loss criteria](docs/screenshots/09_help_criteria_light.png) | ![Glossary editor](docs/screenshots/10_glossary_light.png) |
 
 The interface is English by default and ships Turkish and German; the choice is in the header
 and is remembered — and the welcome screen, which explains the pipeline, the provider choice and

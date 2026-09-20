@@ -71,9 +71,9 @@ kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevri
 |---|---|---|
 | ![Ayarlar](docs/screenshots/04_settings_basic_light.png) | ![Gelişmiş ayarlar](docs/screenshots/05_settings_advanced_light.png) | ![Yüzen ilerleme çubuğu](docs/screenshots/08_floating_bar_light.png) |
 
-| Yardım, uygulamanın içinde | Bayraklar ve kriterler ne demek | İş bitince |
+| Yardım, uygulamanın içinde | Bayraklar ve kriterler ne demek | Sözlüğü düzenlemek |
 |---|---|---|
-| ![Yardım](docs/screenshots/09_help_light.png) | ![Kayıpsızlık kriterleri](docs/screenshots/09_help_criteria_light.png) | ![Tamamlanma](docs/screenshots/03_completion_light.png) |
+| ![Yardım](docs/screenshots/09_help_light.png) | ![Kayıpsızlık kriterleri](docs/screenshots/09_help_criteria_light.png) | ![Sözlük düzenleyici](docs/screenshots/10_glossary_light.png) |
 
 Arayüz varsayılan olarak İngilizcedir; Türkçe ve Almanca da gelir, seçim başlıktadır ve
 hatırlanır — karşılama ekranı ise boru hattını, sağlayıcı seçimini ve kaliteyi neyin belirlediğini

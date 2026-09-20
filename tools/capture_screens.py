@@ -191,6 +191,26 @@ def capture(theme_dark: bool) -> list[Path]:
     written.append(target)
     bar.hide()
 
+    # 8b. the glossary editor: the table a term list is actually kept in
+    from layoutkeep.ui.glossary_dialog import GlossaryDialog
+
+    glossary = GlossaryDialog(window)
+    glossary.set_terms(
+        {
+            "Annual Report": "Yıllık Rapor",
+            "retained earnings": "dağıtılmamış kârlar",
+            "Note": "Dipnot",
+            "fiscal year": "mali yıl",
+        }
+    )
+    glossary.resize(620, 420)
+    glossary.show()
+    settle()
+    target = OUT_DIR / f"10_glossary_{suffix}.png"
+    glossary.grab().save(str(target))
+    written.append(target)
+    glossary.hide()
+
     # 9. the help screen: what the flags mean, generated from the checker's own labels
     from layoutkeep.ui.help_dialog import HelpDialog
 
