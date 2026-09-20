@@ -241,13 +241,16 @@ def _pager(current: str) -> str:
 
 
 def _chapter_body(path: Path) -> str:
-    """A chapter's HTML, with image paths re-based for the page it lands on.
+    """A chapter's HTML, with link and image paths re-based for the page it lands on.
 
     Chapters live in `docs/story/` and reference `architecture.png` beside them, which is the same
-    relative path on the page - so only `../screenshots/` (used by the index) needs rewriting.
+    relative path on the page - so only `../screenshots/` (used by the index) needs rewriting. The
+    index's table of contents points at `story/01-problem.md` so the links work on GitHub; on the
+    page those have to become `01-problem.html`, which is the page that actually exists there.
     """
     body = markdown_to_html(path.read_text(encoding="utf-8"))
-    return body.replace('src="story/', 'src="').replace('src="screenshots/', 'src="../screenshots/')
+    body = body.replace('src="story/', 'src="').replace('src="screenshots/', 'src="../screenshots/')
+    return re.sub(r'href="story/([0-9]{2}-[a-z]+)\.md"', r'href="\1.html"', body)
 
 
 def main() -> int:
