@@ -67,7 +67,12 @@ LOSS_KINDS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10")
 LABELS = {
     "L1": "page count differs",
     "L2": "left untranslated",
-    "L3": "dropped by the writer",
+    # "dropped by the writer" was the first name and it was wrong: the check finds a block whose
+    # words are not on the page, and the common cause is not a dropped block but one the fitting
+    # could not fit - drawn, clipped at its box, and flagged. PLOS's math paragraphs are all of
+    # them: the reader merged a page of formulas into one 79pt "line", nothing could fit that, and
+    # the audit reported eight "dropped" blocks that were on the page, cut short.
+    "L3": "text not on the page",
     "L4": "drawn off the page",
     "L5": "markup leaked",
     "L6": "numbers lost",
@@ -81,7 +86,7 @@ LABELS = {
 REVIEW_REASONS = {
     "L1": "doğrulama: çıktının sayfa sayısı farklı",
     "L2": "doğrulama: çevrilmemiş ya da başka bir dilde",
-    "L3": "doğrulama: çeviri sayfaya yazılamadı",
+    "L3": "doğrulama: bloğun metni sayfada bulunamadı (çizilmedi ya da kutusunda kırpıldı)",
     "L4": "doğrulama: metin sayfanın dışına taştı",
     "L5": "doğrulama: çıktıya etiket sızdı",
     "L6": "doğrulama: çeviride sayılar kayboldu",

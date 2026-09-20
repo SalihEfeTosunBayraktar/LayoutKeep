@@ -1638,3 +1638,20 @@ aynı kayıtlı çeviriler üzerinde iki sürüm karşılaştırıldığında se
 doğrulandı (korumasız L7=10, korumalı L7=0 - ama korumalı sürüm cookbook'ta kazancı da sıfırlıyor:
 12 → 12). İkisi de kalmadı, değişiklik tamamen geri alındı. Kural: kazancı ölçmek yetmez, bedelini
 de ölç.
+
+## 2026-09-20 - the audit sweep, and what L3 actually means
+
+Ran every held-out run through `tools/audit/sweep_runs.py` (new: three tools per run, one table).
+The outlier was `plos_animal_movement` with **L3 = 8** - "dropped by the writer", the worst kind
+of finding, so it got the full treatment:
+
+- The flagged block was in the writer's "to draw" list, had one line of 79pt, and its box on the
+  page holds only its first 13 words: the paragraph is a page of **math**, the reader merged it
+  into a single line, nothing can fit that box, and `insert_htmlbox` clipped the rest. The block
+  is flagged for review (not silent) - the policy holds - but the audit's *label* was wrong:
+  nothing was dropped by the writer.
+- The label is now "text not on the page", which covers both causes, and the Turkish string says
+  the same in full.
+- The remaining sweep rows are the known classes: `hizası değişmiş` on runs made before the
+  justify fix, `L2` on bibliographies, `L6` on table numbers. Three runs are clean: `wpa_poster`,
+  `arxiv_2510_03959`, `arxiv_2605_18014`.
