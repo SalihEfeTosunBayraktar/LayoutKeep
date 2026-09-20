@@ -134,6 +134,8 @@ Yayınlanan sürümler ve her birinin getirdiği şey:
 | 0.9.3 | ▤ düğmesi + yardım metinleri |
 | 0.9.4 | **Uygulama istekleri paralel gönderiyor** (dalga dalga, belge sırasında birleşir) |
 | 0.9.5 | Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır |
+| 0.9.6 | **Derlenmiş uygulama kendi diyaloglarını açabiliyor** — 0.9.5, PyInstaller listesinde `help_dialog` ve `glossary_dialog` olmadığı için o iki ekranda `ImportError` veriyordu (projenin kendi `check_spec.py` denetimi buldu; üç modül birkaç sürümdür eksikti) |
+| 0.9.7 | Tamamlanma ekranı iki tür inceleme bayrağını ayırıyor: kaç tanesi **kutu kısaltması** (sayfa düzeni sorunu, yeniden çevirmek çözmez). Yardım ekranı bayrağın ne demek olduğunu anlatıyor |
 
 ## 6.10 Karşılaştırma sitesi
 
