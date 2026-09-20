@@ -4,11 +4,17 @@ Runs the real widgets - the same classes the application shows - rather than moc
 screen that has drifted from its design is visible here. Offscreen by default, so it works on
 a machine with no display and in CI.
 
-    .venv/Scripts/python.exe tools/capture_screens.py
+    .venv/Scripts/python.exe tools/capture_screens.py                 # the published set, English
+    .venv/Scripts/python.exe tools/capture_screens.py --lang tr --out docs/screenshots/tr
+
+The interface language is a parameter because it is global state: the READMEs carry captions in
+one language each, and a Turkish capture under an English caption is what the published set used
+to look like.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import tempfile
@@ -232,15 +238,37 @@ def capture(theme_dark: bool) -> list[Path]:
 
 
 def main() -> int:
+    global OUT_DIR
+    parser = argparse.ArgumentParser(description="Capture the application's screens.")
+    parser.add_argument(
+        "--lang",
+        default="en",
+        choices=("tr", "en", "de"),
+        help="interface language to capture in (default: en, the published set)",
+    )
+    parser.add_argument("--out", type=Path, default=None, help="output directory")
+    args = parser.parse_args()
+    if args.out is not None:
+        OUT_DIR = args.out
+
     _isolate_settings()
     QApplication.instance() or QApplication([])
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # The language is global state and MainWindow restores it from settings on construction, so
+    # the isolated settings file is written as well as the class attribute: setting only the
+    # attribute left the next capture in whatever language the settings remembered.
+    from layoutkeep.ui import settings as ui_settings
+    from layoutkeep.ui.strings import UIStrings
+
+    ui_settings.app_settings().setValue("ui_language", args.lang)
+    UIStrings.set_language(args.lang)
 
     written: list[Path] = []
     for dark in (True, False):
         written.extend(capture(dark))
 
-    print(f"{len(written)} ekran goruntusu yazildi -> {OUT_DIR}")
+    print(f"{len(written)} screens captured [{args.lang}] -> {OUT_DIR}")
     for path in written:
         print(f"  {path.name:<36} {path.stat().st_size // 1024:>5} KB")
     return 0
