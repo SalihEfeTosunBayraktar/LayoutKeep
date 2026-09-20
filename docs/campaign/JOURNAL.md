@@ -1674,8 +1674,15 @@ run's saved translations - `rewrite_run.py` re-runs the writer and cannot see a 
 | arxiv_19145 | 47 | 0 | - |
 | irs_p505 | 61 | 0 | - |
 
-So the step is a real but modest win, and it is a *safe* one: it only changes blocks that are
-flagged today, and on three of the four runs it changes nothing at all.
+**That table was wrong, and the correction is the point.** The "20 rescued" number came from
+measuring with `block.dominant_style()` while the fitting pass measures with `_as_drawn(...)` -
+the style with the target language's substitute font already resolved. The two fonts have
+different metrics, and with the pass's own font **no block is rescued**: instrumented over six
+chunks, `_try_tighten` was called 14 times and fitted 0, and the written-page A/B (`fit_ab.py`,
+20 chunks) came back identical in both arms - D1=627, D3=0, every L the same. A step that changes
+nothing is dead weight, so it came back out (branch `fit-tighten` left unmerged); the two
+instruments stayed. Lesson for the next measurement: **use the pass's own style, not the block's**,
+or the probe answers a question the engine never asks.
 
 The measurement also answers the bigger question. The 138 blocks that no leading rescues are not
 short of lines, they are short of **box**: `room_below` can shorten a block's measured box to 6pt

@@ -74,9 +74,10 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
    farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
    bellek isabeti. Kalan: otomatik terim adayları ve sözlüğü dışa aktarma.
-4. **Örtüşme çözümü** (2026-09-20 ölçümü: taşan blokların %87'si satır aralığıyla değil **kutuyla**
-   kurtulur — `room_below` kutuyu 6pt'ye eziyor; satır aralığı adımı eklendi ve o kümenin %13'ünü
-   alıyor, kalanı bu maddenin işi): `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
+4. **Örtüşme çözümü** (2026-09-20 ölçümü: satır aralığı adımı denendi, **geri alındı** — geçişin
+   kendi fontuyla hiçbir bloğu kurtarmıyor, yazılmış sayfada iki kol birebir aynı. Taşan blokların
+   derdi satır değil **kutu**: `room_below` kutuyu 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Asıl
+   kol bu madde): `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
    **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
