@@ -97,7 +97,9 @@ ortalanmış bir bloğun ilk satırı (en uzun satır) solda başlar, "girinti" 
 
 **Sonuç:** 19 hizalama testi + 218 okuyucu/layout testi yeşil; iki eski test yeni sözleşmeye
 çevrildi, dört yeni test eklendi (tırtıklı flush-left "left" kalır, ortalanmış kısalma justify
-sayılmaz, sağa yaslı iki satır sağ kalır).
+sayılmaz, sağa yaslı iki satır sağ kalır). **Aynı gün gerçek koşuda:** kitabın yeniden çevrilen
+parçalarında 70 uzun gövde bloğunun 26'sı "justify" okundu ve `type_drift` hizalama bayrağı 0
+çıktı — düzeltme ölçümden çizilmiş sayfaya kadar doğrulandı.
 
 ## 3.4 Ölçüm altyapısının kuralları
 

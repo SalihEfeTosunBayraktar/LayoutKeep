@@ -54,9 +54,22 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 
 ## 3. Önerilen sıra (etki / emek / nasıl ölçülür)
 
-1. **Çift dilli PDF çıktısı** (`--dual page|alternate`). Emek: orta. Kilidi kolay: aynı sayfayı iki
-   kez yazıp sayfa boyutunu ikiye katlamak ya da sayfa sırasını değiştirmek; `pdf_writer` zaten
-   sayfa bazlı. Ölçüm: çıktı sayfa sayısı = 2×kaynak (almaşık) ve L1–L10 bozulmuyor.
+0. ~~Sayfa aralığının çıktıyı da daraltması~~ **yapıldı (2026-09-20)**: aralık artık yazılan kopyaya
+   uygulanıyor (çıktı yalnız seçilen sayfalar), kaydedilen `.lkproj` belgenin tamamını saklıyor;
+   PDF yazıcısı kaynağın dilimini alıyor, dilimdeki sayfalar 0..n yeniden numaralanıyor ki
+   doğrulama sayfa N'i N ile karşılaştırsın. Arayüzde/yardımda ne olacağı yazılı (tr/en/de).
+   Ölçüm: 15 sayfalık corpus PDF'inde aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa (11 test).
+   Kalan: aralık seçimini görsel bir sayfa seçiciyle (küçük önizleme) yapmak.
+1. ~~Ayar ekranındaki ölü anahtar~~ **yapıldı (2026-09-20)**: `timeout.first_batch_s` hiçbir şey
+   okumuyordu; worker'a bağlandı ve "bildirilen her ayar kodda geçmeli" testi eklendi. Kalan:
+   ayarları profillere ayırma (ör. "hızlı taslak" / "yayın kalitesi" ön ayarları).
+
+1. ~~Çift dilli PDF çıktısı~~ **yapıldı (2026-09-20)**: `--dual side|alternate` (CLI) + arayüzde
+   "Çift dilli PDF" kutusu. Boru hattına dokunulmadı: birleştirme sonradan, iki bitmiş dosyadan
+   yapılır, böylece çevrilmiş PDF ve `audit.json` değişmez (denetim sayfa N'i N ile eşler).
+   `writers/dual_pdf.py`, 5 test + 5 arayüz testi; gerçek koşuyla görsel doğrulama. Plan:
+   `docs/DUAL-OUTPUT-PLAN.md`. Kalan: kaynak ve çeviriyi **aynı sayfada üst üste** gösterme
+   seçeneği (şu an yalnız yan yana ve almaşık).
 2. ~~Sözlüğü ve belleği arayüzün parçası yapmak~~ **yapıldı (2026-09-20)**: sözlük dosyası ve bellek
    anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
    farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
@@ -64,6 +77,18 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 4. **Örtüşme çözümü**: `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
    `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
+   **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
+   kutuya sığmadı, küçültme yetmedi" ile işaretlendi — en büyük tek sınıf; ikincisi 36 (model
+   metni çevirmeden geri verdi). Yani darboğaz model ya da okuyucu değil, **sığdırma merdiveninin
+   sonu**. **Tasarım:** (a) `_css_for_block` blok stilinde `line_height` varsa `line-height` yazsın
+   — bugün ölçüm `style.line_height`'ı kullanıyor, yazıcı kullanmıyor (gizli uyuşmazlık; okuyucu
+   alanı hiç doldurmadığı için uykuda); (b) merdiven, küçültme tabanına inince ve hâlâ taşıyorsa
+   satır aralığını 1.15 → 1.0 → 0.92 oranlarıyla sıkıp yeniden ölçsün (`FitResult` yeni bir
+   `line_height` alanı taşır, `pdf_pass` blok stillerine yazar); (c) model çağrısından **önce**
+   denenir (bedava) ve kabul ölçütü aynı: L7 ve D3 artmamalı. **Ölçüm yolu:** `rewrite_run.py`
+   kayıtlı çevirileri yeniden yazar — model gerekmez, A/B aynı girdiyle yapılır. **Not:** bu
+   değişiklik `fitting/`'i etkilediği için çalışan bir koşu sürerken yapılmaz (her parça yeni
+   süreç başlatır → parçalar arası tutarsızlık olur).
 5. **Otomatik terim adayları**: belgede sık geçen isim öbekleri → kullanıcıya liste (sözlük
    düzenleyicisine "belgeden öner" düğmesi). Emek: orta. Ölçüm: çıkarılan adayların elle seçilen
    sözlükle örtüşmesi.

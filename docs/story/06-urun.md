@@ -76,7 +76,19 @@ Aralık seçildiğinde:
 Arayüzde aralık seçildiği anda ne olacağı yazılıdır (TR/EN/DE). Bu davranış 11 testle sabitlendi,
 gerçek 15 sayfalık bir corpus PDF'i üzerinde ölçüldü: aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa.
 
-## 6.6 Sürümler ve yayın akışı
+## 6.6 Çift dilli PDF
+
+**İstenen:** karşılaştırma sitesi kaynak ↔ çeviri yan yana gösteriyor, ama PDF çıktısında yok.
+
+`--dual side|alternate` (ve arayüzde bir kutu): `side` her sayfada solda kaynak sağda çeviri
+(sayfa genişliği 2×), `alternate` her kaynak sayfadan sonra çevirisi (sayfa sayısı 2×). Tasarım
+kararı **boru hattına dokunmamak**: birleştirme, iki bitmiş dosyadan sonradan yapılır, çünkü
+denetim kaynak sayfa N'i çıktı sayfa N ile eşler ve çift dilli bir belge bu eşlemeyi bozar.
+Böylece çevrilmiş PDF ve `audit.json` aynen kalır; çift dilli dosya onların yanına yazılır.
+Yarıda kalan koşuda yalnız iki belgenin de sahip olduğu sayfalar birleştirilir ve sayı bildirilir.
+Plan ve ölçüm: `docs/DUAL-OUTPUT-PLAN.md`.
+
+## 6.7 Sürümler ve yayın akışı
 
 Uygulama **tek dosya** olarak yayınlanır (`LayoutKeep.exe`, ~173 MB, onefile), GitHub Releases
 üzerinden. Yayın akışı:
@@ -96,7 +108,7 @@ Yayınlanan sürümler ve her birinin getirdiği şey:
 | 0.9.4 | **Uygulama istekleri paralel gönderiyor** (dalga dalga, belge sırasında birleşir) |
 | 0.9.5 | Ölü ayar anahtarı bağlandı; paralellik varsayılanı 2; çubuk tooltip'i; aralık çıktıyı daraltır |
 
-## 6.7 Karşılaştırma sitesi
+## 6.8 Karşılaştırma sitesi
 
 **İstenen:** *"orijinal kaynakları ve çevrilmiş hallerini yan yana kıyaslayabileceğim bir slider
 web sitesi, tüm örnekler için."*
@@ -117,7 +129,7 @@ Görseller tek belge başına yüklenir (tembel): toplam 49 MB'lık arşiv, ziya
 trafik demektir. NASA belgesinin 6997×3163'lük render'ları 3200px'e indirildi (10,4 MB → 1,9 MB) —
 zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
 
-## 6.8 GitHub Pages: açılış sayfası ve bağlantılar
+## 6.9 GitHub Pages: açılış sayfası ve bağlantılar
 
 - **Kök** (`/LayoutKeep/`): açılış sayfası — indirme, karşılaştırma sitesi ve hikâye bağlantıları.
 - **`/docs/comparison/`**: karşılaştırma sitesi.
@@ -128,7 +140,7 @@ zoom için fazlasıyla yeterli, belge başına yarı yarıya az veri.
   siteye bakar; "bu daldaki kodun durumu" notu iki dilde de kalıcıdır (bir push onu silmişti,
   geri konuldu ve iki tarafta tutuluyor).
 
-## 6.9 Ölçek: bugünkü sayılar
+## 6.10 Ölçek: bugünkü sayılar
 
 | | Değer |
 |---|---|
