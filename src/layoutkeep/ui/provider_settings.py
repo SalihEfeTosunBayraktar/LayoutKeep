@@ -309,7 +309,7 @@ class ProviderSettingsDialog(QDialog):
         if models:
             self._form.status.setText(f"{len(models)} model bulundu (üreticilere göre gruplandı)")
         else:
-            f.status.setText(UIStrings.STATUS_NO_MODELS)
+                    self._form.status.setText(UIStrings.STATUS_NO_MODELS)
 
     def _on_models_failed(self, message: str) -> None:
         self._form.status.setText(
