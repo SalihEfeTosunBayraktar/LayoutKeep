@@ -60,6 +60,7 @@ yayınlanmaz (`NOT_PUBLISHABLE`); yalnız kullanıcının diskinde kalır.
 | NASA NTRS raporu + NASA grant formu | Dijital + taranmış | Kamu malı — yayınlanır |
 | arXiv makaleleri (19113, 19145, 2510.03959, 2605.18014) | Dijital PDF | arXiv lisansı — yayınlanır |
 | IRS formları (i1040gi, p505) | Form PDF | Kamu malı (ABD federal) — yayınlanır |
+| Project Gutenberg #31061, Cajori — A History of Mathematics (556 sayfa) | PDF, formül yoğun | Kamu malı — yayınlanır |
 | Project Gutenberg kitapları (The Time Machine, Think Python, cookbook) | EPUB/PDF | Kamu malı / açık lisans — yayınlanır |
 | Wikipedia sayfaları | PDF | CC BY-SA — yayınlanır |
 | Introductory Statistics (Sheldon M. Ross) | Kitap PDF | **Telifli** — yalnız yerelde |
