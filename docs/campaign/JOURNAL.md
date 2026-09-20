@@ -2179,3 +2179,27 @@ jurnale alındı (klasör .gitignore içinde, içerik burada):
 Öncelik sırası: önce önbellek düzeltmesini kanıtlamak için tr_tck_5237 yeniden koşusu, sonra bu
 kaynaklar. Eski kural sürüyor: Ross kitabı, basılı yasal kodların taramaları, IRS formları
 NOT_PUBLISHABLE.
+
+## Gece nöbeti: düzeltmenin gerçek-model sınavı — istek açıldı, kazanç çıkmadı
+
+`tr_tck_5237` önbellek düzeltmesiyle yeniden koşuldu (r2, 2 işçi, 15,8 dk, 88 sayfa, exit=0).
+Karşılaştırma aynı parça üzerinden (chunk 0000):
+
+| | as_is | shrunk | overflow |
+|---|---|---|---|
+| r1 (önbellek öncesi) | 31 | 15 | 22 |
+| r2 (önbellek düzeltmeli) | 31 | 14 | 23 |
+
+`type_map.py` r2'de: 74 kutu — faithful=36, shrunk=31, flattened=6, mixed=1; r1 ile aynı dağılım.
+`_try_shorten` saniyor (`would_ask` 117 -> r2'de 95; token farkı önbellek ıskalarından), ama model
+kısa yanıt üretmiyor: soru artık Modele gidiyor, gelen yanıt bütçe içine sığmıyor ve merdiven
+"aynı metin" görmeden devam edip yine en son çabayı bırakıyor.
+
+Yani iki şey ayrıştı: **isteğin tıkanıklığı giderildi** (ölçülebilir: r2'de retranslate çağrıları
+gerçek oldu), ama **istekler sonucu değiştirmiyor** — gemma-4-e4b bu istemde kısaltmayı öğrenmiyor.
+Bu, bir sonraki adımın yönünü değiştirir: aynı bütçeyi daha etkili sormak (prompt'ta "N karakterden
+kısa bir kuşak yaz, en önemlileri koru" gibi) ya da ezilen kutucuklar için MIN_SCALE'ı yön bazında
+ayarlamak. Fibonacci-vari kısaltma stratejisi ölçülmeden yapılmayacak; jurnale kaydedildi.
+
+Ayrıca: r2 çıktısı `_artifacts/heldout/live/tr_tck_5237_r2/` altına alındı (çalışma dizinini --out
+göreli bırakınca proje köküne yazan bir araç ayrıntısı的原因; görsel olarak aynı).
