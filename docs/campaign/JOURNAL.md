@@ -2216,3 +2216,32 @@ target not a PDF" ile ölür); EPUB için `translate_epub.py` doğru araçtır. 
 
 Sıradaki gece işi: bu koşunun `lossless_audit.py` denetimi ve karşılaştırma sitesine eklenmesi
 (arXiv 2601.00135 CC BY 4.0 da sıradadır).
+
+## Gece nöbeti: kısaltma istemi "sert limit" olarak yazıldı — r3 ölçümü: kutu tipografisi değişmedi
+
+Önceki turun sonucu, kısaltma merdiveninin tıkanıklığının önbellek düzeltmesiyle açıldığı ama
+gemma-4-e4b'nin "try to keep within N characters" (bir hedef gonka gibi okunan yumuşak ifade)
+isteminden kısa yanıt üretmediğiydi. İstem sertleştirildi: "write its translation SHORT enough to
+stay within that many characters ... Max length is a hard limit measured in characters; do not
+pad, do not expand" (`providers/openai_compat.py`, commit 7189d37).
+
+Ölçüm yine aynı parça üzerinde: `tr_tck_5237` kopyası, `out/t_*.pdf` silinmiş, bellekten
+cevaplanan r3 koşusu (22 parça, 14,2 dk, exit=0 — yalnızca kısaltma yolu modele gitti):
+
+| | as_is | shrunk | overflow |
+|---|---|---|---|
+| r1 (önbellek öncesi) | 31 | 15 | 22 |
+| r2 (bütçe düzeltmesi) | 31 | 14 | 23 |
+| r3 (sert istem) | 31 | 14 | 23 |
+
+`type_map.py` r3: 74 kutu — faithful=36, shrunk=31, flattened=6, mixed=1 — r1/r2 ile aynı.
+İstek başına ölçüt toplamları (parça günlüklerinden): L2 34→32, L6 43→43, L7 14→14, L8 16→16.
+
+Sonuç: kısaltma merdiveni bu modelde **istemle çözülmüyor**. İstek açıldı (r2), istem sertleştirildi
+(r3); ikisi de kutu tipografisinde ve ölçütlerde ölçülebilir bir değişiklik üretmiyor. Bu, merdiven
+kalıcı olarak çıkmaz demek değil — bir sonraki kol aynı bütçeyi daha farklı bir *şekilde* sormak
+(ör. "bu cümlenin en önemli bilgi taşıyan parçalarını seç, kalanı at" gibi bir ilkeli kısaltma
+kosteni) ya da jurnalde daha önce not edilen yön bazlı MIN_SCALE ayarı. İstem dilini daha fazla
+ceydetmek ölçülmeden yapılmaz; üç veri noktası artık jurnale yazıldı.
+
+r3 kayıtları `_artifacts/heldout/live/tr_tck_5237_r3/` altında (kaynak parçaları r2'den kopyalandı).
