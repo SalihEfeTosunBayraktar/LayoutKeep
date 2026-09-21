@@ -438,6 +438,50 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="translation.keyword_map_auto",
+        label="Konu haritasını koşudan önce kendisi çıkarsın",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="İstem",
+        help_text=(
+            "Açıkken her koşu, bölümlemeden önce belgeyi dilim dilim modele sorar ve 'Konu haritası "
+            "dosyası' alanını bu koşu için kendisi doldurur; harita çıktının yanına "
+            "'<çıktı>.keyword-map.json' olarak yazılır. Ölçülen maliyet: 2184 segmentli kitapta 60 "
+            "istek, 94 saniye (koşunun ~%1,5'i), 60/60 dilimde anahtar kelime. Kapatınca hiçbir şey "
+            "sorulmaz ve alan elle verdiğin dosyada kalır."
+        ),
+        warning=(
+            "Model yanıt vermezse haritasız devam edilir ve koşu durmaz; ama açıkken her koşu birkaç "
+            "dakika ve birkaç istek harcar. Kaliteye etkisi hâlâ ölçülmemiştir."
+        ),
+    ),
+    Tunable(
+        key="translation.prefit_budget",
+        label="Karakter bütçesi çeviriden önce verilsin mi (sığdırmayı azaltır)",
+        default="",
+        kind="str",
+        section=ADVANCED,
+        group="İstem",
+        choices=(
+            ("", "Kapalı"),
+            ("loose", "%120 paylı (içerik kaybı riski düşük)"),
+            ("strict", "Tam kutu (en çok taşma azalır, kısaltma riski)"),
+        ),
+        help_text=(
+            "Her PDF bloğunun kutusundan karakter bütçesi hesaplanır ve ilk çeviri isteğine "
+            "'max_len' olarak konur; model baştan kısa yazar, sığdırmanın tek tek düzeltmesi azalır "
+            "(ölçüm: 10 sayfalık belgede sığdırma toplam sürenin %61'iydi). Hesap saf geometri, ek "
+            "istek yok. '%120 paylı' bütçeyi kutunun %20 üstünde tutar: model yine kısa yazar ama "
+            "içeriği kesmek zorunda kalmaz."
+        ),
+        warning=(
+            "Modele bütçe vermek onu kısaltmaya itebilir: cümle düşürmek kayıptır, kısa yazmak "
+            "değildir. Bu yüzden varsayılan kapalı ve ölçüm şart: kayıpsızlık ölçütleri + bayrak "
+            "sayısı bütçesiz koşuyla karşılaştırılmalı (docs/DECISIONS.md D-011)."
+        ),
+    ),
+    Tunable(
         key="translation.document_preamble",
         label="Belge ön bilgisi (belge bağlamı)",
         default="",

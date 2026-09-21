@@ -36,7 +36,11 @@ from layoutkeep.ui.theme import ThemeManager
 _PHASE_KEYS = {
     "reading document": "STATUS_READING",
     "translating": "STATUS_TRANSLATING",
-    "applying translation": "STATUS_FITTING",
+    # The fit is its own phase and used to have no announcement at all: the card kept saying
+    # "translating" while the whole run sat in the fitting pass. "applying translation" was showing
+    # the fitting text, which is a different step - it now has its own.
+    "fitting": "STATUS_FITTING",
+    "applying translation": "STATUS_APPLYING",
     "writing output": "STATUS_WRITING",
     "verifying output": "STATUS_VERIFYING",
     "cancelled": "STATUS_CANCELLED",

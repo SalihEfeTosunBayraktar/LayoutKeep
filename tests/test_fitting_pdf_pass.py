@@ -84,6 +84,65 @@ class TestApplyScale:
         assert sizes == [5.0, 5.0]
 
 
+class TestBatchedFetch:
+    """`fetch_many` changes how many requests go out, never what the fit decides.
+
+    The batched path walks the segments twice: a collecting pass that asks for nothing and a real
+    pass that fits from the answers. The collecting pass must stay silent - its verdicts are the
+    answer "this does not fit", so reporting them writes a wrong scale onto the block, raises flags
+    the real pass never raises and counts crushed boxes twice.
+    """
+
+    @staticmethod
+    def _fake_measure(text, style, bbox, scale_low, rotation=0.0):
+        return (len(text) <= 3), 1.0
+
+    def _run(self, monkeypatch, *, batched: bool):
+        monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", self._fake_measure)
+        doc = _doc_with_block()
+        seg = _segment("b1", "uzun çeviri metni sığmıyor buraya")
+        asked: list[tuple[str, int]] = []
+        verdicts: list[tuple[str, bool]] = []
+
+        def on_fitted(s, _b, r):
+            verdicts.append((s.block_id, bool(r.needs_review)))
+
+        if batched:
+            def fetch_many(pairs):
+                asked.extend((s.block_id, budget) for s, budget in pairs)
+                return {(s.block_id, budget): "kısa" for s, budget in pairs}
+
+            result = fit_pdf_pass(
+                doc, [seg], retranslate=lambda s, m: "kısa", fetch_many=fetch_many, on_fitted=on_fitted
+            )
+        else:
+            result = fit_pdf_pass(doc, [seg], retranslate=lambda s, m: "kısa", on_fitted=on_fitted)
+        return result, asked, verdicts
+
+    def test_the_batched_pass_asks_once_and_decides_the_same(self, monkeypatch):
+        plain, _, plain_verdicts = self._run(monkeypatch, batched=False)
+        batched, asked, batched_verdicts = self._run(monkeypatch, batched=True)
+
+        assert asked, "the collecting pass must have asked for the overflowing box"
+        assert batched == plain, f"the same fit is expected either way: {batched} vs {plain}"
+        assert batched_verdicts == plain_verdicts
+
+    def test_the_collecting_pass_does_not_report(self, monkeypatch):
+        monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", self._fake_measure)
+        doc = _doc_with_block()
+        seg = _segment("b1", "uzun çeviri metni sığmıyor buraya")
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [seg],
+            retranslate=lambda s, m: "kısa",
+            fetch_many=lambda pairs: {},
+            on_fitted=lambda s, b, r: seen.append(r),
+        )
+        assert len(seen) == 1, f"on_fitted must fire once per segment, fired {len(seen)} times"
+
+
 class TestFitPdfPass:
     def test_untouched_and_orphan_segments_are_skipped(self, monkeypatch):
         """No engine call, no on_fitted, no summary when nothing is translatable."""

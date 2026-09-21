@@ -205,6 +205,88 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
+## D-012 · Kapak: çeviri resmin üstüne çiziliyor, orijinal silinmiyor (2026-09-21)
+
+**Soru:** Elmasri kapağında "Fundamentals of Database Systems" ile "Veritabanı Sistemleri" üst üste
+görünüyor. Program çevirmiş ama orijinali silmemiş.
+
+**Ölçüm:** Kaynak PDF'in 1. sayfasında **metin katmanı boş** (`''`) ve tek bir 700×866 görüntü var →
+kapak **saf resim**. Çıktının metin katmanında `Fundamentals`/`Sixth Edition` **hiç yok** (0 sayfa) →
+silinecek metin zaten yoktu. Yani: kapak OCR ile okundu (`readers/image_reader.py`), segmentler
+çevrildi, çeviri **resmin üstüne** çizildi ve resimdeki orijinal yazı olduğu gibi kaldı.
+
+**Kök neden:** `writers/pdf_writer.py` taranmış sayfalarda bilinçli olarak resme dokunmuyor
+("the image is the page and is not redacted"), yalnızca metin redaksiyonu yapıyor. Metin katmanı boş
+olan bir sayfada bu redaksiyon **hiçbir şey yapmaz**. Sonuç: üst üste iki yazı.
+
+**Karar (uygulanacak):** OCR bloğunun altına **zemin dolgusu** çizme seçeneği. Blok kutusu, sayfanın
+o noktadaki **örneklenmiş zemin rengiyle** doldurulur (düz beyaz değil - kapak renkli), sonra çeviri
+onun üstüne yazılır. Varsayılan **kapalı**; ölçüm: kapakta üst üste binme kayboluyor mu, sayfa içi
+resimlerde/formlarda yanlış bir şeyi boyuyor mu.
+
+**Risk:** Zemin dolgusu, metnin altındaki **resmi** de boyar ✗ - bir görselin üstündeki yazıda
+istenen budur, ama yanlış kutu (OCR kutusu geniş) komşu grafiği de boyayabilir. Bu yüzden ölçüm
+yalnız kapakta değil, resimli bir iç sayfada da yapılır.
+
+**Kanıt:** `ElmasriBook.pdf` sayfa 1 (`get_text()` boş, `get_images()` 700×866) ·
+`ElmasriBook.out.pdf` sayfa 1 (`'Altıncı Baskı\nVeritabanı\nSistemleri'`) · `writers/pdf_writer.py`
+satır 183-187.
+
+## D-011 · Karakter bütçesi ilk çeviriden ÖNCE verilsin (2026-09-21) · **fikir: kullanıcı**
+
+**Soru:** Sığdırma sürenin %61'ini yiyor. İlk çeviri isteğine kutunun karakter bütçesi baştan
+söylense süreç kısalmaz mı?
+
+**Ölçüm (bulgu):** Mekanizma zaten var ama **kullanılmıyor**: `providers/openai_compat.py:467`
+isteğe `"max_len": seg.max_len` koyuyor ve satır 484 modele "max_len verilmişse KISA yaz" diyor.
+Ancak `Segment.max_len` **yalnızca sığdırma sırasında** dolduruluyor (`worker.py:650`,
+`cli.py:572`). İlk çeviride değer `None` → talimat hiç ateşlenmiyor → metin kutuyu taşıyor →
+sığdırma tek tek düzeltiyor.
+
+**Karar:** Bölümlemeden hemen sonra, çeviriden önce her PDF bloğunun karakter bütçesi hesaplanıp
+`seg.max_len`'e yazılır. Hesap saf geometri (sığdırmanın kullandığı **aynı** ölçücü: `_as_drawn` +
+`TextMeasurer.char_budget`), model çağrısı yok, drift riski yok çünkü tek kaynak.
+
+**Ayar:** `translation.prefit_budget`, varsayılan **kapalı** — ölçüm yapılmadan açılmaz (kural:
+varsayılan ancak ölçümle değişir).
+
+**Ölçülecek:** Aynı belge, aynı model, iki kod sürümü; kollar (a) bütçesiz (bugünkü), (b) bütçeli.
+Karşılaştırma: toplam süre, sığdırmadaki istek sayısı, bayrak sayısı (41 → ?), ve **çıktı kalitesi**
+(L3/D1 ölçütleri aynı mı - kısa yazdırmak içeriği kırpmasın).
+
+**Risk:** Model bütçeye uymak için **içeriği kısaltabilir** ✗ — bu yüzden ölçümde yalnız süre değil
+kayıpsızlık ölçütleri de karşılaştırılır.
+
+**Kanıt:** `providers/openai_compat.py:467,484` · `ui/worker.py:650` · `cli.py:572` ·
+`fitting/pdf_pass.py` (`_as_drawn`, `char_budget`).
+
+## D-010 · Sığdırma aşaması neden tek tek istek atıyor (2026-09-21)
+
+**Soru:** 1553 segmentlik koşuda çeviri %100'e geldi, dosya bitmedi; sığdırma (fit) aşamasında
+modelden **tek segmentlik** istekler gidiyor. Neden toplanıp tek istekte sorulmuyor?
+
+**Ölçüm:** `fitting/pdf_pass.py:87` segmentleri sırayla geziyor; her sığmayan kutu için
+`fit_pdf_pass` → `retranslate(segment, budget)` → `worker.py:651` `provider.translate([segment])`.
+Yani istek sayısı = sığmayan kutu sayısı. İstek başına sabit yük ölçülü: 1 segment 32,7 sn ·
+2 segment 37,3 sn · 3 segment 42,2 sn (marjinal maliyet ~5 sn). 10 sayfalık denemede fit, toplam
+sürenin **%61'i** (65 sn'nin 39 sn'si).
+
+**Karar:** İki geçişli toplu sığdırma. (1) Birinci geçiş `retranslate` yerine bir **kaydedici**
+alır: istenen (segment, bütçe) çiftleri toplanır, model çağrılmaz. (2) Toplanan çiftler **tek
+istekte** sorulur. (3) İkinci geçiş kaydedilen yanıtları sözlükten verir, sığdırma normal akışına
+devam eder. Sonraki turlar (nadir) tek kalır; kazanç ilk turda çünkü orada patlıyor.
+
+**Beklenen kazanç:** 8 sığmayan kutu: tek tek ~260 sn ↔ tek istekte ~60 sn (≈4 kat).
+
+**Neden paralel değil:** yerel sunucu istekleri zaten sırayla işliyor; 7 slotlu deneme bu yüzden
+etkisiz kaldı. Kazanç istek **sayısında**, eşzamanlılıkta değil.
+
+**Yanlış giden:** Yok — henüz uygulanmadı. Uygulanırken ölçüm şart: aynı belge, aynı model, iki kod
+sürümü (yalnız sığdırma farkı), ve karşılaştırma toplam süre + kutu başına sonuç üzerinden.
+
+**Kanıt:** `src/layoutkeep/fitting/pdf_pass.py` · `src/layoutkeep/fitting/fit.py` (satır 203/303/367) ·
+`src/layoutkeep/ui/worker.py:649-657` · `providers/batching.py` (ölçülmüş süre tablosu).
+
 ## D-009 · EPUB→PDF'te çok sayıda az-metinli sayfa · **TEŞHİS EDİLDİ (düzeltme bekliyor)**
 
 **Soru:** Üretilen 436 sayfalık PDF'te neden 105 sayfa neredeyse boş?

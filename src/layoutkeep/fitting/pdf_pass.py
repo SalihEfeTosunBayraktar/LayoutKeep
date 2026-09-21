@@ -24,6 +24,10 @@ from layoutkeep.fitting.room import room_below
 #: (segment, max_len) -> replacement translation, wired to the real provider by the caller.
 Retranslate = Callable[[Segment, int], str]
 
+#: [(segment, max_len), ...] -> {(block_id, max_len): replacement}. One call for many boxes, so the
+#: fit can ask for a whole round of shortenings in a single request instead of one per box.
+RetranslateMany = Callable[[list[tuple[Segment, int]]], dict[tuple[str, int], str]]
+
 #: Below this rotation a block is drawn horizontally, with `insert_htmlbox` - and only that path
 #: can use the room granted below a block (see `fitting/growth.py`).
 _ROTATION_EPS = 0.01
@@ -43,6 +47,7 @@ def fit_pdf_pass(
     mode: FitMode = FitMode.STRICT,
     target_lang: str | None = None,
     on_fitted: Callable[[Segment, Block, object], None] | None = None,
+    fetch_many: RetranslateMany | None = None,
 ) -> dict[str, int] | None:
     """Run the two-directional fit over every translated segment; returns layer counts.
 
@@ -52,6 +57,11 @@ def fit_pdf_pass(
 
     `target_lang` drives font substitution for the character-budget measurer when a style
     has no `font_path` yet (the writer resolves its own fonts later, at write time).
+
+    `fetch_many` is optional and changes nothing about the result, only the number of requests: the
+    pass runs twice, the first time collecting what it would ask for, and those are fetched in one
+    call. Without it every overflowing box is its own request, which on a real book is the slowest
+    part of a run.
     """
     from layoutkeep.writers.pdf_writer import measure_fit
 
@@ -82,71 +92,103 @@ def fit_pdf_pass(
     grant_limit = float(tunables.get("write.grant_room_pt"))
     measurers: dict[tuple, TextMeasurer | None] = {}
     drawn_fonts: dict[tuple, str | None] = {}
-    results = []
+    def run_pass(retranslate_fn: Retranslate, *, apply_result: bool = True) -> list:
+        """Walk every segment once with the given asker and return the fit results.
 
-    for seg in segments:
-        block = blocks.get(seg.block_id)
-        if block is None or not seg.translated:
-            continue
+        `apply_result` is False for the collecting pass: its verdicts are the answer "this does not
+        fit", not a fit, so reporting them through `on_fitted` would write wrong scales, raise flags
+        that the real pass never raises, and double-count the crushed boxes.
+        """
+        out = []
+        report = on_fitted if apply_result else None
 
-        # Measured in the face the writer will draw: with no font file resolved, the generic serif
-        # (Times) is up to 29% narrower than the Noto Serif the writer substitutes, and a line that
-        # "fit" wrapped when drawn and lost its end (held-out PLOS ONE, eight one-line blocks).
-        style = _as_drawn(block.dominant_style(), target_lang, drawn_fonts)
-        measurer = _measurer_for(measurers, style, target_lang)
+        for seg in segments:
+            block = blocks.get(seg.block_id)
+            if block is None or not seg.translated:
+                continue
 
-        def char_budget(style, bbox, scale, _m=measurer):
-            return _m.char_budget(style, bbox, scale)
+            # Measured in the face the writer will draw: with no font file resolved, the generic serif
+            # (Times) is up to 29% narrower than the Noto Serif the writer substitutes, and a line that
+            # "fit" wrapped when drawn and lost its end (held-out PLOS ONE, eight one-line blocks).
+            style = _as_drawn(block.dominant_style(), target_lang, drawn_fonts)
+            measurer = _measurer_for(measurers, style, target_lang)
 
-        # Measured against the room the writer will actually draw in: the slack below is only what
-        # the page has free (`fitting.room`), plus the room the page genuinely has under the block
-        # (`fitting.growth`) - which is what lets a translation take the second line it needs
-        # instead of being shrunk to the floor or flagged. A rotated block is drawn by the
-        # `TextWriter` path, which has no such room, so it is measured as before.
-        page_blocks = page_of.get(seg.block_id, [])
-        missing = slack - room_below(block, page_blocks, slack)
-        grant = (
-            free_below(block, page_blocks, limit=grant_limit, obstacles=drawn_of.get(seg.block_id, ()))
-            if abs(block.rotation) <= _ROTATION_EPS and grant_limit > 0 and may_grow(block)
-            else 0.0
-        )
-        measured_box = (
-            BBox(
-                block.bbox.x0, block.bbox.y0, block.bbox.x1,
-                max(
-                    block.bbox.y0 + min(block.bbox.height, _MIN_BOX_HEIGHT_PT),
-                    block.bbox.y1 - missing + grant,
-                ),
+            def char_budget(style, bbox, scale, _m=measurer):
+                return _m.char_budget(style, bbox, scale)
+
+            # Measured against the room the writer will actually draw in: the slack below is only what
+            # the page has free (`fitting.room`), plus the room the page genuinely has under the block
+            # (`fitting.growth`) - which is what lets a translation take the second line it needs
+            # instead of being shrunk to the floor or flagged. A rotated block is drawn by the
+            # `TextWriter` path, which has no such room, so it is measured as before.
+            page_blocks = page_of.get(seg.block_id, [])
+            missing = slack - room_below(block, page_blocks, slack)
+            grant = (
+                free_below(block, page_blocks, limit=grant_limit, obstacles=drawn_of.get(seg.block_id, ()))
+                if abs(block.rotation) <= _ROTATION_EPS and grant_limit > 0 and may_grow(block)
+                else 0.0
             )
-            if missing > 0 or grant > 0 else block.bbox
-        )
-        result = fit_segment(
-            seg,
-            style,
-            measured_box,
-            measure_fit,
-            mode=mode,
-            retranslate=retranslate,
-            # Without a real budget the engine's under-fill direction has no honest
-            # reference and stays silent - the whole point of this pass. A scanned page has no
-            # honest reference either, for the reason `from_scan` records, so it is silenced the
-            # same way. The overflow direction is unaffected: it falls back to a length-based
-            # budget, so text that does not fit is still shortened.
-            char_budget=(
-                char_budget if measurer is not None and not from_scan.get(seg.block_id) else None
-            ),
-            rotation=block.rotation,
-        )
-        crushed = measured_box.height <= min(block.bbox.height, _MIN_BOX_HEIGHT_PT) + 0.01
-        if result.needs_review and missing > 0 and crushed:
-            # A key, not a sentence: the front-ends turn it into the interface's language (the
-            # same split `ui.progress.format_phase` uses for phase names), and the completion
-            # screen counts it. A box shortened to its floor has nothing to draw in - no text fits
-            # in six points - and that is a different problem from a translation that is too long.
-            result.review_reason = "box_crushed"
-        if on_fitted is not None:
-            on_fitted(seg, block, result)
-        results.append(result)
+            measured_box = (
+                BBox(
+                    block.bbox.x0, block.bbox.y0, block.bbox.x1,
+                    max(
+                        block.bbox.y0 + min(block.bbox.height, _MIN_BOX_HEIGHT_PT),
+                        block.bbox.y1 - missing + grant,
+                    ),
+                )
+                if missing > 0 or grant > 0 else block.bbox
+            )
+            result = fit_segment(
+                seg,
+                style,
+                measured_box,
+                measure_fit,
+                mode=mode,
+                retranslate=retranslate_fn,
+                # Without a real budget the engine's under-fill direction has no honest
+                # reference and stays silent - the whole point of this pass. A scanned page has no
+                # honest reference either, for the reason `from_scan` records, so it is silenced the
+                # same way. The overflow direction is unaffected: it falls back to a length-based
+                # budget, so text that does not fit is still shortened.
+                char_budget=(
+                    char_budget if measurer is not None and not from_scan.get(seg.block_id) else None
+                ),
+                rotation=block.rotation,
+            )
+            crushed = measured_box.height <= min(block.bbox.height, _MIN_BOX_HEIGHT_PT) + 0.01
+            if result.needs_review and missing > 0 and crushed:
+                # A key, not a sentence: the front-ends turn it into the interface's language (the
+                # same split `ui.progress.format_phase` uses for phase names), and the completion
+                # screen counts it. A box shortened to its floor has nothing to draw in - no text fits
+                # in six points - and that is a different problem from a translation that is too long.
+                result.review_reason = "box_crushed"
+            if report is not None:
+                report(seg, block, result)
+            out.append(result)
+        return out
+
+    if fetch_many is None:
+        results = run_pass(retranslate)
+    else:
+        # Two passes instead of one. The fit discovers which boxes overflow only by trying them, so
+        # the first pass runs with a recorder: it returns the text already in hand, which makes
+        # `fit_segment` stop after its first question (fit.py breaks when the answer is not shorter)
+        # and calls no model at all. What it asked for is then fetched in ONE request, and the
+        # second pass fits for real from those answers. Later rounds are rare and still ask singly.
+        asked: dict[tuple[str, int], tuple[Segment, int]] = {}
+
+        def record(segment: Segment, budget: int) -> str:
+            asked.setdefault((segment.block_id, budget), (segment, budget))
+            return segment.target
+
+        run_pass(record, apply_result=False)
+        answers = fetch_many(list(asked.values())) if asked else {}
+
+        def replay(segment: Segment, budget: int) -> str:
+            hit = answers.get((segment.block_id, budget))
+            return hit if hit else retranslate(segment, budget)
+
+        results = run_pass(replay)
 
     if mode is FitMode.REFLOW and any(r.reflow for r in results):
         from layoutkeep.fitting.elastic_flow import ElasticFlowEngine, compute_required_expansion
@@ -171,6 +213,55 @@ def fit_pdf_pass(
         # them means the fitting line's numbers were earned in narrower columns.
         summary["off_figure"] = off_figure
     return summary
+
+
+def budget_segments(
+    doc: Document,
+    segments: list[Segment],
+    *,
+    target_lang: str | None = None,
+    headroom: float = 1.0,
+) -> int:
+    """Give every segment the character budget of the box it will be drawn in. Returns how many.
+
+    WHY: the model is already told, per segment, to write short enough for `max_len`
+    (`providers/openai_compat.py`), and that instruction never fired because the fit was the only
+    place that filled the value - i.e. after the translation had already overflowed the box. The
+    budget is pure geometry, so it can be known before the first request, and the fit then has far
+    less to repair. Same measurer as the fit on purpose: two budgets would drift.
+
+    `headroom` above 1 keeps the budget above the measured box: the model is still steered short,
+    but it is not pushed into dropping content to reach a number.
+    """
+    blocks = {b.id: b for _, b in doc.iter_blocks()}
+    drawn_fonts: dict[tuple, str | None] = {}
+    measurers: dict[tuple, TextMeasurer | None] = {}
+    filled = 0
+    for seg in segments:
+        block = blocks.get(seg.block_id)
+        if block is None or not seg.source:
+            continue
+        style = _as_drawn(block.dominant_style(), target_lang, drawn_fonts)
+        measurer = _measurer_for(measurers, style, target_lang)
+        if measurer is None:
+            continue
+        budget = int(_measurer_budget(measurer, style, block.bbox) * headroom)
+        if budget > 0:
+            seg.max_len = budget
+            filled += 1
+    return filled
+
+
+def _measurer_budget(measurer: TextMeasurer, style, bbox) -> int:
+    """The measured budget for one box, or 0 when the measurer cannot say.
+
+    Measured at the box the block already has, without the fit's growth allowance: the first
+    translation should aim at what is certainly drawable, and the fit may still grant room later.
+    """
+    try:
+        return int(measurer.char_budget(style, bbox, 1.0))
+    except (AttributeError, TypeError, ValueError):
+        return 0
 
 
 def _as_drawn(style, target_lang: str | None, cache: dict[tuple, str | None]):

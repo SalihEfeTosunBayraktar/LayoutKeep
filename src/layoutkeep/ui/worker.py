@@ -354,15 +354,42 @@ class TranslationWorker(QThread):
         doc.source_lang = config.source_lang
         doc.target_lang = config.target_lang
 
+        provider, memory, glossary_terms = _build_provider(config)
+
+        # Konu haritası (ayar açıksa) bölümlemeden ÖNCE gelir: segmentler kurulurken her blok kendi
+        # anahtar kelimesini haritadan okur, yani dosya o an yerinde olmalı.
+        if bool(tunables.get("translation.keyword_map_auto")):
+            with phases.phase("keyword map", "before the translation"):
+                self._build_keyword_map(doc, out, provider)
+
         with phases.phase("segment", "segments in range"):
             segments = self._filter_segments(doc, config)
+        # The map is only needed while the segments are built; put the user's own value back so a
+        # run cannot leave their settings changed.
+        if getattr(self, "_keyword_map_previous", None) is not None:
+            tunables.set_value("translation.keyword_map_path", self._keyword_map_previous)
+            self._keyword_map_previous = None
         total = len(segments)
         if total == 0:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return
 
+        # Karakter bütçesi çeviriden ÖNCE (D-011): modele ilk istekte 'max_len' olarak gider, yani
+        # sığdırmanın tek tek düzeltmesi baştan azalır. PDF yoksa anlamsız - kutu geometrisi yok.
+        prefit = str(tunables.get("translation.prefit_budget") or "")
+        if src.suffix.lower() == ".pdf" and prefit:
+            from layoutkeep.fitting.pdf_pass import budget_segments
+
+            with phases.phase("budget", "per box"):
+                filled = budget_segments(
+                    doc,
+                    segments,
+                    target_lang=config.target_lang,
+                    headroom=1.2 if prefit == "loose" else 1.0,
+                )
+            self.status.emit(f"character budgets: {filled} of {total} boxes ({prefit})")
+
         total_chars = sum(len(s.source) for s in segments)
-        provider, memory, glossary_terms = _build_provider(config)
         self.progress.emit(0, total)
         self.progress_detailed.emit(0, total, 0, total_chars, 0.0, "")
 
@@ -383,6 +410,39 @@ class TranslationWorker(QThread):
 
         self._finalize_document(doc, translated, src, out, config, provider, phases)
         self._write_timing_report(out)
+
+    def _build_keyword_map(self, doc: Document, out: Path, provider) -> None:
+        """Ask the model what each stretch of the document is about, once, before translating it.
+
+        The file lands beside the output and is only pointed at for this run: the user's own value in
+        'Konu haritası dosyası' is put back as soon as the segments have read the map. A model that
+        does not answer leaves an empty map behind, which costs nothing - the segment builder reads
+        what is there and ignores the rest.
+        """
+        from layoutkeep.core.keywords import build_keyword_map, filled_entries, write_keyword_map
+
+        chat = getattr(provider, "_chat", None)
+        if chat is None:
+            self.status.emit("topic map skipped: this provider has no chat call")
+            return
+        self.status.emit("building the topic map")
+
+        def ask(system: str, user: str) -> str:
+            return str(
+                chat(
+                    [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ]
+                )
+            )
+
+        entries = build_keyword_map(doc, ask)
+        target = write_keyword_map(entries, out.with_name(f"{out.stem}.keyword-map.json"))
+        self._keyword_map_previous = str(tunables.get("translation.keyword_map_path") or "")
+        tunables.set_value("translation.keyword_map_path", str(target))
+        filled, words = filled_entries(entries)
+        self.status.emit(f"topic map: {filled}/{len(entries)} stretches, {words} keywords")
 
     def _write_timing_report(self, out: Path) -> None:
         """Write the phase breakdown beside the output, and only when the setting asks for it."""
@@ -611,7 +671,50 @@ class TranslationWorker(QThread):
             )
             return again[0].target if again and again[0].target else segment.target
 
+        def fetch_many(pairs: list[tuple[Segment, int]]) -> dict[tuple[str, int], str]:
+            """A whole round of shortenings in ONE request, keyed by (block id, budget).
+
+            The batches are copies: the fit mutates `max_len` as it tightens a budget, and the batch
+            must carry the budget it was asked for rather than whatever the last round left behind.
+            """
+            if not pairs:
+                return {}
+            batch = [replace(segment, max_len=budget) for segment, budget in pairs]
+            again = provider.translate(
+                batch,
+                src_lang=config.source_lang,
+                tgt_lang=config.target_lang,
+                glossary=glossary_terms,
+            )
+            answers: dict[tuple[str, int], str] = {}
+            for (segment, budget), reply in zip(pairs, again, strict=False):
+                if reply is not None and reply.target:
+                    answers[(segment.block_id, budget)] = reply.target
+            return answers
+
+        # The fit asks the model for a shorter rendering per overflowing box, and on a long run this
+        # is where most of the time goes (measured: 39s of 65s on a ten-page paper). It announces
+        # itself and reports its own counter, so the card says "fitting" with a live number instead
+        # of sitting on "translating 1553/1553" while the run is nowhere near done.
+        self.status.emit("fitting")
+        fit_total = sum(1 for segment in segments if segment.translated)
+        fit_chars = sum(len(segment.target or "") for segment in segments) or 1
+        fit_state = {"done": 0, "chars": 0, "started": time.monotonic()}
+
         def on_fitted(seg: Segment, block, result) -> None:
+            fit_state["done"] += 1
+            fit_state["chars"] += len(seg.target or "")
+            if fit_total:
+                spent = max(0.001, time.monotonic() - fit_state["started"])
+                self.progress.emit(fit_state["done"], fit_total)
+                self.progress_detailed.emit(
+                    fit_state["done"],
+                    fit_total,
+                    fit_state["chars"],
+                    fit_chars,
+                    fit_state["done"] / spent,
+                    "",
+                )
             # fit_segment is pure - it reports what would fit. Writing the result back is ours.
             seg.target = result.text
             if result.needs_review:
@@ -631,6 +734,7 @@ class TranslationWorker(QThread):
             doc,
             segments,
             retranslate=retranslate,
+            fetch_many=fetch_many,
             mode=FitMode.REFLOW if tunables.get("fitting.reflow") else FitMode.STRICT,
             target_lang=config.target_lang,
             on_fitted=on_fitted,
