@@ -2323,3 +2323,16 @@ Karakteristik: yoğun matematik formül paragrafları — model denklem ağır s
 taşıyamıyor (L2/L3 açık); D1 kısmen formül satırlarının küçültülmesi. dipnottar (L3'ün dağılımı)
 sonraki analiz için örnek girdi. Gutenberg #56464'ün EPUB koşusu tamamlanmıştı; sitedeki yerini
 EPUB karşılaştırma girdisi ayrı iş olarak bekliyor.
+
+## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
+
+Kuyruğun durum: (1) kapandı — tipografi üç koşuda sabit, tablo jurnale yazıldı; (2) keşfi
+yazıldı, yazıcı A/B'si sonraki geceye kaldı; (3) README bilinen sınırlar bölümü ve
+QUALITY-FACTORS tablosu yapıldı, satır sayıları 284/277; (4) site r3'ten yayınlandı ve
+curl ile doğrulandı; (5) arXiv 2601.00135 koşuldu, denetimi kaydedildi.
+
+Bilinen açık işler:
+- kısaltma merdiveni istemle çözülmüyor — sonraki kol farklı bir istek *şekli* ya da yön bazlı MIN_SCALE;
+- flattened için yazıcı-tarafı span font-size A/B'si (kuyruk 2'nin tasarımı, ölçülmeden kodlanmaz);
+- Gutenberg EPUB koşusunun karşılaştırma sitesine EPUB girdisi olarak eklenmesi;
+- koşucunun `--work` paylaşımı hatası — kaynak parçaların harmanlanması jurnalde kayıtlı.
