@@ -63,13 +63,13 @@ def test_closing_the_window_takes_the_bar_with_it(window: MainWindow) -> None:
     assert window._floating is None
 
 
-def test_the_header_button_hands_the_run_to_the_bar(window: MainWindow) -> None:
+def test_the_run_hands_over_to_the_bar(window: MainWindow) -> None:
     """The way back: once folded or closed, nothing used to bring the bar back."""
     window.show()
     QApplication.processEvents()
     window._worker = object()  # only "a run is going" is read here
     try:
-        window._header.bar_requested.emit()
+        window._switch_to_bar()
         QApplication.processEvents()
         assert not window.isVisible()
         assert window._floating.isVisible()
@@ -77,9 +77,14 @@ def test_the_header_button_hands_the_run_to_the_bar(window: MainWindow) -> None:
         window._worker = None
 
 
-def test_the_bar_button_is_only_live_while_a_run_is_going(window: MainWindow) -> None:
-    assert not window._header._bar_btn.isEnabled()
-    window._header.set_bar_available(True)
-    assert window._header._bar_btn.isEnabled()
-    window._header.set_bar_available(False)
-    assert not window._header._bar_btn.isEnabled()
+def test_the_header_carries_no_compact_bar_button(window: MainWindow) -> None:
+    """Removed on request: the button sat in the header disabled until a run started.
+
+    A control that is visible and cannot be pressed reads as a bug. The floating bar itself stays -
+    it is still what a long run hands over to - but the header no longer offers a dead button for
+    it, so this pins the removal rather than the old enable/disable dance.
+    """
+    header = window._header
+    assert not hasattr(header, "_bar_btn")
+    assert not hasattr(header, "set_bar_available")
+    assert header.bar_requested is not None  # the window's own route to the bar still exists

@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.core import tunables
+from layoutkeep.ui.collapsible import CollapsibleSection
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
@@ -47,6 +48,9 @@ _LABEL_WIDTH = 210
 #: Width the value column is fixed to. Word-wrapped help and warning text needs a known
 #: width before it can report the height it will occupy.
 _FIELD_WIDTH = 300
+# Wrapped labels need a fixed width to resolve their height - and to stop the dialog stretching to
+# the length of the longest sentence it shows.
+_TEXT_WIDTH = _LABEL_WIDTH + _FIELD_WIDTH + 40
 
 
 def _editor_for(spec: tunables.Tunable) -> QWidget:
@@ -161,6 +165,9 @@ class TweaksDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(UIStrings.TWEAKS_TITLE)
         self.setMinimumWidth(620)
+        # Without this the dialog opens as wide as its longest unwrapped text - the profile hint and
+        # the advanced banner ran to 1300px on a 1366px screen, which is wider than the app itself.
+        self.resize(760, 620)
         self._editors: dict[str, QWidget] = {}
         # The job's input, so the glossary editor can offer terms the document repeats. Empty when
         # the dialog is opened outside a job - the suggestion button stays off.
@@ -193,6 +200,8 @@ class TweaksDialog(QDialog):
         self._footer = QLabel(UIStrings.TWEAKS_FOOTER)
         self._footer.setProperty("class", "muted")
         self._footer.setWordWrap(True)
+        self._footer.setFixedWidth(_TEXT_WIDTH)
+        self._footer.setMinimumHeight(self._footer.heightForWidth(_TEXT_WIDTH))
 
         # Hazır ayar: birkaç değeri birlikte değiştiren tek seçim. Değerler yine aynı doğrulanmış
         # yoldan yazılır, yani sonrasında tek tek düzenlenebilir ve dialogda görünür.
@@ -204,10 +213,16 @@ class TweaksDialog(QDialog):
         self._sync_profile()
         self._profile.currentIndexChanged.connect(self._on_profile_changed)
 
+        hint = QLabel(UIStrings.PROFILE_HINT)
+        hint.setProperty("class", "muted")
+        hint.setWordWrap(True)
+        hint.setFixedWidth(_TEXT_WIDTH)
+        hint.setMinimumHeight(hint.heightForWidth(_TEXT_WIDTH))
+
         profile_row = QHBoxLayout()
         profile_row.addWidget(QLabel(UIStrings.PROFILE_LABEL))
         profile_row.addWidget(self._profile)
-        profile_row.addWidget(QLabel(UIStrings.PROFILE_HINT), 1)
+        profile_row.addWidget(hint, 1)
 
         layout = QVBoxLayout(self)
         layout.addLayout(profile_row)
@@ -218,27 +233,40 @@ class TweaksDialog(QDialog):
     def _build_section(self, section: str) -> QWidget:
         page = QWidget()
         page.setObjectName("scrollPage")
-        form = QFormLayout(page)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(6)
 
         if section == tunables.ADVANCED:
             banner = QLabel(UIStrings.TWEAKS_ADVANCED_BANNER)
             banner.setWordWrap(True)
+            banner.setFixedWidth(_TEXT_WIDTH)
+            banner.setMinimumHeight(banner.heightForWidth(_TEXT_WIDTH))
             banner.setStyleSheet(
                 f"color: {ThemeManager.current_palette().warning}; font-weight: 600;"
             )
-            form.addRow(banner)
+            outer.addWidget(banner)
 
-        current_group = ""
+        # Entries are grouped by the registry's `group` field, and each group folds away. A flat list
+        # of a hundred rows is a wall, and a folded group is also out of the layout's size hint,
+        # which is what keeps the window from opening as wide as its longest warning text.
+        sections: list[CollapsibleSection] = []
+        body: QFormLayout | None = None
+        current_group: str | None = None
         for spec in tunables.definitions(section):
-            if spec.group and spec.group != current_group:
-                # Thirteen entries in one flat list read as a wall. The headings come from the
-                # registry rather than being spelled out here, so a new tunable lands under the
-                # right one by naming its key.
-                current_group = spec.group
-                heading = QLabel(spec.group)
-                heading.setStyleSheet("font-weight: 700; margin-top: 10px;")
-                form.addRow(heading)
+            group = spec.group or UIStrings.TWEAKS_GROUP_OTHER
+            if group != current_group:
+                current_group = group
+                section_widget = CollapsibleSection(group, expanded=not sections)
+                body = QFormLayout()
+                body.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+                body.setContentsMargins(12, 0, 0, 0)
+                body.setSpacing(6)
+                section_widget.set_body_layout(body)
+                outer.addWidget(section_widget)
+                sections.append(section_widget)
+            if body is None:  # cannot happen: the first entry always opens a section
+                raise RuntimeError("tweaks section built without a group body")
             editor = _editor_for(spec)
             self._editors[spec.key] = editor
             field, _focus = _editor_holder(editor, spec, self._document_path)
@@ -301,7 +329,7 @@ class TweaksDialog(QDialog):
             row_label.setAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
             )
-            form.addRow(row_label, holder)
+            body.addRow(row_label, holder)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

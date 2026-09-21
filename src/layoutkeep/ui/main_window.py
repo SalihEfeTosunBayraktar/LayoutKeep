@@ -151,7 +151,6 @@ class MainWindow(QWidget):
         self._header.tweaks_requested.connect(self._open_tweaks)
         self._header.help_requested.connect(self.show_help)
         self._header.bar_requested.connect(self._switch_to_bar)
-        self._header.set_bar_available(False)
         layout.addWidget(self._header)
         layout.addWidget(self._stack)
 
@@ -242,7 +241,6 @@ class MainWindow(QWidget):
         self._worker.failed.connect(self._bar.fail)
         if bool(tunables.get("ui.floating_progress")):
             self._bar.start_job(Path(config.input_path).name)
-            self._header.set_bar_available(True)
             self._sync_bar_visibility()
         self._worker.start()
 
