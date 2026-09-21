@@ -35,6 +35,17 @@ OpenAI-compatible cloud endpoint. Your documents never have to leave your machin
 > `feature/lossless-campaign-continuation` and has not been merged here on purpose. The documents
 > and images are published; the code they were produced with is reviewed before it is released.
 
+> **Which direction is ready.** **English → Turkish is the direction this project is built around**:
+> the samples, the screenshots, the benchmark, the campaign and the worked examples on the
+> comparison site are all English into Turkish, and it is the only pair whose measured results are at
+> this level. **Every other direction is experimental** — usable, and honest about what
+> it loses, but not at the level this one is. Turkish → English is the measured gap: Turkish is the
+> longer target language, so the same paragraph that expands on the way in is squeezed on the way
+> out (a Turkish civil-code run left 31 lines untranslated and squeezed 391 blocks into the
+> readability floor). German, French and Spanish are carried by the data model and by the
+> number-word tables, and have not been run end to end on a full document.
+> [`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md) has the measurements behind all of this.
+
 ## Why this is hard, and what this project actually promises
 
 Fully automatic layout-preserving translation does not exist — not here, not in any commercial
@@ -235,15 +246,10 @@ OCR güveni düşük                               (low OCR confidence)
 
 ## Known limits
 
-- **EPUB→PDF re-flows the book** with MuPDF's Story engine: chapter headings start fresh pages
-  and reader-resolved CSS sizes and alignment carry over, but reflow is not pixel-identical to a
-  hand-set PDF.
-- **The EPUB reader captures about 99% of a book's visible text** (measured); images are
-  extracted as `ImageRef`s so rebuilt documents keep their figures.
-- Terminology drifts slightly across segments (measured; see `docs/MEASUREMENTS.md` §6), and
-  mirrored text is detected but cannot be written back mirrored.
-- **Writing a large PDF is slow, and gets slower per page** (`insert_htmlbox` embeds a font copy
-  per call; measured in [`docs/BENCHMARK.md`](docs/BENCHMARK.md)).
+Each limit, with the case behind it, is written up in
+[`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md): EPUB→PDF re-flows (not pixel-identical to a
+hand-set PDF), the EPUB reader's ~99% text capture, slight terminology drift, mirrored text
+detected but not rewritten mirrored, and slow per-page PDF writing.
 
 ## Tuning it
 

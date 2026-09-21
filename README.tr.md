@@ -34,6 +34,16 @@ LLM, ya da OpenAI-uyumlu herhangi bir bulut uç noktası. Belgelerinin makineden
 > `feature/lossless-campaign-continuation` dalında yaşar ve bilerek buraya birleştirilmemiştir.
 > Belgeler ve görseller yayında; üretildikleri kod ise yayınlanmadan önce gözden geçirilir.
 
+> **Hangi yön hazır.** **Bu proje İngilizce → Türkçe yönü üzerine kurulu**: örnekler, ekran
+> görüntüleri, ölçüm tablosu, kampanya ve karşılaştırma sitesindeki işlenmiş örneklerin hepsi
+> İngilizce'den Türkçe'ye; ölçümleri bu seviyede olan tek çift de bu. **Diğer bütün yönler
+> deneysel** — kullanılabilir ve ne kaybettiğini dürüstçe söyler, ama bu çiftin seviyesinde değil.
+> Ölçülmüş fark Türkçe → İngilizce yönünde: Türkçe hedef dil olarak daha uzun olduğu için, girerken
+> genişleyen paragraf çıkarken sıkıştırılıyor (bir Türk Medeni Kanunu koşusu 31 satırı çevrilmeden
+> bıraktı ve 391 bloğu okunabilirlik tabanına indirdi). Almanca, Fransızca ve İspanyolca veri
+> modelinde ve sayı-sözcüğü tablolarında var; tam bir belgeyle uçtan uca koşulmadı.
+> Bütün bunların ölçümleri [`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md)'de.
+
 ## Bu iş neden zor, ve bu proje tam olarak ne vadediyor
 
 Tam otomatik, düzeni koruyan çeviri diye bir şey yok — ne burada ne de herhangi bir ticari üründe.
@@ -234,11 +244,10 @@ Bayraklar `.lkproj` dosyasına yazılır ve komut satırı skor tablosunda sayı
 
 ## Bilinen sınırlar
 
-İngilizce README'deki [Known limits](README.md#known-limits) bölümü bu listenin kaynağıdır ve
-ölçümlerle birlikte orada tutulur — iki dilde iki ayrı doğruluk iddiası yerine tek bir yer.
-
-Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
-[`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) içindedir.
+Her sınır, arkasındaki ölçüm vakasıyla birlikte
+[`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md)'dedir: EPUB→PDF yeniden akışı (elle dizilmiş
+PDF ile piksel özdeşi değil), EPUB okuyucusunun ~%99 metin yakalaması, hafif terminoloji sapması,
+aynalı metnin algılanıp aynalanmış olarak geri yazılamaması ve sayfa başına yavaşlayan PDF yazımı.
 
 ## Ayarlama
 
