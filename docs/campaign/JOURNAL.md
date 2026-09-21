@@ -2574,3 +2574,19 @@ yani 429 hatası kotanın gerçeği, arıza değil. `/usage` artık model çağ�
 **Kural:** ağır GPU/CPU işleri 23:00'ten sonra başlatılmaz; gece kod okuma, optimizasyon ve kayıt işleri
 yapılır. agy'nin bıraktığı izler (`.antigravitycli/`, `.gemini/`, `agy*.log`) `.gitignore`'da; ajan
 proje içinde çalışır, izleri repoya girmez.
+
+## 2026-09-22 gece (00:00-04:00 hafif iş)
+
+- **Kapak düzeltmesi (D-012)**: renkli panelde Otsu "koyu" kütleyi mürekkep sanıp zemini siliyordu;
+  medyan doygunluk eşiği (120) eklendi. Kutu içi sarı piksel 20.369 → 3.960 (−%81), yazar satırı → 0.
+  Eski kodla aynı kutu 44.436 (daha kötüydü). Kanıt: `51aee55`.
+- **İç sayfa güvencesi** (kullanıcı uyarısı: "kapağı düzelteceğim diye sayfa çevirilerini bozma"):
+  aynı kaynak + aynı hedef yazıyla iki kural karşılaştırıldı → sıradan kâğıt sayfada **0 piksel** fark.
+  Testle çivilendi: `test_the_panel_rule_never_changes_a_paper_page`. Kanıt: `8a13d3b`, `a003c4a`.
+- **Ayar penceresi**: kombo artık en uzun seçeneğe göre boyamıyor (ipucu 666 → 314); pencerenin
+  gerçek tabanı **620**, açılışı 760×620 (1322 yalnız bilgi ipucuydu). Kanıt: `1d11c51`.
+- **Okuma fazı**: 1201 sayfa / 8 dk = **0,4 sn/sayfa** → darboğaz değil. ONNX yerleşim dedektörü
+  CPU-only (`docling-layout-heron-onnx`), GPU'ya dokunmuyor.
+- **Ağır ölçüm**: `a/b/c/d/e` kolları **04:05**'te (cron `982752d2a607`), rapor **06:15** (`961cb9c99e0e`).
+- **Zincir kilidi**: `lk_night_chain.py` yalnız `run` argümanıyla çalışır — gece yanlışlıkla
+  çalıştırma olayı (fan sesi) BrainOS'a `mistake` olarak kaydedildi.
