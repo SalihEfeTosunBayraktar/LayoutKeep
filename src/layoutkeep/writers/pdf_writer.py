@@ -58,6 +58,10 @@ if TYPE_CHECKING:  # numpy is imported where it is used: writing a PDF does not 
 #: job), so the writer can no longer quietly undercut a decision fitting already made and
 #: flagged. See `_draw_block` for what happens when the floor is not enough.
 _WRITE_SCALE_LOW_KEY = "fit.min_scale"  # the writer shares fitting's floor
+#: Draw each inline run at its own size instead of the block's. Off by default: it is the subject of
+#: an A/B (the per-box instrument counts 6-15 boxes per document where a smaller run is drawn at its
+#: block's size) and it can move line heights, so nothing changes for a user until that is measured.
+_INLINE_SPAN_SIZES_KEY = "writer.inline_span_sizes"
 _BOX_SLACK_KEY = "write.box_slack_pt"
 
 #: Below this many degrees a block is treated as ordinary horizontal text - noise in pymupdf's
@@ -876,6 +880,17 @@ def _span_html(span: Span, dominant: Style, resolver: _FontResolver) -> str:
         text = f'<span style="font-family:{family}">{text}</span>'
     if style.color != dominant.color:
         text = f'<span style="color:{style.color}">{text}</span>'
+    # The block's CSS carries one `font-size`, so a run set smaller than its block - a superscript
+    # marker, a footnote reference, a formula fragment - is drawn at the block's size. The per-box
+    # instrument (`tools/audit/type_map.py`) counts 6-15 boxes per document where that happens.
+    # Behind a setting: it changes line heights, and the A/B has to read L7 as well as `flattened`.
+    if (
+        tunables.get(_INLINE_SPAN_SIZES_KEY)
+        and style.size
+        and dominant.size
+        and abs(style.size - dominant.size) > 0.05
+    ):
+        text = f'<span style="font-size:{style.size:.2f}pt">{text}</span>'
     return text
 
 

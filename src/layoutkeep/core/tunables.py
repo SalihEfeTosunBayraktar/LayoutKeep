@@ -334,6 +334,25 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="writer.inline_span_sizes",
+        label="Satır-içi boyutları koru (deneysel)",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="Yazma",
+        help_text=(
+            "Blok içindeki küçük bir parçayı (üst simge işareti, dipnot numarası, formül kırıntısı) "
+            "bloğun boyutu yerine kendi boyutuyla yazar. Kutu-bazlı ölçüm aleti bunun belge başına "
+            "6-15 kutuda olduğunu ölçtü: kaynakta küçük olan parça, bloğun büyük boyutuyla çiziliyor."
+        ),
+        warning=(
+            "Ölçülmeden açılmaz: her satır-içi boyut, sığdırma merdiveninin ölçeğiyle çarpıldığı "
+            "için blok küçüldüğünde doğru oranda küçülür, ama satır yüksekliği hesabı blok "
+            "boyutundan yapılıyor - satırların üst üste binmesine (L7) yol açabilir. A/B: aynı "
+            "kayıtlı koşuyu yeniden yaz ve type_map.py ile L7'yi karşılaştır."
+        ),
+    ),
+    Tunable(
         key="ocr.needs_review_threshold",
         label="OCR inceleme eşiği",
         default=0.80,

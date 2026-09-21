@@ -2378,6 +2378,62 @@ Karar kullanıcının: açılırsa (1) CLI ve arayüzde EPUB -> PDF görünür o
 Gutenberg EPUB koşusunu XML yerine **sayfa olarak** gösterebilir. Açılmadan önce kullanıcının kendi
 gözüyle bir EPUB'ı PDF'e çevirip bakması gerekiyor.
 
+## A/B: satır-içi boyutları korumak — ölçüldü, kazanç var, varsayılan yine de kapalı
+
+Yazıcı bir bloğa tek bir `font-size` veriyordu (`_css_for_block`), yani kaynakta küçük olan satır-içi
+parça - üst simge işareti, dipnot numarası, formül kırıntısı - bloğun büyük boyutuyla çiziliyordu.
+Ölçüm önce veriyi doğruladı: `arxiv_19145`'in altı parçasında **145 bloğun 48'i** farklı boyut taşıyor
+(10,2 pt blok içinde 6,8 pt parçalar). Yani kayıp yazıcıda; okuyucu boyutu koruyor.
+
+Değişiklik geliştirici ayarı olarak eklendi (`writer.inline_span_sizes`, varsayılan **kapalı**;
+`pdf_writer._span_html` farklı boyutlu koşuya `font-size` veriyor) ve aynı kayıtlı koşu iki kez
+yazıldı (model yok, `rewrite_run.py`):
+
+| | kutu | sadık | ezilmiş | **düzleşmiş** | karışık |
+|---|---|---|---|---|---|
+| taban | 697 | 363 | 318 | **7** | 8 |
+| ayar açık | 698 | 363 | 322 | **4** | 8 |
+
+Ölçütler (aynı koşu, `lossless_audit.py --to tr`):
+
+| ölçüt | taban | ayar açık |
+|---|---|---|
+| **L7 üst üste metin (asıl risk)** | **0** | **0** |
+| D1 okunabilirlik tabanı | 296 | 296 |
+| D2 | 7 | 7 |
+| **D3 sıkışmış** | 2 | **1** |
+| L2 / L3 / L6 / L8 | 7 / 0 / 2 / 1 | aynı |
+
+Yani ayar üç kutuyu düzeltiyor, hiçbir ölçütü kötüleştirmiyor, D3'ü iyileştiriyor - ama varsayılan
+**kapalı** bırakıldı: kullanıcı, kendi doğrulaması olmadan hiçbir şeyin "çalışıyor" diye
+yazılmamasını istedi, ve tek bir belgede ölçülmüş bir kazanç onu açmaya yetmez. Sayfa başına fark:
+`t_0002` (1 kutu) ve `t_0013` (2 kutu) düzeliyor; `t_0000` ve `t_0008` aynı kalıyor - yani
+düzleşmenin bir kısmının sebebi başka (fitting'in kendi ölçek uygulaması) ve o kısım bu ayarla
+kapanmıyor.
+
+### Araç tuzağı: `rewrite_run.py` ayarları yüklemiyor
+
+İlk A/B **hiçbir şey ölçtü**: `LAYOUTKEEP_TUNABLES` ile verilen geçersiz kılma dosyası yerindeydi ama
+`tunables.get('writer.inline_span_sizes')` **False** dönüyordu, çünkü `rewrite_run.py` okuyucu/yazıcıyı
+doğrudan çağırıyor ve `tunables.load()`'u (CLI ile arayüzün açılışta çağırdığı satır) hiç
+çağırmıyor. İki koşu aynı çıktıyı verdi ve yorum "ayar etkisiz" olacaktı. Doğru çağrı:
+
+```
+LAYOUTKEEP_TUNABLES=<geçici.json> python -c "
+from layoutkeep.core import tunables; tunables.load()
+import runpy, sys; sys.argv=['rewrite_run.py', <koşu>, <hedef>]
+runpy.run_path('tools/audit/rewrite_run.py', run_name='__main__')"
+```
+
+Ayar A/B'lerinde önce `tunables.load()`'un çağrıldığını **doğrula** (`tunables.overrides()` boş
+dönmemeli); yoksa ölçüm, hiç okunmamış bir ayarı ölçer.
+
+### Yan bulgu: geliştirici ayarlarının etiketleri tek dilli
+
+`core/tunables.py` içindeki etiket, `help_text` ve `warning` alanları **yalnız Türkçe** ve arayüzde
+anahtar başına çevirileri yok - yani uygulama İngilizce ya da Almanca çalışırken geliştirici ayarları
+ekranı Türkçe kalıyor (madde 12'nin kapsamı). ~115 ayar girdisi var; çeviri kararı kullanıcının.
+
 ## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
 
 Kuyruğun durum: (1) kapandı — tipografi üç koşuda sabit, tablo jurnale yazıldı; (2) keşfi
