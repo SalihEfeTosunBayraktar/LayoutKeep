@@ -335,21 +335,25 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="writer.inline_span_sizes",
-        label="Satır-içi boyutları koru (deneysel)",
-        default=False,
+        label="Satır-içi boyutları koru",
+        default=True,
         kind="bool",
         section=ADVANCED,
         group="Yazma",
         help_text=(
             "Blok içindeki küçük bir parçayı (üst simge işareti, dipnot numarası, formül kırıntısı) "
-            "bloğun boyutu yerine kendi boyutuyla yazar. Kutu-bazlı ölçüm aleti bunun belge başına "
-            "6-15 kutuda olduğunu ölçtü: kaynakta küçük olan parça, bloğun büyük boyutuyla çiziliyor."
+            "bloğun boyutu yerine kendi boyutuyla yazar. Beş belgede ölçüldü: düzleşmiş kutu sayısı "
+            "104 -> 75 (-%28), ezilmiş kutu 1727 -> 1658 (69 kutu daha az sıkışıyor), sadık kutu "
+            "+53; L3/L7/D1/D3'ün hiçbiri kıpırdamadı."
         ),
         warning=(
-            "Ölçülmeden açılmaz: her satır-içi boyut, sığdırma merdiveninin ölçeğiyle çarpıldığı "
-            "için blok küçüldüğünde doğru oranda küçülür, ama satır yüksekliği hesabı blok "
-            "boyutundan yapılıyor - satırların üst üste binmesine (L7) yol açabilir. A/B: aynı "
-            "kayıtlı koşuyu yeniden yaz ve type_map.py ile L7'yi karşılaştır."
+            "Taşıdığı risk satırların üst üste binmesiydi (L7): her satır-içi boyut, sığdırma "
+            "merdiveninin ölçeğiyle çarpılıyor ama satır yüksekliği blok boyutundan hesaplanıyor. "
+            "Beş belgede L7 5/5 aynı kaldı - yine de gözden geçirilmeden bırakılmamalı. Ölçülen tek "
+            "maliyet `cookbook_1907`'de `grown` sayısı (104 -> 130), henüz açıklanmadı. A/B: aynı "
+            "kayıtlı koşuyu **iki kez** yeniden yaz (biri bu ayarla), ikisini de type_map.py ve "
+            "lossless_audit.py ile karşılaştır - saklı çıktıyı taban almak eski motorun etkisini "
+            "bu ayara yazar."
         ),
     ),
     Tunable(

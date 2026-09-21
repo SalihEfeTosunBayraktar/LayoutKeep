@@ -11,7 +11,36 @@ from fixtures.build_epub_fixture import build_sample_epub
 from lxml import etree
 
 from layoutkeep.readers.epub_reader import read_epub
-from layoutkeep.writers.epub_writer import write_epub
+from layoutkeep.writers.epub_writer import _apply_edits, write_epub
+
+
+def test_overlapping_edits_keep_the_markup_between_them() -> None:
+    """Two edits over the same region must not silently swallow what lies between them.
+
+    WHY THIS EXISTS: a held-out EPUB came back from translation with one `<div>` unclosed, a `<span>`
+    pair and three `<a href>` openings missing - invalid XHTML that a stricter reader than MuPDF
+    refuses. The cause was here: with edits sorted by start, an edit that begins before the previous
+    one ended left `text[cursor:start]` empty and then jumped `cursor` forward over markup neither
+    edit replaced.
+    """
+    text = "<div>before<span>keep me</span>after</div>"
+    # Two edits that both touch the span, starting inside it.
+    start = text.index("keep")
+    first = (start, start + 4, "NEW")           # replaces "keep"
+    second = (start + 2, text.index("</span>"), "MORE")  # overlaps the first
+
+    out = _apply_edits(text, [first, second])
+
+    assert "<span>" in out and "</span>" in out, f"inline markup was dropped: {out!r}"
+    assert out.startswith("<div>before<span>"), out
+
+
+def test_edits_inside_an_earlier_one_are_ignored_not_spliced() -> None:
+    """An edit wholly inside an earlier replacement has nothing of its own left to replace."""
+    text = "aaa BBB ccc"
+    out = _apply_edits(text, [(4, 7, "LONGER"), (5, 6, "X")])
+
+    assert out == "aaa LONGER ccc", out
 
 
 def _read(tmp_path: Path):

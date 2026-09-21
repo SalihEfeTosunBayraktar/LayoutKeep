@@ -188,6 +188,14 @@ def _apply_edits(text: str, edits: list[tuple[int, int, str]]) -> str:
     out: list[str] = []
     cursor = 0
     for start, end, new in ordered:
+        if end <= cursor:
+            # An edit that lies wholly inside one already applied: its own text is gone, so
+            # splicing it in would corrupt the document (and moving `cursor` back to `end` would
+            # duplicate what the earlier edit already replaced).
+            continue
+        # Never let `cursor` walk backwards: `text[cursor:start]` with start < cursor is empty and
+        # a later `cursor = end` would drop or duplicate the text in between.
+        start = max(start, cursor)
         out.append(text[cursor:start])
         out.append(new)
         cursor = end

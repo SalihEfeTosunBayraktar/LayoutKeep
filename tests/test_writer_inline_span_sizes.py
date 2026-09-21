@@ -1,10 +1,14 @@
-"""A run smaller than its block is drawn at its own size - but only when the setting is on.
+"""A run smaller than its block is drawn at its own size.
 
 WHY THIS EXISTS: the writer gives a block one `font-size`, so a superscript marker, a footnote
-reference or a formula fragment set at 6.8 pt inside a 10.2 pt block came out at 10.2 pt. Measured on
-`arxiv_19145`: 48 of 145 blocks carry a run of a different size, and carrying them drops the per-box
-`flattened` count from 7 to 4 while L7 (text drawn over text, the risk the setting carries) stays at 0.
-The default is off: one document's measurement is what earns the A/B, not what flips a default.
+reference or a formula fragment set at 6.8 pt inside a 10.2 pt block came out at 10.2 pt.
+
+WHY THE DEFAULT IS ON: the setting was written off, shipped off, and only turned on after a two-arm
+A/B over five recorded runs (both arms re-rendered, the setting the only difference - see
+`docs/campaign/JOURNAL.md`): flattened boxes 104 -> 75 (-28%), squeezed boxes 1727 -> 1658 (69 fewer),
+faithful boxes +53, and every audit criterion identical in 5/5 runs, including the L7 (text over text)
+that the setting's own warning named as its risk. Turning a default on is a measured act; `test_the_
+default_is_on` fails if someone flips it back without doing that measurement again.
 """
 
 from __future__ import annotations
@@ -20,6 +24,15 @@ from layoutkeep.writers.pdf_writer import _FontResolver, _span_html
 
 _KEY = "writer.inline_span_sizes"
 _BOX = BBox(0.0, 0.0, 10.0, 6.0)
+
+
+def test_the_default_is_on_and_only_a_measurement_turns_it_off() -> None:
+    """The default was earned by the five-document A/B, not assumed; see the module docstring."""
+    entry = tunables.definition(_KEY)
+    assert entry.default is True, (
+        "flipping this default back needs the same two-arm A/B - a re-rendered `off` arm, the "
+        "criteria compared, and the numbers written into the journal"
+    )
 
 
 def _style(size: float) -> Style:
