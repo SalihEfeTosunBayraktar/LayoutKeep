@@ -27,6 +27,11 @@ CANDIDATES = [
     ("rich_book.epub", "html"),
     ("rich_book.epub", "docx"),
     ("rich_book.epub", "png"),
+    # Not open, and not to be opened from this measurement alone: the user asked that no pair be
+    # described as working on the published pages before they have verified it themselves. The
+    # implementation reflows an EPUB to PDF already (tests/test_epub_pdf_reflow.py pins it), so this
+    # row exists to hand them the numbers - `capabilities.OPEN_PAIRS` is unchanged.
+    ("rich_book.epub", "pdf"),
     ("rich_report.docx", "png"),
     ("rich_report.docx", "pdf"),
     ("rich_report.docx", "html"),

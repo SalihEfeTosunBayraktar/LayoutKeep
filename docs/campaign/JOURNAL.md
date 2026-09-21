@@ -2354,6 +2354,30 @@ dil uzun olduğu için **son satır kutuya sığamıyor**, fitting kırpıyor ve
 D1'in aynı sayfada işaretlediği bloklarla aynı küme. Sıradaki iş bu yüzden hâlâ kutu/sığdırma
 kaldıracı (D1'in kaldıracı), okuyucu değil.
 
+## Ölçüm, karar değil: EPUB -> PDF çiftinin sayıları (kullanıcı doğrulaması bekliyor)
+
+Kullanıcı, kendi doğrulaması olmadan hiçbir şeyin yayınlanmış sayfalarda "çalışıyor" diye
+yazılmamasını istedi. Bu yüzden **hiçbir kapı açılmadı** ve karşılaştırma sitesine EPUB girdisi
+eklenmedi; yalnızca projenin kendi adımı çalıştırıldı
+(`tools/audit/faz2_candidates.py`, "measure candidate pairs ... before any of these pairs get added
+to capabilities.OPEN_PAIRS") ve çift listeye *ölçüm için* eklendi.
+
+Sonuç, satır birebir:
+
+```
+ok   rich_book.epub     -> pdf   words 101%  (68/67) img 1/1 pages 1/1 styled 0/5
+```
+
+Okunuşu: kelime düzeyinde kayıp yok (68/67 - fazladan bir kelime, tire kırılması), görsel 1/1,
+sayfa 1/1, ama **biçimlendirme taşınmıyor (0/5)**. Aynı ölçümde hâlihazırda *açık* olan çift
+`rich_book.epub -> png` de `styled 0/5` veriyor; yani çift, mevcut çıtayla tutarlı. Uygulama zaten
+yazılı (`tests/test_epub_pdf_reflow.py` ona bağlı) ve CLI/arayüz yalnız
+`capabilities.OPEN_PAIRS` bayrağıyla kilitli.
+
+Karar kullanıcının: açılırsa (1) CLI ve arayüzde EPUB -> PDF görünür olur, (2) karşılaştırma sitesi
+Gutenberg EPUB koşusunu XML yerine **sayfa olarak** gösterebilir. Açılmadan önce kullanıcının kendi
+gözüyle bir EPUB'ı PDF'e çevirip bakması gerekiyor.
+
 ## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
 
 Kuyruğun durum: (1) kapandı — tipografi üç koşuda sabit, tablo jurnale yazıldı; (2) keşfi
