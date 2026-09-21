@@ -479,8 +479,9 @@ def _build_messages(
             "them and never include them in your output."
         ),
         (
-            "When max_len is set for a segment, try to keep its translation within that "
-            "many characters."
+            "When max_len is set for a segment, write its translation SHORT enough to stay "
+            "within that many characters - a shorter statement of the same meaning. Do not "
+            "pad, do not expand, maxLength is a hard limit measured in characters."
         ),
         (
             "Some text contains numbered markers like <0>...</0> or <1>...</1>. Reproduce "
