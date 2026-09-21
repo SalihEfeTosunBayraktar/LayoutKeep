@@ -35,38 +35,53 @@ def _pdf_job(tmp_path: Path, **overrides) -> JobConfig:
     return JobConfig(**defaults)
 
 
-def test_the_setup_screen_offers_the_bilingual_choice(qtbot) -> None:
+def test_the_bilingual_choice_lives_in_the_settings(qtbot) -> None:
+    """Moved off the setup screen on request: a rarely used output extra, edited in the settings.
+
+    The old test pinned the combo in the setup screen. It now pins both halves of the move - the
+    screen no longer carries it, and the settings offer the same three values with "off" as default.
+    """
     from layoutkeep.ui.job_setup import JobSetupWidget
+    from layoutkeep.ui.tweaks_dialog import TweaksDialog
 
     screen = JobSetupWidget()
     qtbot.addWidget(screen)
-    values = [screen._dual_mode.itemData(row) for row in range(screen._dual_mode.count())]
+    assert not hasattr(screen, "_dual_mode"), "the setup screen must not carry the choice any more"
+
+    dialog = TweaksDialog()
+    qtbot.addWidget(dialog)
+    editor = dialog._editors["output.dual_mode"]
+    values = [editor.itemData(row) for row in range(editor.count())]
     assert values == ["", "side", "alternate"], values
-    assert screen._dual_mode.currentData() == "", "the default must be off"
+    assert editor.currentData() == "", "the default must be off"
 
 
-def test_the_setup_screen_carries_the_choice_into_the_job(qtbot, tmp_path) -> None:
-    """Through the real screen: pick a file, pick "alternate", emit, read the job.
+def test_the_settings_choice_reaches_the_job(qtbot, tmp_path) -> None:
+    """Through the real screen: the choice is a tunable now, and the job must still receive it.
 
     The first version pointed the screen at a Python file and returned early when it was refused,
     which passed whether or not the wiring existed - a test that cannot fail is not a test. This
     one builds a real PDF, so the emit is expected to happen.
     """
+    from layoutkeep.core import tunables
     from layoutkeep.ui.job_setup import JobSetupWidget
 
     source = tmp_path / "sample.pdf"
     build_pdf_fixture.build_single_column(source)
-    screen = JobSetupWidget()
-    qtbot.addWidget(screen)
-    captured: list[JobConfig] = []
-    screen.job_ready.connect(captured.append)
-    screen._input_path.setText(str(source))
-    screen._dual_mode.setCurrentIndex(screen._dual_mode.findData("alternate"))
+    tunables.set_value("output.dual_mode", "alternate")
+    try:
+        screen = JobSetupWidget()
+        qtbot.addWidget(screen)
+        captured: list[JobConfig] = []
+        screen.job_ready.connect(captured.append)
+        screen._input_path.setText(str(source))
 
-    screen._emit_job()
+        screen._emit_job()
 
-    assert captured, "the screen refused a valid PDF"
-    assert captured[0].dual_mode == "alternate"
+        assert captured, "the screen refused a valid PDF"
+        assert captured[0].dual_mode == "alternate"
+    finally:
+        tunables.reset_all()
 
 
 def test_the_worker_writes_the_bilingual_file(tmp_path) -> None:

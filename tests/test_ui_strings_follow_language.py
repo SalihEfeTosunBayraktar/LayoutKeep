@@ -22,14 +22,14 @@ def test_job_setup_hints_follow_a_language_switch(qtbot) -> None:
     qtbot.addWidget(window)
     UIStrings.set_language("tr")
     window._setup.retranslate_ui()
-    turkish_hint = window._setup._dual_hint.text()
-    assert turkish_hint == UIStrings.DUAL_HINT
-    assert window._setup._range_hint.text() == UIStrings.RANGE_HINT
+    turkish_hint = window._setup._range_hint.text()
+    assert turkish_hint == UIStrings.RANGE_HINT
+    assert window._setup._range_input.placeholderText() == UIStrings.RANGE_PLACEHOLDER
 
     UIStrings.set_language("en")
     window._setup.retranslate_ui()
-    english_hint = window._setup._dual_hint.text()
-    assert english_hint == UIStrings.DUAL_HINT
+    english_hint = window._setup._range_hint.text()
+    assert english_hint == UIStrings.RANGE_HINT
     # The point of the test: the text moved with the language instead of staying where it started.
     assert english_hint != turkish_hint
 
