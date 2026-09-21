@@ -2245,3 +2245,11 @@ kosteni) ya da jurnalde daha önce not edilen yön bazlı MIN_SCALE ayarı. İst
 ceydetmek ölçülmeden yapılmaz; üç veri noktası artık jurnale yazıldı.
 
 r3 kayıtları `_artifacts/heldout/live/tr_tck_5237_r3/` altında (kaynak parçaları r2'den kopyalandı).
+
+## Gece nöbeti: README sadeleştirme devamı — Known limits tabloya taşındı
+
+Kalan indirim: README (EN) 289→284 satır, TR 278→277. Known limits bölümü artık tek paragraf:
+her sınır vaka ölçümüyle `docs/QUALITY-FACTORS.md`'deki yeni "Known limits" tablosunda.
+_TR tablosu yok_ — README.tr.md bu bölümü zaten İngilizce README'ye işaret ediyordu; şimdi
+kaliteli ölçüm sayfasına işaret ediyor. Kuyruğun 3. maddesi için kalan: comparison site yenileme
+(4. madde) sonrası tekrar satır sayısı ölçümü.
