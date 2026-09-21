@@ -2324,6 +2324,19 @@ taşıyamıyor (L2/L3 açık); D1 kısmen formül satırlarının küçültülme
 sonraki analiz için örnek girdi. Gutenberg #56464'ün EPUB koşusu tamamlanmıştı; sitedeki yerini
 EPUB karşılaştırma girdisi ayrı iş olarak bekliyor.
 
+**Düzeltme (aynı gün, ölçümle): L3'ün sebebi model değil.** Bu koşunun L3=20'si "model denklem ağır
+satırları taşıyamıyor" diye okunmuştu; `verify.py`'nin kendi yorumu ve bu ölçüm bunu çürütüyor.
+Çıktı PDF'lerinde işaretlenen satırlar arandı: `SONLU ALANLAR…FERMAT DENKLEMLERİ` başlığı **7 dosyanın
+hepsinde** var, `Anahtar kelimeler`, `Özet`, `Matematik Ders Sınıflandırması` da var — blok **çizilmiş**,
+kutusunda kırpılmış. Yalnızca `Aritmetik denklemler…` bulunamadı (kırpılan kuyruk). Yani L3 burada
+"yazıcı düşürdü" değil "fitting sığdıramadı": `verify.py`'nin L3 tanımı bunu zaten yazıyor ve PLOS'un
+matematik paragrafları için aynı şeyi not ediyor (okuyucu bir sayfa formülü tek 79 pt "satır" olarak
+birleştirdi, hiçbir şey sığamadı, denetim sayfada duran sekiz bloğu "düşmüş" saydı).
+
+**Sıradaki iş bu yüzden okuyucuda:** formül yoğun satırların tek bir dev satıra birleştirilmesini
+engellemek (L3'ün yanı sıra D1'in de bir kısmını açıklar), sonra aynı koşuda L3'ü yeniden ölçmek.
+Model çağrısı gerekmiyor; `type_map.py` ve bu arama birlikte yeter.
+
 ## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
 
 Kuyruğun durum: (1) kapandı — tipografi üç koşuda sabit, tablo jurnale yazıldı; (2) keşfi
