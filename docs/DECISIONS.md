@@ -220,18 +220,21 @@ Bu sayfalarda görsel **0**, çizim **0**, toplam ~100 karakter. Yani sayfa baş
 14-18 arasındakiler içindekiler tablosu. Yani sorun içerikte değil, **sayfalamada**: her başlık ve
 içindekiler satırı kendi sayfasını alıyor.
 
-**Kök neden (şüpheli, kanıtlanmadı):** `pdf_generator.insert`, htmlbox sığmadığında yeni sayfa açıp
-**tekrar çiziyor** ama yeniden "sığdı mı" diye bakmıyor. Bu, sayfa başına birkaç karakterlik çıktı
-üretir.
+**Kök neden (bulundu):** `pdf_generator._reflow_block_html` **her** TITLE ve HEADING bloğuna
+`page-break-before: always` koyuyordu ve MuPDF Story bunu uyguluyor. Yani içindekiler satırları ve her
+şiir türü başlığı kendi sayfasını alıyordu.
 
-**Teşhis sırasında yaptığım iki ölçüm hatası:** (1) "20 karakterden az = boş" ölçütü bölüm başlığı
-sayfalarını da boş saydı; (2) `Cup-Bearer` araması sıfır dönünce şiirler kayıp sandım, oysa şiir
-satırları tireyle bölünüyor. İkisi de benim ölçümümün kabalığıydı, ürünün değil.
+**Denenen düzeltme (REDDEDİLDİ):** Kırma yalnız bölüm başında (her belge sayfasının ilk bloğu) kalsın.
+Sonuç sayfa sayısında büyük kazanç: **436 → 176 sayfa**, seyrek sayfa **105 → 2**. Ama kitabın **başlık
+sayfası düştü**: `TÜRK EDEBİYATI İÇERİK`, `Masallar, Güzel Edebiyat ve Kutsal Gelenekler` ve
+`EPIPHANIUS WILSON` artık PDF'te yok. Sessiz içerik kaybı, sayfa kazancından ağır basar: **geri alındı**.
 
-**Sıradaki adım:** `insert` içindeki `spare` değerini gerçek bloklarla ölçmek, sonra sığmayan bloğu
-küçültmeyi ya da taşımayı denemek. Varsayılan duyarlı bir yol olduğu için ölçüm olmadan değiştirilmez.
+**Sıradaki adım:** Story'nin başlıkları sayfa altına itme davranışını koruyup yalnızca içindekiler ve
+kısa başlıklar için kırmayı kaldırmak. Yani kırma kararı role göre değil, bloğun **konumuna ve
+boyutuna** göre verilmeli. Ölçüm olmadan denenmez.
 
-**Kanıt:** `src/layoutkeep/writers/pdf_generator.py` · `lk_epub_to_pdf_gutenberg_56464.pdf`.
+**Kanıt:** `src/layoutkeep/writers/pdf_generator.py` · `lk_epub_to_pdf_gutenberg_56464.pdf` ·
+`lk_reflow_duzeltilmis.pdf` (reddedilen sürümün çıktısı).
 
 ---
 
