@@ -2391,8 +2391,16 @@ yazıldı (model yok, `rewrite_run.py`):
 
 | | kutu | sadık | ezilmiş | **düzleşmiş** | karışık |
 |---|---|---|---|---|---|
-| taban | 697 | 363 | 318 | **7** | 8 |
-| ayar açık | 698 | 363 | 322 | **4** | 8 |
+| saklı taban (eski motor) | 697 | 363 | 318 | **7** | 8 |
+| yeniden yazılmış, **ayar kapalı** | 698 | 361 | 322 | **7** | 7 |
+| yeniden yazılmış, **ayar açık** | 698 | 363 | 322 | **4** | 8 |
+
+**Düzeltme (önemli): ilk yazdığım "+4 ezilme bedeli" ayardan değil, yeniden yazmanın kendisinden
+geliyordu.** O tabloda "taban" olarak *saklı* koşuyu (eski motorun ürünü) kullanmıştım; projenin kendi
+kuralı bunu yasaklıyor - "iki koşuyu değil, aynı kaydın iki kod sürümünü karşılaştır". Koşuyu iki kez
+yeniden yazınca (yalnız ayar farkıyla) gerçek tablo yukarıdaki üç satır oluyor: **ezilme 322 -> 322,
+yani ayar hiç ek sıkıştırma yapmıyor**; +4 tamamen eski motordan bugünkü motora geçişin etkisi.
+Ayarın ölçülen etkisi: **düzleşmiş 7 -> 4**, karışık 7 -> 8 (+1), diğerleri sabit.
 
 Ölçütler (aynı koşu, `lossless_audit.py --to tr`):
 
