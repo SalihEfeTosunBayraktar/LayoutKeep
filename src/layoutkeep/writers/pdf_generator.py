@@ -209,12 +209,17 @@ def generate_pdf_from_docir(doc: Document, out_path: str | Path) -> None:
     pdf.close()
 
 
-def _reflow_block_html(block: Block) -> str:
+def _reflow_block_html(block: Block, *, break_before: bool = False) -> str:
     """A block as HTML for the Story reflow, using the block's real size and alignment.
 
     Unlike `_block_html`, this trusts the reader-resolved font size (EPUB CSS) instead of
     substituting fixed 18/13/10pt — that substitution is exactly what flattened headings and
     lost the source's typography. `align` is applied here as well as the inline span sizes.
+
+    `break_before` is the caller's decision, not this function's: a page break belongs at a chapter
+    boundary, which is the first block of a spine document. Putting one on every heading is what
+    gave a 436-page rebuild 105 sparse pages — each table-of-contents line and each poem-form
+    heading started a page of its own.
     """
     lines_html: list[str] = []
     for line in block.lines:
@@ -227,11 +232,12 @@ def _reflow_block_html(block: Block) -> str:
 
     size = block.dominant_style().size or 12.0
     align_style = f"text-align: {block.align}; " if block.align and block.align != "left" else ""
+    brk = "page-break-before: always;" if break_before else ""
 
     if block.role == BlockRole.TITLE:
-        return f"<h1 style='font-size: {size:.1f}pt; {align_style}page-break-before: always;'>{content}</h1>"
+        return f"<h1 style='font-size: {size:.1f}pt; {align_style}{brk}'>{content}</h1>"
     if block.role == BlockRole.HEADING:
-        return f"<h2 style='font-size: {size:.1f}pt; {align_style}page-break-before: always;'>{content}</h2>"
+        return f"<h2 style='font-size: {size:.1f}pt; {align_style}{brk}'>{content}</h2>"
     if block.role == BlockRole.CODE:
         return f"<pre style='font-size: {size:.1f}pt; {align_style}'>{content}</pre>"
     return f"<p style='font-size: {size:.1f}pt; {align_style}'>{content}</p>"
@@ -252,24 +258,25 @@ def generate_reflowed_pdf_from_docir(doc: Document, out_path: str | Path) -> Non
     from pymupdf import Story
 
     # Build one HTML flow across all pages (EPUB pages are spine XHTML files, not physical pages).
+    # A page break goes on the first block of a spine document - a real chapter start - and nowhere
+    # else. The document's first block never gets one: MuPDF's Story hangs on a break before its
+    # very first element, which is why the old code stripped it back out afterwards.
     chunks: list[str] = []
     first_content = True
     for page_data in doc.pages:
+        starts_part = True
         for item in page_data.content_in_reading_order():
             if isinstance(item, ImageRef):
                 if item.data:
                     chunks.append(f'<img src="{item.data_uri}" style="max-width: 100%;"/>')
                 first_content = False
+                starts_part = False
                 continue
-            block_html = _reflow_block_html(item)
+            block_html = _reflow_block_html(item, break_before=starts_part and not first_content)
             if not block_html:
                 continue
-            # Strip the page-break on the document's very first content chunk (Story hang guard).
-            if first_content:
-                block_html = block_html.replace("page-break-before: always; ", "").replace(
-                    "page-break-before: always;", ""
-                )
-                first_content = False
+            first_content = False
+            starts_part = False
             chunks.append(block_html)
 
     story = Story(html="".join(chunks))

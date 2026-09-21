@@ -43,6 +43,7 @@ def _block(text: str, role: BlockRole, size: float) -> Block:
 
 
 def test_reflow_starts_each_chapter_on_a_new_page(tmp_path: Path) -> None:
+    """A chapter start is the first block of a spine document, so it gets the break."""
     doc = Document(source_path="x.epub", source_format="epub")
     doc.pages = [
         Page(
@@ -51,12 +52,26 @@ def test_reflow_starts_each_chapter_on_a_new_page(tmp_path: Path) -> None:
             height=0.0,
             blocks=[
                 _block("intro paragraph with enough text to fill some space " * 20, BlockRole.BODY, 12.0),
+            ],
+        ),
+        Page(
+            number=2,
+            width=0.0,
+            height=0.0,
+            blocks=[
                 _block("CHAPTER I", BlockRole.HEADING, 18.0),
                 _block("chapter one body " * 30, BlockRole.BODY, 12.0),
+            ],
+        ),
+        Page(
+            number=3,
+            width=0.0,
+            height=0.0,
+            blocks=[
                 _block("CHAPTER II", BlockRole.HEADING, 18.0),
                 _block("chapter two body " * 30, BlockRole.BODY, 12.0),
             ],
-        )
+        ),
     ]
     out = tmp_path / "reflow.pdf"
     generate_reflowed_pdf_from_docir(doc, out)
@@ -72,3 +87,32 @@ def test_reflow_starts_each_chapter_on_a_new_page(tmp_path: Path) -> None:
     assert "CHAPTER I" in chapter_pages and "CHAPTER II" in chapter_pages
     # The two chapter headings must be on different pages (page-break enforced).
     assert chapter_pages["CHAPTER I"] != chapter_pages["CHAPTER II"]
+
+
+def test_a_heading_inside_a_chapter_does_not_start_a_page(tmp_path: Path) -> None:
+    """Only a chapter start breaks. Every heading breaking is what gave a real book 105 sparse pages.
+
+    Measured on a 436-page rebuild of the Gutenberg book: one 12pt word per page for the whole
+    table of contents and every poem-form heading. After the break moved to the spine boundary the
+    same book came out 176 pages with 2 sparse pages.
+    """
+    doc = Document(source_path="x.epub", source_format="epub")
+    doc.pages = [
+        Page(
+            number=1,
+            width=0.0,
+            height=0.0,
+            blocks=[
+                _block("body text before the heading " * 12, BlockRole.BODY, 12.0),
+                _block("A HEADING MIDWAY", BlockRole.HEADING, 13.0),
+                _block("body text after the heading " * 12, BlockRole.BODY, 12.0),
+            ],
+        )
+    ]
+    out = tmp_path / "reflow.pdf"
+    generate_reflowed_pdf_from_docir(doc, out)
+
+    pdf = pymupdf.open(str(out))
+    assert pdf.page_count == 1, f"a heading inside a chapter must not open a page ({pdf.page_count} pages)"
+    text = pdf[0].get_text()
+    assert "body text before" in text and "A HEADING MIDWAY" in text and "body text after" in text
