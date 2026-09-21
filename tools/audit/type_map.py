@@ -79,6 +79,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run", type=Path)
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--flattened-by-page", action="store_true")
     args = ap.parse_args()
 
     src_dir, out_dir = args.run / "src", args.run / "out"
@@ -113,14 +114,25 @@ def main() -> int:
     total = sum(counts.values())
     summary = ", ".join(f"{k}={v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
     print(f"{name}: {total} boxes - {summary}")
+    if args.flattened_by_page:
+        for fname in sorted({r[0] for r in rows if r[1] == "flattened"}):
+            n = sum(1 for r in rows if r[1] == "flattened" and r[0] == fname)
+            print(f"--- {fname}: flattened={n}")
+        return 0
     if args.verbose:
         for label in ("flattened", "grown", "mixed", "shrunk"):
             picked = [r for r in rows if r[1] == label]
             if not picked:
                 continue
             print(f"--- {label} ({len(picked)})")
-            for fname, _v, text, sizes, best, _x in picked[:10]:
-                print(f"    {fname}: kaynak={sorted(sizes)} çıktı={sorted(best)}  {text!r}")
+            shown: set[str] = set()
+            for fname, _v, text, sizes, best, _x in picked:
+                if len(shown) >= 10:
+                    break
+                line = f"    {fname}: kaynak={sorted(sizes)} çıktı={sorted(best)}  {text!r}"
+                if line not in shown:
+                    shown.add(line)
+                    print(line)
     return 0
 
 
