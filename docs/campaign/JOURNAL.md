@@ -2441,7 +2441,32 @@ sayfa yeniden çıkarılırken kutu başına boyut kümesinin değişmesi olası
 **Bu tablo, önceki iki tablonun yerine geçer.** İlki saklı koşuyu taban alıyordu (eski motor) ve
 "+4 ezilme bedeli" o kusurdan geliyordu; ikincisi aynı kusuru beş belgeye yayıyordu ve ölçütlerde
 görünen "iyileşmeler" (plos L3 8 -> 0, irs_p505_rewritten L7 10 -> 0) da eski motorun eseriydi -
-iki kolu da yeniden yazınca ikisi de kayboldu. Varsayılan yine de **kapalı**: karar kullanıcının.
+iki kolu da yeniden yazınca ikisi de kayboldu. Ayarın kendini açma şartı buydu: uyarısı "ölçülmeden açılmaz" diyordu. Ölçüm yapıldı, kullanıcı da
+"sen test ettiysen açabilirsin" dedi - **varsayılan artık açık** (`default=True`), etiketteki
+"(deneysel)" kaldırıldı, yardım ve uyarı metinleri ölçülen sayılarla değiştirildi. Kararı bir daha
+sessizce geri çevirmeyi imkânsız kılmak için `test_the_default_is_on_and_only_a_measurement_turns_it_off`
+yazıldı: varsayılanı çevirmek isteyenin aynı iki-kollu A/B'yi yeniden yapması gerekiyor.
+
+### Açık kusur: çevrilmiş EPUB geçersiz XHTML döndürüyor (kaynak: kıyas isteği)
+
+`gutenberg_56464` çevirisinde (`_artifacts/heldout/live/gutenberg_56464/gutenberg_56464.tr.epub`) bir
+belge **geçersiz** çıkıyor: `OEBPS/6311803512635209464_56464-h-8.htm.xhtml`, satır 22, sütun 5617,
+"mismatched tag". Ölçüm: kaynak EPUB'ta **14 belge, 0 bozuk**; çevrilmiş EPUB'ta **1 belge bozuk**.
+Etiket farkı: kaynakta olup çeviride olmayan - 1 adet `<div>` açılışı (bu yüzden dosyada 45 açılış /
+46 kapanış), 1 `<span>` + 1 `</span>` çifti, 3 farklı `<a href>` açılışı (karşılık gelen iki `</a>`
+duruyor). MuPDF bunu tolere ediyor (uyarı basıp açıyor); katı okuyucular reddeder. Yani EPUB→PDF
+çiftinin önündeki gerçek engel burada: çıktı kendi başına geçerli değil.
+
+Denenip **elenen** yol: `epub_writer._apply_edits` içindeki üst üste binme. Düzenlemeler blok
+aralıklarından (ayrık) ve `<img>` alt/title değer aralıklarından geliyor; ikincisi bloğun içinde
+kalabildiği için gerçekten üst üste biniyor ve `cursor` geri gidebiliyordu (metin çoğaltan bir hata,
+artık kapatıldı), ama kaybolan `<a>`/`<span>`/`<div>` bunun eseri değil - blok yeniden yazılırken
+satır-içi işaretlemenin yalnız kalın/italik taşınması (kodun kendi yorumu bunu söylüyor). Kusur
+**açık**: reprodüksiyon bir `<p>` içindeki bağlantıyı çevirip `<a href>`in durup durmadığına bakmak.
+
+Ders (kendi hatam): aynı dosyada test eklerken import satırını değiştirdim ve 11 testi kırdım; bunu
+"düzeltmem bozuk" sanıp geri aldım - yanlış teşhis. Şüpheli bir kırılmada önce **kendi değişikliğini**
+`git stash` ile ayır, sonra suçla.
 
 ### Araç tuzağı: `rewrite_run.py` ayarları yüklemiyor
 
