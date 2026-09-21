@@ -231,10 +231,17 @@ sayılır ✓; erase'ten vazgeçilir ve `False` dönülür → çağıran **kend
 örneklenmiş arka plan rengi ✓) boyar ✓✓. Renkli panelde orijinal yazı böylece temiz kapanıyor ✓.
 
 **Açık kalan:** dolgu hâlâ bloğun **tam kutusu** ✗; taşan glif uçları için ~1,5 pt pay **ölçülmedi** ✗.
-Resimli **iç** sayfada da ölçüm eksik ✗ (OCR kutusu genişse komşu grafiği boyama riski sürüyor ✗).
+
+**İç sayfa ölçümü (kullanıcı uyarısı üzerine - "kapağı düzelteceğim diye sayfa çevirilerini bozma"):**
+Aynı kaynak, **aynı hedef yazı**, kural 120 ve 255 ile iki kez yazıldı → sıradan kâğıt sayfada iki
+çıktı **piksel piksel aynı** ✓✓ (fark **0 piksel** ✓; ikisi de kaynağa göre 4.945 piksel değiştiriyor -
+o da çevrilen yazının kendisi ✓). Fark yalnız **renkli panel** kutularında ✓. Test:
+`test_the_panel_rule_never_changes_a_paper_page` (kural kâğıda sızarsa test kırmızı ✓). Kanıt: `8a13d3b`.
+**Yan bulgu ✗:** OCR, doygun panel **üstündeki yazıyı** çoğu zaman hiç bulmuyor ✗ (sarı-kırmızı kapakta ✗,
+siyah-kırmızı şekilde ✗) → o kutular zaten çevrilmiyor ✓.
 
 **Risk:** Zemin dolgusu, metnin altındaki **resmi** de boyar ✗ - görselin üstündeki yazıda istenen bu ✓,
-ama yanlış kutu komşu grafiği de boyayabilir ✗. Bu yüzden iç sayfa ölçümü şart ✗.
+ama yanlış kutu komşu grafiği de boyayabilir ✗. Rengi doygun panelde ölçüm yapıldı ✓; taşma payı hâlâ açık ✗.
 
 **Kanıt:** `ElmasriBook.pdf` sayfa 1 (`get_text()` boş, `get_images()` 700×866) · kutu ölçümü
 20.369 → 44.436 → 3.960 · `tests/test_pdf_writer_scanned_paper.py` (renkli panel testi) · `51aee55`.
