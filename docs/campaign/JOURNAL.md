@@ -2295,3 +2295,31 @@ dahil her amaç, bir önceki kolun gerçek model koşusuyla A/B'dir; kutu başı
 önce/sonrası ölçülür, L7 artışı da okunur. A/B bu gece yapılmayacak — makine saat başında boşaldı
 ve kısaltma merdiveni yolu ölçümünden çözüm çıkmadı; flattened yazıcı değişikliği ayrı bir kuyruk
 öğesi olarak jurnalde öyle duruyor.
+
+## Gece nöbeti: arXiv 2601.00135 (CC BY 4.0) EN->TR koşusu — iki tur
+
+Yeni açık kaynak ilk defa koşuldu. İlk tur *geçersizdi ve silindi*: koşucu çalışma dizisini
+(`--work`) vermediğimde `_artifacts/heldout/live/src`, r2/r3 koşularının TCK parçalarıyla
+doluydu ve koşu oartefakt parçaları okudu; çıktı TCK metni taşıdı. Ders: uzun koşular her zaman
+kendi `--work` dizinini alır, paylaşılan `live/src` asla doğrudan kullanılmaz.
+
+İkinci tur temiz çalışma diziniyle (`work_arxiv`) koşuldu: 6 parça / 2 işçi, 29,5 dk, exit=0,
+24 sayfa birleşti. Kayıt `_artifacts/heldout/live/arxiv_2601_00135_run/` altına taşındı
+(kök dizine yazılan merge PDF'i — araç `--out` göreli yolun çalışma dizinine yazılan bilinen
+ayrıntısı). Denetim (`--to tr`):
+
+| ölçüt | değer |
+|---|---|
+| L1, L4, L5, L7, L9, L10 | 0 |
+| L2 left untranslated | 6 |
+| **L3 text not on the page** | **20** |
+| L6 numbers lost | 5 |
+| L8 untouched moved | 1 |
+| D1 readability floor | 97 |
+| D2 | 3 |
+| D3 squeezed | 9 |
+
+Karakteristik: yoğun matematik formül paragrafları — model denklem ağır satırları çevirmede
+taşıyamıyor (L2/L3 açık); D1 kısmen formül satırlarının küçültülmesi. dipnottar (L3'ün dağılımı)
+sonraki analiz için örnek girdi. Gutenberg #56464'ün EPUB koşusu tamamlanmıştı; sitedeki yerini
+EPUB karşılaştırma girdisi ayrı iş olarak bekliyor.
