@@ -93,6 +93,51 @@ def test_the_source_ink_is_still_removed(tmp_path: Path) -> None:
     assert (band.mean(2) < 90).sum() == 0, "source glyphs survived the clearing"
 
 
+def test_a_coloured_panel_is_painted_over_instead_of_ink_erased(tmp_path: Path) -> None:
+    """The Elmasri cover: a yellow title on a red panel. Otsu splits the box into two populations and
+    on a panel the DARKER one is the background - so erasing "ink" took the panel and left the title
+    showing, while returning True, which meant the rectangle fill the caller keeps as a fallback never
+    ran. Measured median saturation: 201 on that cover, 52-56 on yellowed paper. A saturated box now
+    declines and the caller paints its rectangles.
+    """
+    scale = FIXTURE_DPI / 72.0
+    width, height = int(PAGE_W_PT * scale), int(PAGE_H_PT * scale)
+    image = Image.new("RGB", (width, height), (176, 32, 40))
+    draw = ImageDraw.Draw(image)
+    font = _font(int(11 * scale))
+    top = int(_TEXT_TOP_PT * scale)
+    draw.text((int(40 * scale), top), "Fundamentals of Database Systems", fill=(240, 236, 80), font=font)
+    png = tmp_path / "cover.png"
+    image.save(png)
+    src = tmp_path / "cover.pdf"
+    raw = pymupdf.open()
+    page = raw.new_page(width=PAGE_W_PT, height=PAGE_H_PT)
+    page.insert_image(pymupdf.Rect(0, 0, PAGE_W_PT, PAGE_H_PT), filename=str(png))
+    raw.save(str(src))
+
+    doc = read_pdf(src)
+    segments = segments_from_document(doc)
+    for seg in segments:
+        seg.target = "Veritabanı Sistemleri"
+    apply_segments(doc, segments)
+    out = tmp_path / "out.pdf"
+    write_pdf(doc, src, out)
+
+    after = _render(out)
+    band = after[
+        int((_TEXT_TOP_PT - 2) * scale) : int((_TEXT_TOP_PT + 14) * scale),
+        int(35 * scale) : int(280 * scale),
+    ]
+    yellow = ((band[:, :, 0] > 170) & (band[:, :, 1] > 170) & (band[:, :, 2] < 140)).sum()
+    assert yellow == 0, f"the source title is still visible on the panel ({yellow} yellow pixels)"
+
+    patch = after[
+        int((_TEXT_TOP_PT - 6) * scale) : int((_TEXT_TOP_PT + 18) * scale),
+        int(35 * scale) : int(280 * scale),
+    ]
+    assert patch[:, :, 2].mean() < 110, "the fill must be the panel's own colour, not a white patch"
+
+
 def test_a_ruled_line_through_the_cleared_box_survives(tmp_path: Path) -> None:
     """Book page 101, round 5: clearing a table's header words also erased the table's rules.
     Everything darker than the box's paper was taken for ink, and a rule crossing the box is dark.

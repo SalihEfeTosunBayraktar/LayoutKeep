@@ -398,6 +398,13 @@ def _cover_scanned_blocks(
 #: Of the page's area, how much one image must cover to be taken as the scan itself.
 _SCAN_IMAGE_COVERAGE = 0.9
 
+#: Median saturation (0-255) above which a box is not paper but a coloured panel. Ink erasing is
+#: written for paper, and on a panel the Otsu split puts the BACKGROUND in the ink population: it
+#: then erases the panel and leaves the original text showing, while returning True so the caller's
+#: rectangle fill never ran. Measured medians: 201, 201, 202 on the Elmasri cover's title, boxes and
+#: 52-56 on the yellowed paper of the 1895 mushroom scans - 120 sits between them with room.
+_SCAN_PAPER_MAX_SATURATION = 120
+
 
 def _scan_pixels(pixmap: pymupdf.Pixmap) -> np.ndarray:
     """The scan's pixels as an H x W x 3 uint8 array.
@@ -466,6 +473,12 @@ def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, flo
     if scan is None:
         return False
 
+    #: Set when a box was actually cleaned from the scan's own pixels.
+    cleaned_any = False
+    #: Set when a box turned out not to be paper at all - a coloured cover, where erasing "ink"
+    #: would erase the panel and leave the original text showing. The caller must then paint.
+    declined = False
+
     document = page.parent
     pixmap = pymupdf.Pixmap(document, scan["xref"])
     pixels = _scan_pixels(pixmap)
@@ -489,6 +502,17 @@ def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, flo
         crop = pixels[my0:my1, mx0:mx1]
         grey = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
         box = grey[py0 - my0 : py1 - my0, px0 - mx0 : px1 - mx0]
+        # Paper is grey; a coloured panel is not. On the Eleventh book's cover the Otsu split put the
+        # RED BACKGROUND in the "ink" population and the yellow title in the "paper" one, so this
+        # function erased the background and left the original title showing - and returned True, so
+        # the rectangle fill the caller keeps as a fallback never ran. Median saturation tells the two
+        # apart without guessing at colours: measured 190+ on that cover, under 40 on paper scans.
+        box_saturation = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)[
+            py0 - my0 : py1 - my0, px0 - mx0 : px1 - mx0, 1
+        ]
+        if float(np.median(box_saturation)) > _SCAN_PAPER_MAX_SATURATION:
+            declined = True
+            continue
         _threshold, ink = cv2.threshold(box, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         run = max(3, round(2 * max(type_size, 1.0) * min(sx, sy)))
         rules = cv2.bitwise_or(
@@ -512,7 +536,10 @@ def _erase_ink_from_scan(page: pymupdf.Page, rects: list[tuple[pymupdf.Rect, flo
             stream=encoded.tobytes(),
             overlay=True,
         )
-    return True
+        cleaned_any = True
+    # Only a pass that cleaned EVERY box may claim success: otherwise the caller paints rectangles
+    # for all of them, and a page half-cleaned and half-painted would show both treatments at once.
+    return cleaned_any and not declined
 
 
 def _fill_color(block: Block) -> tuple[float, float, float]:
