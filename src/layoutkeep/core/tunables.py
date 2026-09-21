@@ -50,6 +50,8 @@ class Tunable:
     #: an empty group means "no heading", which is how the list read before there were enough
     #: entries to need any.
     group: str = ""
+    #: For a setting with a fixed set of values: (value, label) pairs, shown as a dropdown.
+    choices: tuple[tuple[str, str], ...] = ()
 
 
 TUNABLES: tuple[Tunable, ...] = (
@@ -706,6 +708,44 @@ TUNABLES: tuple[Tunable, ...] = (
         maximum=600.0,
         help_text="Sunucu 'şu kadar bekle' derse en fazla bu kadar beklenir.",
         warning="Yükseltmek uygulamayı donmuş gibi gösterebilir.",
+    ),
+    # -- ek test araçları ---------------------------------------------------
+    # Kurulum ekranından buraya taşındı: her çeviride karşılaştırma sayfası üretmek isteyen
+    # kullanıcı sayısı az, ama seçenek orada durup asıl kararları kalabalıklaştırıyordu.
+    Tunable(
+        key="output.dual_mode",
+        label="Çift dilli PDF (kaynak + çeviri)",
+        default="",
+        kind="str",
+        section=ADVANCED,
+        group="Ek test araçları",
+        choices=(
+            ("", "Kapalı"),
+            ("side", "Yan yana (kaynak solda)"),
+            ("alternate", "Dönüşümlü sayfalar"),
+        ),
+        help_text=(
+            "Açıkken çevrilmiş dosyanın yanına ikinci bir PDF yazılır: kaynak ve çeviri yan yana "
+            "ya da dönüşümlü sayfalar hâlinde. Aynı içeriği iki kez taşıdığı için dosya büyür."
+        ),
+        warning="Denetim ve nitelik ölçütleri ana çıktıyı okur; çift dilli dosya onlara girmez.",
+    ),
+    Tunable(
+        key="output.timing_report",
+        label="Zaman tablosu yaz (hangi aşama ne kadar sürdü)",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="Ek test araçları",
+        help_text=(
+            "Koşu bitince çıktının yanına bir HTML tablo yazılır: okuma, bölme, çeviri, sığdırma, "
+            "uygulama ve yazma aşamalarının saniyesi, yüzdesi ve istek sayısı. Ayar kapalıyken "
+            "hiçbir şey yazılmaz."
+        ),
+        warning=(
+            "Ölçüm yalnız aşama sürelerini tutar; çeviri çıktısını değiştirmez. Dosya adı "
+            "'<çıktı>.timing.html' olur."
+        ),
     ),
 )
 

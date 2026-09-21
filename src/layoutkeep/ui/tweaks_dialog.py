@@ -61,6 +61,13 @@ def _editor_for(spec: tunables.Tunable) -> QWidget:
     text - not in a second dialog the user has to find.
     """
     value = tunables.get(spec.key)
+    if spec.choices:
+        combo = QComboBox()
+        for choice_value, choice_label in spec.choices:
+            combo.addItem(choice_label, choice_value)
+        index = combo.findData(str(value or ""))
+        combo.setCurrentIndex(index if index >= 0 else 0)
+        return combo
     if spec.kind == "bool":
         check = QCheckBox()
         check.setChecked(bool(value))
@@ -84,6 +91,8 @@ def _editor_for(spec: tunables.Tunable) -> QWidget:
 
 def _editor_value(editor: QWidget) -> Any:
     """The editor's current value, whichever kind of editor it is."""
+    if isinstance(editor, QComboBox):
+        return editor.currentData()
     if isinstance(editor, QCheckBox):
         return editor.isChecked()
     if isinstance(editor, QLineEdit):
@@ -95,7 +104,10 @@ def _editor_value(editor: QWidget) -> Any:
 
 def _set_editor_value(editor: QWidget, value: Any) -> None:
     """Put a value back into an editor of any kind (used by Reset)."""
-    if isinstance(editor, QCheckBox):
+    if isinstance(editor, QComboBox):
+        index = editor.findData(str(value or ""))
+        editor.setCurrentIndex(index if index >= 0 else 0)
+    elif isinstance(editor, QCheckBox):
         editor.setChecked(bool(value))
     elif isinstance(editor, QLineEdit):
         editor.setText(str(value or ""))

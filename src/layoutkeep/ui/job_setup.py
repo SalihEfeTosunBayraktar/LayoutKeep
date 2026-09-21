@@ -182,15 +182,9 @@ class _JobSetupUiBuilder:
         # What the range means for the OUTPUT, said where the range is chosen: a range used to
         # narrow only the translation while the output stayed the whole book, and that surprise
         # is what this line exists to prevent.
-        # Çift dilli PDF: ayrı bir çıktı dosyası. Kapalı varsayılan - asıl çıktı ve denetim
-        # değişmediği için isteğe bağlı bir kolaylık.
-        self._dual_mode = QComboBox()
-        self._dual_mode.addItem(UIStrings.DUAL_OFF, "")
-        self._dual_mode.addItem(UIStrings.DUAL_SIDE, "side")
-        self._dual_mode.addItem(UIStrings.DUAL_ALTERNATE, "alternate")
-        self._dual_hint = QLabel(UIStrings.DUAL_HINT)
-        self._dual_hint.setProperty("class", "muted")
-        self._dual_hint.setWordWrap(True)
+        # Çift dilli PDF: ayrı bir çıktı dosyası, kapalı varsayılan. Seçimi kurulum ekranından
+        # Gelişmiş Ayarlar → "Ek test araçları" altına taşındı (output.dual_mode); burada yalnız
+        # işin kullandığı değer okunur.
 
         self._range_hint = QLabel(UIStrings.RANGE_HINT)
         self._range_hint.setObjectName("rangeHint")
@@ -312,13 +306,6 @@ class _JobSetupUiBuilder:
         grid.addWidget(self._range_label, 3, 0)
         grid.addLayout(range_row, 3, 1, 1, 2)
         grid.addWidget(self._range_hint, 5, 1, 1, 2)
-        self._dual_label = _icon_label("layers", UIStrings.DUAL_LABEL)
-        grid.addWidget(self._dual_label, 6, 0)
-        dual_row = QHBoxLayout()
-        dual_row.addWidget(self._dual_mode)
-        dual_row.addStretch()
-        grid.addLayout(dual_row, 6, 1, 1, 2)
-        grid.addWidget(self._dual_hint, 7, 1, 1, 2)
         grid.addWidget(self._provider_label, 4, 0)
         grid.addWidget(self._provider_profile_combo, 4, 1)
         grid.addWidget(self._provider_btn, 4, 2)
@@ -390,7 +377,6 @@ class _JobSetupUiBuilder:
         # These two were read once at construction and never again, so they stayed in whatever
         # language the window was built in. Seen by driving the built exe: an English dual-output
         # hint sitting in a Turkish window next to Turkish labels.
-        self._dual_hint.setText(UIStrings.DUAL_HINT)
         self._range_hint.setText(UIStrings.RANGE_HINT)
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_mode.setItemText(0, UIStrings.RANGE_ALL)
@@ -639,7 +625,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             target_lang=self._target_lang.currentText(),
             provider=provider,
             page_range=page_range,
-            dual_mode=self._dual_mode.currentData() or "",
+            dual_mode=str(tunables.get("output.dual_mode") or ""),
             memory_path=_memory_path(),
             glossary_path=_glossary_path(),
         )

@@ -24,6 +24,7 @@ from layoutkeep.core.docir import (
     save_project,
     segments_from_document,
 )
+from layoutkeep.core.timing import PhaseTimer, TimingReport
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.translation_loop import _run_translation_loop
@@ -334,10 +335,15 @@ class TranslationWorker(QThread):
         config = self._config
         src = Path(config.input_path)
         out = Path(config.output_path)
+        # Where the time went. Filled as the run goes and, when the user asked for it, written next
+        # to the output at the end - the same directory, so the report travels with its document.
+        self._timing = TimingReport(document=src.name)
+        phases = PhaseTimer(self._timing)
 
         self.status.emit("reading document")
         try:
-            doc = _read_document(src)
+            with phases.phase("read", src.suffix.lower() or "input"):
+                doc = _read_document(src)
         except FileNotFoundError as exc:
             # A1: eksik/okunamayan girdi traceback degil, tek cumle / missing input → one line
             self.failed.emit(str(exc))
@@ -348,7 +354,8 @@ class TranslationWorker(QThread):
         doc.source_lang = config.source_lang
         doc.target_lang = config.target_lang
 
-        segments = self._filter_segments(doc, config)
+        with phases.phase("segment", "segments in range"):
+            segments = self._filter_segments(doc, config)
         total = len(segments)
         if total == 0:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
@@ -359,21 +366,36 @@ class TranslationWorker(QThread):
         self.progress.emit(0, total)
         self.progress_detailed.emit(0, total, 0, total_chars, 0.0, "")
 
-        translated = _run_translation_loop(
-            self,
-            provider,
-            memory,
-            segments,
-            total,
-            total_chars,
-            source_lang=config.source_lang,
-            target_lang=config.target_lang,
-            glossary=glossary_terms,
-        )
+        with phases.phase("translate", f"{total} segments, {total_chars:,} chars"):
+            translated = _run_translation_loop(
+                self,
+                provider,
+                memory,
+                segments,
+                total,
+                total_chars,
+                source_lang=config.source_lang,
+                target_lang=config.target_lang,
+                glossary=glossary_terms,
+            )
         if translated is None:
             return
 
-        self._finalize_document(doc, translated, src, out, config, provider)
+        self._finalize_document(doc, translated, src, out, config, provider, phases)
+        self._write_timing_report(out)
+
+    def _write_timing_report(self, out: Path) -> None:
+        """Write the phase breakdown beside the output, and only when the setting asks for it."""
+        timing = getattr(self, "_timing", None)
+        if timing is None or not tunables.get("output.timing_report"):
+            return
+        target = out.with_name(f"{out.stem}.timing.html")
+        try:
+            written = timing.write_html(target)
+        except OSError as exc:
+            self.status.emit(f"timing report could not be written: {exc}")
+            return
+        self.status.emit(f"timing report: {written.name}")
 
     def _filter_segments(self, doc: Document, config: JobConfig) -> list[Segment]:
         # Belgeden segmentleri çıkarır ve aralığa göre filtreler / Extracts and filters segments
@@ -398,10 +420,17 @@ class TranslationWorker(QThread):
         out: Path,
         config: JobConfig,
         provider=None,
+        phases: PhaseTimer | None = None,
     ) -> None:
         from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
         from layoutkeep.providers.retry import retry_untranslated
 
+        # A run started from a test or a script may not want timings; a throwaway timer keeps every
+        # `with phases.phase(...)` below valid without a branch on each one.
+        phases = phases or PhaseTimer(TimingReport())
+        flagged = sum(1 for segment in translated if segment.needs_review)
+        if getattr(self, "_timing", None) is not None:
+            self._timing.flagged = flagged
         # Same order as the CLI, and for the same reason: a segment with no reply is usually one
         # the parser could not line up with its batch, so it is asked for again before anything
         # is flagged. What is still missing afterwards keeps its SOURCE text in the output, so
@@ -433,10 +462,12 @@ class TranslationWorker(QThread):
         # PDF: translated text must fit its original boxes, exactly like the CLI fits it
         # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).
         if src.suffix.lower() == ".pdf":
-            self._fit_pdf_pass(doc, translated, config, provider)
+            with phases.phase("fit", "PDF pass"):
+                self._fit_pdf_pass(doc, translated, config, provider)
 
         self.status.emit("applying translation")
-        apply_segments(doc, translated)
+        with phases.phase("apply", f"{len(translated)} segments"):
+            apply_segments(doc, translated)
 
         self.status.emit("writing output")
         output_doc, range_pages = _output_document(doc, config)
@@ -449,10 +480,12 @@ class TranslationWorker(QThread):
         # the whole book in the output (the pages the range left out simply went untouched).
         write_source = slice_path or src
         try:
-            _write_document(output_doc, write_source, out)
-            verification = self._verify(
-                output_doc, translated, write_source, out, config, provider, source_slice=slice_path
-            )
+            with phases.phase("write", out.suffix.lower() or "output"):
+                _write_document(output_doc, write_source, out)
+            with phases.phase("verify", "lossless audit"):
+                verification = self._verify(
+                    output_doc, translated, write_source, out, config, provider, source_slice=slice_path
+                )
         finally:
             if slice_path is not None:
                 slice_path.unlink(missing_ok=True)
