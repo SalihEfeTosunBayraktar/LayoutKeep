@@ -2333,9 +2333,26 @@ kutusunda kırpılmış. Yalnızca `Aritmetik denklemler…` bulunamadı (kırp�
 matematik paragrafları için aynı şeyi not ediyor (okuyucu bir sayfa formülü tek 79 pt "satır" olarak
 birleştirdi, hiçbir şey sığamadı, denetim sayfada duran sekiz bloğu "düşmüş" saydı).
 
-**Sıradaki iş bu yüzden okuyucuda:** formül yoğun satırların tek bir dev satıra birleştirilmesini
-engellemek (L3'ün yanı sıra D1'in de bir kısmını açıklar), sonra aynı koşuda L3'ü yeniden ölçmek.
-Model çağrısı gerekmiyor; `type_map.py` ve bu arama birlikte yeter.
+**Sıradaki iş bu yüzden kriterin kendisindeydi — ve ölçüldü.** L3 "kaç kelime eksik" demediği için
+iki okuyucu (nöbet ve bu satırları yazan) aynı sayıyı yanlış okudu. Detay artık
+`<eksik> of <toplam> words not on the page` yazıyor (`verify.py`; `missing == total` = sayfada hiç
+olmayan blok, daha azı = kırpılmış blok) ve testli (`tests/test_verify_l3_counts.py`).
+
+Aynı koşu bu detayla yeniden ölçüldü (parça 0, 7 L3):
+
+```
+10 of 67 words not on the page: Özet. Let A bir sonlu cisim…
+ 7 of 41 words not on the page: |A| ≫p koşulunu…
+ 1 of  9 words not on the page: SONLU ALANLAR VE HÜKÜMLER…
+ 1 of  5 words not on the page: 2020 Matematik Ders Sınıflandırması…
+ 1 of  5 words not on the page: O halde en az εqs−1 tane çözüm…
+```
+
+**Hepsi kırpılmış, hiçbiri kayıp değil** ✓ — "N of N" hâli bu koşuda hiç çıkmadı ve kayıp 1-10
+kelimelik kuyruklar. Yani L3'ün 20'si ne "model formülü taşıyamadı" ne "okuyucu birleştirdi": hedef
+dil uzun olduğu için **son satır kutuya sığamıyor**, fitting kırpıyor ve blok incelemeye düşüyor —
+D1'in aynı sayfada işaretlediği bloklarla aynı küme. Sıradaki iş bu yüzden hâlâ kutu/sığdırma
+kaldıracı (D1'in kaldıracı), okuyucu değil.
 
 ## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
 

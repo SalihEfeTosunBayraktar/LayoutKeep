@@ -229,8 +229,22 @@ def _page_losses(source_page, page, page_data, index: int, source_markup: set[st
             continue
         need = Counter(written)
         present = sum(min(n, on_page[w]) for w, n in need.items())
-        if present / sum(need.values()) < _PRESENT_SHARE:
-            losses.append(Loss("L3", index, block.text[:90], (block.id,)))
+        total = sum(need.values())
+        if present / total < _PRESENT_SHARE:
+            # Name how much is missing, not just that something is. A block whose tail was clipped at
+            # the bottom of its box and a block that was never drawn at all are two different faults,
+            # and the message used to read the same for both: the new-source run's `L3 = 20` was read
+            # as twenty lost blocks when it was twenty clipped ones, by two different readers of the
+            # number. `missing == total` is the block that is not on the page; anything less is a
+            # block the fitting could not fit.
+            losses.append(
+                Loss(
+                    "L3",
+                    index,
+                    f"{total - present} of {total} words not on the page: {block.text[:70]}",
+                    (block.id,),
+                )
+            )
     return losses
 
 
