@@ -2203,3 +2203,16 @@ ayarlamak. Fibonacci-vari kısaltma stratejisi ölçülmeden yapılmayacak; jurn
 
 Ayrıca: r2 çıktısı `_artifacts/heldout/live/tr_tck_5237_r2/` altına alındı (çalışma dizinini --out
 göreli bırakınca proje köküne yazan bir araç ayrıntısı的原因; görsel olarak aynı).
+
+## Gece nöbeti: Gutenberg #56464 (Turkish Literature) EN->TR koşusu bitti
+
+Yeni açık kaynak ilk defa koşuldu: Project Gutenberg #56464 — "Turkish Literature; Comprising
+Fables, Belles-lettres, and Sacred Traditions" (kamu malı, EPUB, 11 bölüm). `translate_epub.py`
+3 bölüm parçası / 2 işçi, 75,5 dakika, exit=0. Çıktı + proje + parça kayıtları
+`_artifacts/heldout/live/gutenberg_56464/` altında; koşu günlüğü `run_log.txt`.
+
+Talimat: EPUB kaynağı `translate_book.py`'ye verilmez (kaynağı PDF parçalara böler, "source or
+target not a PDF" ile ölür); EPUB için `translate_epub.py` doğru araçtır. Bat dosyası güncellendi.
+
+Sıradaki gece işi: bu koşunun `lossless_audit.py` denetimi ve karşılaştırma sitesine eklenmesi
+(arXiv 2601.00135 CC BY 4.0 da sıradadır).
