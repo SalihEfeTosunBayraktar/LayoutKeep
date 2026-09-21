@@ -67,6 +67,14 @@ def _editor_for(spec: tunables.Tunable) -> QWidget:
             combo.addItem(choice_label, choice_value)
         index = combo.findData(str(value or ""))
         combo.setCurrentIndex(index if index >= 0 else 0)
+        # A combo sizes itself to its longest entry, and one entry reading "yan yana (cift dilli PDF)"
+        # dragged the dialog's sizeHint - and with it the dialog - out to 1322 px, while the window
+        # already sat at 760. The widest field wins; every label stays readable in the tooltip.
+        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMinimumContentsLength(22)
+        combo.setMaximumWidth(_FIELD_WIDTH)
+        combo.setSizePolicy(QSizePolicy.Policy.Fixed, combo.sizePolicy().verticalPolicy())
+        combo.setToolTip(" · ".join(label for _value, label in spec.choices))
         return combo
     if spec.kind == "bool":
         check = QCheckBox()
