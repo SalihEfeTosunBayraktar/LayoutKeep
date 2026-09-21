@@ -149,11 +149,11 @@ def is_scanned_page(
     no picture information - still gets the density answer on its own.
     """
     characters = len(extracted_text.strip())
-    if image_coverage < _SCANNED_IMAGE_COVERAGE:
+    if image_coverage < tunables.get("reader.scan_image_coverage"):
         return False
     if page_area_pt2 <= 0:
         return characters == 0
-    return characters / (page_area_pt2 / 1000.0) < _SCANNED_TEXT_DENSITY
+    return characters / (page_area_pt2 / 1000.0) < tunables.get("reader.scan_text_density")
 
 
 def read_image(path: str | Path, *, engine: OcrEngine | None = None) -> Document:

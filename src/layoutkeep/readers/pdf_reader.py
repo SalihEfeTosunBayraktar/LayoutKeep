@@ -487,7 +487,7 @@ def _is_searchable_scan(page: pymupdf.Page, coverage: float) -> bool:
     campaign's five books are built this way (archive.org "Text PDF"), and so were pages 4-10 of
     the NASA report.
     """
-    if coverage < _SCANNED_IMAGE_COVERAGE_FOR_LAYER:
+    if coverage < tunables.get("reader.scan_image_coverage_layer"):
         return False
     visible = invisible = 0
     for trace in page.get_texttrace():

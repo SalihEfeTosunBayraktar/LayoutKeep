@@ -357,6 +357,64 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="reader.scan_text_density",
+        label="Taranmış sayfa: metin yoğunluğu eşiği",
+        default=1.0,
+        kind="float",
+        section=ADVANCED,
+        group="Tarama",
+        minimum=0.0,
+        maximum=50.0,
+        help_text=(
+            "1000 punto-kare başına düşen karakter sayısı bunun altındaysa sayfa 'metinsiz' sayılır ve "
+            "taranmış kabul edilir. Kapak, afiş ve görsel ağırlıklı ön sayfalar tam bu yüzden çevrilmeden "
+            "geçiyor: üzerlerinde birkaç kelime var, eşiğin altında kalıyorlar. Düşürmek (0 yapmak) bu "
+            "sayfaların metnini OCR yerine normal çeviriye sokar - gerçek taramalarda metin katmanı "
+            "olmadığı için onlar etkilenmez. Sabitin karşılığı: image_reader._SCANNED_TEXT_DENSITY."
+        ),
+        warning=(
+            "Yükseltmek, gerçekten taranmış sayfaları metin sayar ve OCR'ı devre dışı bırakır; onlarda "
+            "metin katmanı olmadığı için o sayfaların çıktısı boş kalır. 0 yapmak tarama sezgisini "
+            "tümden kapatır - o zaman her sayfa metin gibi işlenir."
+        ),
+    ),
+    Tunable(
+        key="reader.scan_image_coverage",
+        label="Taranmış sayfa: görsel kapsama eşiği",
+        default=0.05,
+        kind="float",
+        section=ADVANCED,
+        group="Tarama",
+        minimum=0.0,
+        maximum=1.0,
+        help_text=(
+            "Bir sayfanın taranmış sayılması için görsellerin sayfa alanının en az bu kadarını kaplaması "
+            "gerekir. Tek başına metin yoğunluğu yetmez: resimsiz küçük bir sayfa da 'az metinli' "
+            "görünür ve OCR o zaman olmayan bir metni uydurur. Sabitin karşılığı: "
+            "image_reader._SCANNED_IMAGE_COVERAGE."
+        ),
+        warning="Yükseltmek, kenarında küçük bir görsel olan normal sayfaları tarama saymaya başlar.",
+    ),
+    Tunable(
+        key="reader.scan_image_coverage_layer",
+        label="Aranabilir tarama: görsel kapsama eşiği",
+        default=0.5,
+        kind="float",
+        section=ADVANCED,
+        group="Tarama",
+        minimum=0.0,
+        maximum=1.0,
+        help_text=(
+            "Metin katmanı görünmez olan bir PDF'te (aranabilir tarama) görselin sayfayı kaplama oranı "
+            "bu eşiğin üzerindeyse sayfa tarama sayılır. Sabitin karşılığı: "
+            "pdf_reader._SCANNED_IMAGE_COVERAGE_FOR_LAYER."
+        ),
+        warning=(
+            "Düşürmek, metin katmanı görünmez olan normal PDF'leri tarama saymaya başlar; yükseltmek "
+            "gerçek aranabilir taramaları metin sayar ve üstlerindeki görüntüyü çevirmez."
+        ),
+    ),
+    Tunable(
         key="ocr.needs_review_threshold",
         label="OCR inceleme eşiği",
         default=0.80,
