@@ -2253,3 +2253,20 @@ her sınır vaka ölçümüyle `docs/QUALITY-FACTORS.md`'deki yeni "Known limits
 _TR tablosu yok_ — README.tr.md bu bölümü zaten İngilizce README'ye işaret ediyordu; şimdi
 kaliteli ölçüm sayfasına işaret ediyor. Kuyruğun 3. maddesi için kalan: comparison site yenileme
 (4. madde) sonrası tekrar satır sayısı ölçümü.
+
+## Gece nöbeti: kuyruk 1 kapanış — kısaltma merdiveninin önce/sonra tablosu
+
+Kuyruk madde 1 (TR→EN ezilme oranını düzeltme sonrası yeniden ölçme) üç koşuyla kapandı.
+Ölçüm hep aynı parça üzerinden (`type_map.py`, 74 kutu, model-siz araç):
+
+| koşu | işlenen değişiklik | faithful | shrunk | flattened | mixed |
+|---|---|---|---|---|---|
+| r1 | önbellek düzeltmesi öncesi | 36 | 31 | 6 | 1 |
+| r2 | bütçe-dolu dedupe düzeltmesi | 36 | 31 | 6 | 1 |
+| r3 | sert kısaltma istemi | 36 | 31 | 6 | 1 |
+
+fitting çizgisi de sabit (as_is=31, shrunk=14, overflow=23). İstek başına ölçüt toplamları:
+L2 34→32, diğerleri değişmedi. **Sonuç: üç veri noktası da tipografiyi değiştirmedi** — bu gece
+elinde olan iki kol (isteğin açılması, istemin sertleştirilmesi) için ölçüm eksi. Merdivenin
+çıkmazı istem dilinde değil; sonraki kol daha farklı bir istek *şekli* (ilkeli seçim/kısaltma)
+ya da yön bazlı MIN_SCALE. r1–r3 kayıtları `_artifacts/heldout/live/tr_tck_5237{,_ab,_r2,_r3}/`.
