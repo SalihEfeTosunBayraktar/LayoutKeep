@@ -50,3 +50,11 @@ tests/layout_eval/2026-09-16_e2e_translation/*.jpg
 tests/layout_eval/2026-09-16_heron_pure/*.jpg
 tests/layout_eval/*/run.log
 tests/layout_eval/2026-09-16_e2e_translation/**/*.jpg
+
+# Yerel ajan tanımları (agy / Antigravity CLI): repoya girmez, yalnız bu makinede çalışır.
+# Kural (2026-09-21): agy işleri proje klasörünün DIŞINDAN koşulur; burada koşulursa bıraktığı
+# izler bu satırlarla dışarıda kalır.
+.antigravitycli/
+.agy/
+.gemini/
+agy*.log
