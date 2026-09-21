@@ -222,6 +222,7 @@ def main() -> int:
         preamble += "\nProper nouns (keep recognisable, do not translate literally): " + ", ".join(map(str, nouns))
     terms = data.get("terms") or {}
 
+    out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "preamble.txt").write_text(preamble, encoding="utf-8")
     (out_dir / "glossary_draft.json").write_text(
         json.dumps(terms, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
