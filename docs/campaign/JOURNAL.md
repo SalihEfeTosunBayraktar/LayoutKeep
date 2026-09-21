@@ -2524,3 +2524,53 @@ Testler `tests/test_translate_book_work_dir.py` (6 test, model yok) ve koruma, g
 başka bir belgeyi işaret eden dizinle koşu, model çağrısı yapmadan
 `refusing to reuse ... its chunks were cut from C:/baska/belge/paper.pdf, not .../tck_5237.pdf` diyerek
 durdu.
+
+---
+
+## 2026-09-21 · Gece: sığdırma sürenin %56'sı, ve iki kolda ölçüm
+
+**Kullanıcının kitabı bitti (70 dk 42 sn).** Kullanıcı zaman tablosunu ilk kez gördü ve dağılımı sordu:
+
+| Aşama | Süre | Pay |
+|---|---|---|
+| read | 8 dk 10 sn | %12 |
+| translate | 21 dk 18 sn | %30 |
+| **fit (sığdırma)** | **~39 dk 30 sn** | **%56** |
+| write | 40,5 sn | %1 |
+| verify | 58 sn | %1 |
+
+Sığdırma, çevirinin **iki katına yakın**. Sebebi de görüldü: sığmayan **her kutu için ayrı istek**
+atılıyor (`worker.py` → `provider.translate([segment])`). Kullanıcı bunu LM Studio'da "aynı anda 1
+istek" olarak izledi ve sordu.
+
+**Yapılan:** `fit_pdf_pass`'e `fetch_many` eklendi — tur toplanır, tek istekte sorulur, ikinci geçiş
+yanıtlarla sığdırır (D-010). Gece incelemesi bir hata buldu: toplama turu `on_fitted`'ı da çağırıp
+yanlış ölçeği yazıyor, bayrak açıyor, `box_crushed`'ı iki kez sayıyordu — testle çivildi.
+
+**Kullanıcının fikri (D-011):** karakter bütçesi **çeviriden önce** verilsin. Bulgu: `openai_compat.py`
+zaten `max_len`'i gönderiyor ve "kısa yaz" diyor, ama değer yalnız sığdırma sırasında doluyordu — yani
+talimat hiç ateşlenmiyordu. Artık `translation.prefit_budget` (kapalı / %120 paylı / tam kutu) ile
+bölümlemeden sonra hesaplanıyor.
+
+**A kolu (kontrol, 3 sayfa, yerel gemma):** toplam **19 dk 22 sn** — translate %25, **fit %60**,
+verify %13. **B kolu (toplu + bütçe):** toplam **18 dk 04 sn** — fit **11:22 → 6:26 = −%43** ✓✓,
+translate aynı ✓, bütçe 0,2 sn ✓. Ama toplam yalnız **−%6,8** ✗: kurtarma adımı B'de 7 segment (A'da 2)
+ve o adım zamanlayıcıda yoktu → ~300 sn kör noktaydı; `recover` ve `unify` artık faz ✓.
+**Kalite iki kolda da eşit ✓✓:** 13 ölçütün tamamı 0, `LOSSLESS YES`, bayraklı blok 29 ↔ 30 (1214 blok).
+
+**Not ✗:** Tek koşuyla "toplam süre kısaldı" denmez ✓ — kurtarma sayısının koldan kola değişmesi
+tekrar koşu gerektiriyor ✓; `prefit_budget` varsayılanı bu yüzden hâlâ kapalı ✓ (D-011).
+
+**Kapak kusuru (D-012):** kullanıcı çıktıda orijinal kapak yazısının çevirinin altında kaldığını gördü.
+Ölçüm: kaynağın 1. sayfasında **metin katmanı boş** (tek bir 700×866 görüntü) → kapak OCR'lanmış,
+çeviri **resmin üstüne** çizilmiş; silinecek metin yoktu. Çözüm (uygulanacak): OCR kutusuna örneklenmiş
+zemin dolgusu.
+
+**agy (Antigravity CLI) kuruldu:** agy-staff v0.7.3 hem Claude Code'a hem Codex'e kuruldu ve enabled.
+Hermes'e plugin gerekmiyor — beceriye personalar eklendi. Kota ölçümü: hesap
+`legendnoobeoffical@gmail.com`, **Gemini grubu %0** (25 Eyl Cuma 14:46 UTC yenilenir), **Claude/GPT %97**;
+yani 429 hatası kotanın gerçeği, arıza değil. `/usage` artık model çağırmadan okunabiliyor.
+
+**Kural:** ağır GPU/CPU işleri 23:00'ten sonra başlatılmaz; gece kod okuma, optimizasyon ve kayıt işleri
+yapılır. agy'nin bıraktığı izler (`.antigravitycli/`, `.gemini/`, `agy*.log`) `.gitignore`'da; ajan
+proje içinde çalışır, izleri repoya girmez.

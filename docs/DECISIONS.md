@@ -254,6 +254,14 @@ varsayılan ancak ölçümle değişir).
 Karşılaştırma: toplam süre, sığdırmadaki istek sayısı, bayrak sayısı (41 → ?), ve **çıktı kalitesi**
 (L3/D1 ölçütleri aynı mı - kısa yazdırmak içeriği kırpmasın).
 
+**Ölçüldü (2026-09-21):** A/B'de **D-010 ile birlikte** koştu (B kolu = toplu istek + `strict` bütçe).
+48/48 kutuya bütçe verildi ✓, `budget` fazı 0,2 sn sürdü ✓ (hesap bedava ✓). Kalite kaybı **yok**:
+13 ölçütün tamamı 0, `LOSSLESS YES`, bayraklı blok 30 ↔ 29 ✗ (gürültü sınırı ✓).
+
+**Ayrıştırma eksik ✗:** Bu koşu iki değişikliği birden test etti; bütçenin **tek başına** katkısı
+ölçülmedi. Sabah bir tur daha: (a) yalnız toplu istek, (b) toplu + bütçe. İkisi ayrı ayrı görülmeden
+`translation.prefit_budget` varsayılanı açılmaz ✗ (kural: ölçüm olmadan varsayılan değişmez).
+
 **Risk:** Model bütçeye uymak için **içeriği kısaltabilir** ✗ — bu yüzden ölçümde yalnız süre değil
 kayıpsızlık ölçütleri de karşılaştırılır.
 
@@ -275,6 +283,19 @@ sürenin **%61'i** (65 sn'nin 39 sn'si).
 alır: istenen (segment, bütçe) çiftleri toplanır, model çağrılmaz. (2) Toplanan çiftler **tek
 istekte** sorulur. (3) İkinci geçiş kaydedilen yanıtları sözlükten verir, sığdırma normal akışına
 devam eder. Sonraki turlar (nadir) tek kalır; kazanç ilk turda çünkü orada patlıyor.
+
+**Ölçüldü (2026-09-21, aynı gece):** 3 sayfa, yerel gemma, izole çeviri belleği, iki kol.
+Fit **11 dk 22 sn → 6 dk 26 sn = −%43** ✓. Ama **toplam yalnız %6,8 kısaldı** (1162 → 1083 sn) ✗:
+kurtarma adımı B'de 7 segment, A'da 2 segment koştu ve o adım zamanlayıcıda hiç yoktu → ~300 sn
+kayıp ölçüm kör noktasıydı. `recover` ve `unify` artık faz olarak yazılıyor.
+**Kalite:** iki kolda da 13 ölçütün tamamı 0 ve `LOSSLESS YES` ✓; bayraklı blok 29 ↔ 30 (1214 blokta,
+gürültü sınırı ✓).
+
+**Yanlış giden:** Kazancın tamamı tek koşuda görünmedi ✗; sebep toplu sığdırma değil, kurtarma
+sayısının koldan kola değişmesi ✗. Tek koşuyla "toplam süre" iddiası kurulmaz ✓ - tekrar koşu şart.
+
+**Kanıt:** `lk_prefit/a_baseline/out.timing.html` · `b_prefit_strict/out.timing.html` ·
+`audit_a.json` / `audit_b.json` · `lk_prefit_ab.py`.
 
 **Beklenen kazanç:** 8 sığmayan kutu: tek tek ~260 sn ↔ tek istekte ~60 sn (≈4 kat).
 

@@ -496,12 +496,16 @@ class TranslationWorker(QThread):
         # is flagged. What is still missing afterwards keeps its SOURCE text in the output, so
         # it has to reach the review queue rather than pass as translated.
         if provider is not None:
-            recovered = retry_untranslated(
-                provider,
-                translated,
-                src_lang=config.source_lang,
-                tgt_lang=config.target_lang,
-            )
+            # Its own phase: this step re-asks the model for the segments it could not parse, and on
+            # a local model that is minutes per request. It used to be invisible in the timing report,
+            # which made a run's total look wrong by exactly this much (measured: 300 s on one arm).
+            with phases.phase("recover", f"{sum(1 for s in translated if not s.translated)} missing"):
+                recovered = retry_untranslated(
+                    provider,
+                    translated,
+                    src_lang=config.source_lang,
+                    tgt_lang=config.target_lang,
+                )
             if recovered:
                 self.status.emit(f"recovered {recovered} untranslated segments")
 
@@ -513,7 +517,8 @@ class TranslationWorker(QThread):
         # or a repair round left worded differently.
         from layoutkeep.core.repeats import unify_repeats
 
-        unified = unify_repeats(translated, config.target_lang)
+        with phases.phase("unify", "repeated sources"):
+            unified = unify_repeats(translated, config.target_lang)
         if unified["rewritten"]:
             self.status.emit(
                 UIStrings.get("STATUS_REPEATS_UNIFIED").format(n=unified["rewritten"])
