@@ -2411,6 +2411,25 @@ yazılmamasını istedi, ve tek bir belgede ölçülmüş bir kazanç onu açmay
 düzleşmenin bir kısmının sebebi başka (fitting'in kendi ölçek uygulaması) ve o kısım bu ayarla
 kapanmıyor.
 
+**Aynı A/B üç belgede daha** (hepsi kayıtlı koşu, model yok, `rewrite_run.py` + `type_map.py` +
+`lossless_audit.py`):
+
+| koşu | kutu | düzleşmiş (kapalı -> açık) | ezilmiş | diğer |
+|---|---|---|---|---|
+| `cookbook_1907` | 440 -> 441 | **61 -> 53** | 271 -> 252 | grown 104 -> 130 |
+| `arxiv_19113` | 353 -> 353 | **5 -> 3** | 169 -> 163 | sadık 163 -> 171 |
+| `irs_p505` | 1670 -> 1670 | **22 -> 14** | 744 -> 689 | sadık 718 -> 763 |
+
+Dört belgenin toplamı: **düzleşmiş 95 -> 74 (-21, %22)** ve ezilmiş üç belgede *azalıyor*
+(yalnız `arxiv_19145`'te +4 artıyor). **Ölçütler her üç belgede birebir aynı**: koşu başına
+`L3=0 L7=0 D1=129 D3=1`, `L3=0 L7=1 D1=96 D3=0`, `L3=0 L7=0 D1=509 D3=1` - yani L7 (üst üste metin,
+ayarın taşıdığı risk) bu belgelerde hiç değişmiyor ve D1 de kıpırdamıyor. Tek olumsuz izlenim
+`cookbook`'un `grown` sayısı (+26), o da kutu sayısındaki +1 ile birlikte okunmalı.
+
+Bu, tek belgelik bir kazançtan çok daha sağlam bir zemin: ayar dört belgede düzleşmeyi azaltıyor ve
+ölçütlerden hiçbirini kötüleştirmiyor. Varsayılan yine de **kapalı**: karar kullanıcının, kendi
+gözüyle bakmadan hiçbir şey "çalışıyor" diye yazılmıyor.
+
 ### Araç tuzağı: `rewrite_run.py` ayarları yüklemiyor
 
 İlk A/B **hiçbir şey ölçtü**: `LAYOUTKEEP_TUNABLES` ile verilen geçersiz kılma dosyası yerindeydi ama
