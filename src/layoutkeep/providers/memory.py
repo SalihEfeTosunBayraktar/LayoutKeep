@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+import threading
 from pathlib import Path
 
 from layoutkeep.core.docir import Segment
@@ -27,13 +28,20 @@ class TranslationMemory:
 
     The database file is created on first use. WAL mode is enabled so two processes (e.g.
     the GUI and a background worker) can read/write concurrently without corrupting it.
+
+    Connections are per thread. sqlite3 refuses to use a connection from a thread other than the
+    one that made it, and the translation pool runs each batch on its own worker - a single shared
+    connection raised `ProgrammingError` on the first parallel run and killed the job.
     """
 
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path)
-        self._conn = sqlite3.connect(str(self.db_path))
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute(
+        self._local = threading.local()
+        self._counters_lock = threading.Lock()
+        self._hits = 0
+        self._misses = 0
+        conn = self._conn()
+        conn.execute(
             """
             CREATE TABLE IF NOT EXISTS translations (
                 key TEXT PRIMARY KEY,
@@ -45,23 +53,46 @@ class TranslationMemory:
             )
             """
         )
-        self._conn.commit()
-        self.hits = 0
-        self.misses = 0
+        conn.commit()
+
+    def _conn(self) -> sqlite3.Connection:
+        """The calling thread's connection, opened on first use in that thread."""
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(str(self.db_path), timeout=30.0)
+            conn.execute("PRAGMA journal_mode=WAL")
+            self._local.conn = conn
+        return conn
 
     def close(self) -> None:
-        self._conn.close()
+        """Close this thread's connection. Other threads keep theirs until they close them."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            conn.close()
+            self._local.conn = None
+
+    @property
+    def hits(self) -> int:
+        with self._counters_lock:
+            return self._hits
+
+    @property
+    def misses(self) -> int:
+        with self._counters_lock:
+            return self._misses
 
     def get(self, segment: Segment, src_lang: str, tgt_lang: str, model: str) -> Segment | None:
         """Return a copy of `segment` with `target`/`from_memory` filled in, or None on a miss."""
         key = _key(segment.source, src_lang, tgt_lang, model)
-        row = self._conn.execute(
+        row = self._conn().execute(
             "SELECT target FROM translations WHERE key = ?", (key,)
         ).fetchone()
         if row is None:
-            self.misses += 1
+            with self._counters_lock:
+                self._misses += 1
             return None
-        self.hits += 1
+        with self._counters_lock:
+            self._hits += 1
         return Segment(
             block_id=segment.block_id,
             source=segment.source,
@@ -79,13 +110,14 @@ class TranslationMemory:
         if not segment.target:
             return
         key = _key(segment.source, src_lang, tgt_lang, model)
-        self._conn.execute(
+        conn = self._conn()
+        conn.execute(
             "INSERT OR REPLACE INTO translations (key, source, target, src_lang, tgt_lang, model) "
             "VALUES (?, ?, ?, ?, ?, ?)",
             (key, segment.source, segment.target, src_lang, tgt_lang, model),
         )
-        self._conn.commit()
+        conn.commit()
 
     def stats(self) -> dict[str, int]:
-        entries = self._conn.execute("SELECT COUNT(*) FROM translations").fetchone()[0]
+        entries = self._conn().execute("SELECT COUNT(*) FROM translations").fetchone()[0]
         return {"hits": self.hits, "misses": self.misses, "entries": entries}

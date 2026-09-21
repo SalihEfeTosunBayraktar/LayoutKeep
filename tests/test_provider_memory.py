@@ -66,3 +66,37 @@ def test_put_without_target_is_noop(tmp_path):
     memory = TranslationMemory(tmp_path / "tm.sqlite3")
     memory.put(Segment(block_id="b1", source="Hello", target=""), "en", "fr", "model-a")
     assert memory.stats()["entries"] == 0
+
+
+def test_the_pool_reads_and_writes_from_its_own_threads(tmp_path):
+    """The crash a packaged run hit: one connection made on the main thread, then used by the
+    translation pool's workers. sqlite3 refuses a connection from another thread, so the first
+    parallel batch raised `ProgrammingError` and the whole job died before any output.
+
+    Every thread gets its own connection now, opened on first use in that thread.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    memory = TranslationMemory(tmp_path / "tm.sqlite3")
+    segments = [Segment(block_id=f"b{i}", source=f"Sentence number {i}") for i in range(24)]
+
+    def work(item: tuple[int, Segment]) -> str:
+        index, segment = item
+        if memory.get(segment, "en", "tr", "model-a") is None:
+            memory.put(
+                Segment(block_id=segment.block_id, source=segment.source, target=f"Çeviri {index}"),
+                "en",
+                "tr",
+                "model-a",
+            )
+            return "miss"
+        return "hit"
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert list(pool.map(work, enumerate(segments))) == ["miss"] * len(segments)
+
+    # The main thread can see what the workers wrote, and a second pass hits every entry.
+    assert memory.stats()["entries"] == len(segments)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert set(pool.map(work, enumerate(segments))) == {"hit"}
+    assert memory.hits == len(segments)
