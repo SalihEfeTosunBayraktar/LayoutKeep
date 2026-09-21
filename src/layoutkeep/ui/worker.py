@@ -739,7 +739,7 @@ class TranslationWorker(QThread):
             doc,
             segments,
             retranslate=retranslate,
-            fetch_many=fetch_many,
+            fetch_many=fetch_many if bool(tunables.get("fitting.batched_requests")) else None,
             mode=FitMode.REFLOW if tunables.get("fitting.reflow") else FitMode.STRICT,
             target_lang=config.target_lang,
             on_fitted=on_fitted,

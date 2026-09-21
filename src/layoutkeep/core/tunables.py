@@ -482,6 +482,24 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="fitting.batched_requests",
+        label="Sığdırma isteklerini topla (tek istekte bir tur kısaltma)",
+        default=True,
+        kind="bool",
+        section=ADVANCED,
+        group="Sığdırma",
+        help_text=(
+            "Açıkken sığdırma, sığmayan kutuların kısaltma isteklerini turlar hâlinde TOPLAR ve tek "
+            "istekte sorar; kapalıyken her kutu için ayrı istek gider (eski davranış). Ölçüm: 3 "
+            "sayfalık belgede fit 11 dk 22 sn → 6 dk 26 sn (−%43), sonuçlar birebir aynı (iki kolda "
+            "da 13 ölçüt 0, LOSSLESS YES)."
+        ),
+        warning=(
+            "Kapatmak yalnız istek sayısını artırır; sonuç değişmez. Çok yavaş bir yerel sunucuda "
+            "eski davranışı denemek için kapatılabilir."
+        ),
+    ),
+    Tunable(
         key="translation.document_preamble",
         label="Belge ön bilgisi (belge bağlamı)",
         default="",
