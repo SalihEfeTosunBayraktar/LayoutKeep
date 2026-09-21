@@ -89,25 +89,27 @@ def keyword_map(provider: OpenAICompatProvider, doc, batch_chars: int, per_batch
     Stretches of about `batch_chars` characters keep the narrative-local signal and cost ~10 minutes.
     """
     blocks = [
-        (block.source_text or block.text or "").strip()
+        ((block.source_text or block.text or "").strip(), block.id)
         for page in doc.pages
         for block in page.blocks
     ]
-    blocks = [b for b in blocks if len(b) >= 40]
-    stretches: list[str] = []
+    blocks = [(t, i) for t, i in blocks if len(t) >= 40]
+    stretches: list[tuple[str, list[str]]] = []
     current: list[str] = []
+    ids: list[str] = []
     size = 0
-    for text in blocks:
+    for text, block_id in blocks:
         current.append(text)
+        ids.append(block_id)
         size += len(text)
         if size >= batch_chars:
-            stretches.append("\n".join(current))
-            current, size = [], 0
+            stretches.append(("\n".join(current), ids))
+            current, ids, size = [], [], 0
     if current:
-        stretches.append("\n".join(current))
+        stretches.append(("\n".join(current), ids))
 
     out: list[dict] = []
-    for i, text in enumerate(stretches):
+    for i, (text, block_ids) in enumerate(stretches):
         ask = (
             f"Here is part {i + 1} of {len(stretches)} of a document.\n\n{text[:batch_chars * 2]}\n\n"
             f"Reply with ONLY a JSON array of at most {per_batch} short keywords or key phrases naming "
@@ -121,7 +123,7 @@ def keyword_map(provider: OpenAICompatProvider, doc, batch_chars: int, per_batch
             ])).strip()
         except Exception as e:  # noqa: BLE001 - keep going, record the gap
             print(f"   [{i + 1}/{len(stretches)}] ÇAĞRI BAŞARISIZ {type(e).__name__}: {e}")
-            out.append({"index": i, "keywords": []})
+            out.append({"index": i, "block_ids": block_ids, "keywords": []})
             continue
         words: list[str] = []
         try:
@@ -129,7 +131,7 @@ def keyword_map(provider: OpenAICompatProvider, doc, batch_chars: int, per_batch
             words = [str(w) for w in json.loads(reply[start:end])][:per_batch]
         except (ValueError, json.JSONDecodeError):
             print(f"   [{i + 1}/{len(stretches)}] JSON değil: {reply[:60]!r}")
-        out.append({"index": i, "chars": len(text), "keywords": words})
+        out.append({"index": i, "chars": len(text), "block_ids": block_ids, "keywords": words})
         print(f"   [{i + 1}/{len(stretches)}] {len(words)} anahtar kelime: {', '.join(words[:6])}")
     return out
 

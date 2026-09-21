@@ -393,6 +393,17 @@ def segments_from_document(
     unchanged until one exists.
     """
     ordered = [b for _, b in doc.iter_blocks() if b.translatable]
+    # The topic map is optional and a broken one must never cost the run: it is looked up per block
+    # id, not recomputed, so the tool that wrote it and this loop cannot drift apart.
+    keywords: dict[str, list[str]] = {}
+    map_path = str(tunables.get("translation.keyword_map_path") or "").strip()
+    if map_path:
+        try:
+            for part in json.loads(Path(map_path).read_text(encoding="utf-8")):
+                for block_id in part.get("block_ids", []):
+                    keywords[block_id] = list(part.get("keywords") or [])
+        except (OSError, json.JSONDecodeError, AttributeError, TypeError):
+            keywords = {}
     segments: list[Segment] = []
     for i, block in enumerate(ordered):
         before = ordered[max(0, i - context_blocks) : i]
@@ -405,6 +416,11 @@ def segments_from_document(
         cap = int(tunables.get("translation.context_max_chars") or 0)
         if cap > 0:
             ctx_before, ctx_after = ctx_before[-cap:], ctx_after[:cap]
+        # Added after the cap so the topic line itself can never be clipped away: it is the whole
+        # point of the map that the model knows what this stretch of the document is about.
+        part_words = keywords.get(block.id)
+        if part_words:
+            ctx_before = "This part is about: " + ", ".join(part_words) + "\n" + ctx_before
         segments.append(
             Segment(
                 block_id=block.id,

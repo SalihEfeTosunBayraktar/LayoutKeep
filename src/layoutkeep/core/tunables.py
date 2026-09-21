@@ -359,7 +359,7 @@ TUNABLES: tuple[Tunable, ...] = (
     Tunable(
         key="translation.context_max_chars",
         label="Bağlam kırpma sınırı (karakter, her yön)",
-        default=0,
+        default=400,
         kind="int",
         section=ADVANCED,
         group="İstem",
@@ -369,14 +369,16 @@ TUNABLES: tuple[Tunable, ...] = (
             "Her segmente eklenen komşu bağlamı bu kadar karakterle sınırlar (bir önceki ve bir "
             "sonraki komşu için ayrı ayrı). Kırpma hep ORTAYA yakın taraftan yapılır: önceki "
             "komşunun SON karakterleri, sonraki komşunun İLK karakterleri kalır - çünkü işe yarayan "
-            "kısım segmentin hemen yanındaki metindir. 0 (varsayılan) sınırsızdır ve bugünkü "
-            "davranışı birebir korur. Ölçüm: 2184 segmentli kitapta bağlam kaynağın %199'u ve "
-            "isteğin %67'si; ortanca bağlam 193 karakter ama en uzunu 3781 - yani israf uzun "
-            "kuyrukta, kırpma küçükleri hiç etkilemez."
+            "kısım segmentin hemen yanındaki metindir. 0 sınırsız demektir (eski davranış).\n"
+            "Varsayılan 400, ölçümle seçildi: 2184 segmentli kitapta bağlam kaynağın %199'u ve "
+            "isteğin %67'siydi; 400 sınırı isteği %26 küçültürken ORTANCA bağlam 193 karakter "
+            "olduğu için segmentlerin yarısına hiç dokunmuyor - canlı kontrol: 820-832. "
+            "segmentlerde kırpma devreye girmedi, gönderilen metin birebir aynı kaldı."
         ),
         warning=(
             "Çok küçük bir sınır (ör. 80) bağlamı işe yaramaz hale getirir: model yarım cümle görür "
-            "ve pronoun/terminoloji tutarlılığı - bağlamın var oluş sebebi - kaybolur."
+            "ve pronoun/terminoloji tutarlılığı - bağlamın var oluş sebebi - kaybolur. Bağlamın "
+            "kalite katkısı ölçülmüş, bu sınırın kaliteye etkisi ölçülmemiştir."
         ),
     ),
     Tunable(
@@ -411,6 +413,27 @@ TUNABLES: tuple[Tunable, ...] = (
             "Boş bırakmak (varsayılan) bugünkü davranışı birebir korur."
         ),
         warning="Protokol talimatlarıyla çelişen bir metin, modelin formatı bozmasına yol açabilir.",
+    ),
+    Tunable(
+        key="translation.keyword_map_path",
+        label="Konu haritası dosyası (belge boyunca konu takibi)",
+        default="",
+        kind="str",
+        section=ADVANCED,
+        group="İstem",
+        help_text=(
+            "tools/audit/document_preamble.py --map ile üretilen keyword_map.json dosyasının yolu. "
+            "Verilirse her segment kendi bloğunun anahtar kelimelerini bağlamında 'This part is "
+            "about: ...' satırı olarak görür - yani konu bilgisi belge boyunca AKAR. Romanın "
+            "başı/ortası/sonu farklı konularsa tek bir global ön bilgi bunu taşıyamaz; ölçüm: 2184 "
+            "segmentli kitapta harita 60 istek ve 94 saniye sürdü (koşunun ~%1,5'i) ve 60/60 blokta "
+            "anahtar kelime üretti. Boş bırakmak hiçbir şey eklemez."
+        ),
+        warning=(
+            "Uydurma bir anahtar kelime tüm kitaba değil yalnız o bloğun segmentlerine gider; yine de "
+            "haritayı ürettikten sonra çıktıyı insan gözüyle okumak gerekir. Kaliteye etkisi "
+            "ölçülmemiştir."
+        ),
     ),
     Tunable(
         key="translation.document_preamble",

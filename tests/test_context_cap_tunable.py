@@ -33,7 +33,15 @@ def _contexts() -> list[tuple[str, str]]:
     return [(s.context_before, s.context_after) for s in segments_from_document(doc)]
 
 
-def test_no_cap_by_default() -> None:
+def test_zero_means_no_cap_and_the_default_is_four_hundred() -> None:
+    """0 is the old behaviour; 400 is the default and a decision, so it is pinned here.
+
+    The cap defaults to 400 because a measurement chose it (D-005 in docs/DECISIONS.md): it cuts 26%
+    of what is sent while leaving the median context of 193 characters untouched. Flipping it back
+    without repeating that measurement should fail rather than pass silently.
+    """
+    assert tunables.definition(_KEY).default == 400
+
     was = tunables.get(_KEY)
     tunables.set_value(_KEY, 0)
     try:
@@ -42,7 +50,7 @@ def test_no_cap_by_default() -> None:
         tunables.set_value(_KEY, was)
 
     assert pairs, "the recorded run should yield segments"
-    assert max(len(b) for b, _ in pairs) > 200, "without a cap the long contexts must still be there"
+    assert max(len(b) for b, _ in pairs) > 200, "with no cap the long contexts must still be there"
 
 
 def test_a_cap_keeps_the_end_of_what_came_before_and_the_start_of_what_follows() -> None:
@@ -53,7 +61,13 @@ def test_a_cap_keeps_the_end_of_what_came_before_and_the_start_of_what_follows()
         capped = _contexts()
     finally:
         tunables.set_value(_KEY, was)
-    full = _contexts()
+    # "full" must mean uncapped whatever the default happens to be: this test is about clipping,
+    # not about which default is in force.
+    tunables.set_value(_KEY, 0)
+    try:
+        full = _contexts()
+    finally:
+        tunables.set_value(_KEY, was)
 
     assert len(capped) == len(full)
     for (b_cap, a_cap), (b_full, a_full) in zip(capped, full, strict=True):
