@@ -19,7 +19,9 @@ import re
 import sys
 import time
 from collections import Counter
+from pathlib import Path
 
+from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.langs import english_name, script_note
 from layoutkeep.providers._http_compat import OpenAIHTTPTransport
@@ -508,6 +510,26 @@ def _build_messages(
     if glossary:
         terms = "; ".join(f"{src} -> {tgt}" for src, tgt in glossary.items())
         system_lines.append(f"Use this glossary where the term appears: {terms}")
+
+    # The wire protocol above is not negotiable: a reply that is not the JSON array, or that lost a
+    # marker or a protected token, is a reply the pipeline cannot put back on the page. What a user
+    # may change is the part that is instruction rather than contract - the role line and whatever
+    # else they want said - so a document preamble and free-form extra lines are appended here, and
+    # a file may replace the role line. Everything the parser depends on stays put.
+    preamble = str(tunables.get("translation.document_preamble") or "").strip()
+    if preamble:
+        system_lines.append(f"About this document (context only, never translate it): {preamble}")
+    extra = str(tunables.get("provider.system_prompt_extra") or "").strip()
+    if extra:
+        system_lines.append(extra)
+    prompt_file = str(tunables.get("provider.system_prompt_file") or "").strip()
+    if prompt_file:
+        try:
+            role = Path(prompt_file).read_text(encoding="utf-8").strip()
+        except OSError:
+            role = ""  # a missing file must not cost the run its instructions
+        if role:
+            system_lines[0] = role
     return [
         {"role": "system", "content": "\n".join(system_lines)},
         {"role": "user", "content": json.dumps(items, ensure_ascii=False)},

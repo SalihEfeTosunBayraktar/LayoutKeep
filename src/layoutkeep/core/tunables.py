@@ -357,6 +357,56 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="provider.system_prompt_file",
+        label="System prompt dosyası",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="İstem",
+        help_text=(
+            "Bir dosya yolu verirsen, modelin rolünü tanımlayan ilk satır bu dosyanın içeriğiyle "
+            "değiştirilir - kendi çeviri tarzını, tonunu, terminoloji tercihini buraya yazabilirsin. "
+            "Tel protokolü (JSON dizisi, <0> işaretleri, korunan token'lar, max_len) HER ZAMAN kalır: "
+            "onları değiştirmek çıktıyı ayrıştırılamaz hale getirir ve çeviriler kaybolur. Boş "
+            "bırakmak varsayılana döner."
+        ),
+        warning=(
+            "Dosya yalnız ilk satırı değiştirir; protokolü değiştirmeye çalışmak işe yaramaz çünkü "
+            "protokol satırları bu dosyadan sonra eklenir."
+        ),
+    ),
+    Tunable(
+        key="provider.system_prompt_extra",
+        label="System prompt ek satırları",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="İstem",
+        help_text=(
+            "Modele system prompt'un sonuna eklenen serbest talimatlar. Örnek: 'Teknik terimleri "
+            "parantez içinde İngilizcesiyle ver', 'Resmî bir ton kullan', 'Şirket adlarını çevirme'. "
+            "Boş bırakmak (varsayılan) bugünkü davranışı birebir korur."
+        ),
+        warning="Protokol talimatlarıyla çelişen bir metin, modelin formatı bozmasına yol açabilir.",
+    ),
+    Tunable(
+        key="translation.document_preamble",
+        label="Belge ön bilgisi (belge bağlamı)",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="İstem",
+        help_text=(
+            "Tüm segmentlerin system prompt'una 'Bu belge hakkında: ...' olarak eklenen kısa bir "
+            "tanıtım. Ölçüm şunu gösterdi: segmentlerin %50,5'i 200 karakterden az komşu bağlam "
+            "görüyor ve hiçbiri belgenin konusunu bilmiyor - bu yüzden terimler ve adlar belge "
+            "boyunca tutarsız çıkabiliyor. Buraya belgenin konusunu/terminolojisini yazmak "
+            "(ya da ileride otomatik özetletmek) tam bu boşluğu doldurur. Boş bırakmak bugünkü "
+            "davranışı korur."
+        ),
+        warning="Çok uzun bir metin her isteğe eklenir; kısa tutmak (birkaç cümle) yeterlidir.",
+    ),
+    Tunable(
         key="reader.scan_text_density",
         label="Taranmış sayfa: metin yoğunluğu eşiği",
         default=1.0,
