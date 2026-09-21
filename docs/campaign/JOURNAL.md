@@ -2419,24 +2419,29 @@ yazılmamasını istedi, ve tek bir belgede ölçülmüş bir kazanç onu açmay
 düzleşmenin bir kısmının sebebi başka (fitting'in kendi ölçek uygulaması) ve o kısım bu ayarla
 kapanmıyor.
 
-**Aynı A/B üç belgede daha** (hepsi kayıtlı koşu, model yok, `rewrite_run.py` + `type_map.py` +
-`lossless_audit.py`):
+**Aynı A/B, iki kolu da yeniden yazarak, beş belgede** (hepsi kayıtlı koşu; `×_off` ve `×_on`
+dizinleri aynı motorla yazıldı, tek fark ayar; `rewrite_run.py` + `type_map.py` + `lossless_audit.py`):
 
-| koşu | kutu | düzleşmiş (kapalı -> açık) | ezilmiş | diğer |
-|---|---|---|---|---|
-| `cookbook_1907` | 440 -> 441 | **61 -> 53** | 271 -> 252 | grown 104 -> 130 |
-| `arxiv_19113` | 353 -> 353 | **5 -> 3** | 169 -> 163 | sadık 163 -> 171 |
-| `irs_p505` | 1670 -> 1670 | **22 -> 14** | 744 -> 689 | sadık 718 -> 763 |
+| koşu | kutu | düzleşmiş | ezilmiş | sadık | ölçütler |
+|---|---|---|---|---|---|
+| `arxiv_19145` | 698 | 7 -> **4** | 322 -> 322 | 361 -> 363 | aynı |
+| `cookbook_1907` | 440 -> 441 | 61 -> **53** | 271 -> **252** | 3 -> 3 | aynı |
+| `arxiv_19113` | 353 | 5 -> **3** | 163 -> 163 | 169 -> 171 | aynı |
+| `irs_p505` | 1670 | 22 -> **14** | 739 -> **689** | 719 -> **763** | aynı |
+| `plos_animal_movement` | 526 | 9 -> **1** | 232 -> 232 | 276 -> **281** | aynı |
+| **toplam** | | **104 -> 75 (-%28)** | **1727 -> 1658 (-69)** | **1528 -> 1581** | **5/5 aynı** |
 
-Dört belgenin toplamı: **düzleşmiş 95 -> 74 (-21, %22)** ve ezilmiş üç belgede *azalıyor*
-(yalnız `arxiv_19145`'te +4 artıyor). **Ölçütler her üç belgede birebir aynı**: koşu başına
-`L3=0 L7=0 D1=129 D3=1`, `L3=0 L7=1 D1=96 D3=0`, `L3=0 L7=0 D1=509 D3=1` - yani L7 (üst üste metin,
-ayarın taşıdığı risk) bu belgelerde hiç değişmiyor ve D1 de kıpırdamıyor. Tek olumsuz izlenim
-`cookbook`'un `grown` sayısı (+26), o da kutu sayısındaki +1 ile birlikte okunmalı.
+Yani ayar beş belgede düzleşmeyi %28 azaltıyor, **69 blok daha az sıkıştırıyor** (kaybı azaltıyor, yeni
+sıkıştırma getirmiyor) ve **hiçbir ölçütü kıpırdatmıyor**: `L3`, `L7` (ayarın taşıdığı asıl risk),
+`D1` ve `D3` beş koşunun beşinde birebir aynı. Tek ölçülmüş maliyet `cookbook_1907`'nin `grown`
+sayısı (104 -> 130); bu sayı henüz açıklanmadı - per-span boyutlarla satır yüksekliği değişince yazılan
+sayfa yeniden çıkarılırken kutu başına boyut kümesinin değişmesi olası, ama tahmin etmek yerine
+ölçülmesi gerekiyor.
 
-Bu, tek belgelik bir kazançtan çok daha sağlam bir zemin: ayar dört belgede düzleşmeyi azaltıyor ve
-ölçütlerden hiçbirini kötüleştirmiyor. Varsayılan yine de **kapalı**: karar kullanıcının, kendi
-gözüyle bakmadan hiçbir şey "çalışıyor" diye yazılmıyor.
+**Bu tablo, önceki iki tablonun yerine geçer.** İlki saklı koşuyu taban alıyordu (eski motor) ve
+"+4 ezilme bedeli" o kusurdan geliyordu; ikincisi aynı kusuru beş belgeye yayıyordu ve ölçütlerde
+görünen "iyileşmeler" (plos L3 8 -> 0, irs_p505_rewritten L7 10 -> 0) da eski motorun eseriydi -
+iki kolu da yeniden yazınca ikisi de kayboldu. Varsayılan yine de **kapalı**: karar kullanıcının.
 
 ### Araç tuzağı: `rewrite_run.py` ayarları yüklemiyor
 
