@@ -357,6 +357,29 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="translation.context_max_chars",
+        label="Bağlam kırpma sınırı (karakter, her yön)",
+        default=0,
+        kind="int",
+        section=ADVANCED,
+        group="İstem",
+        minimum=0,
+        maximum=20000,
+        help_text=(
+            "Her segmente eklenen komşu bağlamı bu kadar karakterle sınırlar (bir önceki ve bir "
+            "sonraki komşu için ayrı ayrı). Kırpma hep ORTAYA yakın taraftan yapılır: önceki "
+            "komşunun SON karakterleri, sonraki komşunun İLK karakterleri kalır - çünkü işe yarayan "
+            "kısım segmentin hemen yanındaki metindir. 0 (varsayılan) sınırsızdır ve bugünkü "
+            "davranışı birebir korur. Ölçüm: 2184 segmentli kitapta bağlam kaynağın %199'u ve "
+            "isteğin %67'si; ortanca bağlam 193 karakter ama en uzunu 3781 - yani israf uzun "
+            "kuyrukta, kırpma küçükleri hiç etkilemez."
+        ),
+        warning=(
+            "Çok küçük bir sınır (ör. 80) bağlamı işe yaramaz hale getirir: model yarım cümle görür "
+            "ve pronoun/terminoloji tutarlılığı - bağlamın var oluş sebebi - kaybolur."
+        ),
+    ),
+    Tunable(
         key="provider.system_prompt_file",
         label="System prompt dosyası",
         default="",

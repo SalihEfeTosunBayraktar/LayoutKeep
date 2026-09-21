@@ -19,6 +19,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from layoutkeep.core import tunables
+
 SCHEMA_VERSION = 1
 
 
@@ -395,13 +397,21 @@ def segments_from_document(
     for i, block in enumerate(ordered):
         before = ordered[max(0, i - context_blocks) : i]
         after = ordered[i + 1 : i + 1 + context_blocks]
+        ctx_before = "\n".join(_plain_original(b) for b in before)
+        ctx_after = "\n".join(_plain_original(b) for b in after)
+        # 0 means no cap, which is the default and leaves every request exactly as it was. A cap
+        # keeps the text nearest the segment - the end of what came before, the start of what
+        # follows - because that is the part that carries pronouns and terminology.
+        cap = int(tunables.get("translation.context_max_chars") or 0)
+        if cap > 0:
+            ctx_before, ctx_after = ctx_before[-cap:], ctx_after[:cap]
         segments.append(
             Segment(
                 block_id=block.id,
                 source=_original_text(block),
                 # Context stays plain: the model reads it, it never has to reproduce it.
-                context_before="\n".join(_plain_original(b) for b in before),
-                context_after="\n".join(_plain_original(b) for b in after),
+                context_before=ctx_before,
+                context_after=ctx_after,
                 confidence=block.confidence,
                 needs_review=block.needs_review,
                 review_reason=block.review_reason,
