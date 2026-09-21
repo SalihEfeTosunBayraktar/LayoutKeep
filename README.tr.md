@@ -234,11 +234,10 @@ Bayraklar `.lkproj` dosyasına yazılır ve komut satırı skor tablosunda sayı
 
 ## Bilinen sınırlar
 
-İngilizce README'deki [Known limits](README.md#known-limits) bölümü bu listenin kaynağıdır ve
-ölçümlerle birlikte orada tutulur — iki dilde iki ayrı doğruluk iddiası yerine tek bir yer.
-
-Hangi dönüşümün neyi kaybettiği, ölçümüyle birlikte
-[`docs/ENGINE-ARCHITECTURE.md`](docs/ENGINE-ARCHITECTURE.md) içindedir.
+Her sınır, arkasındaki ölçüm vakasıyla birlikte
+[`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md)'dedir: EPUB→PDF yeniden akışı (elle dizilmiş
+PDF ile piksel özdeşi değil), EPUB okuyucusunun ~%99 metin yakalaması, hafif terminoloji sapması,
+aynalı metnin algılanıp aynalanmış olarak geri yazılamaması ve sayfa başına yavaşlayan PDF yazımı.
 
 ## Ayarlama
 

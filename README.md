@@ -235,15 +235,10 @@ OCR güveni düşük                               (low OCR confidence)
 
 ## Known limits
 
-- **EPUB→PDF re-flows the book** with MuPDF's Story engine: chapter headings start fresh pages
-  and reader-resolved CSS sizes and alignment carry over, but reflow is not pixel-identical to a
-  hand-set PDF.
-- **The EPUB reader captures about 99% of a book's visible text** (measured); images are
-  extracted as `ImageRef`s so rebuilt documents keep their figures.
-- Terminology drifts slightly across segments (measured; see `docs/MEASUREMENTS.md` §6), and
-  mirrored text is detected but cannot be written back mirrored.
-- **Writing a large PDF is slow, and gets slower per page** (`insert_htmlbox` embeds a font copy
-  per call; measured in [`docs/BENCHMARK.md`](docs/BENCHMARK.md)).
+Each limit, with the case behind it, is written up in
+[`docs/QUALITY-FACTORS.md`](docs/QUALITY-FACTORS.md): EPUB→PDF re-flows (not pixel-identical to a
+hand-set PDF), the EPUB reader's ~99% text capture, slight terminology drift, mirrored text
+detected but not rewritten mirrored, and slow per-page PDF writing.
 
 ## Tuning it
 

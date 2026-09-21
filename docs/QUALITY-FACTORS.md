@@ -37,3 +37,15 @@ in the application's help screen are the same list from the other end.
 - `docs/MEASUREMENTS.md` — the per-document audit tables.
 - `docs/LOSSLESS-REPORT.md` — the campaign written for an outside reader.
 - `docs/campaign/HELDOUT.md` — every sample, its licence and which failure it exists to catch.
+
+## Known limits, and where each is measured
+
+The README keeps one line per limit; the cases behind them live here.
+
+| Limit | The case behind it |
+|---|---|
+| EPUB→PDF re-flows the book | MuPDF's Story engine resolves the book's own CSS; chapter headings start fresh pages and sizes carry over, but the result is not pixel-identical to a hand-set PDF |
+| The EPUB reader captures ~99% of a book's visible text | Measured across the Gutenberg held-out books; images survive as `ImageRef`s so rebuilt documents keep their figures |
+| Terminology drifts slightly across segments | `docs/MEASUREMENTS.md` §6; the translation memory keeps a repeated string identical, dedupe keeps a document's repeats identical |
+| Mirrored text is detected, not un-mirrored | Flagged (`metin aynalanmış, olduğu gibi geri yazılacak`) rather than silently rewritten |
+| Writing a large PDF is slow and slows per page | `insert_htmlbox` embeds a font copy per call; the per-page curve is in `docs/BENCHMARK.md` |
