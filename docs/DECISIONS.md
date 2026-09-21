@@ -215,22 +215,29 @@ kapak **saf resim**. Çıktının metin katmanında `Fundamentals`/`Sixth Editio
 silinecek metin zaten yoktu. Yani: kapak OCR ile okundu (`readers/image_reader.py`), segmentler
 çevrildi, çeviri **resmin üstüne** çizildi ve resimdeki orijinal yazı olduğu gibi kaldı.
 
-**Kök neden:** `writers/pdf_writer.py` taranmış sayfalarda bilinçli olarak resme dokunmuyor
-("the image is the page and is not redacted"), yalnızca metin redaksiyonu yapıyor. Metin katmanı boş
-olan bir sayfada bu redaksiyon **hiçbir şey yapmaz**. Sonuç: üst üste iki yazı.
+**Kök neden (düzeltildi - ilk teşhis yanlıştı ✗):** Yazıcıda taranmış sayfa için bir kapatma yolu
+**var** (`_cover_scanned_blocks` + `_erase_ink_from_scan`) ve çağrılıyor da. Ama `_erase_ink_from_scan`
+kutuyu Otsu ile ikiye bölüp **koyu** kütleyi "mürekkep" siliyor; kapakta koyu olan **kırmızı zemin**,
+sarı başlık ise "kâğıt" sayılıyor ✗ → zemin silinip yazı kalıyor. Üstelik fonksiyon `True` dönüyor →
+çağıranın yedek olarak tuttuğu **dikdörtgen dolgusu** hiç çalışmıyor ✗.
 
-**Karar (uygulanacak):** OCR bloğunun altına **zemin dolgusu** çizme seçeneği. Blok kutusu, sayfanın
-o noktadaki **örneklenmiş zemin rengiyle** doldurulur (düz beyaz değil - kapak renkli), sonra çeviri
-onun üstüne yazılır. Varsayılan **kapalı**; ölçüm: kapakta üst üste binme kayboluyor mu, sayfa içi
-resimlerde/formlarda yanlış bir şeyi boyuyor mu.
+**Ölçüm (2026-09-21):** Kutu içindeki sarı piksel - kaynak **20.369** · eski kodla **44.436**
+(daha da kötü ✗✗) · düzeltmeyle **3.960** ✓ (−%81). Yazar satırı kaynak 175 → **0** ✓✓. Kalan 3.960
+muhtemelen kapağın kendi sarı grafiği ✗ (doğrulanmadı ✗). Medyan doygunluk ölçümleri: kapak
+**201/201/202** ✓, 1895 tarihli sarı kâğıt taramaları **52-56** ✓ → eşik **120** ✓.
 
-**Risk:** Zemin dolgusu, metnin altındaki **resmi** de boyar ✗ - bir görselin üstündeki yazıda
-istenen budur, ama yanlış kutu (OCR kutusu geniş) komşu grafiği de boyayabilir. Bu yüzden ölçüm
-yalnız kapakta değil, resimli bir iç sayfada da yapılır.
+**Karar (uygulandı - `51aee55`):** kutunun medyan doygunluğu > 120 ise kutu kâğıt değil, **renkli panel**
+sayılır ✓; erase'ten vazgeçilir ve `False` dönülür → çağıran **kendi zemin dolgusunu** (bloğun
+örneklenmiş arka plan rengi ✓) boyar ✓✓. Renkli panelde orijinal yazı böylece temiz kapanıyor ✓.
 
-**Kanıt:** `ElmasriBook.pdf` sayfa 1 (`get_text()` boş, `get_images()` 700×866) ·
-`ElmasriBook.out.pdf` sayfa 1 (`'Altıncı Baskı\nVeritabanı\nSistemleri'`) · `writers/pdf_writer.py`
-satır 183-187.
+**Açık kalan:** dolgu hâlâ bloğun **tam kutusu** ✗; taşan glif uçları için ~1,5 pt pay **ölçülmedi** ✗.
+Resimli **iç** sayfada da ölçüm eksik ✗ (OCR kutusu genişse komşu grafiği boyama riski sürüyor ✗).
+
+**Risk:** Zemin dolgusu, metnin altındaki **resmi** de boyar ✗ - görselin üstündeki yazıda istenen bu ✓,
+ama yanlış kutu komşu grafiği de boyayabilir ✗. Bu yüzden iç sayfa ölçümü şart ✗.
+
+**Kanıt:** `ElmasriBook.pdf` sayfa 1 (`get_text()` boş, `get_images()` 700×866) · kutu ölçümü
+20.369 → 44.436 → 3.960 · `tests/test_pdf_writer_scanned_paper.py` (renkli panel testi) · `51aee55`.
 
 ## D-011 · Karakter bütçesi ilk çeviriden ÖNCE verilsin (2026-09-21) · **fikir: kullanıcı**
 
