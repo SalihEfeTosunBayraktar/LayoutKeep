@@ -205,19 +205,33 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
-## D-009 · EPUB→PDF çifti açılsın mı? · **KARAR BEKLİYOR**
+## D-009 · EPUB→PDF'te çok sayıda az-metinli sayfa · **TEŞHİS EDİLDİ (düzeltme bekliyor)**
 
-**Soru:** Önünde gerçek engel mi var, gerekçe mi eskidi?
+**Soru:** Üretilen 436 sayfalık PDF'te neden 105 sayfa neredeyse boş?
 
-**Yöntem:** `tools/audit/format_matrix.py` şimdiki kodla yeniden koşturuldu.
+**Yöntem:** Sayfa sayfa metin, görsel ve çizim sayıldı. Punto ve içerik incelendi. Kaynak EPUB'ın aynı
+bölümü okundu.
 
-**Ölçüm:** `epub -> pdf  text %100 · img 1/1 · pages 2/2`. Styled fazlalığı ekleme, kayıp değil.
-Açık: 436 sayfalık üretilen çıktıda 105 sayfa neredeyse boş (diğer çıktıda 1).
+**Ölçüm:** Boş sayfalar 19 blokta toplanıyor. En uzunları 11-15 sayfa (138-149, 151-164, 215-229).
+Bu sayfalarda görsel **0**, çizim **0**, toplam ~100 karakter. Yani sayfa başına 5-16 karakter.
+İçerik 12 punto ve tek kelime: `RUBĀ'Î`, `GAZEL`, `MUSEDDES` — içindekiler ve bölüm başlıkları.
 
-**Karar:** Bekliyor. İki soru açık. Boş sayfaların sebebi bilinmiyor. Çift reflow, kaynağın
-sayfa düzenini kopyalamıyor.
+**İçerik kaybı YOK.** Şiirler PDF'te var: `MUSEDDES` 178, 206 ve 215. sayfalarda da geçiyor.
+14-18 arasındakiler içindekiler tablosu. Yani sorun içerikte değil, **sayfalamada**: her başlık ve
+içindekiler satırı kendi sayfasını alıyor.
 
-**Kanıt:** `docs/ENGINE-ARCHITECTURE.md`.
+**Kök neden (şüpheli, kanıtlanmadı):** `pdf_generator.insert`, htmlbox sığmadığında yeni sayfa açıp
+**tekrar çiziyor** ama yeniden "sığdı mı" diye bakmıyor. Bu, sayfa başına birkaç karakterlik çıktı
+üretir.
+
+**Teşhis sırasında yaptığım iki ölçüm hatası:** (1) "20 karakterden az = boş" ölçütü bölüm başlığı
+sayfalarını da boş saydı; (2) `Cup-Bearer` araması sıfır dönünce şiirler kayıp sandım, oysa şiir
+satırları tireyle bölünüyor. İkisi de benim ölçümümün kabalığıydı, ürünün değil.
+
+**Sıradaki adım:** `insert` içindeki `spare` değerini gerçek bloklarla ölçmek, sonra sığmayan bloğu
+küçültmeyi ya da taşımayı denemek. Varsayılan duyarlı bir yol olduğu için ölçüm olmadan değiştirilmez.
+
+**Kanıt:** `src/layoutkeep/writers/pdf_generator.py` · `lk_epub_to_pdf_gutenberg_56464.pdf`.
 
 ---
 
