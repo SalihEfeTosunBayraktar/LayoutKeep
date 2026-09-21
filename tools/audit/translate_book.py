@@ -175,6 +175,37 @@ def _retry_failed(failed: list[tuple[int, Path]], work: Path, args) -> int:
     return still_failing
 
 
+#: Written into a work directory, naming the input its chunks were cut from. It is what lets the next
+#: run notice that it is about to read somebody else's pages.
+_WORK_INPUT_MARKER = "input.txt"
+
+
+def _prepare_work_dir(args) -> Path:
+    """The run's own work directory, created if needed, after checking it belongs to this input.
+
+    WHY THIS EXISTS: `--work` used to default to a shared `_artifacts/book`, which accumulates the
+    chunk files of every run that never passed the flag. A fresh 24-page paper was cut from that
+    directory's leftovers, translated, and came back carrying another document's text - half an hour of
+    model time and a silently wrong answer, caught only because a human read the output. A run now gets
+    a directory derived from its own output, and a directory whose marker names a different input is
+    refused instead of quietly reused.
+    """
+    work = args.work if args.work is not None else args.out.parent / f"{args.out.stem}_work"
+    resolved = str(Path(args.input).resolve())
+    marker = work / _WORK_INPUT_MARKER
+    if marker.exists() and not getattr(args, "force", False):
+        previous = marker.read_text(encoding="utf-8").strip()
+        if previous != resolved:
+            raise SystemExit(
+                f"refusing to reuse {work}: its chunks were cut from {previous}, not {resolved}.\n"
+                f"Pass a different --work, or --force to reuse it deliberately."
+            )
+    (work / "src").mkdir(parents=True, exist_ok=True)
+    (work / "out").mkdir(parents=True, exist_ok=True)
+    marker.write_text(resolved, encoding="utf-8")
+    return work
+
+
 def main() -> int:
     # Windows konsolunda Unicode/Türkçe kodlama hatalarını önler / Prevent Windows console Unicode encoding errors
     if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -185,7 +216,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--work", type=Path, default=Path("_artifacts/book"))
+    parser.add_argument(
+        "--work",
+        type=Path,
+        default=None,
+        help="where the chunks and their progress markers live (default: <out>_work beside --out)",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="reuse a work directory whose marker says it was cut from a different input",
+    )
     parser.add_argument("--to", default="tr")
     parser.add_argument("--from", default="en")
     parser.add_argument("--model", required=True)
@@ -243,9 +284,8 @@ def main() -> int:
     elif str(args.memory).lower() == "none":
         args.memory = ""
 
-    work = args.work
-    (work / "src").mkdir(parents=True, exist_ok=True)
-    (work / "out").mkdir(parents=True, exist_ok=True)
+    work = _prepare_work_dir(args)
+    print(f"work directory: {work}", flush=True)
 
     chunks = split_pages(args.input, work / "src", args.pages_per_chunk)
     if args.limit_chunks:

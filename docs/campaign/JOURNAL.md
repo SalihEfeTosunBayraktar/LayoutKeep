@@ -2336,3 +2336,24 @@ Bilinen açık işler:
 - flattened için yazıcı-tarafı span font-size A/B'si (kuyruk 2'nin tasarımı, ölçülmeden kodlanmaz);
 - Gutenberg EPUB koşusunun karşılaştırma sitesine EPUB girdisi olarak eklenmesi;
 - koşucunun `--work` paylaşımı hatası — kaynak parçaların harmanlanması jurnalde kayıtlı.
+
+### Düzeltildi: koşu artık kendi çalışma dizinini alıyor ve başkasının dizinini reddediyor
+
+`translate_book.py`'nin `--work` varsayılanı paylaşılan `_artifacts/book` idi; bayrağı vermeyen her
+koşu parçalarını oraya yazıyordu. Yeni bir 24 sayfalık makale o dizindeki **başka bir belgenin**
+parçalarından kesildi, çevrildi ve başka bir belgenin metnini taşıyarak döndü - yarım saatlik model
+süresi ve sessizce yanlış bir çıktı; yalnızca insan okuyunca fark edildi.
+
+İki değişiklik:
+
+- Varsayılan artık çıktıdan türetiliyor: `--work` verilmezse `<out>`'un yanında `<out-adı>_work`.
+  İki koşu farklı çıktılar için yazdığı için asla aynı dizini paylaşamaz.
+- Çalışma dizinine `input.txt` yazılıyor ve içinde parçaların hangi girdiden kesildiği duruyor.
+  Dizin başka bir girdiyi gösteriyorsa koşu **başlamadan** duruyor ve iki yolu da söylüyor;
+  bilerek kullanmak için `--force`.
+
+Testler `tests/test_translate_book_work_dir.py` (6 test, model yok) ve koruma, geçici olarak kapatılıp
+**kırmızı kanıtlandı** (`DID NOT RAISE SystemExit` - olayın kendisi). Gerçek CLI üzerinde de ölçüldü:
+başka bir belgeyi işaret eden dizinle koşu, model çağrısı yapmadan
+`refusing to reuse ... its chunks were cut from C:/baska/belge/paper.pdf, not .../tck_5237.pdf` diyerek
+durdu.
