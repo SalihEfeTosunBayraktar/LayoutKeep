@@ -381,7 +381,14 @@ def segments_from_document(
     """Flatten a Document into the translatable units a provider consumes.
 
     `context_blocks` neighbouring blocks are attached as context on each side. Context improves
-    pronoun and terminology consistency measurably and costs little, but it is never translated.
+    pronoun and terminology consistency measurably but is never translated.
+
+    Its cost was not measured until it was: on the Gutenberg book (2184 segments, the default of one
+    neighbour each side) the context is 1,030,768 characters against 517,300 characters of text to
+    translate - 199% of the source, two thirds of everything sent - while the inline markers that
+    carry bold and italic are 0.35%. The quality benefit and the cost therefore have to be weighed
+    against each other rather than assumed; `tools/audit/` has no A/B for it yet, and the default is
+    unchanged until one exists.
     """
     ordered = [b for _, b in doc.iter_blocks() if b.translatable]
     segments: list[Segment] = []
