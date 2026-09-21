@@ -2270,3 +2270,28 @@ L2 34→32, diğerleri değişmedi. **Sonuç: üç veri noktası da tipografiyi 
 elinde olan iki kol (isteğin açılması, istemin sertleştirilmesi) için ölçüm eksi. Merdivenin
 çıkmazı istem dilinde değil; sonraki kol daha farklı bir istek *şekli* (ilkeli seçim/kısaltma)
 ya da yön bazlı MIN_SCALE. r1–r3 kayıtları `_artifacts/heldout/live/tr_tck_5237{,_ab,_r2,_r3}/`.
+
+## Gece nöbeti: kuyruk 2 için keşif — satır-içi boyut kaybının mekanik haritası
+
+Flattened (kaynaktaki küçük satır-içi çalıştırmanın bloğun büyük boyutuyla yazılması, belge başına
+6-15 kutu) için üç katman birbirine göre okundu; mekanik dört açık nokta verdi:
+
+1. **Marker kümesindeki Style kayıp küçük boyutu taşımıyor.** `docir._inline_styles` yalnız
+   `dominant_style()`'dan * farklı* stili marker yapar (key: aile, boyut, kalın, italik, renk).
+   Bağlaç/k bölüm numarası gibi 6 pt parça marker'ı yapılmaz — bunlar direkt yok olur; kalan
+   uzunlukları kalın/italik flag'iyle taşınan koşularda da **Style.size alanı korunur**, sorunun
+   yazı taraflı olmadığı buradan görülür.
+2. **Yazıcı** (`pdf_writer._span_html`) her span'in kendi stiliyle `font-family`/`color` taşır
+   ama `font-size`'ı blok seviyesinde CSS'ten (`_css_for_block`, dominant.size) alır — span
+   boyutu kullanılmaz. yani span-in-italik gibi geri gelen koşullarda boyut korunmaz.
+3. **`fitting.pdf_pass.apply_scale`** ölçek uygular (`span.style.size *= scale`) — ki burada
+   zaten scale uygulanır ama yalnızca blok ölçeği, span içi kayıtları sıfırlar. `insert_htmlbox`
+   zaten kendi shrink'ini yapar.
+4. **Ölçüm aleti** hazırlık: `type_map.py` artık `--flattened-by-page` veriyor (3 file'ı tek
+   sayfada gösterebiliyor).
+
+**Tasarım kararı** (ölçülmeden değişiklik yapılmayacak): writer'da span'in Style.size kullanmak
+dahil her amaç, bir önceki kolun gerçek model koşusuyla A/B'dir; kutu başına flattened sayısının
+önce/sonrası ölçülür, L7 artışı da okunur. A/B bu gece yapılmayacak — makine saat başında boşaldı
+ve kısaltma merdiveni yolu ölçümünden çözüm çıkmadı; flattened yazıcı değişikliği ayrı bir kuyruk
+öğesi olarak jurnalde öyle duruyor.
