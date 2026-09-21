@@ -6,8 +6,6 @@ import sys
 import zipfile
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent))
 from fixtures.build_epub_fixture import build_sample_epub
 from lxml import etree
@@ -56,21 +54,17 @@ def _page_xhtml(epub_path: Path, name: str) -> bytes:
         return zf.read(f"OEBPS/{name}")
 
 
-@pytest.mark.xfail(
-    reason="known loss, not yet fixed: a block rebuilt from its spans carries only bold/italic, so a "
-    "link or span inside a translated paragraph is dropped; a fix was attempted and did not converge "
-    "(the words must come from the spans, not block.text) - see docs/campaign/JOURNAL.md",
-    strict=False,
-)
 def test_a_link_inside_a_translated_paragraph_keeps_its_tag_and_valid_xhtml(tmp_path: Path) -> None:
     """A paragraph's `<a href>` must survive the rewrite, and the file must stay well-formed.
 
     WHY THIS EXISTS: a held-out EPUB came back from translation with one `<div>` unclosed and a
     `<span>` pair and three `<a href>` openings missing - invalid XHTML that MuPDF tolerates and a
-    stricter reader refuses. The cause is here: `_block_replacement_html` rebuilds a block's inner
-    HTML from the translated spans and can only carry bold and italic, so any other inline markup the
-    source wrapped those words in is dropped, and a tag pair straddling the replaced extent closes
-    without ever opening.
+    stricter reader refuses. The cause was `_block_replacement_html` rebuilding a block from its
+    translated spans, which can only carry bold and italic; a link inside the paragraph was dropped.
+    A block whose source wraps words in something a Span cannot describe now keeps the source's own
+    tags and only its words move, so the words here are asserted one by one: a tag legitimately
+    splits the sentence, and demanding the phrase as one contiguous string would fail on a correct
+    rewrite.
     """
     from layoutkeep.core.docir import Line, Span
 
@@ -87,7 +81,7 @@ def test_a_link_inside_a_translated_paragraph_keeps_its_tag_and_valid_xhtml(tmp_
     after = _page_xhtml(out, "chap1.xhtml")
     etree.fromstring(after)  # malformed output raises here
     text = after.decode("utf-8")
-    assert "Nota bakınız" in text, "the translation must land in the paragraph"
+    assert "Nota" in text and "bakınız" in text, "the translation must land in the paragraph"
     assert 'href="#note1"' in text, "the paragraph's link was dropped by the rewrite"
 
 

@@ -6,6 +6,11 @@ Jurnal günlük işi tutar. Burası kararların **gerekçesini** tutar.
 
 **Kural:** Her deneme buraya yazılır. Özellikle işe yaramayanlar. Özellikle kendi iddiasını çürütenler.
 
+**İki yere yazılır.** Proje tarafı burasıdır: gerekçe, ölçüm, kanıt. BrainOS tarafı `learn.py add` ile
+tutulur: kalıcı ders, hata, düzeltme, tercih. İkisi birlikte yürür; biri eksik kalırsa kayıt eksiktir.
+
+**Yazım kuralı:** Kısa, net cümleler. Kalabalık ve çok yan cümleli anlatım yok.
+
 **Biçim:** Soru · Yöntem · Ölçüm · Karar · Gerekçe · Yanlış giden · Kanıt.
 
 ---
@@ -170,23 +175,33 @@ Ayrıca "her bölümün başı" örneklemesi romanlarda yanlı çıktı. Rastgel
 
 ---
 
-## D-008 · EPUB çıktısında işaretleme kaybı · **AÇIK KUSUR**
+## D-008 · EPUB çıktısında işaretleme kaybı · **KAPALI (düzeltildi)**
 
 **Soru:** Çevrilmiş EPUB neden geçersiz XHTML döndürüyor?
 
 **Yöntem:** Kaynak ve çeviri belge belge karşılaştırıldı. Etiket farkı çıkarıldı. Birim testle üretildi.
 
 **Ölçüm:** Kaynak 14 belge, 0 bozuk. Çeviri 1 belge bozuk. Kaybolanlar: 1 `<div>` açılışı,
-1 `<span>` çifti, 3 `<a href>` açılışı. Birim testte bir paragraf çevrilince bağlantı etiketi düşüyor.
+1 `<span>` çifti, 3 `<a href>` açılışı.
 
-**Karar:** Açık kusur. `xfail` işaretli test olarak kayıtlı. Düzeltme denemesi yakınsamadı.
+**Kök neden:** Blok, çevrilmiş span'lardan yeniden kuruluyordu. Span yalnız kalın/italik taşır.
+Kaynak bir bağlantıyı sarıyorsa o etiket düşüyordu. Ölçüldü: fixtürdeki not paragrafı
+`See the note | [1] | below for details.` diye **üç span** olarak okunuyor, yazıcı çok-span yoluna
+giriyor ve `<a href="#note1">` kayboluyor.
 
-**Gerekçe:** Blok, çevrilmiş span'lardan yeniden kuruluyor. Span'lar yalnız kalın/italik taşıyor.
-`<a>` etiketini doğru yere koymak kelime hizası istiyor. Bu bir yama değil, bir özellik.
+**Düzeltme:** Kaynak, span'ın taşıyamayacağı bir satır-içi etiket içeriyorsa yazıcı artık **kaynağın
+kendi etiketlerini koruyor** ve yalnız kelimeleri taşıyor. Kelimeler kaynak metin run'larına, uzunluk
+oranına göre ve kelime sınırlarına oturtularak dağıtılıyor.
 
-**Yan bulgu:** Geçersizlik EPUB→PDF yolunu etkilemiyor. O yol DocIR'den üretiyor.
+**Doğrulama:** Aynı kitap düzeltilmiş yazıcıyla yeniden yazıldı: **14 belge, 0 bozuk** (önce 1 bozuk).
+Testler 30/30 geçti. Bağlantı testi artık `xfail` değil.
 
-**Kanıt:** `tests/test_epub_writer.py` (xfail).
+**Yanlış giden:** İlk denemede düzeltme **doğru yerdeydi** ama test iddiam fazla katıydı: çeviri
+cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test kırmızı kaldı ve düzeltmeyi
+"yakınsamadı" diye park ettim. Hata bendeydi, kodda değil. **Kural:** bir düzeltme kırmızı kalıyorsa
+önce **iddiayı** sorgula, sonra kodu.
+
+**Kanıt:** `tests/test_epub_writer.py` · `docs/DECISIONS.md` · düzeltilmiş EPUB (14/0).
 
 ---
 
