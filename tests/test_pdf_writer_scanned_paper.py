@@ -15,6 +15,7 @@ import numpy as np
 import pymupdf
 from PIL import Image, ImageDraw
 
+import layoutkeep.writers.pdf_writer as pdf_writer
 from layoutkeep.core.docir import apply_segments, segments_from_document
 from layoutkeep.readers.pdf_reader import read_pdf
 from layoutkeep.writers.pdf_writer import write_pdf
@@ -91,6 +92,33 @@ def test_the_source_ink_is_still_removed(tmp_path: Path) -> None:
     scale = 100 / 72.0
     band = after[int((_TEXT_TOP_PT + 2) * scale) : int((_TEXT_TOP_PT + 28) * scale), int(120 * scale) : int(260 * scale)]
     assert (band.mean(2) < 90).sum() == 0, "source glyphs survived the clearing"
+
+
+def test_the_panel_rule_never_changes_a_paper_page(tmp_path: Path) -> None:
+    """The user's worry: "don't break the page translations while fixing the cover". Measured.
+
+    The same source and the same target text, written twice - the panel rule at 120 and effectively
+    off at 255. On a paper page the two runs must be identical pixel for pixel: the rule exists for
+    coloured covers, and if it ever leaks onto ordinary pages this test fails and says so.
+    """
+    src = tmp_path / "tinted.pdf"
+    _tinted_scan(src)
+
+    rendered = []
+    for threshold in (120, 255):
+        pdf_writer._SCAN_PAPER_MAX_SATURATION = threshold
+        doc = read_pdf(src)
+        segments = segments_from_document(doc)
+        for seg in segments:
+            seg.target = "the same words in both runs"
+        apply_segments(doc, segments)
+        out = tmp_path / f"out_{threshold}.pdf"
+        pdf_writer.write_pdf(doc, src, out)
+        rendered.append(_render(out))
+
+    on, off = rendered
+    differing = int((np.abs(on - off).max(2) > 0).sum())
+    assert differing == 0, f"the panel rule changed {differing} pixels of an ordinary paper page"
 
 
 def test_a_coloured_panel_is_painted_over_instead_of_ink_erased(tmp_path: Path) -> None:
