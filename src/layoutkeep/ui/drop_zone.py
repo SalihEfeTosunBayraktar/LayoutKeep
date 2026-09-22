@@ -84,7 +84,7 @@ class DropZoneWidget(QFrame):
         layout.setSpacing(4)
         # It is a target, not a panel: capped so the settings card below it is on screen
         # without scrolling at the size the window opens at.
-        self.setMaximumHeight(124)
+        self.setMaximumHeight(112)
         layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._prompt_label)
         layout.addWidget(self._hint_label)
