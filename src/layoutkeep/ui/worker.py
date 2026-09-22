@@ -27,6 +27,7 @@ from layoutkeep.ui.document_finalizer import DocumentFinalizer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
+from layoutkeep.ui.topic_map import TopicMapBuilder
 from layoutkeep.ui.translation_loop import _run_translation_loop
 
 #: How many segments the worker hands the provider at a time.
@@ -412,38 +413,10 @@ class TranslationWorker(QThread):
         self._write_timing_report(out)
 
     def _build_keyword_map(self, doc: Document, out: Path, provider) -> None:
-        """Ask the model what each stretch of the document is about, once, before translating it.
-
-        The file lands beside the output and is only pointed at for this run: the user's own value in
-        'Konu haritası dosyası' is put back as soon as the segments have read the map. A model that
-        does not answer leaves an empty map behind, which costs nothing - the segment builder reads
-        what is there and ignores the rest.
-        """
-        from layoutkeep.core.keywords import build_keyword_map, filled_entries, write_keyword_map
-
-        chat = getattr(provider, "_chat", None)
-        if chat is None:
-            self.status.emit("topic map skipped: this provider has no chat call")
-            return
-        self.status.emit("building the topic map")
-
-        def ask(system: str, user: str) -> str:
-            return str(
-                chat(
-                    [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ]
-                )
-            )
-
-        entries = build_keyword_map(doc, ask)
-        target = write_keyword_map(entries, out.with_name(f"{out.stem}.keyword-map.json"))
-        self._keyword_map_previous = str(tunables.get("translation.keyword_map_path") or "")
-        tunables.set_value("translation.keyword_map_path", str(target))
-        filled, words = filled_entries(entries)
-        self.status.emit(f"topic map: {filled}/{len(entries)} stretches, {words} keywords")
-
+        """Delegate to TopicMapBuilder: the map build lives there now."""
+        target, previous = TopicMapBuilder(on_status=self.status.emit).build(doc, out, provider)
+        self._keyword_map_previous = previous
+        self._keyword_map_path = target
     def _write_timing_report(self, out: Path) -> None:
         """Write the phase breakdown beside the output, and only when the setting asks for it."""
         timing = getattr(self, "_timing", None)
