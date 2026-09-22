@@ -167,6 +167,9 @@ def _translate_args(**overrides):
     base = {
         "provider": "fake", "memory": None, "no_repeats": False, "base_url": None,
         "model": None, "api_key": None, "timeout": None,
+        # The parser always sets this; the builder reads it now, because the memory key carries
+        # the glossary's fingerprint.
+        "glossary": None,
     }
     base.update(overrides)
     return Namespace(**base)

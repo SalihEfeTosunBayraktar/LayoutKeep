@@ -102,7 +102,15 @@ def _build_provider(args: argparse.Namespace):
         )
         model_id = f"{args.base_url}:{model_name}"
 
+    from layoutkeep.providers.glossary import glossary_fingerprint, load_terms
     from layoutkeep.providers.protected import ProtectedProvider
+
+    # The command line keys its translation memory the way the window does
+    # (`ui/worker._build_provider`): a glossary changes what the model is asked for, so a
+    # translation stored under a different term list is not an answer to this run's question.
+    terms = load_terms(args.glossary)
+    if terms:
+        model_id = f"{model_id}|gloss:{glossary_fingerprint(terms)}"
 
     if not args.memory:
         return ProtectedProvider(DedupeProvider(provider, enabled=_reuse_repeats(args))), None
@@ -340,6 +348,11 @@ def cmd_translate(args: argparse.Namespace) -> int:
         glossary = Glossary(merged)
         print(f"glossary  {len(automatic)} automatic terms (+{from_file} from the file)")
         print(f"terms     {target}")
+        # The chain is built again once the merged list is on disk, exactly as the window does
+        # (`ui/worker._run`): the memory key has to carry the terms the run really translates
+        # with, and the document's own terms are part of them.
+        args.glossary = str(target)
+        provider, memory = _build_provider(args)
 
     started = time.monotonic()
     try:

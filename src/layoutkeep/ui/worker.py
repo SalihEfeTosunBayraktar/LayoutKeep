@@ -8,7 +8,6 @@ reimplements translation, fitting or I/O logic (see docs/CONTRACT.md, D1/D2).
 from __future__ import annotations
 
 import copy
-import hashlib
 import threading
 import time
 from dataclasses import replace
@@ -23,6 +22,7 @@ from layoutkeep.core.docir import (
     segments_from_document,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.providers.glossary import glossary_fingerprint, load_terms
 from layoutkeep.ui.doc_glossary import DocGlossaryBuilder
 from layoutkeep.ui.document_finalizer import DocumentFinalizer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
@@ -151,33 +151,26 @@ def load_glossary_terms(path: str | None) -> dict[str, str] | None:
 
     A broken file is not a reason to fail the job: it is reported by the caller and the run goes
     on without the glossary, which is the same document the user would have got before.
-    """
-    if not path:
-        return None
-    from layoutkeep.providers.glossary import Glossary
 
+    The reading itself is `providers/glossary.load_terms`, the one the command line uses too; what
+    this name adds is the window's own exception, which its callers report instead of stopping for.
+    """
     try:
-        glossary = Glossary.load(path)
+        return load_terms(path)
     except (OSError, ValueError) as exc:
         # A typo in a path or a hand-edited JSON file must not end a two-hour run before it
         # starts; the caller reports it and the document is translated as it would have been.
         raise GlossaryUnreadableError(path, str(exc)) from exc
-    return glossary.terms or None
 
 
 class GlossaryUnreadableError(Exception):
     """The configured glossary file could not be read; the run continues without it."""
 
 
-def _glossary_fingerprint(terms: dict[str, str]) -> str:
-    """Short hash of a glossary, folded into the memory key.
-
-    WHY THIS EXISTS: the translation memory is keyed by (source, languages, model). A glossary
-    changes what the model is asked for, so a translation produced before the term policy existed
-    would otherwise be served straight back - the exact case the memory's own warning describes.
-    """
-    payload = chr(0).join(f"{k}={v}" for k, v in sorted(terms.items())).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()[:12]
+#: The glossary hash, folding a term list into the memory key. It lives with the glossary now
+#: (`providers/glossary.glossary_fingerprint`) so the command line folds in the same one: two
+#: front-ends computing that key differently is one serving the other's translations.
+_glossary_fingerprint = glossary_fingerprint
 
 
 def _build_provider(config: JobConfig):

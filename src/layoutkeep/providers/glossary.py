@@ -9,6 +9,7 @@ which glossary entries occasionally do for phrasal terms).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -131,3 +132,28 @@ class Glossary:
                 )
             out.append(seg)
         return out, {"checked": checked, "honoured": honoured}
+
+
+def load_terms(path: str | Path | None) -> dict[str, str] | None:
+    """The term list in `path`, or None when no file is configured.
+
+    One reader for both front-ends: the command line and the application have to agree on what the
+    run's glossary is, or their translation memories end up keyed differently for the same job. An
+    unreadable file raises - what a caller does about that is its own decision (the window reports
+    it and translates without a glossary).
+    """
+    if not path:
+        return None
+    return Glossary.load(path).terms or None
+
+
+def glossary_fingerprint(terms: dict[str, str]) -> str:
+    """Short hash of a term list, folded into a translation-memory key.
+
+    WHY THIS EXISTS: the memory is keyed by (source, languages, model). A glossary changes what the
+    model is asked for, so a translation produced under a different term list must not be served
+    back as an answer to this one - the case the memory's own warning describes. Both front-ends
+    fold in this same hash, so the two keys agree on when a stored row still answers the question.
+    """
+    payload = chr(0).join(f"{k}={v}" for k, v in sorted(terms.items())).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()[:12]
