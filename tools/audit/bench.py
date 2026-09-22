@@ -117,7 +117,7 @@ def _run_one(name: str, file: str, src_lang: str, dst_lang: str, run_dir: Path, 
     )
     (work / "audit.txt").write_text(audit.stdout + audit.stderr, encoding="utf-8")
     result = {"name": name, "pages": pages, "seconds": seconds, "direction": f"{src_lang}->{dst_lang}",
-              "translate_exit": translate.returncode}
+              "translate_exit": translate.returncode, "provenance": args.provenance}
     (work / "bench.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
 
@@ -148,8 +148,15 @@ def layout_ratio(row: dict) -> float | None:
 def write_table(run_dir: Path) -> Path:
     rows = [row for work in sorted(run_dir.iterdir()) if work.is_dir() and (row := _row(work))]
     header = ["source", "dir", "pages", "s", *LOSS_KEYS, "losses", *DIAG_KEYS, "layout"]
+    prov_file = run_dir / "provenance.json"
+    prov = json.loads(prov_file.read_text(encoding="utf-8")) if prov_file.exists() else {}
     lines = [
         f"# Bench `{run_dir.name}`",
+        "",
+        (f"LayoutKeep {prov.get('app_version', '?')} · commit `{prov.get('commit', '?')[:10]}`"
+         f"{' (dirty)' if prov.get('dirty') else ''} · model `{prov.get('model', '?')}` · "
+         f"settings `{json.dumps(prov.get('settings', {}), ensure_ascii=False)}` · started {prov.get('started', '?')}")
+        if prov else "Provenance not recorded (a run from before provenance.json existed).",
         "",
         (
             f"Commit `{run_dir.name}`, translation memory off, three pages per source "
@@ -194,6 +201,28 @@ def write_table(run_dir: Path) -> Path:
     return table
 
 
+def _provenance(run_dir: Path, args) -> dict:
+    """Everything that decided how this arm translated, so no result is ever read without it."""
+    import tomllib
+
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    info = {
+        "app_version": version,
+        "commit": _git("rev-parse", "HEAD"),
+        "dirty": bool(_git("status", "--porcelain", "--untracked-files=no")),
+        "model": args.model,
+        "endpoint": "http://127.0.0.1:1234/v1 (LM Studio)",
+        "layout_detector": True,
+        "translation_memory": "off",
+        "pages": "first, middle, last-but-one",
+        "settings": json.loads((run_dir / "tunables.json").read_text(encoding="utf-8")),
+        "label": args.label or "",
+        "started": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    (run_dir / "provenance.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
+    return info
+
+
 def _pin_settings(run_dir: Path, pairs: list[str]) -> dict:
     """Write this arm's settings file and return the environment that points the runs at it."""
     import os
@@ -234,6 +263,7 @@ def main() -> int:
     run_dir = BENCH / (f"{name}-{args.label}" if args.label else name)
     run_dir.mkdir(parents=True, exist_ok=True)
     args.env = _pin_settings(run_dir, args.set)
+    args.provenance = _provenance(run_dir, args)
 
     if not args.table:
         from concurrent.futures import ThreadPoolExecutor, as_completed
