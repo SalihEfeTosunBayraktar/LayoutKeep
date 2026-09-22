@@ -56,7 +56,7 @@ def flag_passthrough(segments: list[Segment]) -> int:
     for segment in segments:
         if is_passthrough(segment):
             segment.needs_review = True
-            segment.review_reason = "model metni çevirmeden aynen geri verdi"
+            segment.review_reason = "REVIEW_PASSTHROUGH"
             found += 1
     return found
 
@@ -82,5 +82,5 @@ def flag_untranslated(segments: list[Segment]) -> int:
         segment.needs_review = True
         # Whatever flagged this first (low OCR confidence, a lost marker) knows more about why.
         if not segment.review_reason:
-            segment.review_reason = "çeviri dönmedi, kaynak metin olduğu gibi kaldı"
+            segment.review_reason = "REVIEW_PASSTHROUGH_SOURCE"
     return found

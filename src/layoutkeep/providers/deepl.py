@@ -37,6 +37,7 @@ from layoutkeep.core.docir import Segment
 from layoutkeep.providers._http_compat import _retry_delay
 from layoutkeep.providers.base import TranslationProvider
 from layoutkeep.providers.batching import BatchProgress, ProgressCallback
+from layoutkeep.ui.strings import UIStrings
 
 #: DeepL accepts up to 50 texts per request. Segments are short, so the character limit is the
 #: binding one in practice; this keeps requests comfortably inside both.
@@ -204,16 +205,16 @@ class DeepLProvider(TranslationProvider):
                     continue
                 raise RuntimeError(_explain_http_error(err)) from err
             except urllib.error.URLError as err:
-                raise RuntimeError(f"DeepL'e ({self.host}) bağlanılamadı: {err.reason}") from err
+                raise RuntimeError(UIStrings.DEEPL_CONNECTION_FAILED.format(host=self.host, reason=err.reason)) from err
         else:  # pragma: no cover - loop always breaks or raises
-            raise RuntimeError(f"DeepL yanıt vermedi: {last_error}")
+            raise RuntimeError(UIStrings.DEEPL_NO_RESPONSE.format(error=last_error))
 
         translations = body.get("translations")
         if not isinstance(translations, list):
             # Not a type error in the caller's code: the server sent something unexpected,
             # which belongs in the same class as any other bad response from it.
             raise RuntimeError(  # noqa: TRY004
-                f"DeepL beklenmeyen yanıt verdi: {str(body)[:200]}"
+                UIStrings.DEEPL_UNEXPECTED_RESPONSE.format(body=str(body)[:200])
             )
         return [str(item.get("text", "")) for item in translations]
 
@@ -237,13 +238,13 @@ class DeepLProvider(TranslationProvider):
         except urllib.error.HTTPError as err:
             raise RuntimeError(_explain_http_error(err)) from err
         except urllib.error.URLError as err:
-            raise RuntimeError(f"DeepL'e ({self.host}) bağlanılamadı: {err.reason}") from err
+            raise RuntimeError(UIStrings.DEEPL_CONNECTION_FAILED.format(host=self.host, reason=err.reason)) from err
 
         used = body.get("character_count")
         limit = body.get("character_limit")
         if isinstance(used, int) and isinstance(limit, int):
-            return f"DeepL bağlantısı çalışıyor - kota: {used:,} / {limit:,} karakter"
-        return "DeepL bağlantısı çalışıyor"
+            return UIStrings.DEEPL_CONNECTION_WORKING_QUOTA.format(used=f"{used:,}", limit=f"{limit:,}")
+        return UIStrings.DEEPL_CONNECTION_WORKING
 
     # -- provider ----------------------------------------------------------
     def translate(
@@ -257,7 +258,7 @@ class DeepLProvider(TranslationProvider):
         source = to_deepl_lang(src_lang, target=False)
         target = to_deepl_lang(tgt_lang, target=True)
         if not target:
-            raise ValueError("DeepL için hedef dil gerekli.")
+            raise ValueError(UIStrings.DEEPL_TARGET_LANGUAGE_REQUIRED)
 
         results: list[Segment] = []
         stats = {"requests": 0, "characters": 0}
@@ -288,7 +289,7 @@ class DeepLProvider(TranslationProvider):
                     # A short reply must not shift every later translation onto the wrong
                     # segment. Leave it untranslated and say why.
                     out.needs_review = True
-                    out.review_reason = "DeepL bu segmenti yanıtlamadı"
+                    out.review_reason = "REVIEW_DEEPL_EMPTY"
                 results.append(out)
 
             if on_progress is not None:
@@ -310,13 +311,10 @@ class DeepLProvider(TranslationProvider):
 def _explain_http_error(err: urllib.error.HTTPError) -> str:
     # DeepL'in hata kodlarını ne yapılacağını söyleyen cümlelere çevirir / Actionable messages
     if err.code == 403:
-        return (
-            "DeepL anahtarı reddedildi (403). Anahtarın doğru olduğundan ve ücretsiz "
-            "anahtarların (`:fx` ile biter) api-free.deepl.com adresine gittiğinden emin olun."
-        )
+        return UIStrings.DEEPL_KEY_REJECTED
     if err.code == 456:
-        return "DeepL karakter kotası doldu (456). Bu ay için kota bitti."
+        return UIStrings.DEEPL_QUOTA_EXHAUSTED
     if err.code == 413:
-        return "DeepL isteği çok büyük buldu (413). Daha küçük parti deneyin."
+        return UIStrings.DEEPL_REQUEST_TOO_LARGE
     body = err.read().decode("utf-8", errors="replace")[:200] if hasattr(err, "read") else ""
-    return f"DeepL hatası (HTTP {err.code}): {body}"
+    return UIStrings.DEEPL_HTTP_ERROR.format(code=err.code, body=body)

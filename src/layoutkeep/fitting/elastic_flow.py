@@ -87,7 +87,7 @@ class ElasticFlowEngine:
             max_allowed_y1 = page_height - self._bottom_margin
             if new_y1 > max_allowed_y1:
                 b.needs_review = True
-                b.review_reason = "Sayfa alt sınırını aştı / Exceeded bottom margin limit"
+                b.review_reason = "REVIEW_BOTTOM_MARGIN"
 
             b.bbox = BBox(orig_bbox.x0, round(new_y0, 2), orig_bbox.x1, round(new_y1, 2))
             shifted_blocks.append(b)

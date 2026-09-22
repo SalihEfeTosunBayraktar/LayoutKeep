@@ -828,7 +828,7 @@ def _block_from_paragraph(
         confidence=confidence,
         needs_review=confidence < tunables.get("ocr.needs_review_threshold"),
         review_reason=(
-            f"OCR güveni düşük ({confidence:.2f})"
+            f"REVIEW_OCR_LOW_CONFIDENCE|{confidence:.2f}"
             if confidence < tunables.get("ocr.needs_review_threshold") else ""
         ),
     )

@@ -13,7 +13,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from layoutkeep.core import review, tunables
+from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     apply_segments,
@@ -21,6 +21,7 @@ from layoutkeep.core.docir import (
     segments_from_document,
 )
 from layoutkeep.core.estimate import estimate_job, measured_expansion
+from layoutkeep.ui.strings import UIStrings
 
 EXIT_OK = 0
 EXIT_USAGE = 2
@@ -676,9 +677,7 @@ def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
         seg.target = result.text
         if result.needs_review:
             seg.needs_review = True
-            seg.review_reason = review.sentence(result.review_reason) or (
-                "çeviri kutuya sığmadı, küçültme yetmedi"
-            )
+            seg.review_reason = result.review_reason or "REVIEW_FIT_FAILED"
             block.needs_review = True
             block.review_reason = seg.review_reason
         _apply_scale(block, result.scale)
@@ -775,8 +774,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="MODE",
         help=(
-            "Ayrıca çift dilli bir PDF yaz: 'side' her sayfada kaynak solda çeviri sağda, "
-            "'alternate' her kaynak sayfadan sonra çevirisi. Çevrilmiş PDF ve denetim değişmez."
+UIStrings.DUAL_FILE_HINT
         ),
     )
     tr.add_argument("--fit-mode", choices=["strict", "reflow"], default=None,

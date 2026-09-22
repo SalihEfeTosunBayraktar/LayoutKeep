@@ -346,7 +346,7 @@ def run_batches(
                 # impossible segment killed a 4-page chunk after 410 seconds.
                 batch_result = [
                     _review_copy(
-                        seg, "blok modelin bağlamına sığmadı / segment exceeds the model's context"
+                        seg, "REVIEW_CONTEXT_OVERFLOW"
                     )
                     for seg in batch
                 ]
@@ -392,6 +392,6 @@ def _review_copy(seg: Segment, reason: str = "") -> Segment:
         confidence=seg.confidence,
         needs_review=True,
         # K1: sebepsiz needs_review editor'de aciklamasiz kalir / review must say why
-        review_reason=reason or "partinin tamamı çevrilemedi / whole batch failed to translate",
+        review_reason=reason or "REVIEW_BATCH_FAILED",
         from_memory=False,
     )

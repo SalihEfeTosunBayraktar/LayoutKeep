@@ -178,7 +178,7 @@ def _read_page(
         for block in blocks:
             if _covered_by(box, block.bbox):
                 block.needs_review = True
-                block.review_reason = "metin aynalanmış, olduğu gibi geri yazılacak"
+                block.review_reason = "REVIEW_MIRROR_TEXT"
 
     from_model: list[Block] = []
     if layout is not None:

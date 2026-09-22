@@ -265,7 +265,7 @@ class OpenAICompatProvider(TranslationProvider):
         except RuntimeError as error:
             if _is_context_overflow(str(error)):
                 raise BatchTooLargeError(
-                    "istek modelin bağlam penceresine sığmadı / request exceeds the model's context"
+                    "REVIEW_CONTEXT_OVERFLOW"
                 ) from error
             raise
 
@@ -432,7 +432,7 @@ def _apply_result(seg: Segment, target: str | None) -> Segment:
         needs_review=target is None,
         # K1: model bu id'yi dondurmediyse sebep yazilmali / review must say why
         review_reason=(
-            "sağlayıcı bu segmenti yanıtlamadı / provider did not return this segment"
+            "REVIEW_PROVIDER_EMPTY"
             if target is None
             else ""
         ),

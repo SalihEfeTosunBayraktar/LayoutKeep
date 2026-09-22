@@ -84,16 +84,16 @@ LABELS = {
 
 #: What the review queue says, in the application's language like every other review reason.
 REVIEW_REASONS = {
-    "L1": "doğrulama: çıktının sayfa sayısı farklı",
-    "L2": "doğrulama: çevrilmemiş ya da başka bir dilde",
-    "L3": "doğrulama: bloğun metni sayfada bulunamadı (çizilmedi ya da kutusunda kırpıldı)",
-    "L4": "doğrulama: metin sayfanın dışına taştı",
-    "L5": "doğrulama: çıktıya etiket sızdı",
-    "L6": "doğrulama: çeviride sayılar kayboldu",
-    "L7": "doğrulama: metin başka bir metnin üstüne yazıldı",
-    "L8": "doğrulama: çevrilmeyen metin yerinden oynadı",
-    "L9": "doğrulama: çeviride başka bir alfabeden harf karıştı",
-    "L10": "doğrulama: metin bir görselin üstüne yazıldı",
+    "L1": "VERIFY_REVIEW_L1",
+    "L2": "VERIFY_REVIEW_L2",
+    "L3": "VERIFY_REVIEW_L3",
+    "L4": "VERIFY_REVIEW_L4",
+    "L5": "VERIFY_REVIEW_L5",
+    "L6": "VERIFY_REVIEW_L6",
+    "L7": "VERIFY_REVIEW_L7",
+    "L8": "VERIFY_REVIEW_L8",
+    "L9": "VERIFY_REVIEW_L9",
+    "L10": "VERIFY_REVIEW_L10",
 }
 
 #: The losses a new request to the model can mend. The rest are drawn wrong, not translated wrong.

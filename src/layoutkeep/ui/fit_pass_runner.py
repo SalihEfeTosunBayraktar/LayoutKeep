@@ -15,7 +15,6 @@ from dataclasses import replace
 from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import Document, Segment
 from layoutkeep.ui.job import JobConfig
-from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["FitPassRunner"]
 
@@ -128,10 +127,10 @@ class FitPassRunner:
                 if result.review_reason == review.BOX_CRUSHED:
                     # The box, not the text: say so in the interface's own language, and count it
                     # for the completion screen (the engine reports a key, the UI owns the words).
-                    seg.review_reason = UIStrings.get("REVIEW_BOX_CRUSHED")
+                    seg.review_reason = "REVIEW_BOX_CRUSHED"
                     self._on_box_crushed()
                 else:
-                    seg.review_reason = UIStrings.get("REVIEW_FIT_FAILED")
+                    seg.review_reason = "REVIEW_FIT_FAILED"
                 block.needs_review = True
                 block.review_reason = seg.review_reason
             apply_scale(block, result.scale)

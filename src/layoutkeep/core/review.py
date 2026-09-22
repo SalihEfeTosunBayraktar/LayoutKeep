@@ -12,19 +12,21 @@ split `ui.progress.format_phase` uses for phase names.
 
 from __future__ import annotations
 
+from layoutkeep.ui.strings import UIStrings
+
 #: The key the fitting pass sets when a block's measured box was shortened to its floor.
 BOX_CRUSHED = "box_crushed"
 
 #: Keys that mean "the box, not the text". Anything else is left to the front-end's generic line.
 _SENTENCES = {
-    BOX_CRUSHED: "kutu sonraki bloğa değmesin diye kısaltıldı; metin bu kutuya sığmıyor",
+    BOX_CRUSHED: "REVIEW_BOX_CRUSHED",
 }
 
 
 def sentence(key: str) -> str:
-    """The plain-Turkish sentence for a key, or an empty string for one we do not know.
+    """Return the translated sentence for a machine key, or an empty string if unknown.
 
     Empty rather than the key itself: a caller that gets nothing falls back to its own wording,
     which reads better than a machine name leaking into a review list.
     """
-    return _SENTENCES.get(key, "")
+    return UIStrings.get(_SENTENCES.get(key, "")) if key in _SENTENCES else ""

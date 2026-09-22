@@ -464,7 +464,7 @@ def apply_segments(doc: Document, segments: Sequence[Segment]) -> list[str]:
             # The block had inline styling and the translation did not bring the markers back,
             # so bold/italic runs inside it were lost. Surface it instead of hiding it.
             seg.needs_review = True
-            seg.review_reason = seg.review_reason or "kalın/italik biçimlendirme kayboldu"
+            seg.review_reason = seg.review_reason or "REVIEW_FORMATTING_LOST"
         # Carry the segment's verdict onto the block, which is what the review editor reads.
         # Without this every flag raised after the reader ran - a dropped literal, an ignored
         # glossary term, styling lost above, a segment the model handed back untranslated - was
