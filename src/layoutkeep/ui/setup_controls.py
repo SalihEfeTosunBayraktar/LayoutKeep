@@ -6,16 +6,21 @@ with a lock and the one sentence that says what it would cost, and cannot be pic
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox, QPushButton
 
 from layoutkeep.core import capabilities
 from layoutkeep.ui.icons import get_svg_icon
+from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
-__all__ = ["fill_format_combo"]
+#: Width of the square icon-only buttons on the setup screen (browse, provider settings).
+ICON_BUTTON_WIDTH = 42
+
+__all__ = ["ICON_BUTTON_WIDTH", "ProviderControls", "build_provider_controls", "fill_format_combo"]
 
 
 def fill_format_combo(combo: QComboBox, source_path: str) -> None:
@@ -57,3 +62,41 @@ def fill_format_combo(combo: QComboBox, source_path: str) -> None:
         )
     combo.setCurrentIndex(index)
     combo.blockSignals(False)
+
+
+@dataclass
+class ProviderControls:
+    """The provider-side widgets and state the setup screen needs, built in one place."""
+
+    store: object
+    combo: object
+    config: object
+    provider_btn: QPushButton
+    start_btn: QPushButton
+
+
+def build_provider_controls() -> ProviderControls:
+    """Builds the profile store, the profile box, the active config and the two buttons.
+
+    There is deliberately no provider-kind dropdown here. There used to be one, but it was never
+    added to a layout - invisible, and yet it decided the kind of every job, which is why DeepL
+    could be chosen nowhere even though the provider was finished. The profile now carries the
+    kind, and the profile is what the setup screen selects.
+    """
+    from layoutkeep.ui.provider_combo import ProviderComboBox
+    from layoutkeep.ui.provider_profile import ProviderProfileStore
+
+    store = ProviderProfileStore()
+    combo = ProviderComboBox()
+    active = store.get_profile(store.get_active_profile_name())
+    config = active.to_config() if active else ProviderConfig(kind="openai")
+
+    provider_btn = QPushButton()
+    provider_btn.setIcon(get_svg_icon("sliders", color=ThemeManager.current_palette().accent, size=18))
+    provider_btn.setFixedWidth(ICON_BUTTON_WIDTH)
+    provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
+    start_btn = QPushButton(UIStrings.START_TRANSLATION_BTN)
+    start_btn.setProperty("class", "primary")
+    start_btn.setIcon(get_svg_icon("play", color=ThemeManager.current_palette().accent_text, size=18))
+    start_btn.setMinimumHeight(42)
+    return ProviderControls(store, combo, config, provider_btn, start_btn)

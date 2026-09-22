@@ -33,11 +33,13 @@ from layoutkeep.ui.drop_zone import DropZoneWidget
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.job import JobConfig, ProviderConfig
 from layoutkeep.ui.languages import LANGS, LanguageComboBox, definitions
-from layoutkeep.ui.provider_combo import ProviderComboBox
-from layoutkeep.ui.provider_profile import ProviderProfileStore
 from layoutkeep.ui.provider_settings import ProviderSettingsDialog
 from layoutkeep.ui.settings import app_settings
-from layoutkeep.ui.setup_controls import fill_format_combo
+from layoutkeep.ui.setup_controls import (
+    ICON_BUTTON_WIDTH,
+    build_provider_controls,
+    fill_format_combo,
+)
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
@@ -54,7 +56,6 @@ _PATH_BOX_WIDTH = 520
 _LABEL_COLUMN_WIDTH = 26
 
 #: A square-ish button for an icon with no text.
-_ICON_BUTTON_WIDTH = 42
 #: Evaluated once, at import, in whatever language was active then - which is why the box read
 #: "Same as Source" in a Turkish window. `_format_choices()` reads the strings when they are
 #: needed instead, and `retranslate_ui` refills the box.
@@ -161,7 +162,7 @@ class _JobSetupUiBuilder:
         self._browse_out_btn.setIcon(
             get_svg_icon("folder", color=ThemeManager.current_palette().accent, size=18)
         )
-        self._browse_out_btn.setFixedWidth(_ICON_BUTTON_WIDTH)
+        self._browse_out_btn.setFixedWidth(ICON_BUTTON_WIDTH)
         self._browse_out_btn.setToolTip(
             f"{UIStrings.BROWSE_BTN} - çıktı klasörünü seçin / Select output folder"
         )
@@ -196,29 +197,14 @@ class _JobSetupUiBuilder:
         self._init_provider_controls()
 
     def _init_provider_controls(self) -> None:
-        # Sağlayıcı ve profil kontrollerini kurar / Sets up provider and profile controls
-        # There is deliberately no provider-kind dropdown here. There used to be one, but it
-        # was never added to a layout - invisible, and yet it decided the kind of every job,
-        # which is why DeepL could be chosen nowhere even though the provider was finished.
-        # The profile now carries the kind, and the profile is what this screen selects.
-        self._profile_store = ProviderProfileStore()
-        self._provider_profile_combo = ProviderComboBox()
+        """Delegate: the provider controls are built in setup_controls now."""
+        controls = build_provider_controls()
+        self._profile_store = controls.store
+        self._provider_profile_combo = controls.combo
+        self._provider_config = controls.config
+        self._provider_btn = controls.provider_btn
+        self._start_btn = controls.start_btn
         self._refresh_profile_combo()
-
-        active_prof = self._profile_store.get_profile(self._profile_store.get_active_profile_name())
-        self._provider_config = active_prof.to_config() if active_prof else ProviderConfig(kind="openai")
-
-        self._provider_btn = QPushButton()
-        self._provider_btn.setIcon(
-            get_svg_icon("sliders", color=ThemeManager.current_palette().accent, size=18)
-        )
-        self._provider_btn.setFixedWidth(_ICON_BUTTON_WIDTH)
-        self._provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
-        self._start_btn = QPushButton(UIStrings.START_TRANSLATION_BTN)
-        self._start_btn.setProperty("class", "primary")
-        self._start_btn.setIcon(get_svg_icon("play", color=ThemeManager.current_palette().accent_text, size=18))
-        self._start_btn.setMinimumHeight(42)
-
     def _fill_format_combo(self) -> None:
         """Delegate: the format box's fill lives in setup_controls now."""
         fill_format_combo(self._output_format, self._input_path.text().strip())
