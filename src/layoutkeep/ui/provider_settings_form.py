@@ -116,18 +116,18 @@ class ProviderSettingsForm:
         # A floor for the saved-endpoints list: with no minimum the layout squeezed it to ~140px
         # and the last row was cut off, so the dialog now grows to fit it instead.
         self._endpoint_list.setMinimumHeight(220)
-        self._profile_name = QLineEdit("Varsayılan", self._parent)
+        self._profile_name = QLineEdit(UIStrings.DEFAULT_PROVIDER_NAME, self._parent)
 
         # Editable: a group is just a heading the user invents, so typing a new one has to be
         # the same gesture as picking an existing one.
         self._group = QComboBox(self._parent)
         self._group.setEditable(True)
-        self._group.lineEdit().setPlaceholderText("opsiyonel - örn. Yerel, Bulut")
+        self._group.lineEdit().setPlaceholderText(UIStrings.GROUP_PLACEHOLDER)
 
-        self._new_profile_btn = QPushButton("+ Yeni Uç Nokta", self._parent)
+        self._new_profile_btn = QPushButton(UIStrings.NEW_ENDPOINT_BTN, self._parent)
         # One line: the same three sentences wrapped to three and took as much room as two
         # endpoints in the list above them.
-        self._hint = QLabel("Sürükleyerek sırala ve grupla · sağ tık: sil, yeniden adlandır", self._parent)
+        self._hint = QLabel(UIStrings.ENDPOINT_DRAG_HINT, self._parent)
         self._hint.setProperty("class", "muted")
         self._hint.setWordWrap(True)
         self._hint.setProperty("class", "muted")
@@ -143,11 +143,11 @@ class ProviderSettingsForm:
             KIND_OPENAI,
         )
         self._kind_combo.addItem(
-            "DeepL (çeviri servisi - model seçimi yok)",
+            UIStrings.DEEPL_TYPE_LABEL,
             KIND_DEEPL,
         )
         self._kind_combo.addItem(
-            "Test / Sahte Çevirici ([dil] İşareti Ekle)",
+            UIStrings.TEST_TYPE_LABEL,
             KIND_FAKE,
         )
 
@@ -171,7 +171,7 @@ class ProviderSettingsForm:
     def _build_layout(self) -> None:
         # Saved endpoints, in the order they were arranged, above the form that edits them -
         # the arrangement is only meaningful if it is visible while you change it.
-        saved_box = QGroupBox("Kayıtlı Uç Noktalar", self._parent)
+        saved_box = QGroupBox(UIStrings.SAVED_ENDPOINTS_LABEL, self._parent)
         saved_layout = QVBoxLayout(saved_box)
         saved_layout.addWidget(self._endpoint_list)
         saved_layout.addWidget(self._hint)
@@ -183,14 +183,14 @@ class ProviderSettingsForm:
         # model, and showing empty boxes for them invites the user to fill in values that are
         # then ignored.
         self._form_layout = form
-        form.addRow("Uç Nokta Adı", self._profile_name)
+        form.addRow(UIStrings.ENDPOINT_NAME_LABEL, self._profile_name)
         form.addRow("Grup", self._group)
-        form.addRow("Sağlayıcı Türü", self._kind_combo)
+        form.addRow(UIStrings.PROVIDER_TYPE_LABEL, self._kind_combo)
         form.addRow("Base URL", self._base_url)
         form.addRow("Model", self._model)
         form.addRow("", self._refresh_btn)
-        form.addRow("API Anahtarı", self._api_key)
-        form.addRow("Zaman Aşımı (sn)", self._timeout)
+        form.addRow(UIStrings.API_KEY_LABEL, self._api_key)
+        form.addRow(UIStrings.TIMEOUT_LABEL, self._timeout)
         form.addRow("", self._status)
 
         self._buttons = QDialogButtonBox(
@@ -204,7 +204,7 @@ class ProviderSettingsForm:
         action_row.addStretch()
         action_row.addWidget(self._buttons)
 
-        edit_box = QGroupBox("Uç Nokta Ayarları", self._parent)
+        edit_box = QGroupBox(UIStrings.ENDPOINT_SETTINGS_TITLE, self._parent)
         edit_layout = QVBoxLayout(edit_box)
         edit_layout.addLayout(form)
 

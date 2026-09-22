@@ -31,8 +31,8 @@ VENDOR_PATTERNS: list[tuple[str, tuple[str, ...]]] = [
     ("Anthropic / Claude", ("claude", "anthropic/")),
     ("Cohere", ("command", "aya", "c4ai")),
 ]
-OTHER_VENDOR = "Diğer Modeller"
-ALL_VENDORS = "Tüm Üreticiler"
+OTHER_VENDOR = UIStrings.OTHER_MODELS_LABEL
+ALL_VENDORS = UIStrings.ALL_MAKERS_LABEL
 
 
 def classify_vendor(model_id: str) -> str:

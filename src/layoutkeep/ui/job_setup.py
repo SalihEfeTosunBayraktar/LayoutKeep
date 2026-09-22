@@ -98,7 +98,7 @@ class _JobSetupUiBuilder:
         )
         self._browse_out_btn.setFixedWidth(ICON_BUTTON_WIDTH)
         self._browse_out_btn.setToolTip(
-            f"{UIStrings.BROWSE_BTN} - çıktı klasörünü seçin / Select output folder"
+            UIStrings.SELECT_OUTPUT_FOLDER_BTN
         )
         self._output_format = QComboBox()
         self._fill_format_combo()
@@ -209,7 +209,7 @@ class _JobSetupUiBuilder:
         self._browse_in_btn.setText(UIStrings.BROWSE_BTN)
         # Icon only - retranslating put the word back and it did not fit the narrow button.
         self._browse_out_btn.setToolTip(
-            f"{UIStrings.BROWSE_BTN} - çıktı klasörünü seçin / Select output folder"
+            UIStrings.SELECT_OUTPUT_FOLDER_BTN
         )
         self._provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
         self._start_btn.setText(UIStrings.START_TRANSLATION_BTN)
@@ -380,7 +380,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             "Tüm Desteklenen Belgeler (*.epub *.pdf *.docx *.png *.jpg *.jpeg *.webp *.bmp *.tiff *.lkproj);;"
             "Belgeler (*.epub *.pdf *.docx *.lkproj);;Görseller (*.png *.jpg *.jpeg *.webp *.bmp *.tiff)"
         )
-        path, _ = QFileDialog.getOpenFileName(self, "Belge Seç", "", filters)
+        path, _ = QFileDialog.getOpenFileName(self, UIStrings.SELECT_DOCUMENT_BTN, "", filters)
         if path:
             self._input_path.setText(path)
             self._drop_zone.set_file_path(path)
@@ -396,7 +396,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             if Path(src_parent).exists():
                 initial_dir = src_parent
 
-        folder = QFileDialog.getExistingDirectory(self, "Çıktı Klasörünü Seç", initial_dir)
+        folder = QFileDialog.getExistingDirectory(self, UIStrings.SELECT_OUTPUT_FOLDER_BTN, initial_dir)
         if folder:
             self._settings.setValue("output_folder", folder)
             in_path = self._input_path.text().strip()
@@ -421,7 +421,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
 
         saved_folder = str(self._settings.value("output_folder", ""))
         if saved_folder and Path(saved_folder).exists():
-            self._output_path.setPlaceholderText(f"Varsayılan Klasör: {saved_folder}")
+            self._output_path.setPlaceholderText(UIStrings.DEFAULT_FOLDER_PLACEHOLDER.format(saved_folder))
 
     def _on_range_mode_changed(self, index: int) -> None:
         # Aralık modu değiştiğinde özel aralık kutusunu gösterir/gizler / Shows/hides custom range input

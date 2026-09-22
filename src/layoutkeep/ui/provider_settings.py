@@ -221,14 +221,15 @@ class ProviderSettingsDialog(QDialog):
         if current:
             self._form.model.setEditText(current)
         if models:
-            self._form.status.setText(f"{len(models)} model bulundu (üreticilere göre gruplandı)")
+            self._form.status.setText(UIStrings.MODELS_FOUND_STATUS.format(len(models)))
         else:
             self._form.status.setText(UIStrings.STATUS_NO_MODELS)
 
     def _on_models_failed(self, message: str) -> None:
         self._form.status.setText(
-            f"Sunucuya ulaşılamadı: {message}\n"
-            "LM Studio veya Ollama sunucusunun çalıştığından emin olun."
+            UIStrings.SERVER_UNREACHABLE_STATUS.format(message)
+            + "\n"
+            + UIStrings.SERVER_UNREACHABLE_HINT.format("")
         )
 
     # ------------------------------------------------------------- save/result

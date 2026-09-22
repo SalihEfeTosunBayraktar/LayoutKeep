@@ -13,20 +13,14 @@ from layoutkeep.ui.api_key_helpers import keyring_id, load_api_key_for, save_api
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.provider_profile import ProviderProfile
 from layoutkeep.ui.provider_settings_form import KIND_DEEPL, KIND_FAKE, KIND_OPENAI
+from layoutkeep.ui.strings import UIStrings
 
-KIND_FAKE_LABEL_FRAGMENT = "Test / Sahte Çevirici"
+KIND_FAKE_LABEL_FRAGMENT = UIStrings.PROVIDER_TEST_LABEL
 FAKE_PROVIDER_MODEL = "fake"
-DEFAULT_NEW_PROFILE_NAME = "Yeni Sağlayıcı"
+DEFAULT_NEW_PROFILE_NAME = UIStrings.NEW_PROVIDER_LABEL
 DEFAULT_NEW_BASE_URL = "http://127.0.0.1:1234/v1"
-DEEPL_PROVIDER_DESCRIPTION = (
-    "DeepL seçili. Base URL ve model gerekmez; anahtar hangi sunucuya gidileceğini "
-    "kendisi belirler - ücretsiz anahtarlar ':fx' ile biter ve api-free.deepl.com "
-    "adresine gider. API anahtarı zorunludur."
-)
-FAKE_PROVIDER_DESCRIPTION = (
-    "Test / Sahte Çevirici etkindir. Kelimelerin/cümlelerin başına seçilen dil etiketini "
-    "(örn. [tr]) ekler; yerel veya uzak sunucu gerektirmez."
-)
+DEEPL_PROVIDER_DESCRIPTION = UIStrings.DEEPL_SELECTED_TOOLTIP
+FAKE_PROVIDER_DESCRIPTION = UIStrings.TEST_SELECTED_TOOLTIP
 
 
 def parse_timeout(raw: str) -> float | None:
@@ -60,7 +54,7 @@ def apply_kind_state(form) -> None:
     for widget in (form.base_url, form.model, form.refresh_btn):
         form.set_row_visible(widget, not is_deepl)
     form.api_key.setPlaceholderText(
-        "zorunlu - DeepL anahtarı (ücretsiz anahtarlar ':fx' ile biter)"
+        UIStrings.DEEPL_API_KEY_PLACEHOLDER
         if is_deepl
         else "opsiyonel - LM Studio/Ollama gerektirmez"
     )
@@ -122,7 +116,7 @@ def reset_for_new_profile(form) -> None:
 def profile_from_form(form) -> ProviderProfile:
     """Formdaki değerlerden profil üretir / Builds the profile the form currently describes."""
     kind = str(form.kind_combo.currentData() or KIND_OPENAI)
-    prof_name = form.profile_name.text().strip() or "Özel Sağlayıcı"
+    prof_name = form.profile_name.text().strip() or UIStrings.CUSTOM_PROVIDER_FALLBACK
     if kind == KIND_FAKE:
         return ProviderProfile(
             name=prof_name,

@@ -21,6 +21,7 @@ from layoutkeep.ui.floating_progress import FloatingProgress
 from layoutkeep.ui.header import HeaderBar
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.progress import ProgressWidget
+from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.worker import TranslationWorker
 
 
@@ -57,7 +58,7 @@ class RunController:
     def start(self, config: JobConfig) -> None:
         # Çeviri işini başlatır / Starts the translation job
         if not config.input_path or not config.output_path:
-            QMessageBox.warning(self._window, "Eksik bilgi", "Girdi ve çıktı dosyası seçilmeli.")
+            QMessageBox.warning(self._window, UIStrings.MISSING_FILES_DIALOG_TITLE, UIStrings.MISSING_FILES_DIALOG_BODY)
             return
 
         self._set_output_path(config.output_path)
@@ -118,7 +119,7 @@ class RunController:
     # ------------------------------------------------------------------ sonuç
     def finish(self, project_path: str) -> None:
         # İş tamamlandığında tamamlandı ekranını gösterir / Shows completion screen
-        self._progress.finish(f"tamamlandı: {project_path}")
+        self._progress.finish(UIStrings.COMPLETED_WITH_FILE.format(project_path))
         # Çıktıyı göster: dosya varsa aç/klasör butonları etkinleşir.
         self._completion.set_output_path(self._output_path())
         self._stack.setCurrentWidget(self._completion)
@@ -127,5 +128,5 @@ class RunController:
     def fail(self, message: str) -> None:
         # İş başarısız olduğunda bildirim verir / Shows error on failure and returns to setup
         self._progress.finish(f"hata: {message}")
-        QMessageBox.critical(self._window, "Çeviri başarısız", message)
+        QMessageBox.critical(self._window, UIStrings.TRANSLATION_FAILED_DIALOG_TITLE, message)
         self._to_setup()

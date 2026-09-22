@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import QThread, Signal
 
+from layoutkeep.ui.strings import UIStrings
+
 
 class ConnectionTestWorker(QThread):
     # Uç noktayı arka planda sınayan iş parçacığı / Worker testing one endpoint in background
@@ -41,7 +43,7 @@ class ConnectionTestWorker(QThread):
 
     def _check(self) -> str:
         if self._kind == "fake":
-            return "Test sağlayıcısı - ağ bağlantısı gerekmez"
+            return UIStrings.CONNECTION_TEST_NO_NETWORK
         if self._kind == "deepl":
             from layoutkeep.providers.deepl import DeepLProvider
 
@@ -58,5 +60,5 @@ class ConnectionTestWorker(QThread):
             base_url=self._base_url, model="", api_key=self._api_key
         ).list_models()
         if not models:
-            return "Sunucuya ulaşıldı ama model listesi boş"
-        return f"Bağlantı çalışıyor - {len(models)} model bulundu"
+            return UIStrings.CONNECTION_TEST_EMPTY_LIST
+        return UIStrings.CONNECTION_TEST_OK.format(UIStrings.MODELS_FOUND_STATUS.format(len(models)))

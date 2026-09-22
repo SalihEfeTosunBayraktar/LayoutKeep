@@ -194,7 +194,7 @@ class DropZoneWidget(QFrame):
             "Tüm Desteklenen Belgeler (*.epub *.pdf *.docx *.png *.jpg *.jpeg *.webp *.bmp *.tiff *.lkproj);;"
             "Belgeler (*.epub *.pdf *.docx *.lkproj);;Görseller (*.png *.jpg *.jpeg *.webp *.bmp *.tiff)"
         )
-        path, _ = QFileDialog.getOpenFileName(self, "Belge Seç", "", filters)
+        path, _ = QFileDialog.getOpenFileName(self, UIStrings.SELECT_DOCUMENT_BTN, "", filters)
         if path:
             self.set_file_path(path)
 
@@ -206,7 +206,7 @@ class DropZoneWidget(QFrame):
             size_str = _format_size(p.stat().st_size)
             ext_badge = p.suffix.upper().replace(".", "")
             self._info_title.setText(p.name)
-            self._info_meta.setText(f"Tür: {ext_badge} | Boyut: {size_str} | Konum: {p.parent}")
+            self._info_meta.setText(f"{UIStrings.FILE_TYPE_LABEL.format(ext_badge)} | {UIStrings.FILE_SIZE_META.format(size=size_str)} | {UIStrings.FILE_LOCATION_META.format(path=p.parent)}")
             self._info_icon.setPixmap(
                 get_svg_icon("document", color=ThemeManager.current_palette().accent, size=28).pixmap(28, 28)
             )

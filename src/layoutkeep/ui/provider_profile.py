@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.settings import app_settings
+from layoutkeep.ui.strings import UIStrings
 
 _SETTINGS_KEY_PROFILES = "provider_profiles_v1"
 _SETTINGS_KEY_ACTIVE = "active_provider_profile"
@@ -17,7 +18,7 @@ _SETTINGS_KEY_ACTIVE = "active_provider_profile"
 #: DeepL needs no base URL and has no model to choose - the key decides the host - so the
 #: profile carries nothing but its kind until the user pastes a key into it.
 _DEEPL_PROFILE = {
-    "name": "DeepL (API anahtarı gerekir)",
+    "name": UIStrings.DEEPL_PROFILE_LABEL,
     "kind": "deepl",
     "base_url": "",
     "model": "",
@@ -25,7 +26,7 @@ _DEEPL_PROFILE = {
 }
 
 _FAKE_PROFILE = {
-    "name": "Test (İşaretleme: [dil] kaynak metin)",
+    "name": UIStrings.TEST_PROFILE_LABEL,
     "kind": "fake",
     "base_url": "",
     "model": "fake",

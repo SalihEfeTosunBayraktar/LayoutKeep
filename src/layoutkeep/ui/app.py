@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from layoutkeep.ui.crashlog import crash_log_path
 from layoutkeep.ui.main_window import MainWindow
+from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
 #: Modules that pull in a C extension and are otherwise first imported by a job's worker thread -
@@ -95,8 +96,8 @@ def _exception_hook(exc_type, exc_value, exc_tb) -> None:
     if QApplication.instance() is not None:
         short_msg = f"{exc_type.__name__}: {exc_value}"
         where = (
-            "Ayrıntılar şuraya yazıldı:\n" + str(path) if path
-            else "Ayrıntılar kaydedilemedi."
+            UIStrings.LOG_SAVED_TO.format(path) if path
+            else UIStrings.LOG_SAVE_FAILED
         )
         QMessageBox.critical(
             None, "Beklenmeyen Hata", f"{short_msg}\n\n{where}"
