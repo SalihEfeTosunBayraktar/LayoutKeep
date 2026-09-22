@@ -63,7 +63,7 @@ def fit_pdf_pass(
     call. Without it every overflowing box is its own request, which on a real book is the slowest
     part of a run.
     """
-    from layoutkeep.writers.pdf_writer import measure_fit
+    from layoutkeep.writers.pdf_writer import measure_fit, same_text
 
     blocks = {b.id: b for _, b in doc.iter_blocks()}
     # Which blocks came from a page with no text layer. Their boxes are OCR's idea of where the
@@ -105,6 +105,12 @@ def fit_pdf_pass(
         for seg in segments:
             block = blocks.get(seg.block_id)
             if block is None or not seg.translated:
+                continue
+            # The writer leaves an unchanged block as the source drew it, so there is nothing to fit.
+            # Fitting it anyway measured a name in the wider substitute face, shrank it to the floor,
+            # flagged it and asked the model to shorten it: 34 of 64 blocks on arXiv 2609.19145's
+            # first page were "below the readability floor", its unchanged author names among them.
+            if same_text(seg.source, seg.target):
                 continue
 
             # Measured in the face the writer will draw: with no font file resolved, the generic serif

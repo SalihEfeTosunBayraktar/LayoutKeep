@@ -356,11 +356,16 @@ def _unchanged(block: Block) -> bool:
     """
     if not block.source_text:
         return True
+    return same_text(block.source_text, block.text)
+
+
+def same_text(source: str, written: str) -> bool:
+    """The same words, markers and whitespace aside - the test for "this block needs no redrawing"."""
 
     def plain(text: str) -> str:
         return " ".join(re.sub(r"</?\d+>", "", text).split())
 
-    return plain(block.source_text) == plain(block.text)
+    return plain(source) == plain(written)
 
 
 def _cover_scanned_blocks(

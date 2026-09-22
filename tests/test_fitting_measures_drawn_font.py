@@ -38,3 +38,23 @@ def test_a_line_that_wraps_in_the_drawn_face_does_not_fit_as_it_is() -> None:
     )
 
     assert verdicts and (verdicts[0].scale < 1.0 or verdicts[0].needs_review), verdicts
+
+
+def test_a_segment_that_came_back_unchanged_is_not_fitted() -> None:
+    """arXiv 2609.19145's author line: 'Clara Meister<0>2</0>' comes back as the same name. The writer
+    does not redraw an unchanged block, yet the fit measured it in the wider substitute face, shrank
+    it to the floor, flagged it 'did not fit' and asked the model to shorten a name: 34 of 64 blocks
+    on the page were flagged below the readability floor, the unchanged names among them.
+    """
+    name = _block("name", "Clara Meister2", 200, "NimbusRomNo9L-Medi")
+    name.bbox = BBox(72, 200, 130, 210)  # tight: the name's own width in the source face
+    doc = Document(target_lang="tr", pages=[Page(number=1, width=612, height=792, blocks=[name])])
+    segment = Segment(block_id="name", source="Clara Meister<0>2</0>", target="Clara Meister<0>2</0>")
+    verdicts, asked = [], []
+
+    fit_pdf_pass(
+        doc, [segment], retranslate=lambda seg, budget: asked.append(budget) or seg.target,
+        target_lang="tr", on_fitted=lambda seg, block, result: verdicts.append(result),
+    )
+
+    assert verdicts == [] and asked == []
