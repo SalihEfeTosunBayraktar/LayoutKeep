@@ -43,9 +43,12 @@ def test_without_a_flag_the_setting_decides(monkeypatch):
 
 
 def test_the_application_follows_the_setting(monkeypatch):
-    """`ui.worker` asks the same registry; a hard-coded mode would show up here."""
-    from layoutkeep.ui import worker
+    """The fit pass asks the same registry; a hard-coded mode would show up here.
 
-    text = Path(worker.__file__).read_text(encoding="utf-8")
+    The pass moved out of `ui.worker` into `ui.fit_pass_runner`, so the scan follows it there.
+    """
+    from layoutkeep.ui import fit_pass_runner
 
-    assert 'tunables.get("fitting.reflow")' in text, "the worker pins the fit mode again"
+    text = Path(fit_pass_runner.__file__).read_text(encoding="utf-8")
+
+    assert 'tunables.get("fitting.reflow")' in text, "the fit pass pins the mode again"

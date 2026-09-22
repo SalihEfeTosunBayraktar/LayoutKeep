@@ -16,7 +16,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 
-from layoutkeep.core import review, tunables
+from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     Segment,
@@ -25,6 +25,7 @@ from layoutkeep.core.docir import (
     segments_from_document,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.translation_loop import _run_translation_loop
@@ -620,6 +621,10 @@ class TranslationWorker(QThread):
             self.status.emit(f"verification mended {report.repaired} segments")
         return report
 
+    def _count_box_crushed(self) -> None:
+        """One more block whose box, not its text, needs a look. The runner calls this."""
+        self._box_crushed += 1
+
     def _collect_stats(self, translated: list[Segment]) -> dict:
         """Figures the completion screen reports, all counted rather than estimated.
 
@@ -647,100 +652,11 @@ class TranslationWorker(QThread):
     def _fit_pdf_pass(
         self, doc: Document, segments: list[Segment], config: JobConfig, provider=None
     ) -> None:
-        """Run the shared two-directional PDF fitting pass (mirrors cli._fit_pdf).
-
-        The retranslate callback asks the real provider for a shorter/longer rendering within
-        a character budget; the write-back (text, scale, review flag) is shared pdf_pass code
-        so the GUI applies exactly what the CLI applies.
-        """
-        from layoutkeep.fitting import FitMode
-        from layoutkeep.fitting.pdf_pass import apply_scale, fit_pdf_pass
-
-        if provider is None:
-            provider, _memory, glossary_terms = _build_provider(config)
-        else:
-            # The worker already built a provider (the normal path); the fit pass still needs the
-            # glossary, because a shorter rendering asked for here must obey the same terms.
-            try:
-                glossary_terms = load_glossary_terms(config.glossary_path)
-            except GlossaryUnreadableError:
-                glossary_terms = None
-
-        def retranslate(segment: Segment, budget: int) -> str:
-            segment.max_len = budget
-            again = provider.translate(
-                [segment],
-                src_lang=config.source_lang,
-                tgt_lang=config.target_lang,
-                glossary=glossary_terms,
-            )
-            return again[0].target if again and again[0].target else segment.target
-
-        def fetch_many(pairs: list[tuple[Segment, int]]) -> dict[tuple[str, int], str]:
-            """A whole round of shortenings in ONE request, keyed by (block id, budget).
-
-            The batches are copies: the fit mutates `max_len` as it tightens a budget, and the batch
-            must carry the budget it was asked for rather than whatever the last round left behind.
-            """
-            if not pairs:
-                return {}
-            batch = [replace(segment, max_len=budget) for segment, budget in pairs]
-            again = provider.translate(
-                batch,
-                src_lang=config.source_lang,
-                tgt_lang=config.target_lang,
-                glossary=glossary_terms,
-            )
-            answers: dict[tuple[str, int], str] = {}
-            for (segment, budget), reply in zip(pairs, again, strict=False):
-                if reply is not None and reply.target:
-                    answers[(segment.block_id, budget)] = reply.target
-            return answers
-
-        # The fit asks the model for a shorter rendering per overflowing box, and on a long run this
-        # is where most of the time goes (measured: 39s of 65s on a ten-page paper). It announces
-        # itself and reports its own counter, so the card says "fitting" with a live number instead
-        # of sitting on "translating 1553/1553" while the run is nowhere near done.
-        self.status.emit("fitting")
-        fit_total = sum(1 for segment in segments if segment.translated)
-        fit_chars = sum(len(segment.target or "") for segment in segments) or 1
-        fit_state = {"done": 0, "chars": 0, "started": time.monotonic()}
-
-        def on_fitted(seg: Segment, block, result) -> None:
-            fit_state["done"] += 1
-            fit_state["chars"] += len(seg.target or "")
-            if fit_total:
-                spent = max(0.001, time.monotonic() - fit_state["started"])
-                self.progress.emit(fit_state["done"], fit_total)
-                self.progress_detailed.emit(
-                    fit_state["done"],
-                    fit_total,
-                    fit_state["chars"],
-                    fit_chars,
-                    fit_state["done"] / spent,
-                    "",
-                )
-            # fit_segment is pure - it reports what would fit. Writing the result back is ours.
-            seg.target = result.text
-            if result.needs_review:
-                seg.needs_review = True
-                if result.review_reason == review.BOX_CRUSHED:
-                    # The box, not the text: say so in the interface's own language, and count it
-                    # for the completion screen (the engine reports a key, the UI owns the words).
-                    seg.review_reason = UIStrings.get("REVIEW_BOX_CRUSHED")
-                    self._box_crushed += 1
-                else:
-                    seg.review_reason = UIStrings.get("REVIEW_FIT_FAILED")
-                block.needs_review = True
-                block.review_reason = seg.review_reason
-            apply_scale(block, result.scale)
-
-        fit_pdf_pass(
-            doc,
-            segments,
-            retranslate=retranslate,
-            fetch_many=fetch_many if bool(tunables.get("fitting.batched_requests")) else None,
-            mode=FitMode.REFLOW if tunables.get("fitting.reflow") else FitMode.STRICT,
-            target_lang=config.target_lang,
-            on_fitted=on_fitted,
-        )
+        """Delegate to FitPassRunner: the fitting pass lives there now, not in this class."""
+        FitPassRunner(
+            config,
+            on_status=self.status.emit,
+            on_progress=self.progress.emit,
+            on_progress_detailed=self.progress_detailed.emit,
+            on_box_crushed=self._count_box_crushed,
+        ).run(doc, segments, provider=provider)
