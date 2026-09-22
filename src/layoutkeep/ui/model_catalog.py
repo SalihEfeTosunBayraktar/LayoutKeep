@@ -101,6 +101,12 @@ class ModelSelectorWidget(QWidget):
         self._model_combo = QComboBox()
         self._model_combo.setEditable(True)
         self._model_combo.setModel(self._item_model)
+        # An empty editable combo is just an empty box: it reads as a layout mistake, which is how
+        # the user reported it. A model name can be typed straight in, so the field stays; the
+        # placeholder is what tells the reader what the box is for.
+        editor = self._model_combo.lineEdit()
+        if editor is not None:
+            editor.setPlaceholderText(UIStrings.MODEL_INPUT_PLACEHOLDER)
 
         top_row = QHBoxLayout()
         top_row.setContentsMargins(0, 0, 0, 0)
