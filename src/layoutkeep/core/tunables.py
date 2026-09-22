@@ -63,714 +63,453 @@ TUNABLES: tuple[Tunable, ...] = (
     # -- basic -------------------------------------------------------------
     Tunable(
         key="translation.memory",
-        label="Çeviri belleği (koşular arası)",
+        label="TUNABLE_translation.memory_label",
         default=True,
         kind="bool",
         group="TRANSLATION",
-        help_text=(
-            "Aynı paragrafı bir kez çevirir ve bu makinedeki bir SQLite dosyasına yazar; belgeyi "
-            "yeniden çevirdiğinde ya da yinelenen başlık, dipnot ve künye satırlarında model "
-            "yeniden çağrılmaz. Kayıt, kaynak metin + dil çifti + model kimliğiyle anahtarlanır, "
-            "yani bir modelin çevirisi başka bir modele servis edilmez."
-        ),
-        warning=(
-            "Sözlüğü ya da istemi değiştirdiğinde eski çeviriler yine kullanılır (anahtar yalnız "
-            "kaynak metin, diller ve model): yeni bir terim politikası denemek istiyorsan bu "
-            "anahtarı kapatıp çevir, sonra açabilirsin."
-        ),
+        help_text="TUNABLE_translation.memory_help_text",
+        warning="TUNABLE_translation.memory_warning",
     ),
     Tunable(
         key="translation.glossary_path",
-        label="Terim sözlüğü dosyası (JSON)",
+        label="TUNABLE_translation.glossary_path_label",
         default="",
         kind="str",
         group="TRANSLATION",
-        help_text=(
-            "{\"kaynak terim\": \"hedef terim\"} biçiminde düz bir JSON nesnesi, ya da iki "
-            "sütunlu bir CSV/TSV tablosu (başlık satırı olabilir). Dosya "
-            "verildiğinde sözlük her isteğin istemine eklenir ve çıktıda terimin gerçekten "
-            "kullanılıp kullanılmadığı denetlenir; kullanılmadıysa blok inceleme kuyruğuna düşer. "
-            "Boş bırakılırsa sözlük kullanılmaz."
-        ),
+        help_text="TUNABLE_translation.glossary_path_help_text",
     ),
     Tunable(
         key="translation.reuse_repeats",
         group="TRANSLATION",
-        label="Tekrarlanan metni bir kez çevir",
+        label="TUNABLE_translation.reuse_repeats_label",
         default=True,
         kind="bool",
-        help_text=(
-            "Bir belgede aynı metin birden çok yerde geçtiğinde (form etiketleri, her sayfada "
-            "yineleyen başlıklar, aynı talimat), metin bir kez çevrilir ve her yerde aynı çeviri "
-            "kullanılır. Kapatmak her tekrarı ayrı çevirtir: daha çok istek ve etiketlerin "
-            "satır satır farklı kelimelerle çıkması."
-        ),
+        help_text="TUNABLE_translation.reuse_repeats_help_text",
     ),
     Tunable(
         key="translation.piecewise_max_pieces",
         group="TRANSLATION",
-        label="Son çare: parçalara bölüp çevirme sınırı",
+        label="TUNABLE_translation.piecewise_max_pieces_label",
         default=12,
         kind="int",
         section=ADVANCED,
         minimum=0,
         maximum=40,
-        help_text=(
-            "Modelin aynen geri verdiği bir paragraf, cümlelerine ve liste maddelerine bölünüp "
-            "tek tek sorulur. Bu, tek bir blok için en fazla kaç parça sorulacağıdır. 0 kapatır: "
-            "o zaman uzun bir blok çevrilmeden kalır ve inceleme kuyruğuna düşer."
-        ),
-        warning=(
-            "0'a çekmek, modelin aynen geri verdiği uzun blokları çevrilmemiş bırakır; çok "
-            "yükseltmek ise tek bir blok için düzinelerce istek gönderir ve parçalar ayrı ayrı "
-            "çevrildiği için cümleler arasındaki bağ kopabilir."
-        ),
+        help_text="TUNABLE_translation.piecewise_max_pieces_help_text",
+        warning="TUNABLE_translation.piecewise_max_pieces_warning",
     ),
     Tunable(
         key="passthrough.min_words",
-        label="Geçirme tespiti: en az kelime",
+        label="TUNABLE_passthrough.min_words_label",
         default=4,
         kind="int",
         section=ADVANCED,
         group="TRANSLATION",
         minimum=1,
         maximum=50,
-        help_text="Bu kadar veya daha uzun bir metin aynen geri gelirse çevrilmemiş sayılır.",
-        warning=(
-            "Düşürmek yanlış alarm üretir: başlıklar, isimler ve kodlar doğru olarak "
-            "kendileriyle aynı çevrilir. Yükseltmek gerçek geçirmeleri kaçırır."
-        ),
+        help_text="TUNABLE_passthrough.min_words_help_text",
+        warning="TUNABLE_passthrough.min_words_warning",
     ),
     Tunable(
         key="translation.protect_romans",
-        label="Romen rakamlarını koru (xiii, IV)",
+        label="TUNABLE_translation.protect_romans_label",
         default=True,
         kind="bool",
         section=ADVANCED,
         group="TRANSLATION",
-        help_text=(
-            "Ön sayfalardaki sayfa numaraları ve bölüm işaretleri (xiii, IV, vii) modele hiç "
-            "gösterilmeden korunur ve yerine aynen geri konur. Model bunları bir sayı değil bir "
-            "sözcük olarak gördüğü için çevirebiliyor: istatistik kitabının içindekiler "
-            "sayfasındaki 'xiii', 'on üç' olarak dönmüştü."
-        ),
-        warning=(
-            "Kapatmak, Romen rakamına benzeyen her şeyi modele bırakır. Açıkken bile iki "
-            "karakterden kısa olanlar (i, v, x) ve mm/cm/ml gibi birimler korunmaz: gereğinden "
-            "geniş koruma, çevresindeki cümlenin çevirisini bozar."
-        ),
+        help_text="TUNABLE_translation.protect_romans_help_text",
+        warning="TUNABLE_translation.protect_romans_warning",
     ),
 
     Tunable(
         key="translation.context_max_chars",
-        label="Bağlam kırpma sınırı (karakter, her yön)",
+        label="TUNABLE_translation.context_max_chars_label",
         default=400,
         kind="int",
         section=ADVANCED,
         group="PROMPT",
         minimum=0,
         maximum=20000,
-        help_text=(
-            "Her segmente eklenen komşu bağlamı bu kadar karakterle sınırlar (bir önceki ve bir "
-            "sonraki komşu için ayrı ayrı). Kırpma hep ORTAYA yakın taraftan yapılır: önceki "
-            "komşunun SON karakterleri, sonraki komşunun İLK karakterleri kalır - çünkü işe yarayan "
-            "kısım segmentin hemen yanındaki metindir. 0 sınırsız demektir (eski davranış).\n"
-            "Varsayılan 400, ölçümle seçildi: 2184 segmentli kitapta bağlam kaynağın %199'u ve "
-            "isteğin %67'siydi; 400 sınırı isteği %26 küçültürken ORTANCA bağlam 193 karakter "
-            "olduğu için segmentlerin yarısına hiç dokunmuyor - canlı kontrol: 820-832. "
-            "segmentlerde kırpma devreye girmedi, gönderilen metin birebir aynı kaldı."
-        ),
-        warning=(
-            "Çok küçük bir sınır (ör. 80) bağlamı işe yaramaz hale getirir: model yarım cümle görür "
-            "ve pronoun/terminoloji tutarlılığı - bağlamın var oluş sebebi - kaybolur. Bağlamın "
-            "kalite katkısı ölçülmüş, bu sınırın kaliteye etkisi ölçülmemiştir."
-        ),
+        help_text="TUNABLE_translation.context_max_chars_help_text",
+        warning="TUNABLE_translation.context_max_chars_warning",
     ),
     Tunable(
         key="provider.system_prompt_file",
-        label="System prompt dosyası",
+        label="TUNABLE_provider.system_prompt_file_label",
         default="",
         kind="str",
         section=BASIC,
         group="PROMPT",
-        help_text=(
-            "Bir dosya yolu verirsen, modelin rolünü tanımlayan ilk satır bu dosyanın içeriğiyle "
-            "değiştirilir - kendi çeviri tarzını, tonunu, terminoloji tercihini buraya yazabilirsin. "
-            "Tel protokolü (JSON dizisi, <0> işaretleri, korunan token'lar, max_len) HER ZAMAN kalır: "
-            "onları değiştirmek çıktıyı ayrıştırılamaz hale getirir ve çeviriler kaybolur. Boş "
-            "bırakmak varsayılana döner."
-        ),
-        warning=(
-            "Dosya yalnız ilk satırı değiştirir; protokolü değiştirmeye çalışmak işe yaramaz çünkü "
-            "protokol satırları bu dosyadan sonra eklenir."
-        ),
+        help_text="TUNABLE_provider.system_prompt_file_help_text",
+        warning="TUNABLE_provider.system_prompt_file_warning",
     ),
     Tunable(
         key="provider.system_prompt_extra",
-        label="System prompt ek satırları",
+        label="TUNABLE_provider.system_prompt_extra_label",
         default="",
         kind="str",
         section=BASIC,
         group="PROMPT",
-        help_text=(
-            "Modele system prompt'un sonuna eklenen serbest talimatlar. Örnek: 'Teknik terimleri "
-            "parantez içinde İngilizcesiyle ver', 'Resmî bir ton kullan', 'Şirket adlarını çevirme'. "
-            "Boş bırakmak (varsayılan) bugünkü davranışı birebir korur."
-        ),
-        warning="Protokol talimatlarıyla çelişen bir metin, modelin formatı bozmasına yol açabilir.",
+        help_text="TUNABLE_provider.system_prompt_extra_help_text",
+        warning="TUNABLE_provider.system_prompt_extra_warning",
     ),
     Tunable(
         key="translation.keyword_map_path",
-        label="Konu haritası dosyası (belge boyunca konu takibi)",
+        label="TUNABLE_translation.keyword_map_path_label",
         default="",
         kind="str",
         section=ADVANCED,
         group="PROMPT",
-        help_text=(
-            "tools/audit/document_preamble.py --map ile üretilen keyword_map.json dosyasının yolu. "
-            "Verilirse her segment kendi bloğunun anahtar kelimelerini bağlamında 'This part is "
-            "about: ...' satırı olarak görür - yani konu bilgisi belge boyunca AKAR. Romanın "
-            "başı/ortası/sonu farklı konularsa tek bir global ön bilgi bunu taşıyamaz. Ölçüm: 2184 "
-            "segmentli kitapta harita 60 istek ve 94 saniye (koşunun ~%1,5'i), 60/60 blokta anahtar "
-            "kelime. Aynı belgenin haritalı ve haritasız koşuları karşılaştırıldı: kayıp denetimi ve "
-            "terim tutarlılığı BİREBİR aynı çıktı (16 terimin 16'sı eşit, 'daha tutarlı: 0'), "
-            "3 sayfalık belgede süre 643 -> 690 saniye. Yani maliyeti ölçülü, kayıp/terim "
-            "boyutundaki faydası ölçülemedi; bu yüzden varsayılan kapalı."
-        ),
-        warning=(
-            "Uydurma bir anahtar kelime tüm kitaba değil yalnız o bloğun segmentlerine gider; yine de "
-            "haritayı ürettikten sonra çıktıyı insan gözüyle okumak gerekir. Kaliteye etkisi "
-            "ölçülmemiştir."
-        ),
+        help_text="TUNABLE_translation.keyword_map_path_help_text",
+        warning="TUNABLE_translation.keyword_map_path_warning",
     ),
     Tunable(
         key="translation.keyword_map_auto",
-        label="Konu haritasını koşudan önce kendisi çıkarsın",
+        label="TUNABLE_translation.keyword_map_auto_label",
         default=False,
         kind="bool",
         section=ADVANCED,
         group="PROMPT",
-        help_text=(
-            "Açıkken her koşu, bölümlemeden önce belgeyi dilim dilim modele sorar ve 'Konu haritası "
-            "dosyası' alanını bu koşu için kendisi doldurur; harita çıktının yanına "
-            "'<çıktı>.keyword-map.json' olarak yazılır. Ölçülen maliyet: 2184 segmentli kitapta 60 "
-            "istek, 94 saniye (koşunun ~%1,5'i), 60/60 dilimde anahtar kelime. Kapatınca hiçbir şey "
-            "sorulmaz ve alan elle verdiğin dosyada kalır."
-        ),
-        warning=(
-            "Model yanıt vermezse haritasız devam edilir ve koşu durmaz; ama açıkken her koşu birkaç "
-            "dakika ve birkaç istek harcar. Kaliteye etkisi hâlâ ölçülmemiştir."
-        ),
+        help_text="TUNABLE_translation.keyword_map_auto_help_text",
+        warning="TUNABLE_translation.keyword_map_auto_warning",
     ),
     Tunable(
         key="translation.auto_glossary",
-        label="Terim sözlüğünü koşudan önce kendisi çıkarsın",
+        label="TUNABLE_translation.auto_glossary_label",
         default=False,
         kind="bool",
         section=ADVANCED,
         group="PROMPT",
-        help_text=(
-            "Açıkken koşu, belgede yinelenen terimleri modele BİR kez sorar ve yanıtı bu koşunun "
-            "sözlüğü olarak kullanır: terimin her geçişi aynı çeviriyle çıkar ve çıktıda "
-            "denetlenir. Liste çıktının yanına '<çıktı>.glossary.json' olarak yazılır - "
-            "inceleyebilir, düzeltebilir ve başka bir koşuda 'Terim sözlüğü dosyası' alanına "
-            "verebilirsin. Kendi sözlüğün çakışmada her zaman kazanır. Ek maliyet: koşu başına "
-            "bir istek. Kapalıyken hiçbir şey sorulmaz ve yalnız kendi dosyan kullanılır."
-        ),
-        warning=(
-            "Model bir terimi yanlış çevirirse o yanlış artık belgenin her yerinde geçerli olur ve "
-            "denetim onu doğru sayar - bu yüzden liste dosyası yazılır. Faydası henüz "
-            "ölçülmemiştir; varsayılan kapalıdır."
-        ),
+        help_text="TUNABLE_translation.auto_glossary_help_text",
+        warning="TUNABLE_translation.auto_glossary_warning",
     ),
     Tunable(
         key="translation.preserve_references",
-        label="Kaynakçayı çevirmeden bırak (akademik belgeler)",
+        label="TUNABLE_translation.preserve_references_label",
         default=False,
         kind="bool",
         section=ADVANCED,
         group="PROMPT",
-        help_text=(
-            "Açıkken akademik belgenin kaynakça bölümü modele hiç gönderilmez: 'Kaynakça', "
-            "'References' ya da 'Bibliography' başlığının altındaki maddeler ve atıf satırları, "
-            "yazar adları, eser başlıkları, DOI ve tarihleriyle birlikte çıktıya aynen geçer. "
-            "Komut satırındaki --preserve-references ile aynı işi yapar; ikisi bu tek ayarı okur. "
-            "Varsayılan kapalıdır: kapalıyken kaynakça da çevrilir."
-        ),
-        warning=(
-            "Yanlış tespit edilen bir blok çevrilmeden kalır - kaynakça başlığından sonra gelen düz "
-            "metin de madde sayılıp atlanabilir. Belgede kaynakça yoksa ayar hiçbir şey yapmaz."
-        ),
+        help_text="TUNABLE_translation.preserve_references_help_text",
+        warning="TUNABLE_translation.preserve_references_warning",
     ),
     Tunable(
         key="translation.prefit_budget",
-        label="Karakter bütçesi çeviriden önce verilsin mi (sığdırmayı azaltır)",
+        label="TUNABLE_translation.prefit_budget_label",
         default="",
         kind="str",
         section=ADVANCED,
         group="PROMPT",
         choices=(
-            ("", "Kapalı"),
-            ("loose", "%120 paylı (içerik kaybı riski düşük)"),
-            ("strict", "Tam kutu (en çok taşma azalır, kısaltma riski)"),
+            ("", "TUNABLE_translation.prefit_budget_choice_off"),
+            ("loose", "TUNABLE_translation.prefit_budget_choice_loose"),
+            ("strict", "TUNABLE_translation.prefit_budget_choice_strict"),
         ),
-        help_text=(
-            "Her PDF bloğunun kutusundan karakter bütçesi hesaplanır ve ilk çeviri isteğine "
-            "'max_len' olarak konur; model baştan kısa yazar, sığdırmanın tek tek düzeltmesi azalır "
-            "(ölçüm: 10 sayfalık belgede sığdırma toplam sürenin %61'iydi). Hesap saf geometri, ek "
-            "istek yok. '%120 paylı' bütçeyi kutunun %20 üstünde tutar: model yine kısa yazar ama "
-            "içeriği kesmek zorunda kalmaz."
-        ),
-        warning=(
-            "Modele bütçe vermek onu kısaltmaya itebilir: cümle düşürmek kayıptır, kısa yazmak "
-            "değildir. Bu yüzden varsayılan kapalı ve ölçüm şart: kayıpsızlık ölçütleri + bayrak "
-            "sayısı bütçesiz koşuyla karşılaştırılmalı (docs/DECISIONS.md D-011)."
-        ),
+        help_text="TUNABLE_translation.prefit_budget_help_text",
+        warning="TUNABLE_translation.prefit_budget_warning",
     ),
     Tunable(
         key="translation.document_preamble",
-        label="Belge ön bilgisi (belge bağlamı)",
+        label="TUNABLE_translation.document_preamble_label",
         default="",
         kind="str",
         section=BASIC,
         group="PROMPT",
-        help_text=(
-            "Tüm segmentlerin system prompt'una 'Bu belge hakkında: ...' olarak eklenen kısa bir "
-            "tanıtım. Ölçüm şunu gösterdi: segmentlerin %50,5'i 200 karakterden az komşu bağlam "
-            "görüyor ve hiçbiri belgenin konusunu bilmiyor - bu yüzden terimler ve adlar belge "
-            "boyunca tutarsız çıkabiliyor. Buraya belgenin konusunu/terminolojisini yazmak "
-            "(ya da ileride otomatik özetletmek) tam bu boşluğu doldurur. Boş bırakmak bugünkü "
-            "davranışı korur."
-        ),
-        warning="Çok uzun bir metin her isteğe eklenir; kısa tutmak (birkaç cümle) yeterlidir.",
+        help_text="TUNABLE_translation.document_preamble_help_text",
+        warning="TUNABLE_translation.document_preamble_warning",
     ),
     Tunable(
         key="translation.workers",
         group="PROVIDER",
-        label="Paralel çeviri iş parçacığı (LM Studio yuva sayısı)",
+        label="TUNABLE_translation.workers_label",
         default=2,
         kind="int",
         minimum=1,
         maximum=32,
-        help_text=(
-            "Aynı anda gönderilecek çeviri isteği sayısı. Sunucunun yuva (slot) kapasitesi kadar "
-            "artırılabilir; LM Studio'da 7 yuva için bağlamı -c 32768 ile açmak gerekir."
-        ),
-        warning=(
-            "Varsayılan 2'dir: tek bir yerel GPU'da yedi eşzamanlı istek, bağlam penceresini "
-            "bölüşerek istek başına daha az token bırakır ve küçük modellerde kaliteyi düşürebilir. "
-            "Sunucu yuvaları ve VRAM elveriyorsa yükseltin."
-        ),
+        help_text="TUNABLE_translation.workers_help_text",
+        warning="TUNABLE_translation.workers_warning",
     ),
     Tunable(
         key="batch.adaptive_start_segments",
-        label="İlk istekte kaç segment",
+        label="TUNABLE_batch.adaptive_start_segments_label",
         default=1,
         kind="int",
         section=ADVANCED,
         group="PROVIDER",
         minimum=1,
         maximum=20,
-        help_text=(
-            "Uyarlanabilir parti boyutunun başlangıcı. Sağlayıcı her başarılı yanıtta bir artırır, "
-            "bozuk yanıtta o boyutu tavan yapıp geri çekilir; yani yüksek başlangıç yalnızca "
-            "zayıf modellerde bir istek harcar."
-        ),
-        warning=(
-            "Yüksek başlangıç, bozuk yanıt veren zayıf modellerde fazladan bir istek harcar; "
-            "ölçülen kazanç küçük olduğu için varsayılanı değiştirmeye değmez."
-        ),
-        evidence=(
-            "gemma-4-e4b, 8192 bağlam, 16 segmentlik arXiv sayfası (`tools/audit/batch_ab.py`): "
-            "1'den başlamak 16 istek / 96.6 sn, 4'ten başlamak 15 istek / 91.0 sn - kazanç %6. "
-            "İsteği asıl sınırlayan şey segment sayısı değil karakter bütçesi "
-            "(`batching.DEFAULT_BATCH_CHARS`); tavan çoğu istekte hiç bağlamıyor. Bozuk yanıtta "
-            "sağlayıcı tavanı düşürüp aynı segmentleri küçük istekle tekrar dener, yani yükseltmek "
-            "güvenli - sadece bu sayfada karşılığı yok."
-        ),
+        help_text="TUNABLE_batch.adaptive_start_segments_help_text",
+        warning="TUNABLE_batch.adaptive_start_segments_warning",
+        evidence="TUNABLE_batch.adaptive_start_segments_evidence",
     ),
     Tunable(
         key="batch.chunk_size",
         group="PROVIDER",
-        label="Parti boyutu (iptal/duraklat aralığı)",
+        label="TUNABLE_batch.chunk_size_label",
         default=20,
         kind="int",
         minimum=1,
         maximum=200,
-        help_text=(
-            "Worker'ın sağlayıcıya bir seferde verdiği segment sayısı. İstek boyutu değildir - "
-            "sağlayıcı kendi istek boyutunu ayrıca uyarlar. Küçültmek iptal ve duraklatmayı "
-            "daha çabuk hissettirir, büyütmek istek sayısını azaltır."
-        ),
+        help_text="TUNABLE_batch.chunk_size_help_text",
     ),
     Tunable(
         key="timeout.first_batch_s",
         group="PROVIDER",
-        label="İlk parti zaman aşımı (sn)",
+        label="TUNABLE_timeout.first_batch_s_label",
         default=240.0,
         kind="float",
         minimum=10.0,
         maximum=3600.0,
-        help_text=(
-            "Soğuk bir yerel model ilk yanıtı vermeden önce dakikalarca yüklenebilir. "
-            "Büyük modellerde bunu yükseltin."
-        ),
+        help_text="TUNABLE_timeout.first_batch_s_help_text",
     ),
     Tunable(
         key="timeout.warm_batch_s",
         group="PROVIDER",
-        label="Sonraki parti zaman aşımı (sn)",
+        label="TUNABLE_timeout.warm_batch_s_label",
         default=15.0,
         kind="float",
         minimum=5.0,
         maximum=600.0,
-        help_text="Model yüklendikten sonraki partiler için taban süre; metin uzunluğuna göre artar.",
+        help_text="TUNABLE_timeout.warm_batch_s_help_text",
     ),
     Tunable(
         key="deepl.max_texts_per_request",
         group="PROVIDER",
-        label="DeepL: istek başına metin",
+        label="TUNABLE_deepl.max_texts_per_request_label",
         default=40,
         kind="int",
         minimum=1,
         maximum=50,
-        help_text="DeepL istek başına en fazla 50 metin kabul eder.",
+        help_text="TUNABLE_deepl.max_texts_per_request_help_text",
     ),
     # -- advanced ----------------------------------------------------------
     Tunable(
         key="batch.adaptive_max_segments",
-        label="Uyarlanabilir parti tavanı",
+        label="TUNABLE_batch.adaptive_max_segments_label",
         default=20,
         kind="int",
         section=ADVANCED,
         group="PROVIDER",
         minimum=1,
         maximum=100,
-        help_text="Sağlayıcının tek istekte deneyebileceği en fazla segment sayısı.",
-        warning=(
-            "Ölçüldü: denenen modellerin hiçbiri tek JSON dizisinde 6 segmenti eksiksiz "
-            "döndüremedi. Sağlayıcı bozuk yanıtta küçülerek kendini toparlar, ama bu değeri "
-            "yükseltmek boşa giden istek demektir."
-        ),
+        help_text="TUNABLE_batch.adaptive_max_segments_help_text",
+        warning="TUNABLE_batch.adaptive_max_segments_warning",
     ),
     Tunable(
         key="http.max_retry_after_s",
-        label="Retry-After üst sınırı (sn)",
+        label="TUNABLE_http.max_retry_after_s_label",
         default=60.0,
         kind="float",
         section=ADVANCED,
         group="PROVIDER",
         minimum=1.0,
         maximum=600.0,
-        help_text="Sunucu 'şu kadar bekle' derse en fazla bu kadar beklenir.",
-        warning="Yükseltmek uygulamayı donmuş gibi gösterebilir.",
+        help_text="TUNABLE_http.max_retry_after_s_help_text",
+        warning="TUNABLE_http.max_retry_after_s_warning",
     ),
     # -- ek test araçları ---------------------------------------------------
     # Kurulum ekranından buraya taşındı: her çeviride karşılaştırma sayfası üretmek isteyen
     # kullanıcı sayısı az, ama seçenek orada durup asıl kararları kalabalıklaştırıyordu.
     Tunable(
         key="reader.scan_text_density",
-        label="Taranmış sayfa: metin yoğunluğu eşiği",
+        label="TUNABLE_reader.scan_text_density_label",
         default=1.0,
         kind="float",
         section=ADVANCED,
         group="READING",
         minimum=0.0,
         maximum=50.0,
-        help_text=(
-            "1000 punto-kare başına düşen karakter sayısı bunun altındaysa sayfa 'metinsiz' sayılır ve "
-            "taranmış kabul edilir. Kapak, afiş ve görsel ağırlıklı ön sayfalar tam bu yüzden çevrilmeden "
-            "geçiyor: üzerlerinde birkaç kelime var, eşiğin altında kalıyorlar. Düşürmek (0 yapmak) bu "
-            "sayfaların metnini OCR yerine normal çeviriye sokar - gerçek taramalarda metin katmanı "
-            "olmadığı için onlar etkilenmez. Sabitin karşılığı: image_reader._SCANNED_TEXT_DENSITY."
-        ),
-        warning=(
-            "Yükseltmek, gerçekten taranmış sayfaları metin sayar ve OCR'ı devre dışı bırakır; onlarda "
-            "metin katmanı olmadığı için o sayfaların çıktısı boş kalır. 0 yapmak tarama sezgisini "
-            "tümden kapatır - o zaman her sayfa metin gibi işlenir."
-        ),
+        help_text="TUNABLE_reader.scan_text_density_help_text",
+        warning="TUNABLE_reader.scan_text_density_warning",
     ),
     Tunable(
         key="reader.scan_image_coverage",
-        label="Taranmış sayfa: görsel kapsama eşiği",
+        label="TUNABLE_reader.scan_image_coverage_label",
         default=0.05,
         kind="float",
         section=ADVANCED,
         group="READING",
         minimum=0.0,
         maximum=1.0,
-        help_text=(
-            "Bir sayfanın taranmış sayılması için görsellerin sayfa alanının en az bu kadarını kaplaması "
-            "gerekir. Tek başına metin yoğunluğu yetmez: resimsiz küçük bir sayfa da 'az metinli' "
-            "görünür ve OCR o zaman olmayan bir metni uydurur. Sabitin karşılığı: "
-            "image_reader._SCANNED_IMAGE_COVERAGE."
-        ),
-        warning="Yükseltmek, kenarında küçük bir görsel olan normal sayfaları tarama saymaya başlar.",
+        help_text="TUNABLE_reader.scan_image_coverage_help_text",
+        warning="TUNABLE_reader.scan_image_coverage_warning",
     ),
     Tunable(
         key="reader.scan_image_coverage_layer",
-        label="Aranabilir tarama: görsel kapsama eşiği",
+        label="TUNABLE_reader.scan_image_coverage_layer_label",
         default=0.5,
         kind="float",
         section=ADVANCED,
         group="READING",
         minimum=0.0,
         maximum=1.0,
-        help_text=(
-            "Metin katmanı görünmez olan bir PDF'te (aranabilir tarama) görselin sayfayı kaplama oranı "
-            "bu eşiğin üzerindeyse sayfa tarama sayılır. Sabitin karşılığı: "
-            "pdf_reader._SCANNED_IMAGE_COVERAGE_FOR_LAYER."
-        ),
-        warning=(
-            "Düşürmek, metin katmanı görünmez olan normal PDF'leri tarama saymaya başlar; yükseltmek "
-            "gerçek aranabilir taramaları metin sayar ve üstlerindeki görüntüyü çevirmez."
-        ),
+        help_text="TUNABLE_reader.scan_image_coverage_layer_help_text",
+        warning="TUNABLE_reader.scan_image_coverage_layer_warning",
     ),
     Tunable(
         key="ocr.needs_review_threshold",
-        label="OCR inceleme eşiği",
+        label="TUNABLE_ocr.needs_review_threshold_label",
         default=0.80,
         kind="float",
         section=ADVANCED,
         group="READING",
         minimum=0.0,
         maximum=1.0,
-        help_text="Bu güvenin altındaki OCR blokları incelenmek üzere işaretlenir.",
-        warning="Düşürmek şüpheli OCR metnini sessizce kabul eder.",
+        help_text="TUNABLE_ocr.needs_review_threshold_help_text",
+        warning="TUNABLE_ocr.needs_review_threshold_warning",
     ),
     Tunable(
         key="table.cell_overlap_ratio",
-        label="Tablo: hücre örtüşme oranı",
+        label="TUNABLE_table.cell_overlap_ratio_label",
         default=0.35,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.05,
         maximum=0.95,
-        help_text=(
-            "Bir bloğun satırları yan yana mı duruyor yoksa alt alta mı? Yatay örtüşmeleri "
-            "dar olanın bu kesrinden azsa ayrı hücre sayılırlar."
-        ),
-        warning=(
-            "Ölçüldü: tablo başlık satırı PDF'ten tek blok olarak gelir. Yükseltmek satırı "
-            "yeniden tek hücreye çöktürür - çeviri ilk hücreye yazılır, kalanlar boş kalır. "
-            "Düşürmek sarmalanmış paragraf satırlarını hücre sanıp paragrafı böler."
-        ),
+        help_text="TUNABLE_table.cell_overlap_ratio_help_text",
+        warning="TUNABLE_table.cell_overlap_ratio_warning",
     ),
     Tunable(
         key="table.row_overlap_ratio",
-        label="Tablo: satır örtüşme oranı",
+        label="TUNABLE_table.row_overlap_ratio_label",
         default=0.6,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.1,
         maximum=1.0,
-        help_text="İki hücrenin aynı satırda sayılması için yüksekliklerinin örtüşmesi gereken kesir.",
-        warning=(
-            "Düşürmek 0.5 punto'luk örtüşmelerin satırları birbirine zincirlemesine yol açar: "
-            "iki ayrı tablo tek bir bandda birleşir ve ikisi de tanınmaz."
-        ),
+        help_text="TUNABLE_table.row_overlap_ratio_help_text",
+        warning="TUNABLE_table.row_overlap_ratio_warning",
     ),
     Tunable(
         key="table.column_align_ratio",
-        label="Tablo: sütun hizalama payı",
+        label="TUNABLE_table.column_align_ratio_label",
         default=1.2,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.2,
         maximum=5.0,
-        help_text=(
-            "İki hücrenin aynı sütunda sayılması için sol kenarları, satır yüksekliğinin bu "
-            "katı kadar yaklaşık olmalı."
-        ),
-        warning=(
-            "Yükseltmek ilgisiz blokları sütun sanıp paragrafları tablo gibi dondurur; "
-            "düşürmek gerçek tabloları kaçırır ve satırlar tekrar tek bloğa birleşir."
-        ),
+        help_text="TUNABLE_table.column_align_ratio_help_text",
+        warning="TUNABLE_table.column_align_ratio_warning",
     ),
     Tunable(
         key="table.height_similarity",
-        label="Tablo: yükseklik benzerliği",
+        label="TUNABLE_table.height_similarity_label",
         default=1.6,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=1.0,
         maximum=5.0,
-        help_text="Aynı satırdaki hücrelerin yükseklikleri en fazla bu katı kadar farklı olabilir.",
-        warning="Yükseltmek başlık ile gövde metnini aynı tablo satırında birleştirir.",
+        help_text="TUNABLE_table.height_similarity_help_text",
+        warning="TUNABLE_table.height_similarity_warning",
     ),
     Tunable(
         key="merge.line_gap_ratio",
-        label="Satır birleştirme: boşluk oranı",
+        label="TUNABLE_merge.line_gap_ratio_label",
         default=0.6,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.0,
         maximum=3.0,
-        help_text=(
-            "İki blok, aralarındaki boşluk punto boyutunun bu katından küçükse aynı "
-            "paragrafın ardışık satırları sayılır."
-        ),
-        warning=(
-            "Düşürmek çok satırlı bir başlığı satır satır çevirtir - her satır kendi cümlesi "
-            "sanılır ve dilbilgisi bozulur. Yükseltmek ayrı paragrafları birbirine yapıştırır."
-        ),
+        help_text="TUNABLE_merge.line_gap_ratio_help_text",
+        warning="TUNABLE_merge.line_gap_ratio_warning",
     ),
     Tunable(
         key="merge.line_height_ratio",
-        label="Satır birleştirme: satır yüksekliği katsayısı",
+        label="TUNABLE_merge.line_height_ratio_label",
         default=1.2,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.8,
         maximum=2.5,
-        help_text=(
-            "Döndürülmüş bir satırın merkezinden kenarlarına gitmek için punto boyutunun "
-            "çarpıldığı katsayı. Yazıcının satırları geri istiflerken varsaydığı değerle aynı."
-        ),
-        warning="Değiştirmek yalnızca döndürülmüş metni etkiler; yatay metin bundan etkilenmez.",
+        help_text="TUNABLE_merge.line_height_ratio_help_text",
+        warning="TUNABLE_merge.line_height_ratio_warning",
     ),
     Tunable(
         key="merge.rotation_eps_deg",
-        label="Aynı açı toleransı (derece)",
+        label="TUNABLE_merge.rotation_eps_deg_label",
         default=0.5,
         kind="float",
         section=ADVANCED,
         group="TABLES",
         minimum=0.0,
         maximum=10.0,
-        help_text=(
-            "Bu farktan az açı farkı olan bloklar aynı açıda kabul edilir; daha fazlası "
-            "\"farklı açı, aynı paragraf değil\" demektir."
-        ),
-        warning=(
-            "Yükseltmek yelpaze gibi dizilmiş ayrı etiketleri tek paragrafa toplar."
-        ),
+        help_text="TUNABLE_merge.rotation_eps_deg_help_text",
+        warning="TUNABLE_merge.rotation_eps_deg_warning",
     ),
     Tunable(
         key="fit.shorten_below_scale",
-        label="Bu ölçeğin altında kısa çeviri iste (yazı küçültmek yerine)",
+        label="TUNABLE_fit.shorten_below_scale_label",
         default=0.95,
         kind="float",
         section=ADVANCED,
         group="FITTING",
         minimum=0.0,
         maximum=1.0,
-        help_text=(
-            "Çeviri kutuya ancak yazı küçültülerek sığıyorsa ve ölçek bu değerin altındaysa, "
-            "modelden kutuya tam boyutta sığacak daha kısa bir çeviri istenir; küçültme yerine "
-            "kısa cümle tercih edilir. 1.0 her küçültmede dener, 0.0 kapatır."
-        ),
-        warning=(
-            "0 yapmak, kutuya ancak küçültülerek sığan uzun çevirileri olduğu gibi bırakır "
-            "(sayfa okunaksızlaşır); çok düşük bir değer yalnızca ağır küçültmelerde devreye "
-            "girer ve sorunu görmezden gelir."
-        ),
+        help_text="TUNABLE_fit.shorten_below_scale_help_text",
+        warning="TUNABLE_fit.shorten_below_scale_warning",
     ),
 
     Tunable(
         key="fitting.reflow",
-        label="Sığdırma: blokları aşağı iterek büyüt (reflow)",
+        label="TUNABLE_fitting.reflow_label",
         default=False,
         kind="bool",
         section=ADVANCED,
         group="FITTING",
-        help_text=(
-            "Kapalıyken (strict) her blok kendi kutusuna sığdırılmaya çalışılır ve sığmayan blok "
-            "küçültülür ya da inceleme kuyruğuna düşer. Açıkken sığmayan blok daha fazla satıra "
-            "yayılır ve altındaki bloklar aşağı itilir (mineru-translate'in kademesinin bizdeki "
-            "karşılığı)."
-        ),
-        warning=(
-            "Kazanç 'sığmadı' bayraklarında, bedeli akışkan olmayan sayfalarda gerçek kayıp "
-            "olabiliyor: aşağı itilen blok, hareketsiz bir metnin üstüne binebilir. Varsayılan "
-            "kapalı; belge türüne göre aç."
-        ),
-        evidence=(
-            "NIST dergisi (4 parça, 114 blok): strict D1=52 iken reflow D1=0 ve L1-L10 birebir aynı "
-            "kaldı. IRS formu (4 parça): D1 15 -> 0 olurken **L7 0 -> 1** oldu."
-        ),
+        help_text="TUNABLE_fitting.reflow_help_text",
+        warning="TUNABLE_fitting.reflow_warning",
+        evidence="TUNABLE_fitting.reflow_evidence",
     ),
     Tunable(
         key="fit.min_scale",
-        label="En küçük yazı tipi ölçeği",
+        label="TUNABLE_fit.min_scale_label",
         default=0.85,
         kind="float",
         section=ADVANCED,
         group="FITTING",
         minimum=0.5,
         maximum=1.0,
-        help_text="Çeviri kutuya sığmazsa yazı tipi bu orana kadar küçültülür.",
-        warning=(
-            "Çok düşürmek metni okunmaz hale getirir ve sığmayan bir çeviriyi sığmış gibi "
-            "gösterir - inceleme bayrağı kalkmaz, sorun görünmez olur."
-        ),
+        help_text="TUNABLE_fit.min_scale_help_text",
+        warning="TUNABLE_fit.min_scale_warning",
     ),
     Tunable(
         key="writer.inline_span_sizes",
-        label="Satır-içi boyutları koru",
+        label="TUNABLE_writer.inline_span_sizes_label",
         default=True,
         kind="bool",
         section=ADVANCED,
         group="FITTING",
-        help_text=(
-            "Blok içindeki küçük bir parçayı (üst simge işareti, dipnot numarası, formül kırıntısı) "
-            "bloğun boyutu yerine kendi boyutuyla yazar."
-        ),
-        warning=(
-            "Satırların üst üste binme riski (L7) taşır: her satır-içi boyut sığdırma ölçeğiyle "
-            "çarpılır ama satır yüksekliği blok boyutundan hesaplanır. Beş belgede L7 aynı kaldı - "
-            "gözden geçirilmeden bırakılmamalı."
-        ),
-        evidence=(
-            "Beş belge: düzleşmiş kutu 104 -> 75 (-%28), ezilmiş 1727 -> 1658, sadık +53; "
-            "L3/L7/D1/D3'ün hiçbiri kıpırdamadı. Ölçülen tek maliyet `cookbook_1907`'de `grown` "
-            "sayısı (104 -> 130), henüz açıklanmadı. A/B: aynı kayıtlı koşuyu **iki kez** yeniden "
-            "yaz (biri bu ayarla), ikisini de type_map.py ve lossless_audit.py ile karşılaştır - "
-            "saklı çıktıyı taban almak eski motorun etkisini bu ayara yazar."
-        ),
+        help_text="TUNABLE_writer.inline_span_sizes_help_text",
+        warning="TUNABLE_writer.inline_span_sizes_warning",
+        evidence="TUNABLE_writer.inline_span_sizes_evidence",
     ),
     Tunable(
         key="fitting.batched_requests",
-        label="Sığdırma isteklerini topla (tek istekte bir tur kısaltma)",
+        label="TUNABLE_fitting.batched_requests_label",
         default=True,
         kind="bool",
         section=ADVANCED,
         group="FITTING",
-        help_text=(
-            "Açıkken sığdırma, sığmayan kutuların kısaltma isteklerini turlar hâlinde TOPLAR ve tek "
-            "istekte sorar; kapalıyken her kutu için ayrı istek gider (eski davranış). Ölçüm: 3 "
-            "sayfalık belgede fit 11 dk 22 sn → 6 dk 26 sn (−%43), sonuçlar birebir aynı (iki kolda "
-            "da 13 ölçüt 0, LOSSLESS YES)."
-        ),
-        warning=(
-            "Kapatmak yalnız istek sayısını artırır; sonuç değişmez. Çok yavaş bir yerel sunucuda "
-            "eski davranışı denemek için kapatılabilir."
-        ),
+        help_text="TUNABLE_fitting.batched_requests_help_text",
+        warning="TUNABLE_fitting.batched_requests_warning",
     ),
     Tunable(
         key="write.grant_room_pt",
-        label="Bloğun altındaki boş alanı kullanma sınırı (punto)",
+        label="TUNABLE_write.grant_room_pt_label",
         default=24.0,
         kind="float",
         section=ADVANCED,
         group="FITTING",
         minimum=0.0,
         maximum=120.0,
-        help_text=(
-            "Çeviri bir satır daha istediğinde blok, altındaki boşluğa (bir sonraki bloğa kadar) "
-            "bu kadar puntoya kadar büyüyebilir; böylece yazı küçültülmek yerine nefes alır. "
-            "0 kapatır ve eski davranışa döner: blok yalnızca kendi kutusuna sığdırılır."
-        ),
-        warning=(
-            "Çok yükseltmek, paragrafla bir sonraki blok arasındaki boşluğu yok eder ve sayfa "
-            "sıkışık görünür; 0 yapmak ise sığmayan çevirileri küçültmeye ya da taşmaya bırakır."
-        ),
+        help_text="TUNABLE_write.grant_room_pt_help_text",
+        warning="TUNABLE_write.grant_room_pt_warning",
     ),
 
     Tunable(
@@ -804,101 +543,70 @@ TUNABLES: tuple[Tunable, ...] = (
 
     Tunable(
         key="write.box_slack_pt",
-        label="Kutuya verilen pay (punto)",
+        label="TUNABLE_write.box_slack_pt_label",
         default=3.0,
         kind="float",
         section=ADVANCED,
         group="FITTING",
         minimum=0.0,
         maximum=12.0,
-        help_text=(
-            "Okuyucunun ölçtüğü kutu gliflere tam oturur; PDF'e yazan motor ise kendi iç "
-            "boşluğu için biraz daha yer ister. Metin kutusuna sığmadığında sağına ve altına "
-            "bu kadar punto eklenip bir kez daha denenir."
-        ),
-        warning=(
-            "Ölçüldü: 6 punto'luk bir grafik ekseni etiketi bu pay olmadan 4.4 punto'ya kadar "
-            "küçülüyordu - hiç çevrilmemiş sayılar bile. Sıfırlamak o küçülmeyi geri getirir; "
-            "çok yükseltmek bir bloğun komşusunun üzerine taşmasına yol açabilir."
-        ),
+        help_text="TUNABLE_write.box_slack_pt_help_text",
+        warning="TUNABLE_write.box_slack_pt_warning",
     ),
     Tunable(
         key="redact.coverage_ratio",
-        label="Silme kapsama oranı",
+        label="TUNABLE_redact.coverage_ratio_label",
         default=0.6,
         kind="float",
         section=ADVANCED,
         group="FITTING",
         minimum=0.1,
         maximum=1.0,
-        help_text=(
-            "Döndürülmüş bir satırın altında bulunan parçalar, satırın kendi kutusunun bu "
-            "kesrini kaplamıyorsa satır yeniden aranır."
-        ),
-        warning=(
-            "Ölçüldü: eşleşemeyen bir karakter (sembol fontundan gelen kesme işareti gibi) "
-            "satırı parçalara böler. Düşürmek kaynak metnin çevirinin altında görünür "
-            "kalmasına yol açar - ikisi üst üste okunur."
-        ),
+        help_text="TUNABLE_redact.coverage_ratio_help_text",
+        warning="TUNABLE_redact.coverage_ratio_warning",
     ),
     Tunable(
         key="ui.floating_progress",
-        label="Yüzen ilerleme çubuğu (her zaman üstte)",
+        label="TUNABLE_ui.floating_progress_label",
         default=True,
         kind="bool",
         group="INTERFACE",
-        help_text=(
-            "Çeviri başlarken ekranın üst-ortasına küçük, her zaman üstte duran bir ilerleme "
-            "kartı çıkar: belgenin adı, içinde bulunulan aşama, kaç parça bittiği ve yüzde. "
-            "Bitince yeşil \"Bitti\" hâline geçer ve çıktıyı açma / yeni çeviri düğmelerini "
-            "gösterir. Pencereyi küçültüp işi arkada sürdürmek için vardır; kapatılırsa "
-            "ilerleme yalnız ana penceredeki kartta görünür."
-        ),
+        help_text="TUNABLE_ui.floating_progress_help_text",
     ),
     Tunable(
         key="preview.keep_segments",
         group="INTERFACE",
-        label="Canlı önizlemede tutulan segment",
+        label="TUNABLE_preview.keep_segments_label",
         default=40,
         kind="int",
         minimum=5,
         maximum=500,
-        help_text="İlerleme ekranındaki yan yana görünümde kaç segment saklanacağı.",
+        help_text="TUNABLE_preview.keep_segments_help_text",
     ),
     Tunable(
         key="output.dual_mode",
-        label="Çift dilli PDF (kaynak + çeviri)",
+        label="TUNABLE_output.dual_mode_label",
         default="",
         kind="str",
         section=ADVANCED,
         group="TEST_TOOLS",
         choices=(
-            ("", "Kapalı"),
+            ("", "TUNABLE_output.dual_mode_choice_off"),
             ("side", "Yan yana (kaynak solda)"),
-            ("alternate", "Dönüşümlü sayfalar"),
+            ("alternate", "TUNABLE_output.dual_mode_choice_alternate"),
         ),
-        help_text=(
-            "Açıkken çevrilmiş dosyanın yanına ikinci bir PDF yazılır: kaynak ve çeviri yan yana "
-            "ya da dönüşümlü sayfalar hâlinde. Aynı içeriği iki kez taşıdığı için dosya büyür."
-        ),
-        warning="Denetim ve nitelik ölçütleri ana çıktıyı okur; çift dilli dosya onlara girmez.",
+        help_text="TUNABLE_output.dual_mode_help_text",
+        warning="TUNABLE_output.dual_mode_warning",
     ),
     Tunable(
         key="output.timing_report",
-        label="Zaman tablosu yaz (hangi aşama ne kadar sürdü)",
+        label="TUNABLE_output.timing_report_label",
         default=False,
         kind="bool",
         section=ADVANCED,
         group="TEST_TOOLS",
-        help_text=(
-            "Koşu bitince çıktının yanına bir HTML tablo yazılır: okuma, bölme, çeviri, sığdırma, "
-            "uygulama ve yazma aşamalarının saniyesi, yüzdesi ve istek sayısı. Ayar kapalıyken "
-            "hiçbir şey yazılmaz."
-        ),
-        warning=(
-            "Ölçüm yalnız aşama sürelerini tutar; çeviri çıktısını değiştirmez. Dosya adı "
-            "'<çıktı>.timing.html' olur."
-        ),
+        help_text="TUNABLE_output.timing_report_help_text",
+        warning="TUNABLE_output.timing_report_warning",
     ),
 )
 
