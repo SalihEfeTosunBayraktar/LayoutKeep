@@ -74,6 +74,7 @@ class DocumentPreparer:
         config: JobConfig,
         *,
         phases: PhaseTimer,
+        layout_model: bool = False,
     ) -> PreparedDocument | None:
         """Returns the run's segments and chain, or None when the range holds no text."""
         self._preserve_references(doc)
@@ -96,6 +97,11 @@ class DocumentPreparer:
             with phases.phase("keyword map", "before the translation"):
                 self._build_topic_map(doc, out, provider)
 
+        # Ne çevrildi, neyle: sözlük ve sağlayıcı zinciri kesinleştikten, herhangi bir yazımdan
+        # önce kaydedilir (core/provenance.py); kayıt projeye ve çıktı dosyasına birlikte gider.
+        self._record_provenance(doc, config, glossary_terms=glossary, memory=memory is not None,
+                                 layout_model=layout_model)
+
         with phases.phase("segment", "segments in range"):
             segments = self._segments_in_range(doc, config)
         # The map is only needed while the segments are built; put the user's own value back so a
@@ -114,6 +120,36 @@ class DocumentPreparer:
             segments=segments,
             total=total,
             total_chars=sum(len(segment.source) for segment in segments),
+        )
+
+    def _record_provenance(
+        self,
+        doc: Document,
+        config: JobConfig,
+        *,
+        glossary_terms: dict[str, str] | None,
+        memory: bool,
+        layout_model: bool,
+    ) -> None:
+        """What this run is: written into the project and into the output (`core/provenance.py`).
+
+        The command line builds its record from its own options (`cli.cmd_translate`); both call
+        the same helper, so a document translated in the window and one translated on the command
+        line with the same settings say the same thing about themselves.
+        """
+        from layoutkeep.core import provenance
+
+        provenance.record(
+            doc,
+            provider_kind=config.provider.kind,
+            model=config.provider.model,
+            base_url=config.provider.base_url,
+            source_lang=config.source_lang,
+            target_lang=config.target_lang,
+            reader=provenance.reader_path(doc, layout_model=layout_model),
+            fit_mode=provenance.fit_mode_name(),
+            glossary=glossary_terms,
+            memory=memory,
         )
 
     def _preserve_references(self, doc: Document) -> None:

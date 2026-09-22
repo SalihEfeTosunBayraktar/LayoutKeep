@@ -40,7 +40,7 @@ from fontTools.ttLib import TTFont as FTFont
 from fontTools.ttLib import TTLibError
 from fontTools.varLib.instancer import instantiateVariableFont
 
-from layoutkeep.core import tunables
+from layoutkeep.core import provenance, tunables
 from layoutkeep.core.docir import BBox, Block, Document, Span, Style
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
@@ -226,7 +226,51 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
         # `_subset_font` produces byte-identical output for the same (font, characters) pair,
         # `garbage=4` collapses those duplicates back into one object at save time instead of
         # leaving 17 bundled fonts' worth of repeated subsets in the output.
+        # Ne çevrildi, neyle: dosyanın kendisi söylesin diye kayıt burada yazılır (core/provenance.py).
+        _write_provenance(pdf, doc)
         pdf.save(str(out_path), garbage=4, deflate=True)
+
+
+#: Document-information keys that may be written back. `format` and `encryption` come out of
+#: `pdf.metadata` too and are not settable: passing them to `set_metadata` raises.
+_SETTABLE_INFO = (
+    "title", "author", "subject", "keywords", "creator", "producer",
+    "creationDate", "modDate", "trapped",
+)
+
+
+def _write_provenance(pdf: pymupdf.Document, doc: Document) -> None:
+    """Put the run's record into the file: one line in producer/creator, the whole thing beside it.
+
+    WHY THIS EXISTS: a PDF that does not say what translated it cannot be compared with another -
+    the same source run twice under different settings is two files with no way to tell them apart
+    afterwards (`core/provenance.py`). The line names the build, the model and the commit; the
+    record beside it carries the endpoint, the reader path, the settings and the languages.
+
+    The whole record goes in an EMBEDDED FILE rather than into the XMP stream: XMP is the source's
+    own metadata (an arXiv paper's DOI and licence live there) and `set_xml_metadata` replaces that
+    stream wholesale. An embedded file is added to the document instead of overwriting what the
+    document already said about itself.
+    """
+    info = provenance.of(doc)
+    if not info:
+        return
+    line = provenance.summary(info)
+    # Merged with what the source carried: this is the only metadata this module writes, and it
+    # must not be the reason a title or an author disappears from the output.
+    meta = {key: pdf.metadata.get(key, "") for key in _SETTABLE_INFO}
+    meta["producer"] = line
+    meta["creator"] = line
+    pdf.set_metadata(meta)
+    if provenance.FILE_NAME in pdf.embfile_names():
+        # A verification round writes the document again; the record is not appended twice.
+        pdf.embfile_del(provenance.FILE_NAME)
+    pdf.embfile_add(
+        provenance.FILE_NAME,
+        provenance.as_bytes(info),
+        filename=provenance.FILE_NAME,
+        desc=line,
+    )
 
 
 #: How far outside its tight OCR box a block is painted over, in points. OCR reports the box of

@@ -295,7 +295,9 @@ def cmd_translate(args: argparse.Namespace) -> int:
 
     phases = _Phases()
     print(f"reading   {src}")
-    doc = _read_document(src, _layout_classifier(args), _layout_detector(args))
+    classifier = _layout_classifier(args)
+    detector = _layout_detector(args)
+    doc = _read_document(src, classifier, detector)
     phases.mark("read")
     doc.source_lang = args.from_lang
     doc.target_lang = args.to_lang
@@ -353,6 +355,27 @@ def cmd_translate(args: argparse.Namespace) -> int:
         # with, and the document's own terms are part of them.
         args.glossary = str(target)
         provider, memory = _build_provider(args)
+
+    # Ne çevrildi, neyle: kaydın kendisi çıktıya ve proje dosyasına yazılır (core/provenance.py);
+    # burada yalnız tek satırı gösterilir. Zincir yeniden kurulduktan SONRA çağrılır: koşunun
+    # gerçekten kullandığı sözlük de kayda girmeli.
+    from layoutkeep.core import provenance
+
+    info = provenance.record(
+        doc,
+        provider_kind=args.provider,
+        model=args.model or "",
+        base_url=args.base_url,
+        source_lang=args.from_lang,
+        target_lang=args.to_lang,
+        reader=provenance.reader_path(
+            doc, layout_model=detector is not None, layout_classifier=classifier is not None
+        ),
+        fit_mode=str(fit_mode_from(args)),
+        glossary=glossary.terms if glossary else None,
+        memory=memory is not None,
+    )
+    print(f"record    {provenance.summary(info)}")
 
     started = time.monotonic()
     try:

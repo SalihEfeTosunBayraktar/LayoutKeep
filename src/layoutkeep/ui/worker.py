@@ -71,14 +71,27 @@ def _set_provider_timeout(provider, seconds: float) -> None:
         target.timeout = seconds
 
 
-def _read_document(path: Path) -> Document:
+#: Says "the caller handed over no layout model", so `_read_document` keeps loading the installed
+#: one by itself while `_run` - which has to record whether a model was in hand - passes the very
+#: detector it read with instead of loading a 171 MB model a second time.
+_UNSET = object()
+
+
+def _load_layout_detector():
     from layoutkeep.ocr.layout_detector import load_detector
+
+    return load_detector()
+
+
+def _read_document(path: Path, layout=_UNSET) -> Document:
     from layoutkeep.writers.converter import read_any_document
 
     # The local layout model when it is installed, as the CLI reads (cli._layout_detector): the
     # desktop application read every page without it, although the campaign measured every result
     # with it.
-    return read_any_document(path, layout=load_detector())
+    if layout is _UNSET:
+        layout = _load_layout_detector()
+    return read_any_document(path, layout=layout)
 
 
 def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
@@ -334,9 +347,12 @@ class TranslationWorker(QThread):
         phases = PhaseTimer(self._timing)
 
         self.status.emit("reading document")
+        # Read once, here: the detector is both what the reader uses and part of what the run
+        # records about itself (`document_prep.DocumentPreparer._record_provenance`).
+        detector = _load_layout_detector()
         try:
             with phases.phase("read", src.suffix.lower() or "input"):
-                doc = _read_document(src)
+                doc = _read_document(src, detector)
         except FileNotFoundError as exc:
             # A1: eksik/okunamayan girdi traceback degil, tek cumle / missing input → one line
             self.failed.emit(str(exc))
@@ -352,7 +368,7 @@ class TranslationWorker(QThread):
         # lives in DocumentPreparer; the worker keeps the signals.
         prepared = DocumentPreparer(
             on_status=self.status.emit, build_provider=_build_provider
-        ).prepare(doc, src, out, config, phases=phases)
+        ).prepare(doc, src, out, config, phases=phases, layout_model=detector is not None)
         if prepared is None:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return

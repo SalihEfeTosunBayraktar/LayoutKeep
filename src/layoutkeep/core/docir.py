@@ -334,6 +334,11 @@ class Document:
     source_lang: str | None = None
     target_lang: str | None = None
     metadata: dict[str, str] = field(default_factory=dict)
+    #: What translated this document - version, provider, model, endpoint, reader path, the
+    #: settings that differed from the defaults (`core/provenance.py`). A dict rather than a
+    #: string so it reads as itself in the project file, and optional so every project written
+    #: before it existed still loads.
+    provenance: dict[str, Any] | None = None
 
     def iter_blocks(self) -> Iterator[tuple[Page, Block]]:
         for page in self.pages:
@@ -679,6 +684,9 @@ def from_dict(payload: dict[str, Any]) -> Document:
         source_lang=payload.get("source_lang"),
         target_lang=payload.get("target_lang"),
         metadata=dict(payload.get("metadata", {})),
+        # Absent from every project written before runs recorded what translated them; such a
+        # project opens with no record rather than failing to open.
+        provenance=payload.get("provenance"),
     )
 
 

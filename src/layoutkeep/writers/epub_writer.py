@@ -28,6 +28,7 @@ import ebooklib
 from ebooklib import epub
 from lxml import etree
 
+from layoutkeep.core import provenance
 from layoutkeep.core.docir import Block, Document, Page, Span
 from layoutkeep.readers.epub_reader import (
     _BOLD_TAGS,
@@ -55,6 +56,18 @@ def write_epub(doc: Document, src_path: str | Path, out_path: str | Path) -> Non
     opf_path = _find_opf_path(contents[_CONTAINER_PATH])
     if doc.target_lang:
         contents[opf_path] = _update_opf_language(contents[opf_path], doc.target_lang)
+
+    # Ne çevrildi, neyle: kayıt kitabın İÇİNDE gitsin diye zip'e bir dosya olarak eklenir
+    # (core/provenance.py). Manifeste de yazılır - bildirilmemiş bir dosya, bu yazıcının
+    # kaçındığı başıboş kayıt olurdu; kayıt, kitabın bir parçası olmalı.
+    entry = posixpath.join(posixpath.dirname(opf_path), provenance.FILE_NAME)
+    info = provenance.of(doc)
+    if info and entry not in contents:
+        declared = _declare_in_manifest(contents[opf_path], provenance.FILE_NAME)
+        if declared is not None:
+            contents[opf_path] = declared
+            contents[entry] = provenance.as_bytes(info)
+            names.append(entry)
 
     # ebooklib used ONLY to resolve which files are spine XHTML documents and their hrefs -
     # never to parse or re-emit their content.
@@ -90,11 +103,37 @@ def _write_zip(
             if name == "mimetype":
                 zout.writestr(zipfile.ZipInfo(name), data, compress_type=zipfile.ZIP_STORED)
                 continue
-            src_info = infos[name]
+            src_info = infos.get(name)
+            if src_info is None:
+                # An entry this writer added - the run's record. It has no source ZipInfo to
+                # carry over, so it is stored like any new file would be.
+                zout.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
+                continue
             zi = zipfile.ZipInfo(name, date_time=src_info.date_time)
             zi.compress_type = src_info.compress_type
             zi.external_attr = src_info.external_attr
             zout.writestr(zi, data)
+
+
+#: The closing tag of the OPF's manifest, whichever namespace prefix the file uses, with the
+#: indentation in front of it so the item added below lines up with the items already there.
+_MANIFEST_END_RE = re.compile(rb"([ \t]*)</(?:\w+:)?manifest\s*>")
+
+
+def _declare_in_manifest(opf: bytes, file_name: str) -> bytes | None:
+    """Add `file_name` to the OPF's manifest, or None when there is no manifest to add it to.
+
+    A resource that is not declared is a stray entry in the zip rather than part of the book, so
+    the record is declared like every other item - and the manifest edit is surgical, exactly as
+    the language edit above it: one item inserted before the closing tag, nothing else touched.
+    """
+    match = _MANIFEST_END_RE.search(opf)
+    if match is None:
+        return None
+    item = (
+        f'<item id="layoutkeep-provenance" href="{file_name}" media-type="application/json"/>'
+    ).encode()
+    return opf[: match.start()] + item + b"\n" + match.group(1) + opf[match.start() :]
 
 
 def _find_opf_path(container_xml: bytes) -> str:

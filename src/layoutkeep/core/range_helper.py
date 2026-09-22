@@ -85,4 +85,7 @@ def filter_document_by_pages(doc: Document, pages: set[int]) -> Document:
         source_lang=doc.source_lang,
         target_lang=doc.target_lang,
         metadata=dict(doc.metadata),
+        # The subset is written as the output, so it has to carry what the run recorded about
+        # itself - a page range is not a reason for the file to stop saying what made it.
+        provenance=doc.provenance,
     )

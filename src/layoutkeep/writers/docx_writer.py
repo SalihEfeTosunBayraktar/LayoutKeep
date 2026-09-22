@@ -29,6 +29,7 @@ from pathlib import Path
 
 from lxml import etree
 
+from layoutkeep.core import provenance
 from layoutkeep.core.docir import Block, Document, Page
 from layoutkeep.readers.docx_reader import (
     W,
@@ -58,6 +59,15 @@ def write_docx(doc: Document, src_path: str | Path, out_path: str | Path) -> Non
 
     if doc.target_lang and "docProps/core.xml" in contents:
         contents["docProps/core.xml"] = _update_core_language(contents["docProps/core.xml"], doc.target_lang)
+
+    # Ne çevrildi, neyle: Word dosyasında serbest bir dosya taşımanın temiz yeri yoktur (yeni bir
+    # part, [Content_Types].xml ve .rels düzenlemesi ister) - ama her Word dosyasında bulunan
+    # docProps/core.xml tam bu not için bir <dc:description> taşır. Tam kayıt .lkproj'dadır.
+    info = provenance.of(doc)
+    if info and "docProps/core.xml" in contents:
+        contents["docProps/core.xml"] = _set_description(
+            contents["docProps/core.xml"], provenance.summary(info)
+        )
 
     href_to_page = {page.source_ref: page for page in doc.pages}
     for part, page in href_to_page.items():
@@ -98,6 +108,32 @@ def _update_core_language(core_xml: bytes, target_lang: str) -> bytes:
     if not pattern.search(core_xml):
         return core_xml
     return pattern.sub(lambda m: m.group(1) + target_lang.encode("utf-8") + m.group(3), core_xml)
+
+
+#: The closing tag of core.xml's property list, whichever namespace prefix the file uses.
+_CORE_END_RE = re.compile(rb"</(?:\w+:)?coreProperties\s*>")
+_DESCRIPTION_RE = re.compile(
+    rb"(<(?:\w+:)?description[^>]*>)(.*?)(</(?:\w+:)?description\s*>)", re.DOTALL | re.IGNORECASE
+)
+
+
+def _set_description(core_xml: bytes, text: str) -> bytes:
+    """Record the run in core.xml's `<dc:description>`, replacing a description already there.
+
+    The run's identity, one line: build, model, commit. A DOCX has no clean place for an arbitrary
+    extra part - that would need its own content type and relationship, and this writer's whole
+    point is that it adds nothing - but `<dc:description>` is the element Word files already carry
+    for a note about the document, and the edit is surgical like the language one above.
+    """
+    escaped = _escape_text(text).encode("utf-8")
+    existing = _DESCRIPTION_RE.search(core_xml)
+    if existing is not None:
+        return core_xml[: existing.start(2)] + escaped + core_xml[existing.end(2) :]
+    end = _CORE_END_RE.search(core_xml)
+    if end is None:
+        return core_xml
+    element = b"<dc:description>" + escaped + b"</dc:description>"
+    return core_xml[: end.start()] + element + core_xml[end.end() :]
 
 
 def _update_lang_attrs(text: str, target_lang: str) -> str:
