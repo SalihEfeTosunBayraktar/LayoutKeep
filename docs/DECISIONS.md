@@ -483,3 +483,20 @@ Dosya yoksa sessizce yerleşik role dönülüyor.
 4. **Ölçülmemiş "azdır" cümlesi borçtur.** Ya ölçülür ya "ölçülmedi" diye işaretlenir.
 5. **Kazanç küçükse yapısal kayıp kabul edilmez.** Binde 3,5 için stil kaybı reddedildi.
 6. **Varsayılan açmak ölçülmüş bir eylemdir.** Açılan varsayılanlar testle çivilenir.
+
+## D-017 · TranslationWorker'un bölünmesi (220 satır kuralı)
+
+- **Soru:** Sınıf gövdesi ~220 satırı aşıyor (494). Nasıl bölünür, davranış değişmeden?
+- **Yöntem:** Önce ölçüm (AST ile metot metot satır sayıları), sonra sırayla çıkarma; her adımda
+  ilgili testler + TAM paket; her adım ayrı commit.
+- **Ölçüm:** 494 → 409 (`FitPassRunner`) → 281 (`DocumentFinalizer`) → **253** (`TopicMapBuilder`).
+  Her adımdan sonra tam paket: **1338 passed, 4 xfailed, 1 xpassed** (üç kez).
+- **Karar:** Sinyaller ve sayaçlar **geri çağırma** olarak geçirilir; yeni sınıflar Qt durumu tutmaz.
+  Worker üç isim için ince delege bırakır (`_fit_pdf_pass`, `_finalize_document`, `_verify`) çünkü
+  testler o adları gözetliyor. Kalan ~33 satır `_run`'ın orkestrasyonu; bölünmedi (iş parçacığının
+  kalbi, risk/ödül oranı düşük).
+- **Yanlış giden:** İlk cerrahide sınır `'    def '` ile aranınca **iç metoda** (`def ask`) kadar
+  kesildi ve dosya IndentationError verdi; `git checkout` ile geri alınıp sınır `'\n    def '`
+  (satır başı + 4 boşluk) olarak düzeltildi.
+- **Kanıt:** commit'ler `00bc76f`, `140a432` + son commit; `tests/test_fitting_mode_setting.py` tarama
+  hedefi `fit_pass_runner`'a taşındı (ayar orada yaşıyor).
