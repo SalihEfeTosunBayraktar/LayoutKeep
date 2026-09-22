@@ -113,7 +113,7 @@ def _build_preview_pane() -> QTextEdit:
     # Salt okunur, kaydirilabilir onizleme paneli / Read-only scrollable preview pane
     pane = QTextEdit()
     pane.setReadOnly(True)
-    pane.setMinimumHeight(132)
+    pane.setMinimumHeight(76)
     pane.setStyleSheet("font-size: 12px; padding: 4px;")
     pane.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
     return pane

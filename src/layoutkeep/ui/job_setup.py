@@ -328,10 +328,10 @@ class _JobSetupUiBuilder:
         inner.setContentsMargins(0, 0, 0, 0)
         inner.setSpacing(12)
         # No stretch: the drop zone takes what it needs and the space goes to the settings
-        # card, which has something in it to read.
+        # card, which has something in it to read. (A stretch used to sit here and left a band of
+        # blank window between the card and the button.)
         inner.addWidget(self._drop_zone)
         inner.addWidget(card)
-        inner.addStretch(1)
 
         scroller = QScrollArea()
         scroller.setWidgetResizable(True)
@@ -342,11 +342,16 @@ class _JobSetupUiBuilder:
         scrolled.setAutoFillBackground(False)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 16)
-        layout.setSpacing(12)
+        # Tight by 16px in total: the window is sized from these pages, and the card's last row was
+        # landing just past the viewport. The scroll area stays as the fallback for bigger fonts.
+        layout.setContentsMargins(16, 8, 16, 12)
+        layout.setSpacing(6)
         layout.addWidget(scroller, 1)
+        # The button sits at the bottom edge. It used to have a stretch under it, so the window's
+        # spare height collected below the button and read as an unfinished screen; the scroller's
+        # own stretch now takes that space, so the button stays at the bottom and the card gets the
+        # room. (Adding a second stretch here split the space with the scroller and cut the card.)
         layout.addWidget(self._start_btn)
-        layout.addStretch()
 
     def retranslate_ui(self) -> None:
         # Arayüz diline göre metinleri günceller / Updates texts for active language

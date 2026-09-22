@@ -99,7 +99,7 @@ class DropZoneWidget(QFrame):
         layout.addWidget(self._browse_btn, alignment=Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self._info_container, alignment=Qt.AlignmentFlag.AlignVCenter)
         # One row, so the cap can be far lower than the stacked version needed.
-        self.setMaximumHeight(72)
+        self.setMaximumHeight(68)
 
     def _set_icon(self) -> None:
         # Yükleme ikonunu aktif temaya göre boyar / Paints the upload icon for the theme
