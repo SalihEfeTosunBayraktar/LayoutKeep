@@ -67,6 +67,12 @@ One fixture is the exception, because the defect it pins could not be rebuilt sy
 Hanks EM (2020), *Machine learning for modeling animal movement*, PLOS ONE 15(7): e0235750,
 https://doi.org/10.1371/journal.pone.0235750, published under CC BY 4.0 and included unmodified.
 
+The second is `tests/fixtures/pdf_tck_5237_p2.pdf`: page 2 of the Turkish Penal Code (Türk Ceza
+Kanunu, law 5237), taken from the copy the Ministry of Family and Social Services mirrors. It is
+the page whose single Word-generated PyMuPDF block of 43 lines exposed the leftover-block defect,
+and it is included because no synthetic fixture reproduces that block. Turkish legislation carries
+no copyright (FSEK art. 31), so this page is free to redistribute.
+
 The comparison site under [`docs/comparison/`](docs/comparison/) is the deliberate exception: its
 page images are rendered from the public-domain and openly licensed sources listed below, never
 from the copyrighted ones. A run whose source must not be republished is named in the site

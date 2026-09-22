@@ -284,21 +284,37 @@ def _regroup_by_layout(
         if abs(block.rotation) > 1e-3:
             unclaimed.append(block)
             continue
-        left: list[Line] = []
+        # The unclaimed lines, in runs of consecutive ones: a claimed line ends the run above it.
+        # Leftovers are one paragraph only where nothing else sits between them - the box is what
+        # the writer draws the translation into. Turkish Penal Code page 2 (a Word-generated PDF)
+        # arrived as ONE pymupdf block of 43 lines holding the whole page, and the union box of its
+        # leftovers was y 83..418, 335 pt tall: 'Madde 175', a heading at y 130 and '(2) Kara...'
+        # at y 324-346 in one block, drawn as a strip at the top of the page while the places those
+        # lines came from were left blank.
+        runs: list[list[Line]] = []
+        current: list[Line] | None = None
         for line in block.lines:
             owner = _owning_region(line.bbox, regions) if line.bbox is not None else None
-            if owner is None:
-                left.append(line)
-            else:
+            if owner is not None:
                 members.setdefault(owner, []).append(line)
-        if left:
-            box = left[0].bbox
-            for line in left[1:]:
+                current = None
+                continue
+            if current is None:
+                current = []
+                runs.append(current)
+            current.append(line)
+        for position, run in enumerate(runs):
+            box = run[0].bbox
+            for line in run[1:]:
                 if line.bbox is not None:
                     box = line.bbox if box is None else box.union(line.bbox)
             unclaimed.append(
                 Block(
-                    id=block.id, role=block.role, bbox=box or block.bbox, lines=left,
+                    # The first run keeps the block's own id - it is that block as the reading
+                    # order, the table grid and the review flags knew it; the later ones are
+                    # numbered off it, the way the region-built blocks are (`#m…`).
+                    id=block.id if position == 0 else f"{block.id}.{position}",
+                    role=block.role, bbox=box or block.bbox, lines=run,
                     rotation=block.rotation, align=block.align,
                     needs_review=block.needs_review, review_reason=block.review_reason,
                 )

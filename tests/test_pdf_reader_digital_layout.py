@@ -23,13 +23,19 @@ _W, _H = 612.0, 792.0
 class _Detector:
     """Answers in the pixels of the image it is shown, as the real model does."""
 
-    def __init__(self, regions_pt: list[tuple[str, tuple[float, float, float, float]]]) -> None:
+    def __init__(
+        self,
+        regions_pt: list[tuple[str, tuple[float, float, float, float]]],
+        size: tuple[float, float] = (_W, _H),
+    ) -> None:
         self.regions_pt = regions_pt
+        self.size = size  # the page the recorded regions were measured on, in points
         self.seen: list[tuple[int, int]] = []
 
     def detect(self, image):
         self.seen.append(image.size)
-        sx, sy = image.width / _W, image.height / _H
+        width, height = self.size
+        sx, sy = image.width / width, image.height / height
         return [
             LayoutRegion(label, (x0 * sx, y0 * sy, x1 * sx, y1 * sy), 0.95)
             for label, (x0, y0, x1, y1) in self.regions_pt
@@ -225,3 +231,52 @@ def test_paragraphs_inside_one_text_region_are_split_at_their_blank_line(tmp_pat
     blocks = read_pdf(src, layout=_Detector([("text", (60, 100, 560, top))])).pages[0].blocks
     prose = [b.text for b in blocks if "Printing presses" in b.text or "Quantitative" in b.text]
     assert len(prose) == 2, prose
+
+
+#: Page 2 of the Turkish Penal Code source the campaign measured (see CREDITS.md), kept as a
+#: fixture. Its page is bigger than the synthetic ones above, so the recorder's size is passed
+#: along with the regions it measured.
+_TCK_P2_SIZE = (595.32, 841.92)
+
+#: The regions the REAL layout model returned for that page, recorded once by rendering it at
+#: 100 DPI (`pdf_reader._DIGITAL_LAYOUT_DPI`) and running `layout_detector.load_detector()` on the
+#: pixels, `resolve_duplicates` included, then scaled back to page points. Recorded rather than
+#: re-run so the test needs no installed model (conftest switches the model off).
+_TCK_P2_REGIONS = [
+    ("section_header", (286.0, 72.4, 308.2, 81.2)),
+    ("text", (97.2, 97.3, 328.3, 106.2)),
+    ("text", (70.3, 145.0, 524.1, 166.2)),
+    ("text", (97.3, 169.4, 308.6, 178.2)),
+    ("text", (70.1, 181.1, 524.2, 213.7)),
+    ("text", (97.2, 217.6, 187.5, 226.6)),
+    ("text", (70.1, 228.6, 524.1, 262.8)),
+    ("section_header", (97.3, 275.4, 142.6, 284.3)),
+    ("text", (70.1, 277.4, 524.4, 322.1)),
+    ("list_item", (70.1, 348.7, 524.2, 370.3)),
+    ("text", (97.2, 373.1, 251.5, 382.1)),
+    ("text", (70.0, 384.8, 524.2, 406.7)),
+    ("text", (258.7, 419.9, 337.0, 441.7)),
+    ("section_header", (97.5, 444.6, 199.0, 453.0)),
+    ("text", (70.3, 456.5, 524.0, 478.1)),
+]
+
+
+def test_the_leftovers_of_one_block_are_split_where_the_model_claimed_lines() -> None:
+    """Turkish Penal Code page 2, a Word-generated PDF: ONE pymupdf block held 43 lines, the whole
+    page's articles, and the model claimed 15 stretches of it. The lines it did not claim were put
+    into a single block whose box was their union - y 83..418, 335 pt tall - so 'Madde 175' (a
+    heading at y 130), 'Trafik güvenliğini tehlikeye sokma' (y 334) and '(2) Kara, deniz...'
+    (y 324-346) were one block: the translation was drawn squeezed into a thin strip at the top of
+    the page and the places those lines came from were left blank. Unclaimed lines now form a block
+    per run of consecutive ones, and a claimed line between two runs ends the run.
+    """
+    src = Path(__file__).parent / "fixtures" / "pdf_tck_5237_p2.pdf"
+    page = read_pdf(src, layout=_Detector(_TCK_P2_REGIONS, _TCK_P2_SIZE)).pages[0]
+
+    tallest = max(page.blocks, key=lambda b: b.bbox.height)
+    assert tallest.bbox.height < 120, (tallest.id, tallest.bbox, tallest.text[:80])
+
+    madde = next(b for b in page.blocks if "Madde 175" in b.text)
+    kara = next(b for b in page.blocks if "(2) Kara" in b.text)
+    assert madde.id != kara.id, (madde.id, madde.text)
+    assert madde.bbox.y1 < kara.bbox.y0, (madde.bbox, kara.bbox)
