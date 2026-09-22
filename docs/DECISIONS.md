@@ -205,6 +205,28 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
+## D-016 · Hiçbir arayüz metni hiçbir dilde eksik kalamaz (2026-09-22) · **fikir: kullanıcı**
+
+**Soru:** Kullanıcı ekran görüntüsünde arama kutusunda **ham anahtar** gördü: `MODEL_SEARCH_PLACEHOLDER` ✗.
+Ardından kural: "her dil tüm projeye uygulanmalı, çevrilmemiş kısım olmaması lazım".
+
+**Ölçüm:** `UIStrings.get` çözülemeyen anahtarda **anahtarın kendisini** döndürüyor ✗
+(`_TRANSLATIONS[lang].get(key, _TRANSLATIONS["en"].get(key, key))`), yani eksik çeviri ekrana anahtar
+adı olarak basılıyor ✗✗. Yeni araç `tools/audit/ui_strings.py` kaynağı `UIStrings.NAME` için tarayıp
+sözlüklerle karşılaştırdı: **3 dil** (tr 188 · en 183 · **de 182**), kodda **125 anahtar**, toplam
+**34 eksik** ✗ (en 8 · de 9 · tr 5 + eşlik farkları: `SAVE_BTN`, `DEFAULT_PROFILE_NAME` yalnız TR'de ✗).
+
+**Karar:** 34 eksik **üç dile birden** eklendi ✓ → **3 × 193**, eşit ✓. Model seçicinin boş açılır
+kutusuna yer tutucu kondu ✓ (`MODEL_INPUT_PLACEHOLDER`, 3 dil ✓) — kullanıcının sorduğu "boş alan" buydu ✓.
+
+**Kural (test):** `tests/test_ui_strings_complete.py` — denetim sıfır dışı dönerse kırmızı ✓; ayrıca
+diller arasında **anahtar eşitliği** ✓.
+
+**Yanlış giden:** `SUPPORTED_LANGUAGES` bir **demet** (metin değil ✗) — denetim önce onu da eksik
+sandı ✗; artık sınıfın ham sözlüğüne bakıyor ✓ (metaclass çözümlemesine değil ✗).
+
+**Kanıt:** `297a129` · `tools/audit/ui_strings.py` · `tests/test_ui_strings_complete.py`.
+
 ## D-015 · Ayar ekranı: 16 gruptan 8'e, uyarıdan ayrı ölçüm satırı (2026-09-22) · **fikir: kullanıcı**
 
 **Soru:** "Ayar menüleri hâlâ karışık duruyor, bir mantığa oturt; uyarı/açıklamalar dağınık."
