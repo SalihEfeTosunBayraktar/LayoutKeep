@@ -139,3 +139,22 @@ def test_every_pattern_compiles_and_is_named() -> None:
     for name, pattern in DEFAULT_PATTERNS:
         assert name.isidentifier(), f"{name!r} must be usable as a regex group name"
         re.compile(pattern)
+
+
+# arXiv 2609.19145's first page: the code link "Ahmetcanyvz/comp-vs-like" came back as
+# "Ahmetcanyvz/comp-vs-benzer" - a repository name translated, and so a link to nothing.
+@pytest.mark.parametrize(
+    ("text", "literal"),
+    [
+        ("Code: Ahmetcanyvz/comp-vs-like", "Ahmetcanyvz/comp-vs-like"),
+        ("see src/layoutkeep/cli.py for the entry point", "src/layoutkeep/cli.py"),
+        ("Contact ayavuz@ethz.ch for the data.", "ayavuz@ethz.ch"),
+    ],
+)
+def test_paths_repositories_and_addresses_are_protected(text: str, literal: str) -> None:
+    assert literal in protect(text).literals.values()
+
+
+@pytest.mark.parametrize("text", ["you and/or your spouse", "a speed in km/h", "the input/output ratio"])
+def test_a_slash_in_prose_is_not_a_path(text: str) -> None:
+    assert protect(text).count == 0

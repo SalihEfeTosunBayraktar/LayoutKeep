@@ -70,6 +70,14 @@ DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     ("doi", r"\b(?:doi:\s*|https?://(?:dx\.)?doi\.org/)?10\.\d{4,9}/[-._;()/:A-Za-z0-9]+\b"),
     # Web URL: https://example.com/path
     ("url", r"\bhttps?://[^\s<>\"']+\b"),
+    # An e-mail address: a name, not words.
+    ("email", r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+"),
+    # A path or a repository name: arXiv 2609.19145's code link "Ahmetcanyvz/comp-vs-like" came back
+    # as "comp-vs-benzer", a link to nothing. Only a slash-joined token that also carries a hyphen,
+    # underscore, dot or digit, or a second slash - so "and/or", "km/h" and "input/output" stay
+    # prose the model may translate.
+    ("path", (r"(?<![\w/@.])(?=[\w.\-]*(?:/[\w.\-]+){2}|[\w.\-]*[\-_.\d][\w.\-]*/[\w.\-]"
+              r"|[\w.\-]+/[\w.\-]*[\-_.\d])[\w.\-]+(?:/[\w.\-]+)+")),
     # arXiv publication id: arXiv:2609.19145v1
     ("arxiv", r"\barXiv:\d{4}\.\d{4,5}(?:v\d+)?\b"),
     # A Roman numeral doing a number's job: a front-matter page number (xiii), a part marker (IV).
