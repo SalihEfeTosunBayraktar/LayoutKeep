@@ -26,6 +26,7 @@ from __future__ import annotations
 import contextlib
 import html as html_escapes
 import io
+import json
 import math
 import re
 import string
@@ -227,7 +228,9 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
         # `garbage=4` collapses those duplicates back into one object at save time instead of
         # leaving 17 bundled fonts' worth of repeated subsets in the output.
         # Ne çevrildi, neyle: dosyanın kendisi söylesin diye kayıt burada yazılır (core/provenance.py).
-        _write_provenance(pdf, doc)
+        record = provenance.of(doc)
+        if record:
+            _write_provenance(pdf, record)
         pdf.save(str(out_path), garbage=4, deflate=True)
 
 
@@ -239,7 +242,7 @@ _SETTABLE_INFO = (
 )
 
 
-def _write_provenance(pdf: pymupdf.Document, doc: Document) -> None:
+def _write_provenance(pdf: pymupdf.Document, info: dict, base: dict | None = None) -> None:
     """Put the run's record into the file: one line in producer/creator, the whole thing beside it.
 
     WHY THIS EXISTS: a PDF that does not say what translated it cannot be compared with another -
@@ -251,14 +254,15 @@ def _write_provenance(pdf: pymupdf.Document, doc: Document) -> None:
     own metadata (an arXiv paper's DOI and licence live there) and `set_xml_metadata` replaces that
     stream wholesale. An embedded file is added to the document instead of overwriting what the
     document already said about itself.
+
+    `base` is the metadata to keep - the document's own by default, or another file's when a
+    document is composed out of one (`copy_provenance`).
     """
-    info = provenance.of(doc)
-    if not info:
-        return
     line = provenance.summary(info)
-    # Merged with what the source carried: this is the only metadata this module writes, and it
-    # must not be the reason a title or an author disappears from the output.
-    meta = {key: pdf.metadata.get(key, "") for key in _SETTABLE_INFO}
+    # Merged with what the file carried: this is the only metadata this module writes, and it must
+    # not be the reason a title or an author disappears from the output.
+    source = pdf.metadata if base is None else base
+    meta = {key: source.get(key, "") for key in _SETTABLE_INFO}
     meta["producer"] = line
     meta["creator"] = line
     pdf.set_metadata(meta)
@@ -271,6 +275,25 @@ def _write_provenance(pdf: pymupdf.Document, doc: Document) -> None:
         filename=provenance.FILE_NAME,
         desc=line,
     )
+
+
+def copy_provenance(source: pymupdf.Document, target: pymupdf.Document) -> None:
+    """Carry a written document's record into one composed out of its pages.
+
+    The bilingual PDF is built page by page from the source and the translated file, so it
+    inherits neither the metadata nor the embedded record - and a file that does not say what
+    translated it is the thing `core/provenance.py` exists to prevent. The record is read back
+    from the translated file rather than passed in, so it cannot drift from what that file says.
+    """
+    if provenance.FILE_NAME not in source.embfile_names():
+        return
+    try:
+        info = json.loads(source.embfile_get(provenance.FILE_NAME).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        # A record this build cannot read is not a reason to fail the composition.
+        return
+    if isinstance(info, dict):
+        _write_provenance(target, info, base=source.metadata)
 
 
 #: How far outside its tight OCR box a block is painted over, in points. OCR reports the box of

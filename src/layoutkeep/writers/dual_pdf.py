@@ -70,6 +70,11 @@ def compose_dual(source: Path, translated: Path, out: Path, mode: str = "side") 
                         color=(_SEPARATOR_GREY, _SEPARATOR_GREY, _SEPARATOR_GREY),
                         width=_SEPARATOR_WIDTH,
                     )
+            # Ne çevrildi, neyle: çift dilli dosya da aynı koşunun ürünü, kaydı çevrilmiş
+            # dosyadan devralır (pdf_writer.copy_provenance).
+            from layoutkeep.writers.pdf_writer import copy_provenance
+
+            copy_provenance(tr, document)
             document.save(str(out), garbage=4, deflate=True)
         finally:
             document.close()

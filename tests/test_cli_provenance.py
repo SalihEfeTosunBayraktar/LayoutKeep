@@ -109,3 +109,31 @@ def test_an_epub_carries_the_record_inside_the_file(tmp_path: Path, capsys) -> N
 
     text = "\n".join(block.text for _, block in read_any_document(out).iter_blocks())
     assert "[tr]" in text, text
+
+
+def test_the_bilingual_pdf_carries_the_same_record(tmp_path: Path, capsys) -> None:
+    """`--dual` writes a second PDF, composed page by page - so it inherits nothing by itself.
+
+    A file that does not say what translated it is the thing the record exists to prevent, and
+    this one sits beside the output, where a reader may open it instead.
+    """
+    src = tmp_path / "sample.pdf"
+    build_pdf_fixture.build_two_column(src)
+    out = tmp_path / "out.tr.pdf"
+    project = tmp_path / "run.lkproj"
+
+    _run(capsys, str(src), "--from", "en", "--to", "tr", "--provider", "fake",
+         "--output", str(out), "--save-project", str(project), "--dual", "side")
+
+    info = load_project(project).provenance
+    dual = tmp_path / "out.tr.dual.pdf"
+    assert dual.is_file(), sorted(p.name for p in tmp_path.iterdir())
+
+    pdf = pymupdf.open(str(dual))
+    try:
+        assert pdf.metadata["producer"] == provenance.summary(info), pdf.metadata
+        assert provenance.FILE_NAME in pdf.embfile_names(), pdf.embfile_names()
+        carried = json.loads(pdf.embfile_get(provenance.FILE_NAME).decode("utf-8"))
+    finally:
+        pdf.close()
+    assert carried == info
