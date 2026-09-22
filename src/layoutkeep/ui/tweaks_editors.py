@@ -58,7 +58,7 @@ def editor_for(spec: tunables.Tunable) -> QWidget:
     if spec.choices:
         combo = QComboBox()
         for choice_value, choice_label in spec.choices:
-            combo.addItem(choice_label, choice_value)
+            combo.addItem(UIStrings.get(choice_label), choice_value)
         index = combo.findData(str(value or ""))
         combo.setCurrentIndex(index if index >= 0 else 0)
         # A combo sizes itself to its longest entry, and one entry reading "yan yana (cift dilli PDF)"
@@ -68,7 +68,7 @@ def editor_for(spec: tunables.Tunable) -> QWidget:
         combo.setMinimumContentsLength(22)
         combo.setMaximumWidth(FIELD_WIDTH)
         combo.setSizePolicy(QSizePolicy.Policy.Fixed, combo.sizePolicy().verticalPolicy())
-        combo.setToolTip(" · ".join(label for _value, label in spec.choices))
+        combo.setToolTip(" · ".join(UIStrings.get(label) for _value, label in spec.choices))
         return combo
     if spec.kind == "bool":
         check = QCheckBox()
@@ -148,7 +148,7 @@ def build_row(
     """One settings row: its label on the left, and the field with its text on the right."""
     field, _focus = editor_holder(editor, spec, document_path)
 
-    caption = QLabel(spec.help_text)
+    caption = QLabel(UIStrings.get(spec.help_text))
     caption.setProperty("class", "muted")
     caption.setWordWrap(True)
 
@@ -158,7 +158,7 @@ def build_row(
     cell.addWidget(field)
     cell.addWidget(caption)
     if spec.warning:
-        warn = QLabel(spec.warning)
+        warn = QLabel(UIStrings.get(spec.warning))
         warn.setWordWrap(True)
         warn.setStyleSheet(f"color: {ThemeManager.current_palette().warning};")
         # The mark is drawn from the icon set rather than typed as a character: a font
@@ -183,7 +183,7 @@ def build_row(
         # The measurement behind the warning, kept apart from it: a row whose warning ran to
         # five hundred characters read as a wall of orange, and the numbers stopped being
         # read at all. Muted and a size down, so it is there when looked for.
-        proof = QLabel("Ölçüm: " + spec.evidence)
+        proof = QLabel(UIStrings.MEASUREMENT_PREFIX + UIStrings.get(spec.evidence))
         proof.setWordWrap(True)
         proof.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         proof_font = proof.font()
@@ -216,7 +216,7 @@ def build_row(
         warn.setFixedWidth(text_width)
         warn.setMinimumHeight(warn.heightForWidth(text_width))
 
-    row_label = QLabel(spec.label)
+    row_label = QLabel(UIStrings.get(spec.label))
     row_label.setWordWrap(True)
     # Its own width, or the field column squeezes it until the wrapped lines of one
     # label run into the next one.
