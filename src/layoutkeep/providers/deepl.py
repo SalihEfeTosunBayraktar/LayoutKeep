@@ -97,19 +97,34 @@ def to_deepl_lang(code: str, *, target: bool) -> str:
     return base
 
 
+#: Characters XML 1.0 forbids outright. A PDF's text extraction hands out stray control bytes -
+#: the measured case was a lone backspace (\x08) on page 2 of an arXiv paper - and DeepL parses the
+#: text as XML, so one of these rejects the whole request: "Tag handling parsing failed ... not
+#: well-formed (invalid token)". 40 segments died with it. Tab, newline and carriage return are
+#: legal and stay.
+_XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _xml_safe(text: str) -> str:
+    """Drop the control characters that would make the whole request malformed."""
+    return _XML_ILLEGAL.sub("", text)
+
+
 def to_deepl_markup(text: str) -> str:
     """Turn DocIR's markers and protected tokens into XML DeepL will respect.
 
     Literal text is entity-escaped first so that a stray `<` or `&` in the document cannot
     turn into markup; our own elements are inserted afterwards and so survive intact.
+    Control characters XML cannot carry are dropped before any of that.
     """
+    text = _xml_safe(text)
     pieces: list[str] = []
     cursor = 0
     for match in re.finditer(f"{_MARKER_RE.pattern}|{_PUA_RE.pattern}", text):
         pieces.append(html.escape(text[cursor : match.start()], quote=False))
         closing, number, protected = match.group(1), match.group(2), match.group(3)
         if protected is not None:
-            pieces.append(f"<lkv>{protected}</lkv>")
+            pieces.append(f"<lkv>{html.escape(_xml_safe(protected), quote=False)}</lkv>")
         else:
             pieces.append(f"<{closing}lk{number}>")
         cursor = match.end()

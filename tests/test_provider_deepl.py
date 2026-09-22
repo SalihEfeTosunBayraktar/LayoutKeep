@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -122,6 +123,34 @@ def test_literal_angle_brackets_cannot_become_markup():
 
     assert "&lt;" in wire and "&amp;" in wire
     assert from_deepl_markup(wire) == source
+
+
+def test_control_characters_from_a_pdf_cannot_break_the_request():
+    """Measured: page 2 of an arXiv paper carried a lone backspace (\\x08) in one segment's source.
+
+    DeepL parses the text as XML and rejected the whole 40-segment request over that one byte -
+    "Tag handling parsing failed ... not well-formed (invalid token)". XML-illegal control
+    characters are dropped before anything else happens; tab, newline and carriage return are
+    legal and stay.
+    """
+    source = "tok\x08en \x0c and \x1f here\ttab\nnewline"
+
+    wire = to_deepl_markup(source)
+
+    ET.fromstring(f"<r>{wire}</r>")  # noqa: S314 - our own generated string, not untrusted input
+    assert "\x08" not in wire and "\x0c" not in wire and "\x1f" not in wire
+    assert "\t" in wire and "\n" in wire
+    assert from_deepl_markup(wire) == "token  and  here\ttab\nnewline"
+
+
+def test_a_control_character_inside_a_protected_value_is_safe_too():
+    """The protected element is written by us, so it is escaped by us as well."""
+    protection = protect("Tighten the bolts to 1\x0850 Nm.")
+
+    wire = to_deepl_markup(protection.text)
+
+    ET.fromstring(f"<r>{wire}</r>")  # noqa: S314 - our own generated string, not untrusted input
+    assert "\x08" not in wire
 
 
 def test_markers_and_protected_values_together():
