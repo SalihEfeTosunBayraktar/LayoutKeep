@@ -205,3 +205,16 @@ def test_the_map_is_built_through_the_wrapper_stack(tmp_path, monkeypatch):
     assert inner.calls, "the chat call under the wrappers was never reached"
     entries = json.loads(target.read_text(encoding="utf-8"))
     assert entries[0]["keywords"] == ["village", "Black Sea"]
+
+
+def test_a_provider_without_chat_leaves_the_users_map_setting_alone(monkeypatch):
+    """With the auto map on and a provider that has no chat call (DeepL), the builder reported the
+    setting's previous value as empty, and the run 'restored' the user's own map path to nothing."""
+    from layoutkeep.core import tunables
+    from layoutkeep.ui.topic_map import TopicMapBuilder
+
+    monkeypatch.setattr(tunables, "_overrides", {"translation.keyword_map_path": "my-map.json"})
+
+    _target, previous = TopicMapBuilder(on_status=lambda _m: None).build(None, None, object())
+
+    assert previous == "my-map.json"

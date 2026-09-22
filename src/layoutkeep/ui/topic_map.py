@@ -40,7 +40,9 @@ class TopicMapBuilder:
         chat = chat_callable(provider)
         if chat is None:
             self._on_status("topic map skipped: this provider has no chat call")
-            return None, ""
+            # The setting's real value, not "": the caller puts back what this returns, and an empty
+            # string erased the user's own map path whenever the provider could not be asked (DeepL).
+            return None, str(tunables.get("translation.keyword_map_path") or "")
         self._on_status("building the topic map")
 
         def ask(system: str, user: str) -> str:
