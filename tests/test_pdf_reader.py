@@ -277,7 +277,7 @@ def test_mirrored_text_is_detected_and_flagged(tmp_path: Path) -> None:
     mirrored = by_text["Mirrored Label"]
     assert mirrored.rotation == pytest.approx(-180.0, abs=0.5)
     assert mirrored.needs_review is True
-    assert "aynalan" in mirrored.review_reason
+    assert "REVIEW_MIRROR_TEXT" in mirrored.review_reason
 
     control = next(b for b in doc.pages[0].blocks if "Ordinary horizontal" in b.text)
     assert control.needs_review is False

@@ -65,7 +65,7 @@ def test_a_passthrough_is_visible_on_the_block_afterwards() -> None:
 
     block = doc.pages[0].blocks[0]
     assert block.needs_review
-    assert "çevirmeden" in block.review_reason
+    assert "REVIEW_PASSTHROUGH" in block.review_reason
 
 
 def test_a_clean_translation_leaves_the_block_unflagged() -> None:

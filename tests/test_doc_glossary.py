@@ -56,7 +56,7 @@ USER_TERM = "kullanicinin terimi"
 
 #: The reason `providers/glossary.Glossary.verify` writes when a term it expected is not in the
 #: translation - the wording the review list shows for it.
-GLOSSARY_REASON = "sözlük terimi çeviride kullanılmamış"
+GLOSSARY_REASON = "REVIEW_GLOSSARY_MISS"
 
 
 # -- fixtures -------------------------------------------------------------------------------------

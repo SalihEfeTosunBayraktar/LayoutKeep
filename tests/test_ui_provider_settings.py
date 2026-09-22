@@ -12,6 +12,7 @@ import pytest
 from layoutkeep.ui import keyring_store
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.provider_settings import ProviderSettingsDialog
+from layoutkeep.ui.strings import UIStrings
 
 
 @pytest.fixture
@@ -105,7 +106,7 @@ def test_model_search_and_vendor_filtering_in_dialog(qtbot, fake_keyring):
     models = ["llama-3.2-3b", "qwen2.5-7b", "deepseek-r1:14b", "gpt-4o"]
     dlg._on_models(models)
 
-    assert "4 model bulundu" in dlg._status.text()
+    assert UIStrings.MODELS_FOUND_STATUS.format(4) in dlg._status.text()
     assert dlg._model.all_models() == models
 
     # Arama filtresi uygula

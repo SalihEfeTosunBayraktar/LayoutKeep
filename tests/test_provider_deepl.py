@@ -25,6 +25,7 @@ from layoutkeep.providers.deepl import (
     to_deepl_lang,
     to_deepl_markup,
 )
+from layoutkeep.ui.strings import UIStrings
 
 
 class FakeDeepL:
@@ -198,7 +199,7 @@ def test_a_short_reply_flags_rather_than_shifting_every_translation(monkeypatch)
     assert results[1].target == "TR(Two.)"
     assert results[2].target == ""
     assert results[2].needs_review
-    assert "yanıtlamadı" in results[2].review_reason
+    assert "REVIEW_DEEPL_EMPTY" in results[2].review_reason
 
 
 def test_long_documents_are_split_into_several_requests(monkeypatch):
@@ -228,7 +229,11 @@ def test_formality_is_only_sent_when_asked_for(monkeypatch):
 
 @pytest.mark.parametrize(
     ("code", "expected_words"),
-    [(403, ["anahtar", "api-free"]), (456, ["kota"]), (413, ["büyük"])],
+    [
+        (403, [UIStrings.DEEPL_KEY_REJECTED, "api-free"]),
+        (456, [UIStrings.DEEPL_QUOTA_EXHAUSTED]),
+        (413, [UIStrings.DEEPL_REQUEST_TOO_LARGE]),
+    ],
 )
 def test_http_errors_say_what_to_do(monkeypatch, code, expected_words):
     def raiser(request, timeout=None):
@@ -248,7 +253,7 @@ def test_a_missing_target_language_is_refused_before_any_request(monkeypatch):
     fake = FakeDeepL()
     provider = _provider(monkeypatch, fake)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Target language"):
         provider.translate(_segments("Hi."), "en", "")
 
     assert fake.requests == []

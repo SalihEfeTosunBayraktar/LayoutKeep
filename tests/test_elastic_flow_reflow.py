@@ -71,4 +71,4 @@ def test_bottom_margin_guard_flags_review():
     shifted = engine.reflow_column([b1, b2], expansions, page_height=800.0)
 
     assert shifted[1].needs_review
-    assert "Sayfa alt sınırını aştı" in shifted[1].review_reason
+    assert "REVIEW_BOTTOM_MARGIN" in shifted[1].review_reason
