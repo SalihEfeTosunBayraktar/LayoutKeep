@@ -500,3 +500,13 @@ Dosya yoksa sessizce yerleşik role dönülüyor.
   (satır başı + 4 boşluk) olarak düzeltildi.
 - **Kanıt:** commit'ler `00bc76f`, `140a432` + son commit; `tests/test_fitting_mode_setting.py` tarama
   hedefi `fit_pass_runner`'a taşındı (ayar orada yaşıyor).
+
+## D-017 ek · Kurulum ekranından iki çıkarma
+
+`_JobSetupUiBuilder` 290 → **238** (iki adımda): biçim kutusunun doldurulması ve sağlayıcı
+kontrolleri `ui/setup_controls.py`'ye taşındı (kare düğme genişliği de oraya: `ICON_BUTTON_WIDTH`).
+İlk denemede `ProviderProfileStore` için yanlış modül yolu yazıldı (`providers.profiles`);
+**20 test birden yakaladı** — güvenlik ağı çalışıyor. Kalan >220 sınıflar (provider_settings 320,
+main_window 310, tweaks_dialog 258, floating_progress 254, openai_compat 235, progress 223)
+sıradaki oturuma kalıyor; yöntem aynı: AST haritası → çıkarma → ilgili testler → TAM paket →
+ayrı commit.
