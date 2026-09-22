@@ -8,20 +8,18 @@ yeni çeviri seçenekleri sunulur. Gözden geçirme editörü kaldırıldı (esk
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from PySide6.QtCore import QEvent, QTimer
-from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QStackedWidget, QVBoxLayout, QWidget
 
 from layoutkeep import __version__
-from layoutkeep.core import tunables
 from layoutkeep.ui.completion import CompletionWidget
 from layoutkeep.ui.floating_bridge import FloatingBarBridge
 from layoutkeep.ui.floating_progress import FloatingProgress
 from layoutkeep.ui.header import HeaderBar
-from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.job_setup import JobSetupWidget
 from layoutkeep.ui.progress import ProgressWidget
+from layoutkeep.ui.run_controller import RunController
 from layoutkeep.ui.settings import app_settings
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.welcome import WelcomeDialog
@@ -90,7 +88,19 @@ class MainWindow(QWidget):
         #: Set when a job starts, read when it finishes.
         self._last_output_path = ""
         self._completion.back_to_setup_requested.connect(self._return_to_setup)
-        self._worker: TranslationWorker | None = None
+        # Koşunun sahibi: worker, sinyal bağlantıları, duraklat/iptal / The run's owner
+        self._run = RunController(
+            self,
+            header=self._header,
+            stack=self._stack,
+            progress=self._progress,
+            completion=self._completion,
+            bar=lambda: self._bar,
+            output_path=lambda: self._last_output_path,
+            set_output_path=self._set_last_output_path,
+            sync_bar=self._sync_bar_visibility,
+            to_setup=self._return_to_setup,
+        )
         # Tema ve arayüz dili bu pencerenin kabuğunda tutulur / Theme and language live here
         self._appearance = WindowAppearance(
             self._settings,
@@ -103,10 +113,23 @@ class MainWindow(QWidget):
             self,
             bar=lambda: self._floating,
             on_new_job=self._return_to_setup,
-            on_pause=self._pause_job,
-            on_resume=self._resume_job,
+            on_pause=self._run.pause,
+            on_resume=self._run.resume,
             output_path=lambda: self._last_output_path,
         )
+
+    def _set_last_output_path(self, path: str) -> None:
+        # Bir koşu başlarken çıktı yolunu pencereye yazar / The run records its output path here
+        self._last_output_path = path
+
+    @property
+    def _worker(self) -> TranslationWorker | None:
+        """The run's worker. The controller owns it; the tests set this attribute directly."""
+        return self._run.worker
+
+    @_worker.setter
+    def _worker(self, worker: TranslationWorker | None) -> None:
+        self._run.worker = worker
 
     @property
     def _bar(self) -> FloatingProgress:
@@ -157,54 +180,18 @@ class MainWindow(QWidget):
         # Olay ve sinyal bağlantılarını yapar / Wires events and signals
         self._header.theme_toggled.connect(self._appearance.store_theme)
         self._header.ui_language_changed.connect(self._appearance.store_language)
-        self._setup.job_ready.connect(self._start_job)
-        self._progress.cancel_requested.connect(self._cancel_job)
-        self._progress.pause_requested.connect(self._pause_job)
-        self._progress.resume_requested.connect(self._resume_job)
+        self._setup.job_ready.connect(self._run.start)
+        self._progress.cancel_requested.connect(self._run.cancel)
+        self._progress.pause_requested.connect(self._run.pause)
+        self._progress.resume_requested.connect(self._run.resume)
         self._bar.restore_requested.connect(self._bar_bridge.restore_window)
         self._bar.new_job_requested.connect(self._bar_bridge.start_new_job)
         self._bar.open_output_requested.connect(self._bar_bridge.open_output)
         self._bar.pause_toggled.connect(self._bar_bridge.toggle_pause)
 
-    def _start_job(self, config: JobConfig) -> None:
-        # Çeviri işini başlatır / Starts the translation job
-        if not config.input_path or not config.output_path:
-            QMessageBox.warning(self, "Eksik bilgi", "Girdi ve çıktı dosyası seçilmeli.")
-            return
-
-        self._last_output_path = config.output_path
-        self._stack.setCurrentWidget(self._progress)
-        self._header.set_active_step(2)
-        self._progress.start()
-        self._progress.set_model_name(config.provider.model)
-
-        self._worker = TranslationWorker(config, self)
-        self._worker.progress.connect(self._progress.set_progress)
-        self._worker.progress_detailed.connect(self._progress.set_progress_detailed)
-        self._worker.active_segment.connect(self._progress.set_active_segment)
-        self._worker.segment_translated.connect(self._progress.append_segment_pair)
-        self._worker.job_stats.connect(self._completion.set_stats)
-        self._worker.review_flags.connect(self._progress.set_review_flags)
-        self._worker.status.connect(self._progress.set_status)
-        self._worker.memory_stats.connect(self._progress.set_memory_stats)
-        self._worker.batch_timeout.connect(self._progress.set_batch_timeout)
-        self._worker.finished_ok.connect(self._on_finished)
-        self._worker.failed.connect(self._on_failed)
-        # The summary bar reads the same signals as the card, so the two cannot disagree.
-        self._worker.progress.connect(self._bar.set_progress)
-        self._worker.status.connect(self._bar.set_phase)
-        self._worker.finished_ok.connect(self._bar.finish)
-        self._worker.failed.connect(self._bar.fail)
-        if bool(tunables.get("ui.floating_progress")):
-            self._bar.start_job(Path(config.input_path).name)
-            self._sync_bar_visibility()
-        self._worker.start()
-
     def closeEvent(self, event) -> None:
         # Pencere kapanırken çalışan iş parçacığını güvenle durdurur / Safely stops worker on close
-        if self._worker is not None and self._worker.isRunning():
-            self._worker.cancel()
-            self._worker.wait(1500)
+        self._run.stop()
         # The bar is a parentless top-level window, so closing the application has to take it down
         # explicitly - and delete it, not merely hide it: an orphaned top-level widget outliving
         # this window is what crashed the UI suite the first time this was tried.
@@ -214,27 +201,10 @@ class MainWindow(QWidget):
             self._floating = None
         super().closeEvent(event)
 
-    def _cancel_job(self) -> None:
-        if self._worker is not None:
-            self._worker.cancel()
-
-    def _pause_job(self) -> None:
-        # Çeviriyi duraklatır / Pauses the translation job
-        if self._worker is not None:
-            self._worker.pause()
-
-    def _resume_job(self) -> None:
-        # Çeviriye devam eder / Resumes the translation job
-        if self._worker is not None:
-            self._worker.resume()
-
     def _on_finished(self, project_path: str) -> None:
         # İş tamamlandığında tamamlandı ekranını gösterir / Shows completion screen
-        self._progress.finish(f"tamamlandı: {project_path}")
-        # Çıktıyı göster: dosya varsa aç/klasör butonları etkinleşir.
-        self._completion.set_output_path(self._last_output_path)
-        self._stack.setCurrentWidget(self._completion)
-        self._header.set_active_step(3)
+        # İnce delege: testler bu adı çağırıyor / Thin delegate, the tests call this name
+        self._run.finish(project_path)
 
     def show_help(self) -> None:
         """Open the help screen; the header's "?" and the welcome screen both land here."""
@@ -274,12 +244,5 @@ class MainWindow(QWidget):
 
     def _return_to_setup(self) -> None:
         # Tamamlandı ekranından ilk adıma döner / Returns to step 1 after completion
-        self._stack.setCurrentWidget(self._setup)
-        self._header.set_active_step(1)
-
-    def _on_failed(self, message: str) -> None:
-        # İş başarısız olduğunda bildirim verir / Shows error on failure and returns to setup
-        self._progress.finish(f"hata: {message}")
-        QMessageBox.critical(self, "Çeviri başarısız", message)
         self._stack.setCurrentWidget(self._setup)
         self._header.set_active_step(1)
