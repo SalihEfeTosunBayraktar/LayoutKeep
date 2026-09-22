@@ -16,6 +16,21 @@ from pathlib import Path
 from layoutkeep.core.docir import Segment
 
 
+def _target_pattern(term: str) -> re.Pattern[str]:
+    """How the target term is found in a translation: at a word start, in any case, inflected.
+
+    A whole-word, exact-case match flagged correct translations in every language that inflects:
+    Turkish writes 'tamponun' for 'tampon', capitalises it at a sentence start, and softens a final
+    consonant before a suffix ('ışık' -> 'ışığın'). So the term may carry a suffix, and a term of four
+    letters or more may have its last letter changed when at least two more letters follow. The word
+    start stays strict, so the term is never found inside another word.
+    """
+    escaped = re.escape(term)
+    if len(term) >= 4:
+        escaped = rf"(?:{escaped}|{re.escape(term[:-1])}\w\w)"
+    return re.compile(rf"(?<!\w){escaped}", re.IGNORECASE)
+
+
 class Glossary:
     """A source-term -> target-term mapping, with source-side matching and target-side checks.
 
@@ -97,7 +112,7 @@ class Glossary:
             missing = False
             for _src, tgt in used:
                 checked += 1
-                if re.search(rf"(?<!\w){re.escape(tgt)}(?!\w)", seg.target):
+                if _target_pattern(tgt).search(seg.target):
                     honoured += 1
                 else:
                     missing = True
