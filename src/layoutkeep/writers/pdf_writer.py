@@ -282,7 +282,7 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
     the areas were meant to remove has come back with it.
     """
     document = page.parent
-    before = [xobject[0] for xobject in page.get_xobjects()]
+    before = page.get_xobjects()
     for area in areas:
         page.add_redact_annot(area, cross_out=False, fill=None)
     page.apply_redactions(
@@ -290,9 +290,10 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
         graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
         text=pymupdf.PDF_REDACT_TEXT_REMOVE,
     )
-    after = [xobject[0] for xobject in page.get_xobjects()]
+    after = page.get_xobjects()
     if not areas or len(before) != len(after):
         return
+    pairs = _pair_forms(before, after)
     rects = [area.rect if isinstance(area, pymupdf.Quad) else pymupdf.Rect(area) for area in areas]
 
     def removed_text_is_back() -> bool:
@@ -302,7 +303,7 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
                 return True
         return False
 
-    for original, rewritten in zip(before, after, strict=True):
+    for original, rewritten in pairs:
         if original == rewritten:
             continue
         saved_object = document.xref_object(rewritten)
@@ -322,6 +323,24 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
         if removed_text_is_back():
             document.update_object(rewritten, saved_object)
             document.update_stream(rewritten, saved_stream)
+
+
+def _pair_forms(before: list, after: list) -> list[tuple[int, int]]:
+    """Each original form's xref with the xref of MuPDF's rewrite of it, matched by the form's box.
+
+    Not by position: the rewrite lists the forms in another order than the page did. On PLOS ONE's
+    first page the positional pairing put the 'Check for updates' badge into another form's slot -
+    278 drawings became 3 and a large green arc was drawn in their place. A form whose box is not
+    unique on both sides is left out, so it keeps MuPDF's rewrite, which draws correctly.
+    """
+    def by_box(xobjects: list) -> dict:
+        boxes: dict = {}
+        for xref, _name, _stream, box in xobjects:
+            boxes.setdefault(tuple(round(v, 2) for v in box), []).append(xref)
+        return {box: xrefs[0] for box, xrefs in boxes.items() if len(xrefs) == 1}
+
+    old, new = by_box(before), by_box(after)
+    return [(old[box], new[box]) for box in old if box in new]
 
 
 def _unchanged(block: Block) -> bool:

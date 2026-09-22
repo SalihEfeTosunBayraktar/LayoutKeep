@@ -62,6 +62,11 @@ Nothing was taken from a real publication, so the repository can publish the doc
 images made from them without a licence question. The academic paper's authors, journal, figures
 and measurements are all invented.
 
+One fixture is the exception, because the defect it pins could not be rebuilt synthetically:
+`tests/fixtures/pdf_plos_forms_p1.pdf` is page 1 of Wijeyakulasuriya DA, Eisenhauer EW, Shaby BA,
+Hanks EM (2020), *Machine learning for modeling animal movement*, PLOS ONE 15(7): e0235750,
+https://doi.org/10.1371/journal.pone.0235750, published under CC BY 4.0 and included unmodified.
+
 The comparison site under [`docs/comparison/`](docs/comparison/) is the deliberate exception: its
 page images are rendered from the public-domain and openly licensed sources listed below, never
 from the copyrighted ones. A run whose source must not be republished is named in the site

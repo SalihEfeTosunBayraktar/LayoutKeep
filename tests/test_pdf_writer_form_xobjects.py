@@ -77,3 +77,37 @@ def test_a_form_pdflatex_tagged_with_its_file_name_is_restored_without_crashing(
     after = _spans(page)
     assert all(s in after for s in before), (before, after)
     assert not any("Stack diagrams" in s[1] for s in after)
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _pixels_outside(page: pymupdf.Page, areas: list[pymupdf.Rect]) -> bytes:
+    """The page's pixels with the redacted areas (and a margin round them) painted white."""
+    pix = page.get_pixmap(dpi=40)
+    scale = 40 / 72
+    for area in areas:
+        box = pymupdf.IRect(
+            int((area.x0 - 2) * scale), int((area.y0 - 2) * scale),
+            int((area.x1 + 2) * scale) + 1, int((area.y1 + 2) * scale) + 1,
+        )
+        pix.set_rect(box, (255, 255, 255))
+    return pix.samples
+
+
+def test_restoring_forms_does_not_swap_them_when_mupdf_renumbers_them():
+    """PLOS ONE page 1 (CC BY 4.0): redacting the author line destroyed the 'Check for updates' badge.
+
+    The page has three forms. MuPDF's rewrite lists them in another order than before, and the
+    restoration paired old and new by position, so the badge's content went into another form's
+    slot: 278 drawings in the badge's corner became 3, and a large green arc appeared instead.
+    Everything outside the redacted area must look exactly as it did.
+    """
+    source = pymupdf.open(FIXTURES / "pdf_plos_forms_p1.pdf")
+    expected = _pixels_outside(source[0], [pymupdf.Rect(200, 162, 544, 184)])
+
+    doc = pymupdf.open(FIXTURES / "pdf_plos_forms_p1.pdf")
+    areas = [pymupdf.Rect(200, 162, 544, 184)]
+    redact_keeping_forms(doc[0], areas)
+
+    assert _pixels_outside(doc[0], areas) == expected
