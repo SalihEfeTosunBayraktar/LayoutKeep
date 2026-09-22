@@ -1,6 +1,9 @@
 """Provider settings dialog: manages multiple provider profiles (base URL, model, API key).
 
 Birden fazla sağlayıcı profilini listeleme, ekleme, düzenleme ve seçme işlemlerini yöneten ayar diyaloğu.
+
+Form alanlarıyla profil/ayar eşlemesi `provider_form_binding` modülünde; bu dosya uç nokta
+listesini, kaydetme/silme akışını ve model/bağlantı sorgularını yönetir.
 """
 
 from __future__ import annotations
@@ -8,11 +11,20 @@ from __future__ import annotations
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QDialog, QMenu
 
-from layoutkeep.ui.api_key_helpers import keyring_id, load_api_key_for, save_api_key_for
 from layoutkeep.ui.connection_test_worker import ConnectionTestWorker
 from layoutkeep.ui.endpoint_tree import PROFILE_ROLE, EndpointTree
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.list_models_worker import ListModelsWorker
+from layoutkeep.ui.provider_form_binding import (
+    FAKE_PROVIDER_DESCRIPTION,
+    apply_kind_state,
+    apply_profile,
+    config_from_form,
+    parse_timeout,
+    prefill_form,
+    profile_from_form,
+    reset_for_new_profile,
+)
 from layoutkeep.ui.provider_profile import ProviderProfile, ProviderProfileStore
 from layoutkeep.ui.provider_settings_form import (
     KIND_DEEPL,
@@ -22,41 +34,13 @@ from layoutkeep.ui.provider_settings_form import (
 )
 from layoutkeep.ui.strings import UIStrings
 
-_KIND_FAKE_LABEL_FRAGMENT = "Test / Sahte Çevirici"
-_FAKE_PROVIDER_MODEL = "fake"
-_DEFAULT_NEW_PROFILE_NAME = "Yeni Sağlayıcı"
-_DEFAULT_NEW_BASE_URL = "http://127.0.0.1:1234/v1"
-_DEEPL_PROVIDER_DESCRIPTION = (
-    "DeepL seçili. Base URL ve model gerekmez; anahtar hangi sunucuya gidileceğini "
-    "kendisi belirler - ücretsiz anahtarlar ':fx' ile biter ve api-free.deepl.com "
-    "adresine gider. API anahtarı zorunludur."
-)
-_FAKE_PROVIDER_DESCRIPTION = (
-    "Test / Sahte Çevirici etkindir. Kelimelerin/cümlelerin başına seçilen dil etiketini "
-    "(örn. [tr]) ekler; yerel veya uzak sunucu gerektirmez."
-)
-
-
-def parse_timeout(raw: str) -> float | None:
-    """Parse a free-form timeout field into a float; return None on empty / invalid.
-
-    Serbest biçimli zaman aşımı alanını float'a çevirir; boş/geçersiz ise None döner.
-    """
-    text = raw.strip()
-    if not text:
-        return None
-    try:
-        return float(text)
-    except ValueError:
-        return None
-
 
 def _endpoint_summary(profile: ProviderProfile) -> str:
     # Listede fare ustundeyken gosterilen ozet / Summary shown on hover in the list
     if profile.kind == KIND_DEEPL:
         return "DeepL - anahtar sunucuyu belirler"
     if profile.kind == KIND_FAKE:
-        return _FAKE_PROVIDER_DESCRIPTION
+        return FAKE_PROVIDER_DESCRIPTION
     return f"{profile.base_url} - {profile.model or 'model secilmedi'}"
 
 
@@ -74,7 +58,7 @@ class ProviderSettingsDialog(QDialog):
         self._load_profiles_into_ui()
         self._fit_to_screen()
         if config is not None:
-            self._prefill_from_config(config)
+            prefill_form(self._form, config)
 
     def _fit_to_screen(self) -> None:
         """Open at a size that leaves the buttons on the screen.
@@ -93,19 +77,6 @@ class ProviderSettingsDialog(QDialog):
         self.resize(width, height)
 
     # ------------------------------------------------------------------ init
-    def _prefill_from_config(self, config: ProviderConfig) -> None:
-        idx_k = self._form.kind_combo.findData(config.kind)
-        if idx_k >= 0:
-            self._form.kind_combo.setCurrentIndex(idx_k)
-        self._form.base_url.setText(config.base_url)
-        self._form.api_key.setText(load_api_key_for(config.base_url))
-        self._form.model.clear()
-        if config.model:
-            self._form.model.addItem(config.model)
-            self._form.model.setEditText(config.model)
-        self._form.timeout.setText(str(config.timeout) if config.timeout else "")
-        self._on_kind_changed()
-
     def _connect_signals(self) -> None:
         # Olay bağlantılarını kurar / Sets up signal connections
         f = self._form
@@ -113,10 +84,11 @@ class ProviderSettingsDialog(QDialog):
         f.endpoint_list.currentItemChanged.connect(self._on_endpoint_selected)
         f.endpoint_list.arrangement_changed.connect(self._on_arrangement_changed)
         f.endpoint_list.customContextMenuRequested.connect(self._show_endpoint_menu)
-        f.new_profile_btn.clicked.connect(self._init_new_profile_fields)
+        f.new_profile_btn.clicked.connect(lambda: reset_for_new_profile(f))
         f.test_btn.clicked.connect(self._test_connection)
         f.save_btn.clicked.connect(self._save_endpoint)
-        f.kind_combo.currentIndexChanged.connect(self._on_kind_changed)
+        # The combo hands the new index to the slot; the kind state is read from the form.
+        f.kind_combo.currentIndexChanged.connect(lambda *_: apply_kind_state(f))
         f.buttons.accepted.connect(self._on_accept)
         f.buttons.rejected.connect(self.reject)
 
@@ -131,7 +103,7 @@ class ProviderSettingsDialog(QDialog):
         self._refresh_group_choices()
         current = self._selected_profile()
         if current is not None:
-            self._apply_profile(current)
+            apply_profile(self._form, current)
 
     def _on_arrangement_changed(self, profiles: list[ProviderProfile]) -> None:
         """The tree is the arrangement; storing it is all that is left to do."""
@@ -201,7 +173,7 @@ class ProviderSettingsDialog(QDialog):
         # Listeden uc nokta secildiginde alanlari doldurur / Fills the form on selection
         profile = self._selected_profile()
         if profile is not None:
-            self._apply_profile(profile)
+            apply_profile(self._form, profile)
 
     def _save_endpoint(self) -> None:
         """Store the form as an endpoint without closing the dialog.
@@ -209,7 +181,7 @@ class ProviderSettingsDialog(QDialog):
         Adding several endpoints in one visit is the normal case, and a dialog that closes on
         every save turns that into one trip each.
         """
-        profile = self._build_profile_from_form()
+        profile = profile_from_form(self._form)
         self._store.upsert_profile(profile)
         self._load_profiles_into_ui(select_name=profile.name)
         self._form.status.setText(f"{profile.name} kaydedildi.")
@@ -231,64 +203,6 @@ class ProviderSettingsDialog(QDialog):
         self._test_worker.finished.connect(lambda: f.test_btn.setEnabled(True))
         self._test_worker.start()
 
-    def _init_new_profile_fields(self) -> None:
-        f = self._form
-        f.endpoint_list.setCurrentItem(None)
-        f.profile_name.setText(_DEFAULT_NEW_PROFILE_NAME)
-        f.profile_name.setFocus()
-        f.profile_name.selectAll()
-        f.base_url.setText(_DEFAULT_NEW_BASE_URL)
-        f.model.clear()
-        f.api_key.clear()
-        f.timeout.clear()
-
-    def _apply_profile(self, profile: ProviderProfile) -> None:
-        # Profil bilgilerini alanlara aktarır / Applies profile values to inputs
-        f = self._form
-        f.profile_name.setText(profile.name)
-        idx_kind = f.kind_combo.findData(profile.kind)
-        if idx_kind >= 0:
-            f.kind_combo.setCurrentIndex(idx_kind)
-        f.base_url.setText(profile.base_url)
-        f.model.clear()
-        if profile.model:
-            f.model.addItem(profile.model)
-        f.api_key.setText(load_api_key_for(keyring_id(profile.kind, profile.base_url)))
-        f.timeout.setText(str(profile.timeout) if profile.timeout else "")
-        f.group.setCurrentText(profile.group)
-        self._on_kind_changed()
-
-    # --------------------------------------------------------------- kind UI
-    def _on_kind_changed(self) -> None:
-        # Sağlayıcı türü değiştiğinde ilgili alanları etkinleştirir/devre dışı bırakır / Handles provider type change
-        f = self._form
-        kind = f.kind_combo.currentData()
-        is_fake = kind == KIND_FAKE
-        is_deepl = kind == KIND_DEEPL
-        f.base_url.setEnabled(not is_fake)
-        f.model.setEnabled(not is_fake)
-        f.refresh_btn.setEnabled(not is_fake)
-        f.api_key.setEnabled(not is_fake)
-        f.timeout.setEnabled(not is_fake)
-
-        # DeepL takes neither of these. Leaving the boxes on screen with the previous profile's
-        # localhost URL in them is how a DeepL profile ends up carrying a base URL that then
-        # overrides the host the key belongs to.
-        for widget in (f.base_url, f.model, f.refresh_btn):
-            f.set_row_visible(widget, not is_deepl)
-        f.api_key.setPlaceholderText(
-            "zorunlu - DeepL anahtarı (ücretsiz anahtarlar ':fx' ile biter)"
-            if is_deepl
-            else "opsiyonel - LM Studio/Ollama gerektirmez"
-        )
-
-        if is_fake:
-            f.status.setText(_FAKE_PROVIDER_DESCRIPTION)
-        elif is_deepl:
-            f.status.setText(_DEEPL_PROVIDER_DESCRIPTION)
-        elif _KIND_FAKE_LABEL_FRAGMENT in f.status.text() or f.status.text() == _DEEPL_PROVIDER_DESCRIPTION:
-            f.status.clear()
-
     # ----------------------------------------------------------------- models
     def _fetch_models(self) -> None:
         # Model listesini sunucudan getirir / Fetches model list from provider
@@ -309,7 +223,7 @@ class ProviderSettingsDialog(QDialog):
         if models:
             self._form.status.setText(f"{len(models)} model bulundu (üreticilere göre gruplandı)")
         else:
-                    self._form.status.setText(UIStrings.STATUS_NO_MODELS)
+            self._form.status.setText(UIStrings.STATUS_NO_MODELS)
 
     def _on_models_failed(self, message: str) -> None:
         self._form.status.setText(
@@ -320,37 +234,9 @@ class ProviderSettingsDialog(QDialog):
     # ------------------------------------------------------------- save/result
     def _on_accept(self) -> None:
         # Ayarları kaydeder ve profili günceller / Saves settings and profile
-        profile = self._build_profile_from_form()
+        profile = profile_from_form(self._form)
         self._store.upsert_profile(profile)
         self.accept()
-
-    def _build_profile_from_form(self) -> ProviderProfile:
-        f = self._form
-        kind = str(f.kind_combo.currentData() or KIND_OPENAI)
-        prof_name = f.profile_name.text().strip() or "Özel Sağlayıcı"
-        if kind == KIND_FAKE:
-            return ProviderProfile(
-                name=prof_name,
-                kind=KIND_FAKE,
-                base_url="",
-                model=_FAKE_PROVIDER_MODEL,
-                timeout=None,
-                group=f.group.currentText().strip(),
-            )
-
-        # DeepL has no base URL or model of its own; storing whatever the boxes happened to
-        # hold would send the job to a localhost server that is not DeepL.
-        base_url = "" if kind == KIND_DEEPL else f.base_url.text().strip()
-        model = "" if kind == KIND_DEEPL else f.model.currentText().strip()
-        save_api_key_for(keyring_id(kind, base_url), f.api_key.text())
-        return ProviderProfile(
-            name=prof_name,
-            kind=kind,
-            base_url=base_url,
-            model=model,
-            timeout=parse_timeout(f.timeout.text()),
-            group=f.group.currentText().strip(),
-        )
 
     # Eski test/dış erişim uyumluluğu: form bileşenlerine kısa yol (önceden düz öznitelikti)
     _LEGACY_FORM_ATTRS = frozenset(
@@ -366,18 +252,4 @@ class ProviderSettingsDialog(QDialog):
 
     def result_config(self) -> ProviderConfig:
         # Sonuç ProviderConfig nesnesini döndürür / Returns resulting ProviderConfig
-        f = self._form
-        kind = str(f.kind_combo.currentData() or KIND_OPENAI)
-        if kind == KIND_FAKE:
-            return ProviderConfig(kind=KIND_FAKE, model=_FAKE_PROVIDER_MODEL)
-
-        # The kind was hardcoded here as well as in the save path, so a DeepL selection came
-        # back out of the dialog as an OpenAI config pointed at whatever URL was in the box.
-        base_url = "" if kind == KIND_DEEPL else f.base_url.text().strip()
-        return ProviderConfig(
-            kind=kind,
-            base_url=base_url,
-            model="" if kind == KIND_DEEPL else f.model.currentText().strip(),
-            api_key=load_api_key_for(keyring_id(kind, base_url)) or None,
-            timeout=parse_timeout(f.timeout.text()),
-        )
+        return config_from_form(self._form)
