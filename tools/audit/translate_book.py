@@ -265,7 +265,7 @@ def main() -> int:
         default=None,
         help=(
             "SQLite çeviri belleği. Verilmezse uygulamanın kendi belleği kullanılır "
-            "(%APPDATA%\\LayoutKeep\\memory.sqlite) — daha önce çevrilmiş segmentler modele hiç "
+            "(%%APPDATA%%\\LayoutKeep\\memory.sqlite) — daha önce çevrilmiş segmentler modele hiç "
             "gitmez. 'none' ile kapatılır."
         ),
     )
