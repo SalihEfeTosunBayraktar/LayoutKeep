@@ -94,7 +94,9 @@ class TestBatchedFetch:
     """
 
     @staticmethod
-    def _fake_measure(text, style, bbox, scale_low, rotation=0.0):
+    def _fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
+        # `markup` is what the seam passes for a drawn translation (`measure_fit`'s signature);
+        # this stands in for `insert_htmlbox`, which renders it either way.
         return (len(text) <= 3), 1.0
 
     def _run(self, monkeypatch, *, batched: bool):
@@ -168,7 +170,7 @@ class TestFitPdfPass:
     def test_translated_segment_goes_through_engine(self, monkeypatch):
         seen_measure: list[str] = []
 
-        def fake_measure(text, style, bbox, scale_low, rotation=0.0):
+        def fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
             seen_measure.append(text)
             # Long text overflows unless shrunk; the engine then shrinks.
             return (len(text) <= 3), 0.5
@@ -191,7 +193,7 @@ class TestFitPdfPass:
         assert result is not None
 
     def test_on_fitted_receives_fit_verdict_fields(self, monkeypatch):
-        def fake_measure(text, style, bbox, scale_low, rotation=0.0):
+        def fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
             return (len(text) <= 15), 1.0
 
         monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", fake_measure)

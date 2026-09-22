@@ -581,7 +581,13 @@ def _fill_color(block: Block) -> tuple[float, float, float]:
 
 
 def measure_fit(
-    text: str, style: Style, bbox: BBox, *, scale_low: float = 0.85, rotation: float = 0.0
+    text: str,
+    style: Style,
+    bbox: BBox,
+    *,
+    scale_low: float = 0.85,
+    rotation: float = 0.0,
+    markup: bool = False,
 ) -> tuple[bool, float]:
     """Check whether `text` rendered in `style` fits `bbox`. The seam `fitting/` calls through -
     it never imports pymupdf itself.
@@ -589,6 +595,13 @@ def measure_fit(
     Returns `(fits, scale)`. `fits` is False when even shrinking down to `scale_low` is not
     enough (mirrors `insert_htmlbox`'s `spare_height == -1`). Runs against a private scratch
     document, so it never touches the document being translated.
+
+    `markup=True` says `text` is already html (`span_markup`, one fragment per run) and must be laid
+    out as it stands instead of being escaped - inside the same `<p>` wrapper the writer builds in
+    `write_pdf`. The wrapper is not decoration: drop it and the renderer never applies the
+    `p { font-size: ... }` rule, lays the text out at its own default size and the same box reports
+    "does not fit" (measured on NIST JR img0#44: 8.95pt in its own 13.2pt box fits at 0.88 with the
+    wrapper, does not fit at all without it).
 
     `rotation` is `Block.rotation` in degrees (core/docir.py); `fit.fit_segment` always passes it
     as a keyword (see `fitting/measure.py`'s `MeasureFn` contract), so this must accept it even
@@ -611,7 +624,7 @@ def measure_fit(
         scratch = pymupdf.open()
         try:
             page = scratch.new_page(width=bbox.x1 + 50, height=bbox.y1 + 50)
-            html = f"<p>{_escape_text(text)}</p>"
+            html = f"<p>{text if markup else _escape_text(text)}</p>"
             family, archive = _measure_horizontal_source(style)
             css = (
                 f"p {{ font-family: {family}; font-size: {style.size:.2f}pt; "
@@ -909,28 +922,26 @@ def _generic_family(font_name: str, serif: bool | None = None) -> str:
     return "sans-serif"
 
 
-def _span_html(span: Span, dominant: Style, resolver: _FontResolver) -> str:
-    text = _escape_text(span.text)
-    if not text:
+def span_markup(text: str, style: Style, dominant: Style) -> str:
+    """One run's inline html: the escaping and the weight/size wrappers it is drawn inside.
+
+    Split out of `_span_html` so the fitting pass can measure a translation as the page will show
+    it. The family and colour wrappers `_span_html` adds on top need the writer's resolved fonts,
+    which a measurement has no business resolving; what decides how much room a run takes - `<b>`,
+    `<i>` and a run set smaller than its block - is here, in one place, so measure and draw cannot
+    drift apart on it.
+    """
+    escaped = _escape_text(text)
+    if not escaped:
         return ""
-    style = span.style
-    family = resolver.css_family_for(style)
-    dominant_family = resolver.css_family_for(dominant)
-    # `<i>`/`<b>` are always applied from the span's own flags, same as before this module
-    # resolved real fonts at all: MuPDF synthesizes slant/weight on a face that does not have a
-    # dedicated italic/bold instance, which today's font matcher does not always pick even when
-    # one is bundled (a separate, already-known `fontmatch.find_family` limitation - see the PDF
-    # writer agent's report). Layering the resolved family underneath, when it differs from the
-    # dominant style's, still gets a genuinely different (if not always perfectly matched) face
-    # in wherever the matcher did resolve one.
+    # `<i>`/`<b>` are always applied from the span's own flags: MuPDF synthesizes slant/weight on a
+    # face that does not have a dedicated italic/bold instance, which today's font matcher does not
+    # always pick even when one is bundled (a separate, already-known `fontmatch.find_family`
+    # limitation - see the PDF writer agent's report).
     if style.italic:
-        text = f"<i>{text}</i>"
+        escaped = f"<i>{escaped}</i>"
     if style.bold:
-        text = f"<b>{text}</b>"
-    if family != dominant_family:
-        text = f'<span style="font-family:{family}">{text}</span>'
-    if style.color != dominant.color:
-        text = f'<span style="color:{style.color}">{text}</span>'
+        escaped = f"<b>{escaped}</b>"
     # The block's CSS carries one `font-size`, so a run set smaller than its block - a superscript
     # marker, a footnote reference, a formula fragment - is drawn at the block's size. The per-box
     # instrument (`tools/audit/type_map.py`) counts 6-15 boxes per document where that happens.
@@ -941,7 +952,23 @@ def _span_html(span: Span, dominant: Style, resolver: _FontResolver) -> str:
         and dominant.size
         and abs(style.size - dominant.size) > 0.05
     ):
-        text = f'<span style="font-size:{style.size:.2f}pt">{text}</span>'
+        escaped = f'<span style="font-size:{style.size:.2f}pt">{escaped}</span>'
+    return escaped
+
+
+def _span_html(span: Span, dominant: Style, resolver: _FontResolver) -> str:
+    text = span_markup(span.text, span.style, dominant)
+    if not text:
+        return ""
+    style = span.style
+    family = resolver.css_family_for(style)
+    dominant_family = resolver.css_family_for(dominant)
+    # Family and colour stay here: they come from the fonts the writer resolved, which are a
+    # property of the page being written, not of the run.
+    if family != dominant_family:
+        text = f'<span style="font-family:{family}">{text}</span>'
+    if style.color != dominant.color:
+        text = f'<span style="color:{style.color}">{text}</span>'
     return text
 
 

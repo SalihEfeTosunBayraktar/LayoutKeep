@@ -620,10 +620,39 @@ def _replace_block_text(block: Block, text: str) -> bool:
         # markers, so any that come back are the model's invention - and that was exactly
         # the branch that passed them through. They reached a real page as readable text:
         # "<0>Carpimlarin toplami</0> formu ve <1>Toplamlarin carpimi</1> formu."
-        clean = _MARKER_RE.sub("", text)
+        clean = strip_markers(text)
         spans = [Span(text=clean, bbox=block.bbox, style=dominant, direction=block.direction)]
     block.lines = [Line(spans=spans, bbox=block.bbox)]
     return faithful
+
+
+def strip_markers(text: str) -> str:
+    """`text` without the inline marker syntax, which is markup the writer consumes, not glyphs."""
+    return _MARKER_RE.sub("", text)
+
+
+def drawn_runs(block: Block, text: str) -> list[Span]:
+    """The runs the page will carry for `text` in `block`.
+
+    Same split as `_replace_block_text` - the markers become the styled runs they stand for, and a
+    marker the block has no style for is stripped - so anything that has to reason about the text
+    as *drawn* (its length, its line breaks, its runs) reads this rather than the marked string.
+    Why it exists: the fitting pass measured `Segment.target` with its markers in place, i.e. 8
+    characters of syntax per marked run counted as text at the block's own size, and the writer
+    never draws one. Measured on the 17-source bench: 123 of 226 flagged blocks carried markers.
+    """
+    dominant = block.dominant_style()
+    styles = _inline_styles(block)
+    spans = (
+        _spans_from_marked_text(text, dominant, styles, block.bbox, block.direction)
+        if styles
+        else None
+    )
+    if spans is None:
+        # Exactly `_replace_block_text`'s fallback: unusable or invented markers are markup the
+        # page will not show, so the plain text is what gets drawn.
+        spans = [Span(text=strip_markers(text), bbox=block.bbox, style=dominant, direction=block.direction)]
+    return spans
 
 
 # --------------------------------------------------------------------------------------

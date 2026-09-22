@@ -15,10 +15,10 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Callable
 
-from layoutkeep.core.docir import BBox, Block, Document, Segment
+from layoutkeep.core.docir import BBox, Block, Document, Segment, drawn_runs, strip_markers
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
 from layoutkeep.fitting.growth import free_below, may_grow
-from layoutkeep.fitting.measure import TextMeasurer
+from layoutkeep.fitting.measure import MeasureFn, TextMeasurer
 from layoutkeep.fitting.room import room_below
 
 #: (segment, max_len) -> replacement translation, wired to the real provider by the caller.
@@ -37,6 +37,45 @@ _ROTATION_EPS = 0.01
 #: takes it down to keep clear of the next block's lines, and no text fits in six points. It is
 #: the floor of the shortening rule above, named here so the flag's reason and the box agree.
 _MIN_BOX_HEIGHT_PT = 6.0
+
+
+def measure_as_drawn(block: Block) -> MeasureFn:
+    """The `MeasureFn` for one block: its translation measured as the *page* will carry it.
+
+    The provider's reply is handed back with the inline markers it was given (`log(<0>N</0>)`), and
+    those are markup: `_replace_block_text` turns them into the styled runs they stand for and the
+    writer draws those spans, never a marker. Measuring the marked string counted 8 characters of
+    syntax per run as glyphs, at the block's own size - up to 133 characters on one paragraph of the
+    17-source bench, where 123 of the 226 flagged blocks carried markers - so the fit shrank or
+    flagged text that fits its box. Measured over the recorded runs: 215 blocks still do not fit
+    with the markers counted, 196 when the text is measured as drawn.
+
+    `drawn_runs` is the writer's own split of the marked text into runs and `span_markup` its own
+    inline html, so the measurement cannot drift from the drawing - which matters more than it
+    sounds: a block measured in one box, or on one string, and drawn from another is shrunk twice.
+
+    A rotated block keeps the plain text: it is drawn by the `TextWriter` path, which takes the
+    runs straight and has no html to give a renderer. The marker syntax is stripped there too -
+    `TextWriter` measures a line's length, and syntax is not a glyph either.
+    """
+
+    def measure(text, style, bbox, *, scale_low, rotation=0.0):
+        # Imported here, not at module level: `fitting/` must stay PyMuPDF-free, and the writer is
+        # where the real measurement lives (docs/CONTRACT.md D1/D2). Looked up per call on purpose -
+        # the tests replace `pdf_writer.measure_fit` to watch what the pass asks.
+        from layoutkeep.writers.pdf_writer import measure_fit, span_markup
+
+        if abs(rotation) > _ROTATION_EPS:
+            return measure_fit(
+                strip_markers(text), style, bbox, scale_low=scale_low, rotation=rotation
+            )
+        dominant = block.dominant_style()
+        markup = "".join(
+            span_markup(span.text, span.style, dominant) for span in drawn_runs(block, text)
+        )
+        return measure_fit(markup, style, bbox, scale_low=scale_low, rotation=rotation, markup=True)
+
+    return measure
 
 
 def fit_pdf_pass(
@@ -63,7 +102,7 @@ def fit_pdf_pass(
     call. Without it every overflowing box is its own request, which on a real book is the slowest
     part of a run.
     """
-    from layoutkeep.writers.pdf_writer import measure_fit, same_text
+    from layoutkeep.writers.pdf_writer import same_text
 
     blocks = {b.id: b for _, b in doc.iter_blocks()}
     # Which blocks came from a page with no text layer. Their boxes are OCR's idea of where the
@@ -144,11 +183,14 @@ def fit_pdf_pass(
                 )
                 if missing > 0 or grant > 0 else block.bbox
             )
+            # Measured as the *page* will carry it, not as the provider's reply stands (see
+            # `measure_as_drawn`): the markers are markup, and counting them as glyphs flagged text
+            # that fits its box.
             result = fit_segment(
                 seg,
                 style,
                 measured_box,
-                measure_fit,
+                measure_as_drawn(block),
                 mode=mode,
                 retranslate=retranslate_fn,
                 # Without a real budget the engine's under-fill direction has no honest
@@ -201,7 +243,12 @@ def fit_pdf_pass(
 
         expansions = {
             r_seg.block_id: compute_required_expansion(
-                r.text, blocks[r_seg.block_id].dominant_style(), blocks[r_seg.block_id].bbox, measure_fit
+                r.text,
+                blocks[r_seg.block_id].dominant_style(),
+                blocks[r_seg.block_id].bbox,
+                # The same measurement the ladder used: how much room the drawn translation needs,
+                # not how much the provider's syntax would need.
+                measure_as_drawn(blocks[r_seg.block_id]),
             )
             for r_seg, r in zip(segments, results, strict=False)
             if r.reflow and r_seg.block_id in blocks
