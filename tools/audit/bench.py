@@ -17,6 +17,10 @@ Three rules keep the number honest:
     python tools/audit/bench.py                      # the whole suite, ~1-2 h with a local model
     python tools/audit/bench.py --only arxiv_19145   # one source
     python tools/audit/bench.py --table              # rebuild the table from finished runs
+    python tools/audit/bench.py --label glossary --set translation.auto_glossary=true   # an arm
+
+Settings are pinned per arm: the run reads `<bench dir>/tunables.json` (the user's own overrides plus
+every `--set`) through LAYOUTKEEP_TUNABLES, never the live settings file the application edits.
 """
 
 from __future__ import annotations
@@ -97,7 +101,7 @@ def _run_one(name: str, file: str, src_lang: str, dst_lang: str, run_dir: Path, 
          "--out", str(work / f"{name}.{dst_lang}.pdf"), "--work", str(work / "run"),
          "--from", src_lang, "--to", dst_lang, "--model", args.model, "--workers", str(pages),
          "--pages-per-chunk", "1", "--layout-detector", "--memory", "none", "--force"],
-        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", env=args.env,
     )
     (work / "translate.log").write_text(translate.stdout + translate.stderr, encoding="utf-8")
     seconds = round(time.time() - started)
@@ -185,12 +189,34 @@ def write_table(run_dir: Path) -> Path:
     return table
 
 
+def _pin_settings(run_dir: Path, pairs: list[str]) -> dict:
+    """Write this arm's settings file and return the environment that points the runs at it."""
+    import os
+
+    from layoutkeep.core import tunables
+
+    settings = {}
+    live = tunables.storage_path()
+    if live.exists():
+        settings = json.loads(live.read_text(encoding="utf-8"))
+    for pair in pairs:
+        key, _, value = pair.partition("=")
+        spec = tunables.definition(key)  # a typo fails here, before an hour of translating
+        settings[key] = value.lower() in ("1", "true", "yes") if spec.kind == "bool" else value
+    pinned = run_dir / "tunables.json"
+    pinned.write_text(json.dumps(settings, indent=1), encoding="utf-8")
+    return {**os.environ, "LAYOUTKEEP_TUNABLES": str(pinned)}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--only", nargs="*", default=None, help="run only these source names")
     parser.add_argument("--model", default="google/gemma-4-e4b")
     parser.add_argument("--parallel", type=int, default=3, help="sources translated at the same time")
     parser.add_argument("--table", action="store_true", help="only rebuild the table of HEAD's run")
+    parser.add_argument("--label", default="", help="arm name, appended to the bench directory")
+    parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                        help="pin a setting for this arm (repeatable)")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="measure an uncommitted tree (the table is then marked -dirty)")
     args = parser.parse_args()
@@ -199,8 +225,10 @@ def main() -> int:
     if dirty and not (args.allow_dirty or args.table):
         print("the working tree has uncommitted changes; commit first or pass --allow-dirty")
         return 2
-    run_dir = BENCH / (_git("rev-parse", "--short", "HEAD") + ("-dirty" if dirty else ""))
+    name = _git("rev-parse", "--short", "HEAD") + ("-dirty" if dirty else "")
+    run_dir = BENCH / (f"{name}-{args.label}" if args.label else name)
     run_dir.mkdir(parents=True, exist_ok=True)
+    args.env = _pin_settings(run_dir, args.set)
 
     if not args.table:
         from concurrent.futures import ThreadPoolExecutor, as_completed
