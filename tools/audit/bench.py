@@ -59,6 +59,11 @@ SUITE: list[tuple[str, str, str, str]] = [
     ("sbb_plan_12_en", "sbb_development_plan_12_en.pdf", "en", "tr"),
     ("tr_tck_5237", "tr/tck_5237.pdf", "tr", "en"),
     ("tr_kalkinma_12", "tr/kalkinma_plani_12.pdf", "tr", "en"),
+    # Two sources said nothing about the reverse direction: 72 blocks against 1051 the other way.
+    ("tr_kalkinma_11", "tr/kalkinma_plani_11.pdf", "tr", "en"),
+    ("tr_cmk_5271", "tr/cmk_5271.pdf", "tr", "en"),
+    ("tr_tmk_4721", "tr/tmk_4721.pdf", "tr", "en"),
+    ("tr_shk_2828", "tr/shk_2828.pdf", "tr", "en"),
 ]
 
 LOSS_KEYS = [f"L{n}" for n in range(1, 11)]
