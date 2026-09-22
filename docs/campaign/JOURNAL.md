@@ -2575,6 +2575,26 @@ yani 429 hatası kotanın gerçeği, arıza değil. `/usage` artık model çağ�
 yapılır. agy'nin bıraktığı izler (`.antigravitycli/`, `.gemini/`, `agy*.log`) `.gitignore`'da; ajan
 proje içinde çalışır, izleri repoya girmez.
 
+## 2026-09-22 öğleden sonra · DeepL ile ölçüm (kullanıcı isteği)
+
+- **Düzenek**: `lk_prefit_ab.py` artık `LK_ARM_KIND=deepl` ile çalışıyor ✓ (anahtar Windows kimlik
+  kasasından ✓, GPU hiç kullanılmıyor ✓). DeepL profili `base_url=""` istiyor ✗ — varsayılan
+  bırakılınca LM Studio adresine bağlanmaya çalıştı ✗.
+- **DeepL hatası bulundu ve düzeltildi (D-013)**: arXiv makalesinde bir segmentin kaynağı tek başına
+  `\x08`'di ✗; XML ayrıştırıcısı yüzünden **tek bayt 40 segmentlik isteği** düşürüyordu ✗✗.
+  `562d25d` + 2 test ✓.
+- **Ölçüm (3 sayfa, arXiv 2609.19145)**:
+  - **a** (tek tek istek, eski davranış): toplam **134,9 sn** — fit **81 sn (%60)** ✗, translate 4,0 sn,
+    yazma 31,3 sn, kurtarma 3,9 sn, okuma 13,3 sn, **hata yok** ✓.
+  - **b** (toplu istek): fit **6,5 sn (%12)** ✓✓ → **−%92** ✓ (yerel modelde aynı A/B −%43'tü).
+  - b'nin tam sonucu kayboldu ✗ (durdurulan zincir kolun klasörünü temizlemişti ✗); fit/yazma/kurtarma
+    sayıları koşu çıktısından alındı ✓.
+- **Kota maliyeti** ✗✗: 3 sayfa ≈ **35k karakter** (17.987 kaynak + **17.157 bağlam** ✗) + tekrar
+  istekler → tek kol ~40-50k ✗. Kullanıcının kotası 890k → **982k**'ya çıktı ✗ (17.691 kaldı ✗);
+  koşu durduruldu ✓. **Karar: ağır ölçümler yerel modelle** ✓ (ücretsiz ✓); DeepL yalnız tek sayfalık
+  son kontrol için ✓.
+- **c/d/e kolları koşmadı** ✗ (kota ✗) — yerel modelle tamamlanacak ✓.
+
 ## 2026-09-22 gündüz (hafif iş · dışarıda)
 
 - **04:05 koşusu neden üretmedi**: zincir çalıştı ✓ ama beş kol **0,3 sn**'de düştü ✗ — cron ortamı
