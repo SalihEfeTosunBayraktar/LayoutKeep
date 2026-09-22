@@ -27,7 +27,17 @@ _STOPWORDS = {
     "from", "but", "not", "no", "if", "then", "than", "so", "such", "which", "who", "whom",
     "ve", "bir", "ile", "için", "olarak", "bu", "şu", "da", "de", "ki", "mi", "veya", "ya",
     "der", "die", "das", "und", "oder", "für", "mit", "von", "zu", "ist", "sind",
+    # Measured on the bench's consistency pass: these framed "terms" that were grammar.
+    "each", "every", "other", "also", "only", "more", "most", "any", "all", "some", "per",
+    "shall", "will", "may", "must", "can", "should", "would", "has", "have", "had",
+    "her", "tüm", "bütün", "daha", "çok", "olan", "ise", "ancak", "sonra", "önce",
+    "jede", "jeder", "auch", "nur", "wird", "werden", "kann",
 }
+
+#: Words that may not appear anywhere in a candidate. A Turkish postposition makes the phrase around
+#: it a clause, not a name: the Turkish Penal Code offered "yıla kadar hapis" and "kadar" itself, and
+#: a glossary pinning "kadar -> up to" forces one rendering onto every sentence that uses it.
+_NEVER_INSIDE = {"kadar", "gibi", "göre", "ile", "için", "şekilde", "halinde", "hâlinde", "üzere", "dolayı"}
 
 _WORD = re.compile(r"[^\W\d_][\w'-]*", re.UNICODE)
 
@@ -61,11 +71,12 @@ def _phrases(text: str, max_words: int) -> list[str]:
                 break
             if window[0] in _STOPWORDS or window[-1] in _STOPWORDS:
                 continue
-            if any(len(word) < 3 for word in window):
+            if any(len(word) < 3 for word in window) or _NEVER_INSIDE.intersection(window):
                 continue
             found.append(" ".join(words[start : start + length]))
         # Single words too: a long word that recurs is a term in its own right.
-        if len(words[start]) >= _MIN_CHARS and lowered[start] not in _STOPWORDS:
+        if (len(words[start]) >= _MIN_CHARS and lowered[start] not in _STOPWORDS
+                and lowered[start] not in _NEVER_INSIDE):
             found.append(words[start])
     return found
 

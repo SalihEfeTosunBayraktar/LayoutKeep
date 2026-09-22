@@ -146,3 +146,26 @@ def test_the_editor_does_not_offer_what_is_already_there(qtbot, tmp_path) -> Non
     dialog._suggest()
 
     assert dialog.terms().get("random variable") == "rastgele değişken", "the existing row was overwritten"
+
+
+def test_a_phrase_built_around_a_postposition_is_not_a_term() -> None:
+    """Turkish Penal Code: 'yıla kadar hapis' and 'kadar' were offered - grammar, not terms, and a
+    glossary that pins 'kadar -> up to' forces one rendering onto every sentence that uses it."""
+    text = " ".join(
+        ["iki yıla kadar hapis cezası verilir.", "altı aya kadar hapis cezası verilir.",
+         "bu şekilde davranan kişi cezalandırılır.", "bu şekilde davranan kişi cezalandırılır."] * 2
+    )
+
+    found = [item.phrase.casefold() for item in candidates([text], minimum_count=2)]
+
+    assert not any(word in phrase.split() for phrase in found for word in ("kadar", "şekilde"))
+    assert "hapis cezası" in found
+
+
+def test_common_english_function_words_do_not_frame_a_term() -> None:
+    text = "each person shall file each return. each person shall file each return."
+
+    found = [item.phrase.casefold() for item in candidates([text], minimum_count=2)]
+
+    assert not any(phrase.split()[0] in ("each", "shall") or phrase.split()[-1] in ("each", "shall")
+                   for phrase in found)
