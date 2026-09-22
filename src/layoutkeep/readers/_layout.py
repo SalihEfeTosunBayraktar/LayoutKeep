@@ -69,8 +69,13 @@ def _is_justified(lefts: list[float], rights: list[float], tolerance: float) -> 
     get shorter towards the end - and the two are only separable by where the last line starts: a
     justified last line begins at the body's left edge, a centred one is still centred. Without
     that, the NASA report cover's title was recorded "justify" and moved off centre.
+
+    At least two full lines are required. With two lines the "body" is one line, whose right edge
+    is straight by definition, so any flush-left pair whose first line is the longer looks
+    justified - PLOS ONE's two-line title was stretched across its box with wide word gaps. The
+    costs are not equal: a justified pair drawn flush-left is barely visible, the reverse is.
     """
-    if len(rights) < 2:
+    if len(rights) < 3:
         return False
     body = rights[:-1]
     if spread(body) > tolerance or rights[-1] >= max(body) - tolerance:

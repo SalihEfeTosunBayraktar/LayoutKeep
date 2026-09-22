@@ -94,3 +94,16 @@ def test_centred_lines_of_different_widths_are_centred() -> None:
 def test_right_aligned_lines_are_right() -> None:
     lines = [BBox(150, 100, 278, 110), BBox(200, 112, 278, 122), BBox(120, 124, 278, 134)]
     assert infer_alignment(BBox(120, 100, 278, 134), _NOVEL, lines) == "right"
+
+
+def test_a_two_line_flush_left_title_is_not_justified() -> None:
+    """PLOS ONE's title: 'Machine learning for modeling animal' over 'movement'. Its first line is
+    the longest, so the right edge of the 'body' (one line) is trivially straight and the last line
+    is short and starts at the left - every sign of justification, from a block that is not.
+    Recorded as justify, the translation was stretched across the box with wide word gaps.
+
+    Two lines cannot tell flush-left from justified; the costs are not equal (a justified pair
+    drawn flush-left is barely visible, a flush-left title drawn justified is), so it stays left.
+    """
+    lines = [BBox(200, 109, 509, 128), BBox(200, 131, 290, 150)]
+    assert infer_alignment(BBox(200, 109, 509, 150), 612.0, lines) == "left"
