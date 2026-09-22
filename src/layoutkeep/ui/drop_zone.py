@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -71,7 +72,6 @@ class DropZoneWidget(QFrame):
         self._browse_btn.setIcon(
             get_svg_icon("folder", color=ThemeManager.current_palette().accent_text, size=16)
         )
-        self._browse_btn.setFixedHeight(32)
         self._browse_btn.clicked.connect(self._browse)
 
         self._info_container = self._build_info_container()
@@ -91,13 +91,24 @@ class DropZoneWidget(QFrame):
         texts.addWidget(self._prompt_label)
         texts.addWidget(self._hint_label)
 
+        # The two lines live in their own widget. A word-wrapped QLabel caps the height a layout
+        # will take from it at the text's own height, and the row was sizing itself to those 20px
+        # while the button hung out of it; a plain container has no such cap.
+        text_holder = QWidget()
+        text_holder.setLayout(texts)
+        text_holder.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 6, 16, 6)
         layout.setSpacing(12)
-        layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
-        layout.addLayout(texts, 1)
-        layout.addWidget(self._browse_btn, alignment=Qt.AlignmentFlag.AlignVCenter)
-        layout.addWidget(self._info_container, alignment=Qt.AlignmentFlag.AlignVCenter)
+        # No per-item alignment: Qt leaves an aligned item out of the row's height calculation, so
+        # the layout sized itself to the text lines alone (32px), centred at y=18, and the button
+        # hung out of it - which is exactly the misalignment the reader saw. A plain row centres
+        # everything on its own.
+        layout.addWidget(self._icon_label)
+        layout.addWidget(text_holder, 1)
+        layout.addWidget(self._browse_btn)
+        layout.addWidget(self._info_container)
         # One row, so the cap can be far lower than the stacked version needed.
         self.setMaximumHeight(68)
 
