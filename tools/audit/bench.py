@@ -10,7 +10,9 @@ Three rules keep the number honest:
 - the translation memory is off (`--memory none`), or a re-run would read yesterday's translations
   back from the cache and measure nothing of today's code;
 - the working tree must be clean, so the hash in the table is the code that ran;
-- each source runs alone, with the server's whole parallelism, one after the other.
+- the model server is kept full: every page is its own chunk and several sources run at once, so
+  about `--parallel` x 3 chunks are in flight (the first version ran one three-page chunk per source,
+  one source after the other, and left six of the server's eight slots idle).
 
     python tools/audit/bench.py                      # the whole suite, ~1-2 h with a local model
     python tools/audit/bench.py --only arxiv_19145   # one source
@@ -89,8 +91,8 @@ def _run_one(name: str, file: str, src_lang: str, dst_lang: str, run_dir: Path, 
     translate = subprocess.run(
         [PY, str(ROOT / "tools/audit/translate_book.py"), str(source),
          "--out", str(work / f"{name}.{dst_lang}.pdf"), "--work", str(work / "run"),
-         "--from", src_lang, "--to", dst_lang, "--model", args.model, "--workers", str(args.workers),
-         "--pages-per-chunk", str(pages), "--layout-detector", "--memory", "none", "--force"],
+         "--from", src_lang, "--to", dst_lang, "--model", args.model, "--workers", str(pages),
+         "--pages-per-chunk", "1", "--layout-detector", "--memory", "none", "--force"],
         cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     (work / "translate.log").write_text(translate.stdout + translate.stderr, encoding="utf-8")
@@ -163,7 +165,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--only", nargs="*", default=None, help="run only these source names")
     parser.add_argument("--model", default="google/gemma-4-e4b")
-    parser.add_argument("--workers", type=int, default=7)
+    parser.add_argument("--parallel", type=int, default=3, help="sources translated at the same time")
     parser.add_argument("--table", action="store_true", help="only rebuild the table of HEAD's run")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="measure an uncommitted tree (the table is then marked -dirty)")
@@ -177,15 +179,20 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
 
     if not args.table:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         wanted = [item for item in SUITE if args.only is None or item[0] in args.only]
-        for index, (name, file, src_lang, dst_lang) in enumerate(wanted, 1):
-            print(f"[{time.strftime('%H:%M:%S')}] {index}/{len(wanted)} {name}", flush=True)
-            result = _run_one(name, file, src_lang, dst_lang, run_dir, args)
-            row = _row(run_dir / name)
-            losses = {k: v for k, v in (row["counts"] if row else {}).items() if k.startswith("L") and v}
-            print(f"    {result['seconds']} s  exit {result['translate_exit']}  "
-                  f"{losses or 'lossless'}", flush=True)
-            write_table(run_dir)
+        print(f"[{time.strftime('%H:%M:%S')}] {len(wanted)} sources, {args.parallel} at a time", flush=True)
+        with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+            futures = {pool.submit(_run_one, *item, run_dir, args): item[0] for item in wanted}
+            for done, future in enumerate(as_completed(futures), 1):
+                name = futures[future]
+                result = future.result()
+                row = _row(run_dir / name)
+                losses = {k: v for k, v in (row["counts"] if row else {}).items() if k.startswith("L") and v}
+                print(f"[{time.strftime('%H:%M:%S')}] {done}/{len(wanted)} {name}  {result['seconds']} s  "
+                      f"exit {result['translate_exit']}  {losses or 'lossless'}", flush=True)
+                write_table(run_dir)
     print(write_table(run_dir))
     return 0
 
