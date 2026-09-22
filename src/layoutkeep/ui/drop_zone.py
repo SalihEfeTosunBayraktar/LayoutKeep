@@ -76,20 +76,30 @@ class DropZoneWidget(QFrame):
 
         self._info_container = self._build_info_container()
 
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Tighter than it was: this is a target to drop a file on, and it was taking half the
-        # window to say so before any file had been chosen.
+        # Texts on the left, the button on the right: one row instead of a stack of four centred
+        # rows. The reader asked for this, and it is also what makes the zone short enough to sit
+        # above the settings card without pushing it off screen.
+        self._prompt_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self._hint_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        texts = QVBoxLayout()
+        texts.setContentsMargins(0, 0, 0, 0)
+        texts.setSpacing(1)
+        texts.addWidget(self._prompt_label)
+        texts.addWidget(self._hint_label)
+
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 6, 16, 6)
-        layout.setSpacing(4)
-        # It is a target, not a panel: capped so the settings card below it is on screen
-        # without scrolling at the size the window opens at.
-        self.setMaximumHeight(112)
-        layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._prompt_label)
-        layout.addWidget(self._hint_label)
-        layout.addWidget(self._browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._info_container)
+        layout.setSpacing(12)
+        layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
+        layout.addLayout(texts, 1)
+        layout.addWidget(self._browse_btn, alignment=Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(self._info_container, alignment=Qt.AlignmentFlag.AlignVCenter)
+        # One row, so the cap can be far lower than the stacked version needed.
+        self.setMaximumHeight(72)
 
     def _set_icon(self) -> None:
         # Yükleme ikonunu aktif temaya göre boyar / Paints the upload icon for the theme
