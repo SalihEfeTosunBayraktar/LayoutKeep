@@ -205,6 +205,35 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
+## D-014 · Paketlenmiş exe çeviri başlarken kapanıyor: ağır C eklentileri işçi iş parçacığında geç yükleniyordu (2026-09-22)
+
+**Soru:** Kullanıcı: "DeepL ile ilgili exede sorun yaşıyorum, çeviri başlayınca direkt exe kapanıyor."
+
+**Ölçüm:** Windows olay günlüğü: `LayoutKeep.exe`, hatalı modül **QtWidgets.pyd**, `0xc0000005`
+(erişim ihlali). Uygulamanın kendi **fault log**'u iki ayrı iz verdi:
+1. 11:44 — işçi iş parçacığı `writers/converter.py → ui/worker.py:_read_document` içinde, ana iş
+   parçacığı `ui/progress.py:_on_tick` içinde → erişim ihlali ✗.
+2. 12:23 — **`Fatal Python error: Aborted`**: işçi iş parçacığı **numpy'ı içe aktarırken**
+   (`ocr/layout_detector.py:41` ← `readers/pdf_reader.py` ← `converter.py`), ana iş parçacığı
+   **çöp topluyordu** (ve pill'in `eventFilter`'ındaydı) ✗✗.
+
+**Kök neden:** numpy / OpenCV / onnxruntime / MuPDF metin makinesi **ilk kez işçi iş parçacığında**
+yükleniyordu (tembel import ✓). Paketlenmiş PyInstaller + shiboken ortamında bu yükleme, ana iş
+parçacığının zamanlayıcı/GC işiyle yarışıyor ve süreç düşüyor ✗.
+
+**Karar:** `app.main` artık `window.show()` sonrası, `app.exec()` **öncesinde**
+`_warm_heavy_imports()` çağırıyor ✓ — aynı modüller ana iş parçacığında yükleniyor. Hata olsa bile
+uygulama açılır ✓ (eksik okuyucu yalnız onu kullanan işte söylenir ✓).
+
+**Gerekçe:** İki çökme kaydının da ortak izi bu ✗; yarış tamamen ortadan kalkıyor ✓.
+
+**Yanlış giden:** İlk şüphe "DeepL'e özgü"ydü ✗ — değil ✗; sağlayıcıdan bağımsız ✗ (kullanıcı yalnız
+DeepL denerken görse de ✗). İkinci şüphe pill'in şeffaf/çerçevesiz ayarlarıydı ✗ — log, çökmenin
+pill'de değil **işçi iş parçacığındaki yükleme** olduğunu gösterdi ✓.
+
+**Kanıt:** `bd6df36` · `tests/test_ui_app_warmup.py` · `%APPDATA%\LayoutKeep\layoutkeep_fault.log`
+(11:44 ve 12:23 kayıtları) · olay günlüğü 11:45 `QtWidgets.pyd 0xc0000005`.
+
 ## D-013 · DeepL: tek bir kontrol karakteri 40 segmentlik isteği düşürüyor (2026-09-22)
 
 **Soru:** DeepL ile karşılaştırma denemesi yapılacaktı; ilk koşu "Tag handling parsing failed …
