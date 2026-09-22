@@ -2575,6 +2575,27 @@ yani 429 hatası kotanın gerçeği, arıza değil. `/usage` artık model çağ�
 yapılır. agy'nin bıraktığı izler (`.antigravitycli/`, `.gemini/`, `agy*.log`) `.gitignore`'da; ajan
 proje içinde çalışır, izleri repoya girmez.
 
+## 2026-09-22 gündüz (hafif iş · dışarıda)
+
+- **04:05 koşusu neden üretmedi**: zincir çalıştı ✓ ama beş kol **0,3 sn**'de düştü ✗ — cron ortamı
+  çocuk sürece Hermes'in `PYTHONPATH`'ini geçiriyor, venv (3.13) oradan 3.11 numpy'ını yüklüyor ✗
+  (`_multiarray_umath.cp311-win_amd64.pyd`). Özet fonksiyonu da `phases` alanını sözlük varsayıyordu ✗
+  (çöken kol `[]` yazıyor). İkisi de düzeltildi ✓ + zincire **ön kontrol** eklendi ✓
+  (`preflight()`: venv sağlığı + betik varlığı; başarısızsa hiçbir kol başlamaz ✓).
+- **Cron işleri düşme sebebi**: `config.yaml`'da `model.default` **ve** `cron.model` bayat dizeyi
+  taşıyordu (`opencode-go/glm-5.3-flash` ✗ — TokenRouter listesinde böyle bir önek yok). TokenRouter
+  bakiyesi de bitmiş ✗ (tüm modellerde "gift balance $0"). Çalışan yol bulundu ✓: `llmtr` +
+  `qwen/qwen3.8-27b-free` (ücretsiz, canlı test "OK" ✓; eskisi 19 Eylül'de emekliye ayrılmış ✗).
+  `cron.model` + `providers.llmtr.model` buna çevrildi ✓.
+- **Sığdırma analizi (kod okuma)**: maliyet = **tur × sığmayan kutu** ✓. İki kol kodda hazır:
+  toplu istek (`fetch_many`, ilk tur hepsini tek istekte sorar ✓, sonraki turlar tekil ✓) ve
+  ön bütçe (`prefit_budget` ✓). İkisinin katkısı **ölçüm bekliyor** ✗ — gece koşusu yeniden
+  zamanlanmalı ✓ (04:00-06:00 penceresi ✓).
+- **Duraklatılmış gece nöbeti** (`dcadaafb6130`) kendi modelini taşıyor ✗ (`glm-5.3-flash`/`opencode-go`)
+  — devam ettirilirse önce modeli düzeltilmeli veya iş yeniden kurulmalı ✓.
+- **Exe**: durum hazır ✓ (ağaç temiz ✓, dünkü testler yeşil ✓); derleme ağır olduğu için (pil ✗)
+  kullanıcı "başla" dediğinde koşulacak ✓ — öncesinde tam test paketi ✓.
+
 ## 2026-09-22 gece (00:00-04:00 hafif iş)
 
 - **Kapak düzeltmesi (D-012)**: renkli panelde Otsu "koyu" kütleyi mürekkep sanıp zemini siliyordu;
