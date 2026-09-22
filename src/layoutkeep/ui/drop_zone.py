@@ -91,12 +91,16 @@ class DropZoneWidget(QFrame):
         texts.addWidget(self._prompt_label)
         texts.addWidget(self._hint_label)
 
-        # The two lines live in their own widget. A word-wrapped QLabel caps the height a layout
-        # will take from it at the text's own height, and the row was sizing itself to those 20px
-        # while the button hung out of it; a plain container has no such cap.
+        # The two lines live in their own widget, and they do NOT wrap. A word-wrapped QLabel caps
+        # the height a layout will take from it at the text's own height, so the row sized itself
+        # to 20px, sat centred in the 68px box and left the button hanging out of it - the
+        # misalignment the reader kept seeing. Without wrapping the labels report a normal height
+        # and the row fills the box. The window's width is computed from these labels, so a longer
+        # language makes the window wider instead of clipping the line.
+        self._prompt_label.setWordWrap(False)
+        self._hint_label.setWordWrap(False)
         text_holder = QWidget()
         text_holder.setLayout(texts)
-        text_holder.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 6, 16, 6)
