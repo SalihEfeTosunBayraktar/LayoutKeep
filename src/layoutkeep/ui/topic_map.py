@@ -12,6 +12,7 @@ from pathlib import Path
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import Document
+from layoutkeep.providers.base import chat_callable
 
 __all__ = ["TopicMapBuilder"]
 
@@ -32,7 +33,11 @@ class TopicMapBuilder:
         """Returns (map path or None, the setting's previous value) so the caller can restore it."""
         from layoutkeep.core.keywords import build_keyword_map, filled_entries, write_keyword_map
 
-        chat = getattr(provider, "_chat", None)
+        # The chat call under the wrappers, never on the outermost object: a run hands over
+        # ProtectedProvider(CachedProvider(DedupeProvider(provider))) and no decorator forwards
+        # `_chat`, so asking the outside found nothing and the map was skipped on every real
+        # provider - the case `providers/base.chat_callable` exists for.
+        chat = chat_callable(provider)
         if chat is None:
             self._on_status("topic map skipped: this provider has no chat call")
             return None, ""

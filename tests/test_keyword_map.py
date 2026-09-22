@@ -26,6 +26,7 @@ from layoutkeep.core.keywords import (
     filled_entries,
     write_keyword_map,
 )
+from layoutkeep.ui.topic_map import TopicMapBuilder
 
 
 def _document() -> Document:
@@ -149,3 +150,58 @@ def test_a_map_on_disk_reaches_the_context_of_its_blocks(tmp_path, monkeypatch):
         assert "This part is about: village, court" in with_map[1].context_before
     finally:
         tunables.reset_all()
+
+
+# -- the application's provider, as the run hands it over ------------------------------------------
+
+
+class _Wrapper:
+    """One of the decorators the application wraps its provider in: it forwards `translate` only.
+
+    `ProtectedProvider`, `CachedProvider` and `DedupeProvider` all keep the real provider on
+    `inner`, and none of them forwards `_chat` - which is the whole reason this test exists.
+    """
+
+    def __init__(self, inner) -> None:
+        self.inner = inner
+
+    def translate(self, segments, src_lang, tgt_lang, glossary=None, on_progress=None):
+        return self.inner.translate(segments, src_lang, tgt_lang, glossary, on_progress)
+
+
+def test_the_map_is_built_through_the_wrapper_stack(tmp_path, monkeypatch):
+    """The switch that never ran with a real provider.
+
+    WHY THIS EXISTS: `TopicMapBuilder` asked the outermost object for `_chat`, which is None behind
+    every wrapper (`ProtectedProvider(CachedProvider(DedupeProvider(...)))`), so with the setting on
+    the map was skipped with "this provider has no chat call" - the defect
+    `providers/base.chat_callable` was written for, left open on this path.
+    """
+    monkeypatch.setenv("LAYOUTKEEP_TUNABLES", str(tmp_path / "tunables.json"))
+    tunables.reset_all()
+
+    class _Inner:
+        def __init__(self) -> None:
+            self.calls: list[list[dict]] = []
+
+        def _chat(self, messages):
+            self.calls.append(messages)
+            return '["village", "Black Sea"]'
+
+    inner = _Inner()
+    statuses: list[str] = []
+    try:
+        target, previous = TopicMapBuilder(on_status=statuses.append).build(
+            _document(), tmp_path / "book.tr.epub", _Wrapper(_Wrapper(inner))
+        )
+        assert target is not None, statuses
+        # The map is pointed at for this run only, and the setting's own value comes back.
+        assert tunables.get("translation.keyword_map_path") == str(target)
+        assert previous == ""
+    finally:
+        tunables.reset_all()
+
+    assert any(status.startswith("topic map:") for status in statuses), statuses
+    assert inner.calls, "the chat call under the wrappers was never reached"
+    entries = json.loads(target.read_text(encoding="utf-8"))
+    assert entries[0]["keywords"] == ["village", "Black Sea"]
