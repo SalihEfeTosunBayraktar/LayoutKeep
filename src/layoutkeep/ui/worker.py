@@ -19,16 +19,14 @@ from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     Segment,
-    segments_from_document,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
 from layoutkeep.providers.glossary import glossary_fingerprint, load_terms
-from layoutkeep.ui.doc_glossary import DocGlossaryBuilder
 from layoutkeep.ui.document_finalizer import DocumentFinalizer
+from layoutkeep.ui.document_prep import DocumentPreparer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.topic_map import TopicMapBuilder
 from layoutkeep.ui.translation_loop import _run_translation_loop
 
 #: How many segments the worker hands the provider at a time.
@@ -349,88 +347,41 @@ class TranslationWorker(QThread):
         doc.source_lang = config.source_lang
         doc.target_lang = config.target_lang
 
-        # Kaynakça koruması (ayar açıksa) bölümlemeden ÖNCE gelir: işaretlenen blok çevrilebilir
-        # sayılmaz, yani modele hiç gitmez. Aynı ayarı komut satırı da okur.
-        if tunables.get("translation.preserve_references"):
-            from layoutkeep.core.reference import tag_bibliography_blocks
-
-            tagged = tag_bibliography_blocks(doc, preserve=True)
-            if tagged:
-                self.status.emit(f"references: {tagged} bibliography blocks preserved untouched")
-
-        provider, memory, glossary_terms = _build_provider(config)
-
-        # Belge sözlüğü (ayar açıksa) bölümlemeden ÖNCE gelir (D-007): terim listesi bu koşunun her
-        # isteğine, sığdırmasına ve bellek anahtarına girer; zincir sözlük yazıldıktan SONRA kurulur.
-        if bool(tunables.get("translation.auto_glossary")):
-            with phases.phase("glossary", "before the translation"):
-                config, merged = DocGlossaryBuilder(on_status=self.status.emit).build(
-                    doc, out, provider, config
-                )
-                if merged:
-                    glossary_terms = merged
-                    provider, memory, _ = _build_provider(config)
-
-        # Konu haritası (ayar açıksa) bölümlemeden ÖNCE gelir: segmentler kurulurken her blok kendi
-        # anahtar kelimesini haritadan okur, yani dosya o an yerinde olmalı.
-        if bool(tunables.get("translation.keyword_map_auto")):
-            with phases.phase("keyword map", "before the translation"):
-                self._build_keyword_map(doc, out, provider)
-
-        with phases.phase("segment", "segments in range"):
-            segments = self._filter_segments(doc, config)
-        # The map is only needed while the segments are built; put the user's own value back so a
-        # run cannot leave their settings changed.
-        if getattr(self, "_keyword_map_previous", None) is not None:
-            tunables.set_value("translation.keyword_map_path", self._keyword_map_previous)
-            self._keyword_map_previous = None
-        total = len(segments)
-        if total == 0:
+        # Hazırlığın tamamı (kaynakça, sözlük, konu haritası, aralık, bütçe) DocumentPreparer'da
+        # yaşar; worker yalnız hangi sinyalin yayılacağına karar verir. / The whole preparation
+        # lives in DocumentPreparer; the worker keeps the signals.
+        prepared = DocumentPreparer(
+            on_status=self.status.emit, build_provider=_build_provider
+        ).prepare(doc, src, out, config, phases=phases)
+        if prepared is None:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return
 
-        # Karakter bütçesi çeviriden ÖNCE (D-011): modele ilk istekte 'max_len' olarak gider, yani
-        # sığdırmanın tek tek düzeltmesi baştan azalır. PDF yoksa anlamsız - kutu geometrisi yok.
-        prefit = str(tunables.get("translation.prefit_budget") or "")
-        if src.suffix.lower() == ".pdf" and prefit:
-            from layoutkeep.fitting.pdf_pass import budget_segments
+        self.progress.emit(0, prepared.total)
+        self.progress_detailed.emit(0, prepared.total, 0, prepared.total_chars, 0.0, "")
 
-            with phases.phase("budget", "per box"):
-                filled = budget_segments(
-                    doc,
-                    segments,
-                    target_lang=config.target_lang,
-                    headroom=1.2 if prefit == "loose" else 1.0,
-                )
-            self.status.emit(f"character budgets: {filled} of {total} boxes ({prefit})")
-
-        total_chars = sum(len(s.source) for s in segments)
-        self.progress.emit(0, total)
-        self.progress_detailed.emit(0, total, 0, total_chars, 0.0, "")
-
-        with phases.phase("translate", f"{total} segments, {total_chars:,} chars"):
+        with phases.phase(
+            "translate", f"{prepared.total} segments, {prepared.total_chars:,} chars"
+        ):
             translated = _run_translation_loop(
                 self,
-                provider,
-                memory,
-                segments,
-                total,
-                total_chars,
-                source_lang=config.source_lang,
-                target_lang=config.target_lang,
-                glossary=glossary_terms,
+                prepared.provider,
+                prepared.memory,
+                prepared.segments,
+                prepared.total,
+                prepared.total_chars,
+                source_lang=prepared.config.source_lang,
+                target_lang=prepared.config.target_lang,
+                glossary=prepared.glossary,
             )
         if translated is None:
             return
 
-        self._finalize_document(doc, translated, src, out, config, provider, phases)
+        self._finalize_document(
+            doc, translated, src, out, prepared.config, prepared.provider, phases
+        )
         self._write_timing_report(out)
 
-    def _build_keyword_map(self, doc: Document, out: Path, provider) -> None:
-        """Delegate to TopicMapBuilder: the map build lives there now."""
-        target, previous = TopicMapBuilder(on_status=self.status.emit).build(doc, out, provider)
-        self._keyword_map_previous = previous
-        self._keyword_map_path = target
     def _write_timing_report(self, out: Path) -> None:
         """Write the phase breakdown beside the output, and only when the setting asks for it."""
         timing = getattr(self, "_timing", None)
@@ -443,17 +394,6 @@ class TranslationWorker(QThread):
             self.status.emit(f"timing report could not be written: {exc}")
             return
         self.status.emit(f"timing report: {written.name}")
-
-    def _filter_segments(self, doc: Document, config: JobConfig) -> list[Segment]:
-        # Belgeden segmentleri çıkarır ve aralığa göre filtreler / Extracts and filters segments
-        segments = segments_from_document(doc)
-        if config.page_range and doc.pages:
-            from layoutkeep.core.range_helper import block_ids_for_pages, parse_page_range
-
-            selected_pages = parse_page_range(config.page_range, len(doc.pages))
-            allowed = block_ids_for_pages(doc, selected_pages)
-            segments = [seg for seg in segments if seg.block_id in allowed]
-        return segments
 
     def _emit_timeout(self, timeout: float) -> None:
         # Sağlayıcıya uygulanan zaman aşımını UI'a bildirir / Reports the timeout applied to the provider
