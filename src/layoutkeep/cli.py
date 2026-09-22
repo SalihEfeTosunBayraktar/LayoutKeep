@@ -119,6 +119,34 @@ def _build_provider(args: argparse.Namespace):
     )
 
 
+def _automatic_glossary(doc: Document, provider, args: argparse.Namespace) -> dict[str, str]:
+    """The document's own terms, rendered once, when `translation.auto_glossary` is on (D-007).
+
+    Empty when the setting is off, when the provider has no chat call to ask with (DeepL), or when
+    the model's answer cannot be read: the run then translates exactly as it did before.
+    """
+    if not bool(tunables.get("translation.auto_glossary")):
+        return {}
+
+    from layoutkeep.core.doc_glossary import build_doc_glossary
+    from layoutkeep.providers.base import chat_callable
+
+    chat = chat_callable(provider)
+    if chat is None:
+        print("glossary  this provider has no chat call - no automatic terms")
+        return {}
+
+    def ask(system: str, user: str) -> str:
+        return str(
+            chat([{"role": "system", "content": system}, {"role": "user", "content": user}])
+        )
+
+    automatic = build_doc_glossary(doc, ask, source_lang=args.from_lang, target_lang=args.to_lang)
+    if not automatic:
+        print("glossary  no automatic terms came back")
+    return automatic
+
+
 def _reuse_repeats(args: argparse.Namespace) -> bool:
     """Whether text this document repeats is translated once (`providers/dedupe.py`).
 
@@ -297,6 +325,21 @@ def cmd_translate(args: argparse.Namespace) -> int:
 
     provider, memory = _build_provider(args)
     print(f"provider  {type(provider).__name__} model={args.model or '-'}")
+
+    # D-007: the document's terms, asked once and merged with the file the user gave. The merged
+    # list is what is translated, re-asked and checked below, so a term is settled for every
+    # occurrence rather than rendered differently each time the model meets it.
+    automatic = _automatic_glossary(doc, provider, args)
+    if automatic:
+        from layoutkeep.core.doc_glossary import merge_glossaries, write_glossary
+        from layoutkeep.providers.glossary import Glossary
+
+        from_file = len(glossary.terms) if glossary else 0
+        merged = merge_glossaries(automatic, glossary.terms if glossary else None)
+        target = write_glossary(merged, out.with_name(f"{out.stem}.glossary.json"))
+        glossary = Glossary(merged)
+        print(f"glossary  {len(automatic)} automatic terms (+{from_file} from the file)")
+        print(f"terms     {target}")
 
     started = time.monotonic()
     try:

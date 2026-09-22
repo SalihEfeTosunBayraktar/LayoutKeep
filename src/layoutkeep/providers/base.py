@@ -7,6 +7,7 @@ and nothing else about the document's visual representation or the PDF/EPUB engi
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 from layoutkeep.core.docir import Segment
 from layoutkeep.providers.batching import ProgressCallback
@@ -38,3 +39,20 @@ class TranslationProvider(ABC):
         request for the whole call are free to ignore it or call it once at the end.
         """
         raise NotImplementedError
+
+
+def chat_callable(provider) -> Callable[[list[dict[str, str]]], str] | None:
+    """The raw chat call under the wrappers, or None for a provider that has none (DeepL).
+
+    WHY THIS EXISTS: a run is handed a stack of decorators - protection, repeat sharing, memory -
+    and not one of them forwards `_chat`, so asking the outermost object for it found nothing and
+    the document-level passes were skipped on every real provider. The call is reached by walking
+    `inner`, the way `ui/worker._set_provider_timeout` already reaches the real timeout.
+    """
+    target = provider
+    while target is not None:
+        chat = getattr(target, "_chat", None)
+        if chat is not None:
+            return chat
+        target = getattr(target, "inner", None)
+    return None

@@ -263,6 +263,27 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="translation.auto_glossary",
+        label="Terim sözlüğünü koşudan önce kendisi çıkarsın",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text=(
+            "Açıkken koşu, belgede yinelenen terimleri modele BİR kez sorar ve yanıtı bu koşunun "
+            "sözlüğü olarak kullanır: terimin her geçişi aynı çeviriyle çıkar ve çıktıda "
+            "denetlenir. Liste çıktının yanına '<çıktı>.glossary.json' olarak yazılır - "
+            "inceleyebilir, düzeltebilir ve başka bir koşuda 'Terim sözlüğü dosyası' alanına "
+            "verebilirsin. Kendi sözlüğün çakışmada her zaman kazanır. Ek maliyet: koşu başına "
+            "bir istek. Kapalıyken hiçbir şey sorulmaz ve yalnız kendi dosyan kullanılır."
+        ),
+        warning=(
+            "Model bir terimi yanlış çevirirse o yanlış artık belgenin her yerinde geçerli olur ve "
+            "denetim onu doğru sayar - bu yüzden liste dosyası yazılır. Faydası henüz "
+            "ölçülmemiştir; varsayılan kapalıdır."
+        ),
+    ),
+    Tunable(
         key="translation.preserve_references",
         label="Kaynakçayı çevirmeden bırak (akademik belgeler)",
         default=False,

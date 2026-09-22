@@ -44,6 +44,22 @@ class DocumentFinalizer:
         self._started_at = started_at
         self._on_flagged = on_flagged
 
+    def _glossary_terms(self) -> dict[str, str] | None:
+        """The run's glossary, for the re-asks below.
+
+        WHY THIS EXISTS: the first pass obeys the glossary and the passes that re-ask did not, so a
+        segment recovered here could come back with a different rendering of a term than the one
+        the run settled - the exact drift the glossary exists to prevent (the CLI passed it to its
+        own retries all along; the window drifted from it).
+        """
+        # Imported lazily: worker.py imports this module, so a top-level import would cycle.
+        from layoutkeep.ui.worker import GlossaryUnreadableError, load_glossary_terms
+
+        try:
+            return load_glossary_terms(self._config.glossary_path)
+        except GlossaryUnreadableError:
+            return None  # already reported where the provider was built
+
     def finalize(
         self,
         doc: Document,
@@ -80,6 +96,7 @@ class DocumentFinalizer:
                     translated,
                     src_lang=config.source_lang,
                     tgt_lang=config.target_lang,
+                    glossary=self._glossary_terms(),
                 )
             if recovered:
                 self._on_status(f"recovered {recovered} untranslated segments")
@@ -175,7 +192,11 @@ class DocumentFinalizer:
 
         def ask_again(again) -> int:
             return retry_untranslated(
-                provider, again, src_lang=config.source_lang, tgt_lang=config.target_lang
+                provider,
+                again,
+                src_lang=config.source_lang,
+                tgt_lang=config.target_lang,
+                glossary=self._glossary_terms(),
             )
 
         report = verify_and_repair(

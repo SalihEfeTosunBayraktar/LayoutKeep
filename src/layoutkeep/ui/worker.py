@@ -23,6 +23,7 @@ from layoutkeep.core.docir import (
     segments_from_document,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.ui.doc_glossary import DocGlossaryBuilder
 from layoutkeep.ui.document_finalizer import DocumentFinalizer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
@@ -365,6 +366,17 @@ class TranslationWorker(QThread):
                 self.status.emit(f"references: {tagged} bibliography blocks preserved untouched")
 
         provider, memory, glossary_terms = _build_provider(config)
+
+        # Belge sözlüğü (ayar açıksa) bölümlemeden ÖNCE gelir (D-007): terim listesi bu koşunun her
+        # isteğine, sığdırmasına ve bellek anahtarına girer; zincir sözlük yazıldıktan SONRA kurulur.
+        if bool(tunables.get("translation.auto_glossary")):
+            with phases.phase("glossary", "before the translation"):
+                config, merged = DocGlossaryBuilder(on_status=self.status.emit).build(
+                    doc, out, provider, config
+                )
+                if merged:
+                    glossary_terms = merged
+                    provider, memory, _ = _build_provider(config)
 
         # Konu haritası (ayar açıksa) bölümlemeden ÖNCE gelir: segmentler kurulurken her blok kendi
         # anahtar kelimesini haritadan okur, yani dosya o an yerinde olmalı.
