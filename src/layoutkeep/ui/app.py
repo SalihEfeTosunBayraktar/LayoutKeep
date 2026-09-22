@@ -18,6 +18,36 @@ from layoutkeep.ui.crashlog import crash_log_path
 from layoutkeep.ui.main_window import MainWindow
 from layoutkeep.ui.theme import ThemeManager
 
+#: Modules that pull in a C extension and are otherwise first imported by a job's worker thread -
+#: the readers for every supported format, the writers, and the ONNX layout detector behind the
+#: scanned-page path. Importing them at startup keeps that work off the worker.
+_HEAVY_MODULES = (
+    "layoutkeep.readers.pdf_reader",
+    "layoutkeep.readers.epub_reader",
+    "layoutkeep.readers.docx_reader",
+    "layoutkeep.readers.image_reader",
+    "layoutkeep.writers.pdf_generator",
+    "layoutkeep.writers.epub_writer",
+    "layoutkeep.ocr.layout_detector",
+)
+
+
+def _warm_heavy_imports() -> list[str]:
+    """Load the heavy stack on the main thread, before the event loop and any job.
+
+    Returns the names that failed. A failure must not stop the app: a reader that cannot import
+    only means the job needing it will say so, exactly as it did before.
+    """
+    import importlib
+
+    failed: list[str] = []
+    for name in _HEAVY_MODULES:
+        try:
+            importlib.import_module(name)
+        except Exception:  # noqa: BLE001 - an optional reader may genuinely be absent
+            failed.append(name)
+    return failed
+
 
 def _crash_log_path() -> Path:
     return crash_log_path()
@@ -112,6 +142,14 @@ def main() -> int:
     app.setStyleSheet(ThemeManager.get_stylesheet())
     window = MainWindow()
     window.show()
+
+    # The C-extension stack used to load lazily, on the worker thread, the first time a job read a
+    # document: numpy, OpenCV, onnxruntime and MuPDF's text machinery all arrive that way. That
+    # import then ran while the main thread was ticking the progress timer or collecting garbage,
+    # and the packaged build died on it on 2026-09-22 - "Fatal Python error: Aborted" with numpy
+    # being imported inside the reader, and an access violation beside the progress tick. Loading
+    # them here, on the main thread, before the event loop starts takes the race away.
+    _warm_heavy_imports()
     return app.exec()
 
 
