@@ -355,6 +355,15 @@ class TranslationWorker(QThread):
         doc.source_lang = config.source_lang
         doc.target_lang = config.target_lang
 
+        # Kaynakça koruması (ayar açıksa) bölümlemeden ÖNCE gelir: işaretlenen blok çevrilebilir
+        # sayılmaz, yani modele hiç gitmez. Aynı ayarı komut satırı da okur.
+        if tunables.get("translation.preserve_references"):
+            from layoutkeep.core.reference import tag_bibliography_blocks
+
+            tagged = tag_bibliography_blocks(doc, preserve=True)
+            if tagged:
+                self.status.emit(f"references: {tagged} bibliography blocks preserved untouched")
+
         provider, memory, glossary_terms = _build_provider(config)
 
         # Konu haritası (ayar açıksa) bölümlemeden ÖNCE gelir: segmentler kurulurken her blok kendi

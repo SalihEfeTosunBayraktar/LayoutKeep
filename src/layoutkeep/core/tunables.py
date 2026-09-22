@@ -263,6 +263,25 @@ TUNABLES: tuple[Tunable, ...] = (
         ),
     ),
     Tunable(
+        key="translation.preserve_references",
+        label="Kaynakçayı çevirmeden bırak (akademik belgeler)",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text=(
+            "Açıkken akademik belgenin kaynakça bölümü modele hiç gönderilmez: 'Kaynakça', "
+            "'References' ya da 'Bibliography' başlığının altındaki maddeler ve atıf satırları, "
+            "yazar adları, eser başlıkları, DOI ve tarihleriyle birlikte çıktıya aynen geçer. "
+            "Komut satırındaki --preserve-references ile aynı işi yapar; ikisi bu tek ayarı okur. "
+            "Varsayılan kapalıdır: kapalıyken kaynakça da çevrilir."
+        ),
+        warning=(
+            "Yanlış tespit edilen bir blok çevrilmeden kalır - kaynakça başlığından sonra gelen düz "
+            "metin de madde sayılıp atlanabilir. Belgede kaynakça yoksa ayar hiçbir şey yapmaz."
+        ),
+    ),
+    Tunable(
         key="translation.prefit_budget",
         label="Karakter bütçesi çeviriden önce verilsin mi (sığdırmayı azaltır)",
         default="",

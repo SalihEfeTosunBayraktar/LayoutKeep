@@ -264,7 +264,7 @@ def cmd_translate(args: argparse.Namespace) -> int:
     doc.source_lang = args.from_lang
     doc.target_lang = args.to_lang
 
-    if getattr(args, "preserve_references", False):
+    if preserve_references_from(args):
         from layoutkeep.core.reference import tag_bibliography_blocks
 
         tagged = tag_bibliography_blocks(doc, preserve=True)
@@ -557,6 +557,18 @@ def fit_mode_from(args):
         "reflow" if tunables.get("fitting.reflow") else "strict"
     )
     return FitMode.REFLOW if chosen == "reflow" else FitMode.STRICT
+
+
+def preserve_references_from(args) -> bool:
+    """Whether the reference list is left untranslated: the flag when given, otherwise the setting.
+
+    The flag was the only way in, so the application could not do this at all. A function for the
+    same reason as `fit_mode_from`: it can be tested without a run, and the command line and the
+    desktop worker read one setting instead of drifting into different answers.
+    """
+    return bool(getattr(args, "preserve_references", False)) or bool(
+        tunables.get("translation.preserve_references")
+    )
 
 
 def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
