@@ -480,6 +480,14 @@ def _build_messages(
             "context_before and context_after are given ONLY as context - never translate "
             "them and never include them in your output."
         ),
+        # The page cuts blocks where the layout breaks, not where sentences end. Judged on four
+        # documents, 4 of 13 critical errors were a model finishing a cut-off sentence from its
+        # context, or dropping the half-sentence a block began with.
+        (
+            "A segment may start or end mid-sentence, because the page breaks it there. Translate "
+            "exactly the words it contains, as a fragment if it is one: never complete it from "
+            "the context, never drop its opening or closing words, never add or leave out content."
+        ),
         (
             "When max_len is set for a segment, write its translation SHORT enough to stay "
             "within that many characters - a shorter statement of the same meaning. Do not "

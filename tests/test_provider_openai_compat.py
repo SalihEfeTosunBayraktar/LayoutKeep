@@ -569,3 +569,15 @@ def test_an_unknown_language_code_is_still_sent_as_it_came() -> None:
     segment = Segment(block_id="p0#0", source="Hello.")
     system = _build_messages([segment], "en", "xx", None)[0]["content"]
     assert "to xx" in system
+
+
+def test_build_messages_forbids_completing_or_dropping_a_fragment():
+    """A block the page cuts mid-sentence must be translated as the fragment it is.
+
+    The quality judge found the model finishing a cut-off sentence from its context (content added)
+    and dropping a leading 'are added.' (content lost): 4 of 13 critical errors on four documents.
+    """
+    messages = _build_messages(_segments(), "en", "tr", glossary=None)
+    system_text = messages[0]["content"].lower()
+    assert "mid-sentence" in system_text
+    assert "never complete" in system_text
