@@ -127,7 +127,7 @@ class Glossary:
                     max_len=seg.max_len,
                     confidence=seg.confidence,
                     needs_review=True,
-                    review_reason="sözlük terimi çeviride kullanılmamış",
+                    review_reason="REVIEW_GLOSSARY_MISS",
                     from_memory=seg.from_memory,
                 )
             out.append(seg)
