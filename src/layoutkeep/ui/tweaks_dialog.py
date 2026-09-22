@@ -322,6 +322,25 @@ class TweaksDialog(QDialog):
                 warn_row.addWidget(warn, 1)
                 cell.addLayout(warn_row)
 
+            if spec.evidence:
+                # The measurement behind the warning, kept apart from it: a row whose warning ran to
+                # five hundred characters read as a wall of orange, and the numbers stopped being
+                # read at all. Muted and a size down, so it is there when looked for.
+                proof = QLabel("Ölçüm: " + spec.evidence)
+                proof.setWordWrap(True)
+                proof.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                proof_font = proof.font()
+                proof_font.setPointSizeF(max(7.0, proof_font.pointSizeF() - 1.0))
+                proof.setFont(proof_font)
+                proof.setStyleSheet(f"color: {ThemeManager.current_palette().text_muted};")
+                proof_row = QHBoxLayout()
+                proof_row.setSpacing(6)
+                spacer = QLabel()
+                spacer.setFixedWidth(20)
+                proof_row.addWidget(spacer, 0, Qt.AlignmentFlag.AlignTop)
+                proof_row.addWidget(proof, 1)
+                cell.addLayout(proof_row)
+
             holder = QWidget()
             holder.setLayout(cell)
             # A word-wrapped QLabel reports its height for a given width, and a layout that

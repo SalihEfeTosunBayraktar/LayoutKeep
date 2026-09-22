@@ -44,8 +44,13 @@ class Tunable:
     minimum: float | None = None
     maximum: float | None = None
     help_text: str = ""
-    #: Shown next to advanced entries. Says what goes wrong, not merely "be careful".
+    #: Shown next to advanced entries. Says what goes wrong, not merely "be careful". One or two
+    #: sentences: a warning that runs to a paragraph stops being read.
     warning: str = ""
+    #: The measurement behind the warning - the numbers, the documents, the tool that produced them.
+    #: Shown under the warning in a muted style, so the evidence survives without the row becoming
+    #: an essay. `tests/test_tunables_groups.py` keeps a warning short by pointing long ones here.
+    evidence: str = ""
     #: Heading this entry sits under in the dialog. Entries sharing one are shown together;
     #: an empty group means "no heading", which is how the list read before there were enough
     #: entries to need any.
@@ -329,11 +334,14 @@ TUNABLES: tuple[Tunable, ...] = (
             "zayıf modellerde bir istek harcar."
         ),
         warning=(
-            "Ölçüldü (gemma-4-e4b, 8192 bağlam, 16 segmentlik arXiv sayfası, "
-            "`tools/audit/batch_ab.py`): 1'den başlamak 16 istek / 96.6 sn, 4'ten başlamak "
-            "15 istek / 91.0 sn - yani kazanç %6, varsayılanı değiştirmeye değmez. Sebebi: "
-            "isteği asıl sınırlayan şey segment sayısı değil karakter bütçesi "
-            "(`batching.DEFAULT_BATCH_CHARS`), tavan çoğu istekte hiç bağlamıyor. Bozuk yanıtta "
+            "Yüksek başlangıç, bozuk yanıt veren zayıf modellerde fazladan bir istek harcar; "
+            "ölçülen kazanç küçük olduğu için varsayılanı değiştirmeye değmez."
+        ),
+        evidence=(
+            "gemma-4-e4b, 8192 bağlam, 16 segmentlik arXiv sayfası (`tools/audit/batch_ab.py`): "
+            "1'den başlamak 16 istek / 96.6 sn, 4'ten başlamak 15 istek / 91.0 sn - kazanç %6. "
+            "İsteği asıl sınırlayan şey segment sayısı değil karakter bütçesi "
+            "(`batching.DEFAULT_BATCH_CHARS`); tavan çoğu istekte hiç bağlamıyor. Bozuk yanıtta "
             "sağlayıcı tavanı düşürüp aynı segmentleri küçük istekle tekrar dener, yani yükseltmek "
             "güvenli - sadece bu sayfada karşılığı yok."
         ),
@@ -636,11 +644,13 @@ TUNABLES: tuple[Tunable, ...] = (
             "karşılığı)."
         ),
         warning=(
-            "İki ölçüm: NIST dergisinde (4 parça, 114 blok) strict D1=52 iken reflow D1=0 ve "
-            "L1-L10 birebir aynı kaldı. IRS formunda (4 parça) ise D1 15 -> 0 olurken **L7 0 -> 1** "
-            "oldu: aşağı itilen blok, hareketsiz bir metnin üstüne bindi. Yani kazanç 'sığmadı' "
-            "bayraklarında, bedeli akışkan olmayan sayfalarda gerçek kayıp olabiliyor - bu yüzden "
-            "varsayılan kapalı; belge türüne göre aç."
+            "Kazanç 'sığmadı' bayraklarında, bedeli akışkan olmayan sayfalarda gerçek kayıp "
+            "olabiliyor: aşağı itilen blok, hareketsiz bir metnin üstüne binebilir. Varsayılan "
+            "kapalı; belge türüne göre aç."
+        ),
+        evidence=(
+            "NIST dergisi (4 parça, 114 blok): strict D1=52 iken reflow D1=0 ve L1-L10 birebir aynı "
+            "kaldı. IRS formu (4 parça): D1 15 -> 0 olurken **L7 0 -> 1** oldu."
         ),
     ),
     Tunable(
@@ -667,18 +677,19 @@ TUNABLES: tuple[Tunable, ...] = (
         group="Sığdırma ve yazma",
         help_text=(
             "Blok içindeki küçük bir parçayı (üst simge işareti, dipnot numarası, formül kırıntısı) "
-            "bloğun boyutu yerine kendi boyutuyla yazar. Beş belgede ölçüldü: düzleşmiş kutu sayısı "
-            "104 -> 75 (-%28), ezilmiş kutu 1727 -> 1658 (69 kutu daha az sıkışıyor), sadık kutu "
-            "+53; L3/L7/D1/D3'ün hiçbiri kıpırdamadı."
+            "bloğun boyutu yerine kendi boyutuyla yazar."
         ),
         warning=(
-            "Taşıdığı risk satırların üst üste binmesiydi (L7): her satır-içi boyut, sığdırma "
-            "merdiveninin ölçeğiyle çarpılıyor ama satır yüksekliği blok boyutundan hesaplanıyor. "
-            "Beş belgede L7 5/5 aynı kaldı - yine de gözden geçirilmeden bırakılmamalı. Ölçülen tek "
-            "maliyet `cookbook_1907`'de `grown` sayısı (104 -> 130), henüz açıklanmadı. A/B: aynı "
-            "kayıtlı koşuyu **iki kez** yeniden yaz (biri bu ayarla), ikisini de type_map.py ve "
-            "lossless_audit.py ile karşılaştır - saklı çıktıyı taban almak eski motorun etkisini "
-            "bu ayara yazar."
+            "Satırların üst üste binme riski (L7) taşır: her satır-içi boyut sığdırma ölçeğiyle "
+            "çarpılır ama satır yüksekliği blok boyutundan hesaplanır. Beş belgede L7 aynı kaldı - "
+            "gözden geçirilmeden bırakılmamalı."
+        ),
+        evidence=(
+            "Beş belge: düzleşmiş kutu 104 -> 75 (-%28), ezilmiş 1727 -> 1658, sadık +53; "
+            "L3/L7/D1/D3'ün hiçbiri kıpırdamadı. Ölçülen tek maliyet `cookbook_1907`'de `grown` "
+            "sayısı (104 -> 130), henüz açıklanmadı. A/B: aynı kayıtlı koşuyu **iki kez** yeniden "
+            "yaz (biri bu ayarla), ikisini de type_map.py ve lossless_audit.py ile karşılaştır - "
+            "saklı çıktıyı taban almak eski motorun etkisini bu ayara yazar."
         ),
     ),
     Tunable(

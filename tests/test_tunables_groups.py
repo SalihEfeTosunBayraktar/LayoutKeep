@@ -45,3 +45,21 @@ def test_no_group_is_a_single_row():
     counts = collections.Counter(spec.group for spec in tunables.TUNABLES)
     lonely = {group: n for group, n in counts.items() if n < 2}
     assert lonely == {}, f"one-row groups: {lonely}"
+
+
+def test_a_warning_stays_a_warning():
+    """A warning is read in a settings row, not in a report.
+
+    Measured on 2026-09-22: thirty-six warnings ran to about 230 characters each, and three had
+    grown past 375, one of them to 520 - those three read as a wall of orange and the numbers in
+    them stopped being read. The measurement belongs in `evidence`, which the dialog prints under
+    the warning in a muted, smaller style.
+    """
+    long_ones = {spec.key: len(spec.warning) for spec in tunables.TUNABLES if len(spec.warning) > 300}
+    assert long_ones == {}, f"move the measurement into evidence=: {long_ones}"
+
+
+def test_evidence_keeps_the_numbers_when_it_is_used():
+    """An entry with evidence must still carry a warning: the evidence explains, it does not replace."""
+    broken = [spec.key for spec in tunables.TUNABLES if spec.evidence and not spec.warning]
+    assert broken == [], f"evidence without a warning: {broken}"
