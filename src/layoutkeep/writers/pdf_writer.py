@@ -44,7 +44,7 @@ from layoutkeep.core import tunables
 from layoutkeep.core.docir import BBox, Block, Document, Span, Style
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
-from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, resolve_font
+from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, missing_glyphs, resolve_font
 from layoutkeep.fitting.growth import free_below, may_grow
 from layoutkeep.fitting.room import room_below
 
@@ -1131,6 +1131,7 @@ class _FontResolver:
         self._preset_paths: dict[tuple[str, bool, bool], str] = {}
         self._matches: dict[tuple[str, bool, bool], FontMatch] = {}
         self._original_bytes: dict[tuple[str, bool, bool], bytes] = {}
+        self._styles: dict[tuple[str, bool, bool], Style] = {}
         self._resolved: dict[tuple[str, bool, bool], _EmbeddedFont | None] = {}
         self._face_rules: list[str] = []
         self.archive = pymupdf.Archive()
@@ -1153,6 +1154,7 @@ class _FontResolver:
         self._chars.setdefault(key, set()).update(text)
         if key in self._matches or key in self._preset_paths:
             return
+        self._styles[key] = style
         if style.font_path:
             # The fitting stage already resolved this style (see the module docstring) - trust
             # it rather than resolving again.
@@ -1179,7 +1181,10 @@ class _FontResolver:
     def finalize(self) -> None:
         for key, path in self._preset_paths.items():
             self._embed(key, (path, 0))
-        for key, match in self._matches.items():
+        for key, match in list(self._matches.items()):
+            if match.quality is MatchQuality.ORIGINAL and self._subset_lacks_drawn_chars(key):
+                match = self._substitute(key) or match
+                self._matches[key] = match
             if match.quality is MatchQuality.ORIGINAL:
                 raw = self._original_bytes.get(key)
                 if raw is not None:
@@ -1188,6 +1193,40 @@ class _FontResolver:
                 # unresolved, the block falls back to the generic mapping.
             elif match.resolved_path:
                 self._embed(key, (match.resolved_path, match.resolved_font_number))
+
+    def _subset_lacks_drawn_chars(self, key: tuple[str, bool, bool]) -> bool:
+        """Does the reused source subset miss a character this document draws in it?
+
+        Resolution only checks the target language's letters outside ASCII, which is nothing for
+        English: the Turkish Penal Code's Times New Roman subset, cut to Turkish letters, was reused
+        for its English translation and every w, q and x came from another face. Here every
+        character drawn in the face is known, so it is checked against the subset itself.
+        """
+        raw = self._original_bytes.get(key)
+        drawn = "".join(c for c in self._chars.get(key, set()) if c.isprintable() and not c.isspace())
+        if raw is None or not drawn:
+            return False
+        try:
+            return bool(missing_glyphs(raw, drawn))
+        except _FONT_LOAD_ERRORS:
+            return True  # a subset whose coverage cannot be read is not trusted with new letters
+
+    def _substitute(self, key: tuple[str, bool, bool]) -> FontMatch | None:
+        """Resolve the style again as if the source had embedded nothing - a complete face."""
+        style = self._styles.get(key)
+        if style is None:
+            return None
+        try:
+            return resolve_font(
+                style.font_family or "sans-serif",
+                self._target_lang,
+                bold=style.bold,
+                italic=style.italic,
+                embedded_font_bytes=None,
+                serif_hint=style.serif,
+            )
+        except _FONT_LOAD_ERRORS:
+            return None
 
     def _embed(self, key: tuple[str, bool, bool], source: bytes | tuple[str, int]) -> None:
         chars = "".join(sorted(self._chars.get(key, set())))
