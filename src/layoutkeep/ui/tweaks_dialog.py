@@ -9,27 +9,26 @@ goes wrong, not merely that care is needed. Those are the settings where a bad v
 quietly worse output instead of an obvious error - a font scale low enough to make text
 unreadable still "fits", and a passthrough threshold set too high hides exactly the failure it
 exists to catch.
+
+Satırlar ve sayfalar `tweaks_editors` modülünde kurulur; bu dosya diyalogun kendisini ve
+uygula / sıfırla / hazır ayar akışını tutar.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
-    QFileDialog,
-    QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QScrollArea,
-    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
@@ -37,64 +36,8 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.core import tunables
-from layoutkeep.ui.collapsible import CollapsibleSection
-from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.theme import ThemeManager
-
-#: Width the label column is fixed to, for the same reason.
-_LABEL_WIDTH = 210
-
-#: Width the value column is fixed to. Word-wrapped help and warning text needs a known
-#: width before it can report the height it will occupy.
-_FIELD_WIDTH = 300
-# Wrapped labels need a fixed width to resolve their height - and to stop the dialog stretching to
-# the length of the longest sentence it shows.
-_TEXT_WIDTH = _LABEL_WIDTH + _FIELD_WIDTH + 40
-
-
-def _editor_for(spec: tunables.Tunable) -> QWidget:
-    """Türüne uygun düzenleyici üretir / Builds the editor matching the tunable's type.
-
-    Four kinds, not two: a switch (the translation memory) and a file path (the glossary) are
-    settings the same way the numbers are, and they belong on the same page with the same help
-    text - not in a second dialog the user has to find.
-    """
-    value = tunables.get(spec.key)
-    if spec.choices:
-        combo = QComboBox()
-        for choice_value, choice_label in spec.choices:
-            combo.addItem(choice_label, choice_value)
-        index = combo.findData(str(value or ""))
-        combo.setCurrentIndex(index if index >= 0 else 0)
-        # A combo sizes itself to its longest entry, and one entry reading "yan yana (cift dilli PDF)"
-        # dragged the dialog's sizeHint - and with it the dialog - out to 1322 px, while the window
-        # already sat at 760. The widest field wins; every label stays readable in the tooltip.
-        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        combo.setMinimumContentsLength(22)
-        combo.setMaximumWidth(_FIELD_WIDTH)
-        combo.setSizePolicy(QSizePolicy.Policy.Fixed, combo.sizePolicy().verticalPolicy())
-        combo.setToolTip(" · ".join(label for _value, label in spec.choices))
-        return combo
-    if spec.kind == "bool":
-        check = QCheckBox()
-        check.setChecked(bool(value))
-        return check
-    if spec.kind == "str":
-        line = QLineEdit(str(value or ""))
-        line.setPlaceholderText("…")
-        return line
-    box: QSpinBox | QDoubleSpinBox
-    if spec.kind == "int":
-        box = QSpinBox()
-        box.setRange(int(spec.minimum or 0), int(spec.maximum or 10_000))
-    else:
-        box = QDoubleSpinBox()
-        box.setDecimals(2)
-        box.setSingleStep(0.05)
-        box.setRange(float(spec.minimum or 0.0), float(spec.maximum or 10_000.0))
-    box.setValue(value)
-    return box
+from layoutkeep.ui.tweaks_editors import TEXT_WIDTH, build_section_page
 
 
 def _editor_value(editor: QWidget) -> Any:
@@ -121,57 +64,6 @@ def _set_editor_value(editor: QWidget, value: Any) -> None:
         editor.setText(str(value or ""))
     elif isinstance(editor, (QSpinBox, QDoubleSpinBox)):
         editor.setValue(float(value) if isinstance(editor, QDoubleSpinBox) else int(value))
-
-
-def _editor_holder(
-    editor: QWidget, spec: tunables.Tunable, document_path: str = ""
-) -> tuple[QWidget, QWidget]:
-    """The editor, plus a "Browse" companion when the tunable is a path.
-
-    Returns (holder, focus_widget): the holder goes into the form, the focus widget is what the
-    caption's width is measured against.
-    """
-    if spec.kind != "str":
-        return editor, editor
-    holder = QWidget()
-    row = QHBoxLayout(holder)
-    row.setContentsMargins(0, 0, 0, 0)
-    row.setSpacing(6)
-    line = editor
-    row.addWidget(line, 1)
-    browse = QPushButton(UIStrings.TWEAKS_BROWSE)
-    browse.setToolTip(UIStrings.TWEAKS_GLOSSARY_TIP)
-    browse.clicked.connect(lambda: _pick_file(line))
-    row.addWidget(browse, 0)
-    if spec.key == "translation.glossary_path":
-        # The file is a list of term pairs, not a line of JSON to type: the editor opens the same
-        # file this field points at and writes it back.
-        edit = QPushButton(UIStrings.GLOSSARY_EDIT)
-        edit.setToolTip(UIStrings.GLOSSARY_TABLE_TIP)
-        edit.clicked.connect(lambda: _edit_glossary(line, document_path))
-        row.addWidget(edit, 0)
-    return holder, line
-
-
-def _edit_glossary(line: QLineEdit, document_path: str = "") -> None:
-    """Open the glossary editor and keep the path field in step with what it saved."""
-    from layoutkeep.ui.glossary_dialog import GlossaryDialog
-
-    dialog = GlossaryDialog(line.window())
-    dialog.set_document(document_path or None)
-    if dialog.exec():
-        configured = str(tunables.get("translation.glossary_path") or "").strip()
-        if configured:
-            line.setText(configured)
-
-
-def _pick_file(line: QLineEdit) -> None:
-    """Choose a glossary file; the filter matches what `Glossary.load` accepts."""
-    chosen, _ = QFileDialog.getOpenFileName(
-        line, UIStrings.TWEAKS_BROWSE, line.text().strip(), UIStrings.TWEAKS_GLOSSARY_FILTER
-    )
-    if chosen:
-        line.setText(chosen)
 
 
 class TweaksDialog(QDialog):
@@ -220,8 +112,8 @@ class TweaksDialog(QDialog):
         self._footer = QLabel(UIStrings.TWEAKS_FOOTER)
         self._footer.setProperty("class", "muted")
         self._footer.setWordWrap(True)
-        self._footer.setFixedWidth(_TEXT_WIDTH)
-        self._footer.setMinimumHeight(self._footer.heightForWidth(_TEXT_WIDTH))
+        self._footer.setFixedWidth(TEXT_WIDTH)
+        self._footer.setMinimumHeight(self._footer.heightForWidth(TEXT_WIDTH))
 
         # Hazır ayar: birkaç değeri birlikte değiştiren tek seçim. Değerler yine aynı doğrulanmış
         # yoldan yazılır, yani sonrasında tek tek düzenlenebilir ve dialogda görünür.
@@ -236,8 +128,8 @@ class TweaksDialog(QDialog):
         hint = QLabel(UIStrings.PROFILE_HINT)
         hint.setProperty("class", "muted")
         hint.setWordWrap(True)
-        hint.setFixedWidth(_TEXT_WIDTH)
-        hint.setMinimumHeight(hint.heightForWidth(_TEXT_WIDTH))
+        hint.setFixedWidth(TEXT_WIDTH)
+        hint.setMinimumHeight(hint.heightForWidth(TEXT_WIDTH))
 
         profile_row = QHBoxLayout()
         profile_row.addWidget(QLabel(UIStrings.PROFILE_LABEL))
@@ -251,140 +143,8 @@ class TweaksDialog(QDialog):
         layout.addLayout(bottom)
 
     def _build_section(self, section: str) -> QWidget:
-        page = QWidget()
-        page.setObjectName("scrollPage")
-        outer = QVBoxLayout(page)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(6)
-
-        if section == tunables.ADVANCED:
-            banner = QLabel(UIStrings.TWEAKS_ADVANCED_BANNER)
-            banner.setWordWrap(True)
-            banner.setFixedWidth(_TEXT_WIDTH)
-            banner.setMinimumHeight(banner.heightForWidth(_TEXT_WIDTH))
-            banner.setStyleSheet(
-                f"color: {ThemeManager.current_palette().warning}; font-weight: 600;"
-            )
-            outer.addWidget(banner)
-
-        # Entries are grouped by the registry's `group` field, and each group folds away. A flat list
-        # of a hundred rows is a wall, and a folded group is also out of the layout's size hint,
-        # which is what keeps the window from opening as wide as its longest warning text.
-        sections: list[CollapsibleSection] = []
-        body: QFormLayout | None = None
-        current_group: str | None = None
-        for spec in tunables.definitions(section):
-            group = spec.group or "OTHER"
-            # The registry stores a stable key, not a translated word: the headings were the one
-            # part of this dialog that stayed Turkish inside an English window. Resolved here, so
-            # the same key reads as "Çeviri", "Translation" or "Übersetzung" as the reader chose.
-            group_label = UIStrings.get(f"TWEAKS_GROUP_{group}")
-            if group != current_group:
-                current_group = group
-                section_widget = CollapsibleSection(group_label, expanded=not sections)
-                body = QFormLayout()
-                body.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-                body.setContentsMargins(12, 0, 0, 0)
-                body.setSpacing(6)
-                section_widget.set_body_layout(body)
-                outer.addWidget(section_widget)
-                sections.append(section_widget)
-            if body is None:  # cannot happen: the first entry always opens a section
-                raise RuntimeError("tweaks section built without a group body")
-            editor = _editor_for(spec)
-            self._editors[spec.key] = editor
-            field, _focus = _editor_holder(editor, spec, self._document_path)
-
-            caption = QLabel(spec.help_text)
-            caption.setProperty("class", "muted")
-            caption.setWordWrap(True)
-
-            cell = QVBoxLayout()
-            cell.setSpacing(4)
-            cell.setContentsMargins(0, 0, 0, 8)
-            cell.addWidget(field)
-            cell.addWidget(caption)
-            if spec.warning:
-                warn = QLabel(spec.warning)
-                warn.setWordWrap(True)
-                warn.setStyleSheet(f"color: {ThemeManager.current_palette().warning};")
-                # The mark is drawn from the icon set rather than typed as a character: a font
-                # glyph renders differently on every machine, and as an empty box where the
-                # font has none.
-                warn_icon = QLabel()
-                warn_icon.setPixmap(
-                    get_svg_icon(
-                        "alert-triangle",
-                        color=ThemeManager.current_palette().warning,
-                        size=14,
-                    ).pixmap(14, 14)
-                )
-                warn_icon.setAlignment(Qt.AlignmentFlag.AlignTop)
-                warn_row = QHBoxLayout()
-                warn_row.setSpacing(6)
-                warn_row.addWidget(warn_icon, 0, Qt.AlignmentFlag.AlignTop)
-                warn_row.addWidget(warn, 1)
-                cell.addLayout(warn_row)
-
-            if spec.evidence:
-                # The measurement behind the warning, kept apart from it: a row whose warning ran to
-                # five hundred characters read as a wall of orange, and the numbers stopped being
-                # read at all. Muted and a size down, so it is there when looked for.
-                proof = QLabel("Ölçüm: " + spec.evidence)
-                proof.setWordWrap(True)
-                proof.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                proof_font = proof.font()
-                proof_font.setPointSizeF(max(7.0, proof_font.pointSizeF() - 1.0))
-                proof.setFont(proof_font)
-                proof.setStyleSheet(f"color: {ThemeManager.current_palette().text_muted};")
-                proof_row = QHBoxLayout()
-                proof_row.setSpacing(6)
-                spacer = QLabel()
-                spacer.setFixedWidth(20)
-                proof_row.addWidget(spacer, 0, Qt.AlignmentFlag.AlignTop)
-                proof_row.addWidget(proof, 1)
-                cell.addLayout(proof_row)
-
-            holder = QWidget()
-            holder.setLayout(cell)
-            # A word-wrapped QLabel reports its height for a given width, and a layout that
-            # never fixes a width gets the wrong answer: the rows came out too short and the
-            # warnings - the entire reason this tab is separated - were clipped and overlapped
-            # the next row. Fixing the width lets heightForWidth resolve.
-            holder.setMinimumWidth(_FIELD_WIDTH)
-            holder.setSizePolicy(
-                QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
-            )
-            caption.setFixedWidth(_FIELD_WIDTH)
-            caption.setMinimumHeight(caption.heightForWidth(_FIELD_WIDTH))
-            if spec.warning:
-                # The icon takes 14px plus the row spacing out of the field width.
-                text_width = _FIELD_WIDTH - 20
-                warn.setFixedWidth(text_width)
-                warn.setMinimumHeight(warn.heightForWidth(text_width))
-
-            row_label = QLabel(spec.label)
-            row_label.setWordWrap(True)
-            # Its own width, or the field column squeezes it until the wrapped lines of one
-            # label run into the next one.
-            row_label.setFixedWidth(_LABEL_WIDTH)
-            row_label.setMinimumHeight(row_label.heightForWidth(_LABEL_WIDTH))
-            row_label.setAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
-            )
-            body.addRow(row_label, holder)
-
-        # The sections hug their headings instead of sharing out the empty height. Without this the
-        # stretch goes to the sections themselves and the collapsed headings float apart - measured
-        # at 108px between headings whose own height is 35px, which is what the reader saw as
-        # "why is there so much space between them".
-        outer.addStretch(1)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(page)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        return scroll
+        # Satırlar ve katlanan gruplar `tweaks_editors`'te kurulur / Rows and groups are built there
+        return build_section_page(section, self._editors, self._document_path)
 
     # -- actions -----------------------------------------------------------
     def apply_values(self) -> None:
