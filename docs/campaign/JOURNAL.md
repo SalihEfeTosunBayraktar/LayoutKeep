@@ -2631,3 +2631,16 @@ proje içinde çalışır, izleri repoya girmez.
 - **Ağır ölçüm**: `a/b/c/d/e` kolları **04:05**'te (cron `982752d2a607`), rapor **06:15** (`961cb9c99e0e`).
 - **Zincir kilidi**: `lk_night_chain.py` yalnız `run` argümanıyla çalışır — gece yanlışlıkla
   çalıştırma olayı (fan sesi) BrainOS'a `mistake` olarak kaydedildi.
+## Gece ölçüm zinciri — 5 kol (yerel gemma, 3 sayfa, aynı belge)
+
+| kol | ne | süre | kalite |
+|---|---|---|---|
+| a | eski davranış (tek istek, bütçe yok) | faz kaydı yok ✗ | kayıpsız ✓ |
+| b | toplu istek | **643 s** ✓ en hızlı | kayıpsız ✓ |
+| c | toplu + bütçe (strict) | 956 s | kayıpsız ✓ |
+| d | yalnız bütçe (strict) | 1158 s ✗ en yavaş | kayıpsız ✓ |
+| e | toplu + konu haritası | 690 s ✓ (harita ≈ 47 s) | kayıpsız ✓ |
+
+Beş kolun beşi de kayıpsız; bozuk ölçüt yok; bayrak listeleri boş. Sonuç: toplu istek en hızlı yol;
+bütçe tek başına yavaşlatıyor (yeniden deneme maliyeti); konu haritası ~47 s ekliyor.
+Not: kollarda `output.timing_report` açık olmadığı için faz kırılımı yok, yalnız toplam süreler var.
