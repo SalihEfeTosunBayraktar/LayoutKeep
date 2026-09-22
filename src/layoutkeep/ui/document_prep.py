@@ -128,10 +128,13 @@ class DocumentPreparer:
             self._on_status(f"references: {tagged} bibliography blocks preserved untouched")
 
     def _build_topic_map(self, doc: Document, out: Path, provider) -> None:
-        """Delegate to TopicMapBuilder, keeping the setting it borrowed so it can be put back."""
-        target, previous = TopicMapBuilder(on_status=self._on_status).build(doc, out, provider)
+        """Delegate to TopicMapBuilder, keeping the setting it borrowed so it can be put back.
+
+        The map's own path is not kept: the worker assigned it and read it nowhere, and the builder
+        returns the previous setting for the one thing that does need putting back.
+        """
+        _, previous = TopicMapBuilder(on_status=self._on_status).build(doc, out, provider)
         self._keyword_map_previous = previous
-        self._keyword_map_path = target
 
     def _restore_topic_map_setting(self) -> None:
         """Give the user's own 'Konu haritası dosyası' value back, after the segments read the map."""
