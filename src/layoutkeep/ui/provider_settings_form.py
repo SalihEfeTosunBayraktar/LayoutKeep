@@ -31,8 +31,11 @@ KIND_OPENAI = "openai"
 KIND_DEEPL = "deepl"
 KIND_FAKE = "fake"
 
-#: Buttons here are small; the accent reads as a control rather than as decoration.
-_ICON_COLOR = "#2563eb"
+def _icon_color() -> str:
+    """The accent for this form's small buttons, read from the theme (no hardcoded hex)."""
+    from layoutkeep.ui.theme import ThemeManager
+
+    return ThemeManager.current_palette().accent
 
 
 class ProviderSettingsForm:
@@ -126,10 +129,10 @@ class ProviderSettingsForm:
         self._hint.setWordWrap(True)
         self._hint.setProperty("class", "muted")
         self._test_btn = QPushButton("Test Et", self._parent)
-        self._test_btn.setIcon(get_svg_icon("zap", color=_ICON_COLOR, size=16))
+        self._test_btn.setIcon(get_svg_icon("zap", color=_icon_color(), size=16))
         self._test_btn.setToolTip("Uc noktayi kaydetmeden dener")
         self._save_btn = QPushButton("Kaydet", self._parent)
-        self._save_btn.setIcon(get_svg_icon("check", color=_ICON_COLOR, size=16))
+        self._save_btn.setIcon(get_svg_icon("check", color=_icon_color(), size=16))
 
         self._kind_combo = QComboBox(self._parent)
         self._kind_combo.addItem(

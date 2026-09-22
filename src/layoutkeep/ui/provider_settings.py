@@ -65,7 +65,7 @@ class ProviderSettingsDialog(QDialog):
 
     def __init__(self, config: ProviderConfig | None = None, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Sağlayıcı Ayarları")
+        self.setWindowTitle(UIStrings.PROVIDER_SETTINGS_TITLE)
         self._store = ProviderProfileStore()
         cfg = config or ProviderConfig(kind=KIND_OPENAI)
         self._form = ProviderSettingsForm(self, cfg)

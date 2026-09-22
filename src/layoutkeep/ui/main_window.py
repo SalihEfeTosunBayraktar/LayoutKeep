@@ -48,7 +48,7 @@ class MainWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("rootWindow")
-        self.setWindowTitle("LayoutKeep")
+        self.setWindowTitle(UIStrings.APP_TITLE)
         # The size is fixed once the layout is built, at the smallest size that layout actually
         # needs - see the end of __init__. It used to open at 700x660 with a 700x540 minimum and
         # stay resizable; the reader wanted a compact window, and a resizable one only ever gets

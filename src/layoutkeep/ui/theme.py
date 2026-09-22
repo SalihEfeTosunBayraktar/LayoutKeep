@@ -261,7 +261,7 @@ def _build_qss(palette: ColorPalette) -> str:
         border-radius: {RADIUS_SM};
         background-color: {palette.surface_active};
         text-align: center;
-        color: #ffffff;
+        color: {palette.accent_text};
         font-weight: bold;
         font-size: 12px;
         height: 24px;
