@@ -2644,3 +2644,16 @@ proje içinde çalışır, izleri repoya girmez.
 Beş kolun beşi de kayıpsız; bozuk ölçüt yok; bayrak listeleri boş. Sonuç: toplu istek en hızlı yol;
 bütçe tek başına yavaşlatıyor (yeniden deneme maliyeti); konu haritası ~47 s ekliyor.
 Not: kollarda `output.timing_report` açık olmadığı için faz kırılımı yok, yalnız toplam süreler var.
+
+## Konu haritası: fayda ölçümü (karar girdisi)
+
+Aynı belgenin iki kolu (b: toplu, haritasız — 643 s | e: toplu + konu haritası — 690 s) diskteki
+`out.lkproj` çıktılarıyla karşılaştırıldı.
+
+- `tools/audit/term_consistency.py b/out.lkproj e/out.lkproj` → **16 terimin 16'sı iki kolda eşit**;
+  "haritalı daha tutarlı: 0 | daha dağılmış: 0".
+- Kayıp denetimi iki kolda da aynı (kayıpsız, bozuk ölçüt yok).
+
+Sonuç: maliyet ölçülü (+47 s / ~%7 küçük belgede), kayıp ve terim tutarlılığı boyutunda **fayda
+ölçülemedi**. Karar: `translation.keyword_map_auto` **varsayılan kapalı** kalır; ayar ekrandaki
+metin artık ölçülmüş maliyeti ve ölçülen sıfır etkiyi yazıyor.

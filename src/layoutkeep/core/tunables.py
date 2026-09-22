@@ -230,9 +230,12 @@ TUNABLES: tuple[Tunable, ...] = (
             "tools/audit/document_preamble.py --map ile üretilen keyword_map.json dosyasının yolu. "
             "Verilirse her segment kendi bloğunun anahtar kelimelerini bağlamında 'This part is "
             "about: ...' satırı olarak görür - yani konu bilgisi belge boyunca AKAR. Romanın "
-            "başı/ortası/sonu farklı konularsa tek bir global ön bilgi bunu taşıyamaz; ölçüm: 2184 "
-            "segmentli kitapta harita 60 istek ve 94 saniye sürdü (koşunun ~%1,5'i) ve 60/60 blokta "
-            "anahtar kelime üretti. Boş bırakmak hiçbir şey eklemez."
+            "başı/ortası/sonu farklı konularsa tek bir global ön bilgi bunu taşıyamaz. Ölçüm: 2184 "
+            "segmentli kitapta harita 60 istek ve 94 saniye (koşunun ~%1,5'i), 60/60 blokta anahtar "
+            "kelime. Aynı belgenin haritalı ve haritasız koşuları karşılaştırıldı: kayıp denetimi ve "
+            "terim tutarlılığı BİREBİR aynı çıktı (16 terimin 16'sı eşit, 'daha tutarlı: 0'), "
+            "3 sayfalık belgede süre 643 -> 690 saniye. Yani maliyeti ölçülü, kayıp/terim "
+            "boyutundaki faydası ölçülemedi; bu yüzden varsayılan kapalı."
         ),
         warning=(
             "Uydurma bir anahtar kelime tüm kitaba değil yalnız o bloğun segmentlerine gider; yine de "
