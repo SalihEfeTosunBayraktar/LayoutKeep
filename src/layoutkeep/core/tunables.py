@@ -66,7 +66,7 @@ TUNABLES: tuple[Tunable, ...] = (
         label="Çeviri belleği (koşular arası)",
         default=True,
         kind="bool",
-        group="Çeviri",
+        group="TRANSLATION",
         help_text=(
             "Aynı paragrafı bir kez çevirir ve bu makinedeki bir SQLite dosyasına yazar; belgeyi "
             "yeniden çevirdiğinde ya da yinelenen başlık, dipnot ve künye satırlarında model "
@@ -84,7 +84,7 @@ TUNABLES: tuple[Tunable, ...] = (
         label="Terim sözlüğü dosyası (JSON)",
         default="",
         kind="str",
-        group="Çeviri",
+        group="TRANSLATION",
         help_text=(
             "{\"kaynak terim\": \"hedef terim\"} biçiminde düz bir JSON nesnesi, ya da iki "
             "sütunlu bir CSV/TSV tablosu (başlık satırı olabilir). Dosya "
@@ -95,7 +95,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="translation.reuse_repeats",
-        group="Çeviri",
+        group="TRANSLATION",
         label="Tekrarlanan metni bir kez çevir",
         default=True,
         kind="bool",
@@ -108,7 +108,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="translation.piecewise_max_pieces",
-        group="Çeviri",
+        group="TRANSLATION",
         label="Son çare: parçalara bölüp çevirme sınırı",
         default=12,
         kind="int",
@@ -132,7 +132,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=4,
         kind="int",
         section=ADVANCED,
-        group="Çeviri",
+        group="TRANSLATION",
         minimum=1,
         maximum=50,
         help_text="Bu kadar veya daha uzun bir metin aynen geri gelirse çevrilmemiş sayılır.",
@@ -147,7 +147,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=True,
         kind="bool",
         section=ADVANCED,
-        group="Çeviri",
+        group="TRANSLATION",
         help_text=(
             "Ön sayfalardaki sayfa numaraları ve bölüm işaretleri (xiii, IV, vii) modele hiç "
             "gösterilmeden korunur ve yerine aynen geri konur. Model bunları bir sayı değil bir "
@@ -167,7 +167,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=400,
         kind="int",
         section=ADVANCED,
-        group="İstem ve bağlam",
+        group="PROMPT",
         minimum=0,
         maximum=20000,
         help_text=(
@@ -192,7 +192,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=BASIC,
-        group="İstem ve bağlam",
+        group="PROMPT",
         help_text=(
             "Bir dosya yolu verirsen, modelin rolünü tanımlayan ilk satır bu dosyanın içeriğiyle "
             "değiştirilir - kendi çeviri tarzını, tonunu, terminoloji tercihini buraya yazabilirsin. "
@@ -211,7 +211,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=BASIC,
-        group="İstem ve bağlam",
+        group="PROMPT",
         help_text=(
             "Modele system prompt'un sonuna eklenen serbest talimatlar. Örnek: 'Teknik terimleri "
             "parantez içinde İngilizcesiyle ver', 'Resmî bir ton kullan', 'Şirket adlarını çevirme'. "
@@ -225,7 +225,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=ADVANCED,
-        group="İstem ve bağlam",
+        group="PROMPT",
         help_text=(
             "tools/audit/document_preamble.py --map ile üretilen keyword_map.json dosyasının yolu. "
             "Verilirse her segment kendi bloğunun anahtar kelimelerini bağlamında 'This part is "
@@ -246,7 +246,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=False,
         kind="bool",
         section=ADVANCED,
-        group="İstem ve bağlam",
+        group="PROMPT",
         help_text=(
             "Açıkken her koşu, bölümlemeden önce belgeyi dilim dilim modele sorar ve 'Konu haritası "
             "dosyası' alanını bu koşu için kendisi doldurur; harita çıktının yanına "
@@ -265,7 +265,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=ADVANCED,
-        group="İstem ve bağlam",
+        group="PROMPT",
         choices=(
             ("", "Kapalı"),
             ("loose", "%120 paylı (içerik kaybı riski düşük)"),
@@ -290,7 +290,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=BASIC,
-        group="İstem ve bağlam",
+        group="PROMPT",
         help_text=(
             "Tüm segmentlerin system prompt'una 'Bu belge hakkında: ...' olarak eklenen kısa bir "
             "tanıtım. Ölçüm şunu gösterdi: segmentlerin %50,5'i 200 karakterden az komşu bağlam "
@@ -303,7 +303,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="translation.workers",
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         label="Paralel çeviri iş parçacığı (LM Studio yuva sayısı)",
         default=2,
         kind="int",
@@ -325,7 +325,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=1,
         kind="int",
         section=ADVANCED,
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         minimum=1,
         maximum=20,
         help_text=(
@@ -348,7 +348,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="batch.chunk_size",
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         label="Parti boyutu (iptal/duraklat aralığı)",
         default=20,
         kind="int",
@@ -362,7 +362,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="timeout.first_batch_s",
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         label="İlk parti zaman aşımı (sn)",
         default=240.0,
         kind="float",
@@ -375,7 +375,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="timeout.warm_batch_s",
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         label="Sonraki parti zaman aşımı (sn)",
         default=15.0,
         kind="float",
@@ -385,7 +385,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="deepl.max_texts_per_request",
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         label="DeepL: istek başına metin",
         default=40,
         kind="int",
@@ -400,7 +400,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=20,
         kind="int",
         section=ADVANCED,
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         minimum=1,
         maximum=100,
         help_text="Sağlayıcının tek istekte deneyebileceği en fazla segment sayısı.",
@@ -416,7 +416,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=60.0,
         kind="float",
         section=ADVANCED,
-        group="Sağlayıcı ve istek",
+        group="PROVIDER",
         minimum=1.0,
         maximum=600.0,
         help_text="Sunucu 'şu kadar bekle' derse en fazla bu kadar beklenir.",
@@ -431,7 +431,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=1.0,
         kind="float",
         section=ADVANCED,
-        group="Okuma",
+        group="READING",
         minimum=0.0,
         maximum=50.0,
         help_text=(
@@ -453,7 +453,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.05,
         kind="float",
         section=ADVANCED,
-        group="Okuma",
+        group="READING",
         minimum=0.0,
         maximum=1.0,
         help_text=(
@@ -470,7 +470,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.5,
         kind="float",
         section=ADVANCED,
-        group="Okuma",
+        group="READING",
         minimum=0.0,
         maximum=1.0,
         help_text=(
@@ -489,7 +489,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.80,
         kind="float",
         section=ADVANCED,
-        group="Okuma",
+        group="READING",
         minimum=0.0,
         maximum=1.0,
         help_text="Bu güvenin altındaki OCR blokları incelenmek üzere işaretlenir.",
@@ -501,7 +501,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.35,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.05,
         maximum=0.95,
         help_text=(
@@ -520,7 +520,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.6,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.1,
         maximum=1.0,
         help_text="İki hücrenin aynı satırda sayılması için yüksekliklerinin örtüşmesi gereken kesir.",
@@ -535,7 +535,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=1.2,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.2,
         maximum=5.0,
         help_text=(
@@ -553,7 +553,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=1.6,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=1.0,
         maximum=5.0,
         help_text="Aynı satırdaki hücrelerin yükseklikleri en fazla bu katı kadar farklı olabilir.",
@@ -565,7 +565,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.6,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.0,
         maximum=3.0,
         help_text=(
@@ -583,7 +583,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=1.2,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.8,
         maximum=2.5,
         help_text=(
@@ -598,7 +598,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.5,
         kind="float",
         section=ADVANCED,
-        group="Tablo ve satırlar",
+        group="TABLES",
         minimum=0.0,
         maximum=10.0,
         help_text=(
@@ -615,7 +615,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.95,
         kind="float",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         minimum=0.0,
         maximum=1.0,
         help_text=(
@@ -636,7 +636,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=False,
         kind="bool",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         help_text=(
             "Kapalıyken (strict) her blok kendi kutusuna sığdırılmaya çalışılır ve sığmayan blok "
             "küçültülür ya da inceleme kuyruğuna düşer. Açıkken sığmayan blok daha fazla satıra "
@@ -659,7 +659,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.85,
         kind="float",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         minimum=0.5,
         maximum=1.0,
         help_text="Çeviri kutuya sığmazsa yazı tipi bu orana kadar küçültülür.",
@@ -674,7 +674,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=True,
         kind="bool",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         help_text=(
             "Blok içindeki küçük bir parçayı (üst simge işareti, dipnot numarası, formül kırıntısı) "
             "bloğun boyutu yerine kendi boyutuyla yazar."
@@ -698,7 +698,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=True,
         kind="bool",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         help_text=(
             "Açıkken sığdırma, sığmayan kutuların kısaltma isteklerini turlar hâlinde TOPLAR ve tek "
             "istekte sorar; kapalıyken her kutu için ayrı istek gider (eski davranış). Ölçüm: 3 "
@@ -716,7 +716,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=24.0,
         kind="float",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         minimum=0.0,
         maximum=120.0,
         help_text=(
@@ -736,7 +736,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=3.0,
         kind="float",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         minimum=0.0,
         maximum=12.0,
         help_text=(
@@ -756,7 +756,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=0.6,
         kind="float",
         section=ADVANCED,
-        group="Sığdırma ve yazma",
+        group="FITTING",
         minimum=0.1,
         maximum=1.0,
         help_text=(
@@ -774,7 +774,7 @@ TUNABLES: tuple[Tunable, ...] = (
         label="Yüzen ilerleme çubuğu (her zaman üstte)",
         default=True,
         kind="bool",
-        group="Arayüz",
+        group="INTERFACE",
         help_text=(
             "Çeviri başlarken ekranın üst-ortasına küçük, her zaman üstte duran bir ilerleme "
             "kartı çıkar: belgenin adı, içinde bulunulan aşama, kaç parça bittiği ve yüzde. "
@@ -785,7 +785,7 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
     Tunable(
         key="preview.keep_segments",
-        group="Arayüz",
+        group="INTERFACE",
         label="Canlı önizlemede tutulan segment",
         default=40,
         kind="int",
@@ -799,7 +799,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default="",
         kind="str",
         section=ADVANCED,
-        group="Ek test araçları",
+        group="TEST_TOOLS",
         choices=(
             ("", "Kapalı"),
             ("side", "Yan yana (kaynak solda)"),
@@ -817,7 +817,7 @@ TUNABLES: tuple[Tunable, ...] = (
         default=False,
         kind="bool",
         section=ADVANCED,
-        group="Ek test araçları",
+        group="TEST_TOOLS",
         help_text=(
             "Koşu bitince çıktının yanına bir HTML tablo yazılır: okuma, bölme, çeviri, sığdırma, "
             "uygulama ve yazma aşamalarının saniyesi, yüzdesi ve istek sayısı. Ayar kapalıyken "

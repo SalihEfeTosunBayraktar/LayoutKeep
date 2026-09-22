@@ -274,10 +274,14 @@ class TweaksDialog(QDialog):
         body: QFormLayout | None = None
         current_group: str | None = None
         for spec in tunables.definitions(section):
-            group = spec.group or UIStrings.TWEAKS_GROUP_OTHER
+            group = spec.group or "OTHER"
+            # The registry stores a stable key, not a translated word: the headings were the one
+            # part of this dialog that stayed Turkish inside an English window. Resolved here, so
+            # the same key reads as "Çeviri", "Translation" or "Übersetzung" as the reader chose.
+            group_label = UIStrings.get(f"TWEAKS_GROUP_{group}")
             if group != current_group:
                 current_group = group
-                section_widget = CollapsibleSection(group, expanded=not sections)
+                section_widget = CollapsibleSection(group_label, expanded=not sections)
                 body = QFormLayout()
                 body.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
                 body.setContentsMargins(12, 0, 0, 0)
@@ -369,6 +373,12 @@ class TweaksDialog(QDialog):
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
             )
             body.addRow(row_label, holder)
+
+        # The sections hug their headings instead of sharing out the empty height. Without this the
+        # stretch goes to the sections themselves and the collapsed headings float apart - measured
+        # at 108px between headings whose own height is 35px, which is what the reader saw as
+        # "why is there so much space between them".
+        outer.addStretch(1)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

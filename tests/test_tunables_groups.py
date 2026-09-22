@@ -16,14 +16,14 @@ from layoutkeep.core import tunables
 #: which provider, how the page is read, how its tables and lines are put together, how the text is
 #: fitted and written, what the window does, and the extra test tools.
 GROUP_ORDER = (
-    "Çeviri",
-    "İstem ve bağlam",
-    "Sağlayıcı ve istek",
-    "Okuma",
-    "Tablo ve satırlar",
-    "Sığdırma ve yazma",
-    "Arayüz",
-    "Ek test araçları",
+    "TRANSLATION",
+    "PROMPT",
+    "PROVIDER",
+    "READING",
+    "TABLES",
+    "FITTING",
+    "INTERFACE",
+    "TEST_TOOLS",
 )
 
 
@@ -63,3 +63,18 @@ def test_evidence_keeps_the_numbers_when_it_is_used():
     """An entry with evidence must still carry a warning: the evidence explains, it does not replace."""
     broken = [spec.key for spec in tunables.TUNABLES if spec.evidence and not spec.warning]
     assert broken == [], f"evidence without a warning: {broken}"
+
+
+def test_every_group_key_has_a_heading_in_every_language():
+    """The headings are the only part of the dialog that is not written inline, so they are the
+    part a missing translation can hide in: the registry stores `TRANSLATION`, and the dialog asks
+    the strings for `TWEAKS_GROUP_TRANSLATION`. If that key is absent the fallback prints the key
+    itself - the same failure the model search box had."""
+    from layoutkeep.ui.strings import _TRANSLATIONS
+
+    missing = {}
+    for language, table in _TRANSLATIONS.items():
+        absent = [g for g in GROUP_ORDER if f"TWEAKS_GROUP_{g}" not in table]
+        if absent:
+            missing[language] = absent
+    assert missing == {}, f"baslik cevirisi eksik: {missing}"
