@@ -58,6 +58,10 @@ SUITE: list[tuple[str, str, str, str]] = [
 ]
 
 LOSS_KEYS = [f"L{n}" for n in range(1, 11)]
+#: Block-level criteria that say the page's shape did not survive: text missing from the page, drawn off
+#: it, drawn on a figure, or shrunk below the readability floor. L7 and L8 count pages, not blocks, so
+#: they are not in the ratio - they must be zero on their own.
+LAYOUT_BLOCK_KEYS = ["L3", "L4", "L10", "D1"]
 DIAG_KEYS = ["D1", "D2", "D3"]
 
 
@@ -118,12 +122,23 @@ def _row(work: Path) -> dict | None:
     if audit_file.exists():
         counts = json.loads(audit_file.read_text(encoding="utf-8")).get("counts") or {}
     meta["counts"] = counts
+    meta["blocks"] = 0
+    if audit_file.exists():
+        meta["blocks"] = int(json.loads(audit_file.read_text(encoding="utf-8")).get("blocks") or 0)
     return meta
+
+
+def layout_ratio(row: dict) -> float | None:
+    """Share of the translated blocks drawn with the page's shape intact (the user's third bar)."""
+    if not row.get("blocks"):
+        return None
+    bad = sum(int(row["counts"].get(key, 0)) for key in LAYOUT_BLOCK_KEYS)
+    return max(0.0, 1 - bad / row["blocks"])
 
 
 def write_table(run_dir: Path) -> Path:
     rows = [row for work in sorted(run_dir.iterdir()) if work.is_dir() and (row := _row(work))]
-    header = ["source", "dir", "pages", "s", *LOSS_KEYS, "losses", *DIAG_KEYS]
+    header = ["source", "dir", "pages", "s", *LOSS_KEYS, "losses", *DIAG_KEYS, "layout"]
     lines = [
         f"# Bench `{run_dir.name}`",
         "",
@@ -141,20 +156,29 @@ def write_table(run_dir: Path) -> Path:
         if not counts:
             cells = [row["name"], row["direction"], str(row["pages"]), str(row["seconds"]),
                      *(["-"] * len(LOSS_KEYS)), f"no audit (exit {row['translate_exit']})",
-                     *(["-"] * len(DIAG_KEYS))]
+                     *(["-"] * len(DIAG_KEYS)), "-"]
         else:
             losses = sum(int(counts.get(key, 0)) for key in LOSS_KEYS)
             for key in total:
                 total[key] += int(counts.get(key, 0))
             cells = [row["name"], row["direction"], str(row["pages"]), str(row["seconds"]),
                      *(str(counts.get(key, 0)) for key in LOSS_KEYS), f"**{losses}**",
-                     *(str(counts.get(key, 0)) for key in DIAG_KEYS)]
+                     *(str(counts.get(key, 0)) for key in DIAG_KEYS),
+                     f"{layout_ratio(row):.0%}" if layout_ratio(row) is not None else "-"]
         lines.append("| " + " | ".join(cells) + " |")
     lossless = sum(1 for row in rows if row["counts"]
                    and not sum(int(row["counts"].get(k, 0)) for k in LOSS_KEYS))
     lines.append("| **total** | | | | " + " | ".join(str(total[k]) for k in LOSS_KEYS)
                  + f" | **{sum(total[k] for k in LOSS_KEYS)}** | "
-                 + " | ".join(str(total[k]) for k in DIAG_KEYS) + " |")
+                 + " | ".join(str(total[k]) for k in DIAG_KEYS) + " | |")
+    for direction in sorted({row["direction"] for row in rows}):
+        group = [row for row in rows if row["direction"] == direction and row.get("blocks")]
+        blocks = sum(row["blocks"] for row in group)
+        bad = sum(int(row["counts"].get(k, 0)) for row in group for k in LAYOUT_BLOCK_KEYS)
+        pages = sum(int(row["counts"].get(k, 0)) for row in group for k in ("L7", "L8"))
+        if blocks:
+            lines.append(f"| **{direction} layout** | | | | {max(0.0, 1 - bad / blocks):.1%} of {blocks} "
+                         f"blocks intact, L7+L8 pages {pages} |" + " |" * (len(header) - 5))
     lines += ["", f"Lossless sources: **{lossless} / {len(rows)}**", ""]
     table = run_dir / "BENCH.md"
     table.write_text("\n".join(lines), encoding="utf-8")
