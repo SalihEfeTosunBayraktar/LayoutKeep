@@ -100,5 +100,11 @@ def test_the_window_asks_for_the_introduction_only_until_it_has_been_seen(qtbot,
     assert shown == ["shown"]
 
     app_settings().setValue("welcome_shown", True)
+    # The rule is version-aware since the update flow was added: the screen comes back once per
+    # version, so a bare boolean is not enough to satisfy it. Without this the test passed only on
+    # a machine whose registry already held the version - and failed the moment that changed.
+    from layoutkeep import __version__
+
+    app_settings().setValue("welcome_shown_version", __version__)
     window._maybe_show_welcome()
     assert shown == ["shown"]
