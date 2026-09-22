@@ -113,6 +113,9 @@ class ProviderSettingsForm:
     def _build_controls(self) -> None:
         cfg = self._config
         self._endpoint_list = EndpointTree(self._parent)
+        # A floor for the saved-endpoints list: with no minimum the layout squeezed it to ~140px
+        # and the last row was cut off, so the dialog now grows to fit it instead.
+        self._endpoint_list.setMinimumHeight(220)
         self._profile_name = QLineEdit("Varsayılan", self._parent)
 
         # Editable: a group is just a heading the user invents, so typing a new one has to be

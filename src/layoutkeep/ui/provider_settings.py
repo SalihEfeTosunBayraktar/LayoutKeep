@@ -86,7 +86,7 @@ class ProviderSettingsDialog(QDialog):
 
         screen = QApplication.primaryScreen()
         available = screen.availableGeometry() if screen is not None else None
-        width, height = 600, 560
+        width, height = 600, 640
         if available is not None:
             width = min(width, int(available.width() * 0.9))
             height = min(height, int(available.height() * 0.85))
