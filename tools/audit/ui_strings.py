@@ -5,15 +5,21 @@ as `MODEL_SEARCH_PLACEHOLDER` in the middle of a settings dialog - which is exac
 found by the user, not by a test. This walks the source for `UIStrings.NAME` and checks each name
 against the translation tables.
 
+The second pass finds Turkish-only literals that are shown to the user but do not go through the
+language layer: settings labels/help/warnings, review reasons, status text, dialogs and message
+boxes. Internal keys (e.g. `box_crushed`) are fine, but any human-readable Turkish text that reaches
+the UI is reported here.
+
     .venv/Scripts/python tools/audit/ui_strings.py            # report
     .venv/Scripts/python tools/audit/ui_strings.py --quiet    # exit code only (for tests)
 
-Exit code 1 when a language is missing a key, or when a key is defined for one language and not
-another.
+Exit code 1 when a language is missing a key, when a key is defined for one language and not
+another, or when a user-visible Turkish literal bypasses the translation layer.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 from pathlib import Path
@@ -31,6 +37,43 @@ _USAGE = re.compile(r"UIStrings\.([A-Z][A-Z0-9_]+)")
 #: behind the metaclass's fallback.
 _NON_TEXT = {name for name, value in vars(UIStrings).items() if not isinstance(value, str)}
 
+#: Files that are themselves translation tables or contain internal data/heuristics where a
+#: Turkish word is expected even in an English build. These are excluded from the literal audit.
+_IGNORED_PATHS = {
+    "layoutkeep/ui/strings.py",
+    "layoutkeep/ui/welcome_text.py",
+    "layoutkeep/ui/help_text.py",
+    "layoutkeep/ui/languages.py",
+    "layoutkeep/core/copies.py",
+    "layoutkeep/core/terms.py",
+    "layoutkeep/core/protect.py",
+    "layoutkeep/core/langs.py",
+    "layoutkeep/core/capabilities.py",
+    "layoutkeep/core/reference.py",
+    "layoutkeep/core/keywords.py",
+    "layoutkeep/core/range_helper.py",
+    "layoutkeep/fitting/fontmatch.py",
+    "layoutkeep/providers/_http_compat.py",
+    "layoutkeep/providers/memory.py",
+    "layoutkeep/providers/fake.py",
+    "layoutkeep/providers/cached.py",
+    "layoutkeep/providers/base.py",
+    "layoutkeep/providers/_nonprose.py",
+    "layoutkeep/writers/converter.py",
+    "layoutkeep/writers/epub_generator.py",
+    "layoutkeep/writers/docx_generator.py",
+    "layoutkeep/writers/html_writer.py",
+    "layoutkeep/writers/pdf_generator.py",
+    "layoutkeep/assets/__init__.py",
+}
+
+#: Docstring text is allowed to be bilingual because it is for developers, not users.
+_DOCSTRING_PARENTS = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def _has_turkish(s: str) -> bool:
+    return bool(re.search(r"[çğışöüÇĞİŞÖÜ]", s))
+
 
 def used_keys() -> dict[str, set[str]]:
     """Every `UIStrings.NAME` the source mentions, with the files that mention it."""
@@ -40,6 +83,55 @@ def used_keys() -> dict[str, set[str]]:
         for match in _USAGE.finditer(text):
             found.setdefault(match.group(1), set()).add(str(path.relative_to(SRC)))
     return found
+
+
+def _is_docstring_node(tree: ast.AST, node: ast.Constant) -> bool:
+    """A constant that is the first statement in a module/class/function body is a docstring."""
+    for parent in ast.walk(tree):
+        if isinstance(parent, _DOCSTRING_PARENTS):
+            body = getattr(parent, "body", [])
+            if body and isinstance(body[0], ast.Expr) and body[0].value is node:
+                return True
+            # Also handle ast.Constant directly assigned as docstring in newer Python
+            if body and body[0] is node:
+                return True
+    return False
+
+
+def turkish_literals() -> list[tuple[str, int, str]]:
+    """User-visible Turkish strings that bypass UIStrings, grouped by file:line."""
+    found: list[tuple[str, int, str]] = []
+    for path in SRC.rglob("*.py"):
+        rel = "layoutkeep/" + "/".join(path.relative_to(SRC / "layoutkeep").parts)
+        if rel in _IGNORED_PATHS:
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+        docstring_lines: set[int] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, _DOCSTRING_PARENTS) and node.body:
+                first = node.body[0]
+                if isinstance(first, ast.Expr):
+                    first = first.value
+                if isinstance(first, ast.Constant) and isinstance(first.value, str):
+                    for offset, _ in enumerate(first.value.splitlines()):
+                        docstring_lines.add(first.lineno + offset)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+                continue
+            s = node.value
+            if ";;" in s:
+                # File filters contain Turkish but are not user-readable sentences.
+                continue
+            if not _has_turkish(s):
+                continue
+            if node.lineno in docstring_lines:
+                continue
+            found.append((rel, node.lineno, s.replace("\\n", " ").replace("\n", " ")[:120]))
+    return sorted(found)
 
 
 def main() -> int:
@@ -74,8 +166,18 @@ def main() -> int:
                         print(f"   yalniz {second} ({len(only_second)}): {only_second[:12]}")
                     print()
 
+    literals = turkish_literals()
+    if literals:
+        problems += len(literals)
+        if not quiet:
+            print(f"=== Kullaniciya giden ama ceviriden gecmeyen Turkce metinler ({len(literals)}):")
+            for rel, line, s in literals:
+                print(f"   {rel}:{line}  {s}")
+            print()
+
     if not quiet:
-        print(f"diller: { {k: len(v) for k, v in languages.items()} } · kodda kullanilan: {len(used)}")
+        print(f"diller: {{ {', '.join(f'{k}: {len(v)}' for k, v in sorted(languages.items()))} }} · "
+              f"kodda kullanilan: {len(used)} · gecmeyen: {len(literals)}")
         print("SONUC:", "temiz ✓" if problems == 0 else f"{problems} eksik ✗")
     return 0 if problems == 0 else 1
 
