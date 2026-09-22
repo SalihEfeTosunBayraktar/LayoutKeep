@@ -205,6 +205,32 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
+## D-015 · Ayar ekranı: 16 gruptan 8'e, uyarıdan ayrı ölçüm satırı (2026-09-22) · **fikir: kullanıcı**
+
+**Soru:** "Ayar menüleri hâlâ karışık duruyor, bir mantığa oturt; uyarı/açıklamalar dağınık."
+
+**Ölçüm:** 44 ayar **16 gruba** dağılmıştı; **9 grup tek satırlık**, **8 ayar grupsuz** (diyalog
+bunları "Diğer" başlığına atıyor ✗). Diyalog bölümü **ardışık grup değişimine** göre kurduğu için,
+kayıt sırasında arasına başka grup giren bir grup **iki ayrı başlık** olarak açılıyordu ✗.
+Uyarılar: 36'sı ~230 karakter ✓ ama **3'ü 375–520** ✗ — diyalog tümünü turuncu duvar olarak basıyor ✗.
+
+**Karar:** (1) Gruplar **8'e** indirildi ve **boru hattı sırasına** dizildi: Çeviri · İstem ve bağlam ·
+Sağlayıcı ve istek · Okuma · Tablo ve satırlar · Sığdırma ve yazma · Arayüz · Ek test araçları ✓.
+(2) Kayıt yeniden sıralandı, gruplar **bitişik** ✓. (3) `Tunable.evidence` alanı eklendi: ölçüm
+kanıtı kısa uyarıdan ayrıldı, diyalog onu **soluk ve bir punto küçük** çiziyor ✓.
+
+**Ölçüm (sonrası):** katlanabilir bölüm **21 → 11** ✓; en uzun uyarı **520 → 236** karakter ✓;
+3 ayarın kanıtı ayrı satırda ✓.
+
+**Kurallar (test):** `tests/test_tunables_groups.py` — her ayarın grubu var · gruplar boru hattı
+sırasında ve bitişik · tek satırlık grup yok · uyarı ≤ 300 karakter · kanıt varsa uyarı da var.
+
+**Yanlış giden:** "Her grup en az bir temel ayar içermeli" kuralını ben uydurdum ✗ — "Okuma",
+"Sığdırma ve yazma", "Tablo ve satırlar", "Ek test araçları" zaten **yalnız gelişmiş** sekmede
+olmalı ✓; kural silindi ✗.
+
+**Kanıt:** `80f8ada`, `c7ad7c4` · `tests/test_tunables_groups.py`.
+
 ## D-014 · Paketlenmiş exe çeviri başlarken kapanıyor: ağır C eklentileri işçi iş parçacığında geç yükleniyordu (2026-09-22)
 
 **Soru:** Kullanıcı: "DeepL ile ilgili exede sorun yaşıyorum, çeviri başlayınca direkt exe kapanıyor."
