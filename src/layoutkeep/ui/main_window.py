@@ -24,8 +24,8 @@ from layoutkeep.ui.job_setup import JobSetupWidget
 from layoutkeep.ui.progress import ProgressWidget
 from layoutkeep.ui.settings import app_settings
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.theme import ThemeManager
 from layoutkeep.ui.welcome import WelcomeDialog
+from layoutkeep.ui.window_appearance import WindowAppearance
 from layoutkeep.ui.worker import TranslationWorker
 
 
@@ -58,8 +58,8 @@ class MainWindow(QWidget):
         self._init_subwidgets()
         self._setup_layout()
         self._wire_signals()
-        self._restore_theme()
-        self._restore_ui_language()
+        self._appearance.restore_theme()
+        self._appearance.restore_language()
         # The smallest size the built layout asks for, fixed: the reader wanted a compact window
         # and no reason to resize it. `minimumSizeHint` is what the pages actually need, so nothing
         # is clipped; the floor guards against a system where the hint comes out implausibly small.
@@ -91,6 +91,13 @@ class MainWindow(QWidget):
         self._last_output_path = ""
         self._completion.back_to_setup_requested.connect(self._return_to_setup)
         self._worker: TranslationWorker | None = None
+        # Tema ve arayüz dili bu pencerenin kabuğunda tutulur / Theme and language live here
+        self._appearance = WindowAppearance(
+            self._settings,
+            self._header,
+            screens=lambda: (self._setup, self._completion, self._progress, self._bar),
+            step=lambda: self._stack.currentIndex() + 1,
+        )
 
     @property
     def _bar(self) -> FloatingProgress:
@@ -143,6 +150,11 @@ class MainWindow(QWidget):
         super().showEvent(event)
         self._sync_bar_visibility()
 
+    def _on_ui_language_changed(self, lang: str) -> None:
+        # Arayüz dili değiştiğinde ayarı kaydeder ve metinleri günceller / Handles UI language change
+        # İnce delege: testler bu adı çağırıyor / Thin delegate, the tests call this name
+        self._appearance.store_language(lang)
+
     def _setup_layout(self) -> None:
         # Ana dikey düzeni kurar / Sets up main vertical layout
         layout = QVBoxLayout(self)
@@ -156,8 +168,8 @@ class MainWindow(QWidget):
 
     def _wire_signals(self) -> None:
         # Olay ve sinyal bağlantılarını yapar / Wires events and signals
-        self._header.theme_toggled.connect(self._on_theme_changed)
-        self._header.ui_language_changed.connect(self._on_ui_language_changed)
+        self._header.theme_toggled.connect(self._appearance.store_theme)
+        self._header.ui_language_changed.connect(self._appearance.store_language)
         self._setup.job_ready.connect(self._start_job)
         self._progress.cancel_requested.connect(self._cancel_job)
         self._progress.pause_requested.connect(self._pause_job)
@@ -166,49 +178,6 @@ class MainWindow(QWidget):
         self._bar.new_job_requested.connect(self._new_job_from_floating)
         self._bar.open_output_requested.connect(self._open_output_from_floating)
         self._bar.pause_toggled.connect(self._toggle_pause_from_floating)
-
-    def _restore_theme(self) -> None:
-        # Kayıtlı tema tercihini uygular / Applies saved theme preference
-        is_dark = self._settings.value("dark_mode", False, type=bool)
-        ThemeManager.set_dark(is_dark)
-        self._apply_current_theme()
-
-    def _restore_ui_language(self) -> None:
-        # Kayıtlı arayüz dilini yükler ve uygular / Restores and applies saved UI language
-        lang = str(self._settings.value("ui_language", "en"))
-        UIStrings.set_language(lang)
-        self._header.set_active_language(lang)
-        self.retranslate_ui()
-
-    def _on_ui_language_changed(self, lang: str) -> None:
-        # Arayüz dili değiştiğinde ayarı kaydeder ve metinleri günceller / Handles UI language change
-        self._settings.setValue("ui_language", lang)
-        UIStrings.set_language(lang)
-        self.retranslate_ui()
-
-    def retranslate_ui(self) -> None:
-        # Tüm alt bileşenlerin metinlerini güncel dilde yeniler / Retranslates all subwidgets
-        self._header.retranslate_ui()
-        self._setup.retranslate_ui()
-        self._progress.retranslate_ui()
-        self._completion.retranslate_ui()
-        self._bar.retranslate_ui()
-
-    def _on_theme_changed(self, is_dark: bool) -> None:
-        # Tema değiştiğinde QSS'i yeniler ve kaydeder / Refreshes QSS and saves on theme change
-        self._settings.setValue("dark_mode", is_dark)
-        self._apply_current_theme()
-
-    def _apply_current_theme(self) -> None:
-        # Güncel stil sayfasını tüm uygulamaya uygular / Applies current stylesheet to app
-        app = QApplication.instance()
-        if app is not None:
-            app.setStyleSheet(ThemeManager.get_stylesheet())
-        self._setup.apply_theme()
-        self._completion.apply_theme()
-        self._progress.apply_theme()
-        self._bar.apply_theme()
-        self._header.set_active_step(self._stack.currentIndex() + 1)
 
     def _start_job(self, config: JobConfig) -> None:
         # Çeviri işini başlatır / Starts the translation job
@@ -330,8 +299,8 @@ class MainWindow(QWidget):
     def show_welcome(self) -> None:
         """Open the introduction and let its language and theme choices reach the application."""
         dialog = WelcomeDialog(self)
-        dialog.language_changed.connect(self._on_ui_language_changed)
-        dialog.theme_changed.connect(self._on_theme_changed)
+        dialog.language_changed.connect(self._appearance.store_language)
+        dialog.theme_changed.connect(self._appearance.store_theme)
         dialog.exec()
 
     def _open_tweaks(self) -> None:
