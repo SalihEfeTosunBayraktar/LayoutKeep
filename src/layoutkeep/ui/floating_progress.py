@@ -19,17 +19,9 @@ from collections.abc import Sequence
 
 from PySide6.QtCore import QEvent, QObject, QPoint, Qt, Signal
 from PySide6.QtGui import QFontMetrics, QMouseEvent, QShowEvent
-from PySide6.QtWidgets import (
-    QApplication,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QProgressBar,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QFrame, QWidget
 
+from layoutkeep.ui.floating_card import FloatingCardLayout
 from layoutkeep.ui.progress import format_phase
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
@@ -128,73 +120,12 @@ class FloatingProgress(QFrame):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setMinimumWidth(_MIN_WIDTH)
-        self._build()
+        # Kartın görsel düzeni `floating_card`'ta kurulur / The card's layout lives in floating_card
+        FloatingCardLayout(self).build()
         # The card, its labels and the percentage move the window; the buttons never do.
         self._drag = WindowDrag(self, [self._card, self._title, self._detail, self._percent])
         self.apply_theme()
         self._refresh()
-
-    # ---------------------------------------------------------------- construction
-
-    def _build(self) -> None:
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        self._card = QFrame()
-        self._card.setObjectName("floatCard")
-        outer.addWidget(self._card)
-
-        rows = QVBoxLayout(self._card)
-        self._rows = rows
-        rows.setContentsMargins(14, 10, 14, 10)
-        rows.setSpacing(6)
-
-        top = QHBoxLayout()
-        top.setSpacing(8)
-        self._title = QLabel()
-        self._title.setObjectName("floatTitle")
-        self._percent = QLabel("0%")
-        self._percent.setObjectName("floatPercent")
-        self._percent.setCursor(Qt.CursorShape.OpenHandCursor)
-        top.addWidget(self._title, 1)
-        top.addWidget(self._percent, 0, Qt.AlignmentFlag.AlignRight)
-        rows.addLayout(top)
-
-        self._detail = QLabel()
-        self._detail.setObjectName("floatDetail")
-        rows.addWidget(self._detail)
-
-        self._bar = QProgressBar()
-        self._bar.setObjectName("floatBar")
-        self._bar.setTextVisible(False)
-        self._bar.setFixedHeight(8)
-        self._bar.setRange(0, 1)
-        self._bar.setValue(0)
-        rows.addWidget(self._bar)
-
-        buttons = QHBoxLayout()
-        buttons.setSpacing(8)
-        self._pause_button = QPushButton()
-        self._pause_button.setObjectName("floatGhost")
-        self._pause_button.clicked.connect(self._on_pause)
-        self._restore_button = QPushButton()
-        self._restore_button.setObjectName("floatPrimary")
-        self._restore_button.clicked.connect(self.restore_requested.emit)
-        self._output_button = QPushButton()
-        self._output_button.setObjectName("floatSuccess")
-        self._output_button.clicked.connect(self.open_output_requested.emit)
-        self._new_button = QPushButton()
-        self._new_button.setObjectName("floatGhost")
-        self._new_button.clicked.connect(self.new_job_requested.emit)
-        self._fold_button = QPushButton()
-        self._fold_button.setObjectName("floatGhost")
-        self._fold_button.clicked.connect(self.toggle_folded)
-        buttons.addWidget(self._pause_button)
-        buttons.addStretch(1)
-        buttons.addWidget(self._output_button)
-        buttons.addWidget(self._new_button)
-        buttons.addWidget(self._restore_button)
-        buttons.addWidget(self._fold_button)
-        rows.addLayout(buttons)
 
     # ---------------------------------------------------------------------- theme
 
