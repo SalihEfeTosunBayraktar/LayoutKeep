@@ -456,7 +456,10 @@ boyutuna** göre verilmeli. Ölçüm olmadan denenmez.
 
 ---
 
-## D-010 · System prompt düzenlenebilirliği · **KABUL**
+## D-018 · System prompt düzenlenebilirliği · **KABUL**
+
+*Numara düzeltmesi (2026-09-22): bu kayıt önce yanlışlıkla D-010 numarasını almıştı. Jurnaldeki ve
+D-011'deki "D-010" atıfları sığdırma kaydını gösterir.*
 
 **Soru (kullanıcı):** Kullanıcı prompt'u düzenleyip varsayılana dönebilmeli.
 
