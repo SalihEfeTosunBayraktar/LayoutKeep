@@ -205,6 +205,30 @@ cümlesini bitişik arıyordu, oysa etiket cümleyi bölebilir. Bu yüzden test 
 
 ---
 
+## D-013 · DeepL: tek bir kontrol karakteri 40 segmentlik isteği düşürüyor (2026-09-22)
+
+**Soru:** DeepL ile karşılaştırma denemesi yapılacaktı; ilk koşu "Tag handling parsing failed …
+not well-formed (invalid token)" ile düştü. Sebep ne?
+
+**Ölçüm:** arXiv makalesinin 2. sayfasında **tek bir segmentin kaynağı** tek başına `\x08`
+(backspace) karakteriydi ✗ — PDF metin çıkarımından gelen çöp. Segmentler **tek tek** gönderildiğinde
+6/6 geçti ✓; parti hâlinde gönderildiğinde **tek bozuk bayt tüm isteği** düşürüyor ✗✗ (DeepL metni
+XML olarak ayrıştırıyor ✓). XML 1.0 `\x00-\x08`, `\x0b`, `\x0c`, `\x0e-\x1f` karakterlerini yasaklar;
+sekme, satır sonu ve satır başı serbesttir ✓.
+
+**Karar:** `to_deepl_markup` artık XML'in taşıyamadığı kontrol karakterlerini **atıyor** ✓; korunan
+değerler (`<lkv>`) de aynı temizlikten ve kaçıştan geçiyor ✓ (o elementi biz yazıyoruz ✓).
+
+**Gerekçe:** Tek karakter yüzünden 40 segmentlik parti düşüyordu ✗; bu, DeepL kullanan her belgeyi
+vurabilecek gerçek bir hata ✗. Düzeltmeden sonra aynı kol `failed: []` ile bitti ✓✓.
+
+**Yanlış giden:** İlk teşhis "ham `<`/`&` kaçırılmıyor" sanıldı ✗ — kaçış zaten vardı ✓; suçlu
+ancak segmentleri **tek tek** göndererek bulundu ✓ (toplu istekte hata mesajı yalnız sütun numarası
+veriyor ✗).
+
+**Kanıt:** `562d25d` · `tests/test_provider_deepl.py` (kontrol karakteri + korunan değer testleri) ·
+arXiv 2609.19145 sayfa 2, segment `p2#39`.
+
 ## D-012 · Kapak: çeviri resmin üstüne çiziliyor, orijinal silinmiyor (2026-09-21)
 
 **Soru:** Elmasri kapağında "Fundamentals of Database Systems" ile "Veritabanı Sistemleri" üst üste
