@@ -197,3 +197,34 @@ def test_a_verified_clean_output_says_so(qtbot):
 
     widget.set_stats(_stats())  # a job that was not verified says nothing about it
     assert "Verification" not in widget._stats_label.text()
+
+
+def test_the_glossary_check_is_reported(qtbot):
+    """The terms the run was handed are checked in the output; the screen says how many were kept.
+
+    A user reading only "N segments need review" cannot tell a term the model ignored from a
+    paragraph that would not fit, and the two need different answers.
+    """
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(glossary_checked=12, glossary_honoured=9))
+
+    text = widget._stats_label.text()
+    assert "9/12" in text, text
+    assert "Glossary" in text, text
+
+
+def test_a_run_without_a_glossary_says_nothing_about_terms(qtbot):
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    widget = CompletionWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_stats(_stats(glossary_checked=0, glossary_honoured=0))
+
+    assert "Glossary" not in widget._stats_label.text()

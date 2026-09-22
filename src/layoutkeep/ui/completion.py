@@ -206,6 +206,7 @@ class CompletionWidget(QFrame):
             if crushed:
                 lines.append(UIStrings.COMPLETION_FLAGGED_BOX.format(count=crushed))
         lines += self._verification_lines()
+        lines += self._glossary_lines()
         self._stats_label.setText("\n".join(lines))
         self._stats_title.setVisible(True)
         self._stats_label.setVisible(True)
@@ -229,6 +230,18 @@ class CompletionWidget(QFrame):
         else:
             lines.append(UIStrings.COMPLETION_VERIFY_CLEAN)
         return lines
+
+    def _glossary_lines(self) -> list[str]:
+        """How the run's own terms fared in the output (providers/glossary.Glossary.verify).
+
+        Shown only when terms were actually checked: a run with no glossary, or one whose terms
+        never occur, has nothing to report and says nothing rather than "0/0".
+        """
+        checked = int(self._stats.get("glossary_checked", 0) or 0)
+        if not checked:
+            return []
+        honoured = int(self._stats.get("glossary_honoured", 0) or 0)
+        return [UIStrings.COMPLETION_GLOSSARY.format(honoured=honoured, checked=checked)]
 
     def apply_theme(self) -> None:
         # Tema değişiminde ikon renklerini günceller / Refreshes icon colors on theme change

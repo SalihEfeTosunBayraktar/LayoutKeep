@@ -20,6 +20,49 @@ from layoutkeep.ui.strings import UIStrings
 __all__ = ["DocumentFinalizer"]
 
 
+def read_glossary_terms(path: str | None) -> dict[str, str] | None:
+    """The run's glossary, or None when there is none.
+
+    WHY THIS EXISTS: the first pass obeys the glossary and the passes that re-ask did not, so a
+    segment recovered here could come back with a different rendering of a term than the one the
+    run settled - the exact drift the glossary exists to prevent (the CLI passed it to its own
+    retries all along; the window drifted from it).
+
+    An unreadable file gives None rather than an exception: it is already reported where the
+    provider was built, and the run goes on exactly as it would have without a glossary.
+    """
+    # Imported lazily: worker.py imports this module, so a top-level import would cycle.
+    from layoutkeep.ui.worker import GlossaryUnreadableError, load_glossary_terms
+
+    try:
+        return load_glossary_terms(path)
+    except GlossaryUnreadableError:
+        return None
+
+
+def check_glossary_terms(
+    terms: dict[str, str] | None, translated: list[Segment]
+) -> tuple[list[Segment], dict[str, int]]:
+    """The term check the CLI makes after translating (`providers/glossary.Glossary.verify`).
+
+    WHY THIS EXISTS: the run's terms were handed to every request and nothing checked that the
+    model used them, so a term it ignored was reported by `layoutkeep translate` and stayed
+    invisible in the application - the front-end drift the contract forbids. A segment whose source
+    holds a term and whose translation does not carry the agreed rendering is flagged with the
+    glossary's own reason, which is what puts it in front of the reviewer instead of into the
+    finished document unnoticed.
+
+    Returns the (possibly reflagged) segments and the {checked, honoured} counts.
+    """
+    if not terms:
+        return translated, {"checked": 0, "honoured": 0}
+    # The terms are the run's merged list: `DocGlossaryBuilder` points the config at the file it
+    # wrote, so the model's own terms are held to the same check as the file's.
+    from layoutkeep.providers.glossary import Glossary
+
+    return Glossary(terms).verify(translated)
+
+
 class DocumentFinalizer:
     """Writes the translated document, verifies it and collects the run's figures."""
 
@@ -43,22 +86,6 @@ class DocumentFinalizer:
         self._box_crushed = box_crushed
         self._started_at = started_at
         self._on_flagged = on_flagged
-
-    def _glossary_terms(self) -> dict[str, str] | None:
-        """The run's glossary, for the re-asks below.
-
-        WHY THIS EXISTS: the first pass obeys the glossary and the passes that re-ask did not, so a
-        segment recovered here could come back with a different rendering of a term than the one
-        the run settled - the exact drift the glossary exists to prevent (the CLI passed it to its
-        own retries all along; the window drifted from it).
-        """
-        # Imported lazily: worker.py imports this module, so a top-level import would cycle.
-        from layoutkeep.ui.worker import GlossaryUnreadableError, load_glossary_terms
-
-        try:
-            return load_glossary_terms(self._config.glossary_path)
-        except GlossaryUnreadableError:
-            return None  # already reported where the provider was built
 
     def finalize(
         self,
@@ -96,7 +123,7 @@ class DocumentFinalizer:
                     translated,
                     src_lang=config.source_lang,
                     tgt_lang=config.target_lang,
-                    glossary=self._glossary_terms(),
+                    glossary=read_glossary_terms(config.glossary_path),
                 )
             if recovered:
                 self._on_status(f"recovered {recovered} untranslated segments")
@@ -113,6 +140,18 @@ class DocumentFinalizer:
             unified = unify_repeats(translated, config.target_lang)
         if unified["rewritten"]:
             self._on_status(UIStrings.get("STATUS_REPEATS_UNIFIED").format(n=unified["rewritten"]))
+
+        # The terms the run was handed, checked in the translation itself - the CLI's order: after
+        # the untranslated flags and the repeat merge, before the fitting pass, which may reword a
+        # block to make it fit. What it flags is what the reviewer has to look at.
+        terms = read_glossary_terms(config.glossary_path)
+        translated, glossary_report = check_glossary_terms(terms, translated)
+        if glossary_report["checked"]:
+            self._on_status(
+                UIStrings.get("STATUS_GLOSSARY_CHECKED").format(
+                    honoured=glossary_report["honoured"], checked=glossary_report["checked"]
+                )
+            )
 
         # PDF: translated text must fit its original boxes, exactly like the CLI fits it
         # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).
@@ -162,6 +201,10 @@ class DocumentFinalizer:
         stats = self.collect_stats(translated)
         stats["verify_repaired"] = verification.repaired
         stats["verify_remaining"] = dict(verification.remaining)
+        # The term check above, as figures: the completion screen reports them, and a run with no
+        # glossary says 0/0 rather than leaving the two fields out (the screen then stays quiet).
+        stats["glossary_checked"] = glossary_report["checked"]
+        stats["glossary_honoured"] = glossary_report["honoured"]
         self._on_job_stats(stats)
         self._on_finished(project_path)
 
@@ -196,7 +239,7 @@ class DocumentFinalizer:
                 again,
                 src_lang=config.source_lang,
                 tgt_lang=config.target_lang,
-                glossary=self._glossary_terms(),
+                glossary=read_glossary_terms(config.glossary_path),
             )
 
         report = verify_and_repair(

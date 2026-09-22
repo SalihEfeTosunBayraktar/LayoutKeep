@@ -26,6 +26,7 @@ from layoutkeep.core.docir import (
     Page,
     Span,
     Style,
+    load_project,
 )
 from layoutkeep.ui.job import JobConfig, ProviderConfig
 from layoutkeep.ui.worker import TranslationWorker
@@ -52,6 +53,10 @@ SENTENCES = (
 AUTO_TERM = "otomatik terim"
 AUTO_TERM_2 = "ikinci otomatik terim"
 USER_TERM = "kullanicinin terimi"
+
+#: The reason `providers/glossary.Glossary.verify` writes when a term it expected is not in the
+#: translation - the wording the review list shows for it.
+GLOSSARY_REASON = "sözlük terimi çeviride kullanılmamış"
 
 
 # -- fixtures -------------------------------------------------------------------------------------
@@ -490,3 +495,74 @@ def test_the_cli_asks_nothing_when_the_setting_is_off(tmp_path, capsys, monkeypa
     assert not _glossary_file(out).exists()
     assert "automatic terms" not in printed
     assert seen and all(handed is None for handed in seen), seen
+
+
+# -- the application checks the terms it was given ------------------------------------------------
+
+
+def test_the_worker_flags_a_term_the_model_ignored(qtbot, tmp_path):
+    """The term check the desktop run never made.
+
+    WHY THIS EXISTS: the command line called `Glossary.verify` after translating and the window did
+    not, so a term the model ignored reached the review list from `layoutkeep translate` and stayed
+    invisible in the application - the drift the contract forbids between the two front-ends.
+    """
+    source = _epub_with_recurring_terms(tmp_path)
+    out = tmp_path / "app-terms.tr.epub"
+    user_file = tmp_path / "user.json"
+    user_file.write_text(json.dumps({TERM: USER_TERM}), encoding="utf-8")
+
+    stats: list[dict] = []
+    worker = TranslationWorker(_job(source, out, glossary_path=str(user_file)))
+    worker.job_stats.connect(stats.append)
+    failed: list[str] = []
+    worker.failed.connect(failed.append)
+    worker.run()
+
+    assert not failed, failed
+    assert stats, "the job reported no figures"
+    # Four sentences, each holding the term once; the fake provider never renders it.
+    assert stats[-1]["glossary_checked"] == 4, stats[-1]
+    assert stats[-1]["glossary_honoured"] == 0, stats[-1]
+    # The flag reaches the block, which is what the review list reads. The verification pass may
+    # add its own finding to the same sentence, so the glossary's wording is looked for at the
+    # start of the reason rather than as the whole of it.
+    doc = load_project(out.with_suffix(".lkproj"))
+    reasons = [block.review_reason for _page, block in doc.iter_blocks() if block.needs_review]
+    assert any(r.startswith(GLOSSARY_REASON) for r in reasons), reasons
+
+
+def test_a_term_the_model_kept_is_not_flagged(qtbot, tmp_path):
+    """An ignored term and a kept one must not read alike: a name may translate to itself."""
+    source = _epub_with_recurring_terms(tmp_path)
+    out = tmp_path / "app-kept.tr.epub"
+    user_file = tmp_path / "user.json"
+    user_file.write_text(json.dumps({TERM: TERM}), encoding="utf-8")
+
+    stats: list[dict] = []
+    worker = TranslationWorker(_job(source, out, glossary_path=str(user_file)))
+    worker.job_stats.connect(stats.append)
+    failed: list[str] = []
+    worker.failed.connect(failed.append)
+    worker.run()
+
+    assert not failed, failed
+    assert stats[-1]["glossary_checked"] == 4, stats[-1]
+    assert stats[-1]["glossary_honoured"] == 4, stats[-1]
+    doc = load_project(out.with_suffix(".lkproj"))
+    reasons = [block.review_reason for _page, block in doc.iter_blocks() if block.needs_review]
+    assert not any(r.startswith(GLOSSARY_REASON) for r in reasons), reasons
+
+
+def test_a_run_without_a_glossary_checks_no_terms(qtbot, tmp_path):
+    """No term list, nothing to check: the figures say so instead of staying silent about it."""
+    source = _epub_with_recurring_terms(tmp_path)
+    out = tmp_path / "app-plain.tr.epub"
+
+    stats: list[dict] = []
+    worker = TranslationWorker(_job(source, out))
+    worker.job_stats.connect(stats.append)
+    worker.run()
+
+    assert stats[-1]["glossary_checked"] == 0, stats[-1]
+    assert stats[-1]["glossary_honoured"] == 0, stats[-1]
