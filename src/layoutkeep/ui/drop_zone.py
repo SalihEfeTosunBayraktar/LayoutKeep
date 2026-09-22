@@ -50,15 +50,19 @@ class DropZoneWidget(QFrame):
     def _init_ui(self) -> None:
         # Arayüz bileşenlerini kurar / Initializes UI elements
         self._icon_label = QLabel()
-        self._icon_label.setFixedSize(44, 44)
+        self._icon_label.setFixedSize(30, 30)
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._set_icon()
 
         self._prompt_label = QLabel(UIStrings.DROPZONE_PROMPT)
+
+
+        self._prompt_label.setWordWrap(True)
         self._prompt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._prompt_label.setStyleSheet("font-weight: 600; font-size: 14px;")
+        self._prompt_label.setStyleSheet("font-weight: 600; font-size: 13px;")
 
         self._hint_label = QLabel(UIStrings.DROPZONE_HINT)
+        self._hint_label.setWordWrap(True)
         self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._hint_label.setProperty("class", "muted")
 
@@ -67,6 +71,7 @@ class DropZoneWidget(QFrame):
         self._browse_btn.setIcon(
             get_svg_icon("folder", color=ThemeManager.current_palette().accent_text, size=16)
         )
+        self._browse_btn.setFixedHeight(32)
         self._browse_btn.clicked.connect(self._browse)
 
         self._info_container = self._build_info_container()
@@ -75,11 +80,11 @@ class DropZoneWidget(QFrame):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # Tighter than it was: this is a target to drop a file on, and it was taking half the
         # window to say so before any file had been chosen.
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(6)
+        layout.setContentsMargins(16, 6, 16, 6)
+        layout.setSpacing(4)
         # It is a target, not a panel: capped so the settings card below it is on screen
         # without scrolling at the size the window opens at.
-        self.setMaximumHeight(190)
+        self.setMaximumHeight(124)
         layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._prompt_label)
         layout.addWidget(self._hint_label)
@@ -90,7 +95,7 @@ class DropZoneWidget(QFrame):
         # Yükleme ikonunu aktif temaya göre boyar / Paints the upload icon for the theme
         pal = ThemeManager.current_palette()
         self._icon_label.setPixmap(
-            get_svg_icon("upload", color=pal.dropzone_border, size=32).pixmap(32, 32)
+            get_svg_icon("upload", color=pal.dropzone_border, size=24).pixmap(24, 24)
         )
 
     def apply_theme(self) -> None:

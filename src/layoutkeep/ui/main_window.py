@@ -49,15 +49,10 @@ class MainWindow(QWidget):
         super().__init__(parent)
         self.setObjectName("rootWindow")
         self.setWindowTitle("LayoutKeep")
-        # Wide enough for the header's stepper and the four metric cards in a row, which is
-        # what the mock-ups show. At 880 the stepper labels were clipped and the progress card
-        # had to stack its figures two-by-two.
-        # Fits a 1366x768 laptop with room to spare; the header sheds its subtitle and
-        # shortens the step labels below this rather than forcing the window wider.
-        self.resize(700, 660)
-        # Small enough for a laptop screen, and not smaller than the screens can draw: a
-        # minimum below what the layout needs does not shrink anything, it overlaps the rows.
-        self.setMinimumSize(700, 540)
+        # The size is fixed once the layout is built, at the smallest size that layout actually
+        # needs - see the end of __init__. It used to open at 700x660 with a 700x540 minimum and
+        # stay resizable; the reader wanted a compact window, and a resizable one only ever gets
+        # resized by accident.
         self._settings = app_settings()
 
         self._init_subwidgets()
@@ -65,6 +60,11 @@ class MainWindow(QWidget):
         self._wire_signals()
         self._restore_theme()
         self._restore_ui_language()
+        # The smallest size the built layout asks for, fixed: the reader wanted a compact window
+        # and no reason to resize it. `minimumSizeHint` is what the pages actually need, so nothing
+        # is clipped; the floor guards against a system where the hint comes out implausibly small.
+        hint = self.minimumSizeHint()
+        self.setFixedSize(max(620, hint.width()), max(500, hint.height()))
         # After the window is on screen, so the introduction is not the first thing Qt paints.
         QTimer.singleShot(0, self._maybe_show_welcome)
 

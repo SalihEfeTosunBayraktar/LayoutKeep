@@ -127,16 +127,24 @@ class CompletionWidget(QFrame):
         self._new_btn.setProperty("class", "primary")
         self._new_btn.clicked.connect(self.back_to_setup_requested.emit)
 
+        # Two rows, not one: three buttons side by side asked for 706 pixels on their own, and with
+        # the card's padding that was 762 - wider than the window the reader asked for. The primary
+        # pair stays together; "new translation" sits under them.
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(12)
+        btn_row.setSpacing(8)
         btn_row.addStretch()
         btn_row.addWidget(self._open_btn)
         btn_row.addWidget(self._folder_btn)
-        btn_row.addWidget(self._new_btn)
         btn_row.addStretch()
 
+        new_row = QHBoxLayout()
+        new_row.setSpacing(8)
+        new_row.addStretch()
+        new_row.addWidget(self._new_btn)
+        new_row.addStretch()
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
         layout.addStretch()
         layout.addWidget(self._title)
@@ -148,6 +156,7 @@ class CompletionWidget(QFrame):
         layout.addWidget(self._stats_label)
         layout.addSpacing(12)
         layout.addLayout(btn_row)
+        layout.addLayout(new_row)
         layout.addStretch()
 
         self.apply_theme()
