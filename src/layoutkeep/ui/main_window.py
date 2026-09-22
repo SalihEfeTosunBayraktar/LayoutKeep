@@ -10,13 +10,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QTimer, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QEvent, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
 from layoutkeep import __version__
 from layoutkeep.core import tunables
 from layoutkeep.ui.completion import CompletionWidget
+from layoutkeep.ui.floating_bridge import FloatingBarBridge
 from layoutkeep.ui.floating_progress import FloatingProgress
 from layoutkeep.ui.header import HeaderBar
 from layoutkeep.ui.job import JobConfig
@@ -98,6 +98,15 @@ class MainWindow(QWidget):
             screens=lambda: (self._setup, self._completion, self._progress, self._bar),
             step=lambda: self._stack.currentIndex() + 1,
         )
+        # Pencere ile yüzen çubuk arasındaki geçişler / Every route between window and bar
+        self._bar_bridge = FloatingBarBridge(
+            self,
+            bar=lambda: self._floating,
+            on_new_job=self._return_to_setup,
+            on_pause=self._pause_job,
+            on_resume=self._resume_job,
+            output_path=lambda: self._last_output_path,
+        )
 
     @property
     def _bar(self) -> FloatingProgress:
@@ -108,34 +117,12 @@ class MainWindow(QWidget):
         return bar
 
     def _switch_to_bar(self) -> None:
-        """Hand the run to the floating bar: the window steps aside and the bar takes over.
-
-        The bar used to be a one-way door. It appeared when a job started and when the window was
-        minimised, and once it was folded or closed there was nothing left to bring it back - the
-        reader had a running job and no compact view of it. This is the way in; the bar's own
-        "back to window" button is the way out again.
-        """
-        if self._worker is None:
-            return
-        tunables.set_value("ui.floating_progress", True)
-        self.hide()  # hideEvent hands the run to the bar (see `_sync_bar_visibility`)
+        """Hand the run to the floating bar; see `FloatingBarBridge.switch_to_bar`."""
+        self._bar_bridge.switch_to_bar(self._worker)
 
     def _sync_bar_visibility(self) -> None:
-        """The window and the bar take turns, so a run never shows two progress displays at once.
-
-        This is the bug the first screenshot of the bar came with: the run started and the reader
-        had the in-window progress screen *and* the bar on top of it. The bar is for when the
-        window is out of the way - minimised, or hidden behind other work - and it is the only
-        thing left on screen then, which is also the only way it stays reachable.
-        """
-        bar = self._floating
-        if bar is None:
-            return
-        if self.isMinimized() or not self.isVisible():
-            bar.show()
-            bar.raise_()
-        else:
-            bar.hide()
+        """Only one of the window and the bar is on screen; see `FloatingBarBridge.sync`."""
+        self._bar_bridge.sync()
 
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
@@ -174,10 +161,10 @@ class MainWindow(QWidget):
         self._progress.cancel_requested.connect(self._cancel_job)
         self._progress.pause_requested.connect(self._pause_job)
         self._progress.resume_requested.connect(self._resume_job)
-        self._bar.restore_requested.connect(self._restore_from_floating)
-        self._bar.new_job_requested.connect(self._new_job_from_floating)
-        self._bar.open_output_requested.connect(self._open_output_from_floating)
-        self._bar.pause_toggled.connect(self._toggle_pause_from_floating)
+        self._bar.restore_requested.connect(self._bar_bridge.restore_window)
+        self._bar.new_job_requested.connect(self._bar_bridge.start_new_job)
+        self._bar.open_output_requested.connect(self._bar_bridge.open_output)
+        self._bar.pause_toggled.connect(self._bar_bridge.toggle_pause)
 
     def _start_job(self, config: JobConfig) -> None:
         # Çeviri işini başlatır / Starts the translation job
@@ -212,32 +199,6 @@ class MainWindow(QWidget):
             self._bar.start_job(Path(config.input_path).name)
             self._sync_bar_visibility()
         self._worker.start()
-
-    def _restore_from_floating(self) -> None:
-        # Yüzen çubuktan ana pencereye döner / Comes back to the full window from the summary bar
-        self._bar.hide()
-        self.showNormal()
-        self.raise_()
-        self.activateWindow()
-
-    def _new_job_from_floating(self) -> None:
-        # "Yeni çeviri": kurulum ekranına döner / Starts over from the setup screen
-        self._bar.hide()
-        self._return_to_setup()
-        self._restore_from_floating()
-
-    def _open_output_from_floating(self) -> None:
-        # Çıktı dosyasını sistem varsayılanıyla açar / Opens the output with the system default app
-        path = self._last_output_path or self._bar.output_path()
-        if path:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
-
-    def _toggle_pause_from_floating(self) -> None:
-        # Yüzen çubuktaki duraklat/devam düğmesi / The bar's pause-resume toggle
-        if self._bar.is_paused():
-            self._pause_job()
-        else:
-            self._resume_job()
 
     def closeEvent(self, event) -> None:
         # Pencere kapanırken çalışan iş parçacığını güvenle durdurur / Safely stops worker on close
