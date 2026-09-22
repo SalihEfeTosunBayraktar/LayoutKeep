@@ -13,11 +13,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
-    QVBoxLayout,
     QWidget,
 )
 
-from layoutkeep.ui.branding import LOGO_SIZE, logo_pixmap
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
@@ -51,27 +49,8 @@ class HeaderBar(QFrame):
 
     def _init_ui(self) -> None:
         # Başlık ve kontrolleri yerleştirir / Lays out title and controls
-        self._logo_label = QLabel()
-        self._logo_label.setObjectName("logoLabel")
-        self._logo_label.setFixedSize(LOGO_SIZE + 4, LOGO_SIZE + 4)
-        self._set_logo_pixmap()
-
-        self._title_label = QLabel(UIStrings.APP_TITLE)
-        self._title_label.setStyleSheet("font-size: 18px; font-weight: 800; letter-spacing: 0.5px;")
-
-        self._subtitle_label = QLabel(UIStrings.APP_SUBTITLE)
-        self._subtitle_label.setProperty("class", "muted")
-
-        brand_layout = QVBoxLayout()
-        brand_layout.addWidget(self._title_label)
-        brand_layout.addWidget(self._subtitle_label)
-        # Give way before the stepper does when the window is narrow, but only then:
-        # QSizePolicy.Ignored discards the size hint outright and clipped the subtitle even
-        # with room to spare. Minimum keeps the natural width until space actually runs out.
-        self._subtitle_label.setSizePolicy(
-            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred
-        )
-
+        # No logo and no wordmark on this bar: the reader asked for a clean strip that carries the
+        # step indicator and the controls, tinted a step apart from the page behind it.
         self._step_setup = QLabel(UIStrings.STEP_SETUP)
         self._step_progress = QLabel(UIStrings.STEP_PROGRESS)
         self._step_review = QLabel(UIStrings.STEP_REVIEW)
@@ -100,9 +79,6 @@ class HeaderBar(QFrame):
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(16, 10, 16, 10)
-        main_layout.addWidget(self._logo_label)
-        main_layout.addSpacing(8)
-        main_layout.addLayout(brand_layout)
         main_layout.addStretch(1)
         # The stepper is the one part that must never be cut: two stretches of equal weight
         # squeezed it between the brand and the controls, and at the window's real width the
@@ -121,9 +97,8 @@ class HeaderBar(QFrame):
         self._apply_width_rules(self.width())
         self.set_active_step(1)
 
-    #: Below this the subtitle goes; below the second the step labels shorten. The header is
-    #: the widest thing in the window, so what it insists on is the window's minimum width.
-    _SUBTITLE_MIN_WIDTH = 1000
+    #: Below this the step labels shorten. The header is the widest thing in the window, so what
+    #: it insists on is the window's minimum width.
     _SHORT_STEPS_MIN_WIDTH = 900
     #: Under this the labels go entirely. The numbered circles stay, and they are what marks
     #: the step you are on; a half-word ("Tamamlan") tells the user less than a number does.
@@ -145,11 +120,9 @@ class HeaderBar(QFrame):
     def _apply_width_rules(self, width: int) -> None:
         """Drop the least important text first, so nothing is ever cut mid-word.
 
-        The stepper cannot be clipped - it is how the user knows where they are - and the
-        brand subtitle carries no information the title does not. So the subtitle goes first
-        and the step labels shorten second; both come back when the window is widened again.
+        The stepper cannot be clipped - it is how the user knows where they are - so when the
+        bar runs out of room the step labels shorten, and come back when it is widened again.
         """
-        self._subtitle_label.setVisible(width >= self._SUBTITLE_MIN_WIDTH)
         short = width < self._SHORT_STEPS_MIN_WIDTH
         labelled = width >= self._STEP_LABELS_MIN_WIDTH
         for label, full in (
@@ -167,10 +140,6 @@ class HeaderBar(QFrame):
             (UIStrings.STEP_SETUP, UIStrings.STEP_PROGRESS, UIStrings.STEP_REVIEW), strict=False,
         ):
             circle.setToolTip(full)
-
-    def _set_logo_pixmap(self) -> None:
-        # Logo SVG'yi etikete render eder / Renders the logo SVG into the header label
-        self._logo_label.setPixmap(logo_pixmap(LOGO_SIZE))
 
     def _init_controls(self) -> None:
         # Dil ve tema denetimlerini kurar / Sets up language and theme controls
@@ -213,8 +182,6 @@ class HeaderBar(QFrame):
 
     def retranslate_ui(self) -> None:
         # Başlık ve etiketleri güncel dilde yeniler / Retranslates header texts in active language
-        self._title_label.setText(UIStrings.APP_TITLE)
-        self._subtitle_label.setText(UIStrings.APP_SUBTITLE)
         self._step_setup.setText(UIStrings.STEP_SETUP)
         self._step_progress.setText(UIStrings.STEP_PROGRESS)
         self._step_review.setText(UIStrings.STEP_REVIEW)

@@ -25,7 +25,11 @@ def _build_qss(palette: ColorPalette) -> str:
         font-family: {FONT_FAMILY};
         font-size: 13px;
     }}
-    QFrame#headerBar, QFrame#headerBar QLabel, QFrame#headerBar QComboBox {{
+    QFrame#headerBar {{
+        background: {palette.header};
+        color: {palette.text_primary};
+    }}
+    QFrame#headerBar QLabel, QFrame#headerBar QComboBox {{
         background: transparent;
         color: {palette.text_primary};
     }}
