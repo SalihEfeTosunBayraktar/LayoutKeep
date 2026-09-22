@@ -20,11 +20,10 @@ from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     Segment,
-    apply_segments,
-    save_project,
     segments_from_document,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.ui.document_finalizer import DocumentFinalizer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
@@ -473,6 +472,24 @@ class TranslationWorker(QThread):
         # Sağlayıcıya uygulanan zaman aşımını UI'a bildirir / Reports the timeout applied to the provider
         self.batch_timeout.emit(timeout)
 
+    def _make_finalizer(self, config: JobConfig, provider=None) -> DocumentFinalizer:
+        """The write-back path lives in DocumentFinalizer; this wires the worker's signals in."""
+        return DocumentFinalizer(
+            config,
+            on_status=self.status.emit,
+            on_job_stats=self.job_stats.emit,
+            on_finished=self.finished_ok.emit,
+            fit_pass=lambda d, s: self._fit_pdf_pass(d, s, config, provider),
+            box_crushed=lambda: self._box_crushed,
+            started_at=self._started_at,
+            on_flagged=self._set_flagged,
+        )
+
+    def _set_flagged(self, flagged: int) -> None:
+        """The finalizer counts the flagged segments; the timing report shows them."""
+        if getattr(self, "_timing", None) is not None:
+            self._timing.flagged = flagged
+
     def _finalize_document(
         self,
         doc: Document,
@@ -483,171 +500,25 @@ class TranslationWorker(QThread):
         provider=None,
         phases: PhaseTimer | None = None,
     ) -> None:
-        from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
-        from layoutkeep.providers.retry import retry_untranslated
-
-        # A run started from a test or a script may not want timings; a throwaway timer keeps every
-        # `with phases.phase(...)` below valid without a branch on each one.
-        phases = phases or PhaseTimer(TimingReport())
-        flagged = sum(1 for segment in translated if segment.needs_review)
-        if getattr(self, "_timing", None) is not None:
-            self._timing.flagged = flagged
-        # Same order as the CLI, and for the same reason: a segment with no reply is usually one
-        # the parser could not line up with its batch, so it is asked for again before anything
-        # is flagged. What is still missing afterwards keeps its SOURCE text in the output, so
-        # it has to reach the review queue rather than pass as translated.
-        if provider is not None:
-            # Its own phase: this step re-asks the model for the segments it could not parse, and on
-            # a local model that is minutes per request. It used to be invisible in the timing report,
-            # which made a run's total look wrong by exactly this much (measured: 300 s on one arm).
-            with phases.phase("recover", f"{sum(1 for s in translated if not s.translated)} missing"):
-                recovered = retry_untranslated(
-                    provider,
-                    translated,
-                    src_lang=config.source_lang,
-                    tgt_lang=config.target_lang,
-                )
-            if recovered:
-                self.status.emit(f"recovered {recovered} untranslated segments")
-
-        flag_passthrough(translated)
-        flag_untranslated(translated)
-
-        # One source text, one translation across the document (core/repeats.py): the provider
-        # already shares repeated text, and this makes agree what a memory entry, an earlier run
-        # or a repair round left worded differently.
-        from layoutkeep.core.repeats import unify_repeats
-
-        with phases.phase("unify", "repeated sources"):
-            unified = unify_repeats(translated, config.target_lang)
-        if unified["rewritten"]:
-            self.status.emit(
-                UIStrings.get("STATUS_REPEATS_UNIFIED").format(n=unified["rewritten"])
-            )
-
-        # PDF: translated text must fit its original boxes, exactly like the CLI fits it
-        # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).
-        if src.suffix.lower() == ".pdf":
-            with phases.phase("fit", "PDF pass"):
-                self._fit_pdf_pass(doc, translated, config, provider)
-
-        self.status.emit("applying translation")
-        with phases.phase("apply", f"{len(translated)} segments"):
-            apply_segments(doc, translated)
-
-        self.status.emit("writing output")
-        output_doc, range_pages = _output_document(doc, config)
-        slice_path = None
-        if range_pages is not None:
-            slice_path = _source_slice(src, range_pages, out.with_suffix(".range-src.pdf"))
-            self.status.emit(f"output holds the selected {len(range_pages)} pages")
-        # The PDF writer renders *from the source file*, page by page, so a range is only honoured
-        # when the writer is handed the sliced source: dropping pages from the document alone left
-        # the whole book in the output (the pages the range left out simply went untouched).
-        write_source = slice_path or src
-        try:
-            with phases.phase("write", out.suffix.lower() or "output"):
-                _write_document(output_doc, write_source, out)
-            with phases.phase("verify", "lossless audit"):
-                verification = self._verify(
-                    output_doc, translated, write_source, out, config, provider, source_slice=slice_path
-                )
-        finally:
-            if slice_path is not None:
-                slice_path.unlink(missing_ok=True)
-
-        # Çift dilli çıktı, doğrulamadan SONRA yazılır: doğrulama asıl (tek dilli) PDF'i denetler
-        # ve gerekirse yeniden yazar; çift dilli dosya onun yanına, son hâlinden üretilir.
-        dual_mode = getattr(config, "dual_mode", "") or ""
-        if dual_mode and src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf":
-            from layoutkeep.writers.dual_pdf import compose_dual
-
-            dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
-            self.status.emit("writing bilingual copy")
-            composed = compose_dual(src, out, dual_path, dual_mode)
-            self.status.emit(f"bilingual copy: {composed} pages ({dual_mode})")
-
-        project_path = config.project_path or str(out.with_suffix(".lkproj"))
-        save_project(doc, project_path)
-        stats = self._collect_stats(translated)
-        stats["verify_repaired"] = verification.repaired
-        stats["verify_remaining"] = dict(verification.remaining)
-        self.job_stats.emit(stats)
-        self.finished_ok.emit(project_path)
-
-    def _verify(
-        self,
-        doc,
-        translated,
-        src: Path,
-        out: Path,
-        config: JobConfig,
-        provider=None,
-        source_slice: Path | None = None,
-    ):
-        """The CLI's verification pass (layoutkeep/verify.py): check what was written, ask again
-        for what a translation lost, flag the rest - so the review queue shows every loss.
-
-        `source_slice` is the selected pages of the source when the output holds a page range:
-        the pass pairs source page N with output page N, and a subset output has to be checked
-        against the matching subset of the source, not against the whole book.
-        """
-        from layoutkeep.providers.retry import retry_untranslated
-        from layoutkeep.verify import verify_and_repair
-
-        self.status.emit("verifying output")
-        pdf_to_pdf = src.suffix.lower() == ".pdf" and out.suffix.lower() == ".pdf"
-        compare_against = source_slice or (src if pdf_to_pdf else None)
-
-        def ask_again(again) -> int:
-            return retry_untranslated(
-                provider, again, src_lang=config.source_lang, tgt_lang=config.target_lang
-            )
-
-        report = verify_and_repair(
-            doc,
-            translated,
-            target_lang=config.target_lang,
-            write=lambda: _write_document(doc, src, out),
-            source_pdf=compare_against,
-            output_pdf=out if compare_against is not None else None,
-            ask_again=ask_again if provider is not None else None,
-            refit=(
-                (lambda again: self._fit_pdf_pass(doc, again, config, provider))
-                if src.suffix.lower() == ".pdf" else None
-            ),
+        """Delegate to DocumentFinalizer: writing, verification and stats live there now."""
+        self._make_finalizer(config, provider).finalize(
+            doc, translated, src, out, provider=provider, phases=phases
         )
-        if report.repaired:
-            self.status.emit(f"verification mended {report.repaired} segments")
-        return report
+
+    def _verify(self, doc, translated, src: Path, out: Path, config: JobConfig, provider=None,
+                source_slice: Path | None = None):
+        """Delegate to DocumentFinalizer.verify."""
+        return self._make_finalizer(config, provider).verify(
+            doc, translated, src, out, config, provider, source_slice=source_slice
+        )
 
     def _count_box_crushed(self) -> None:
         """One more block whose box, not its text, needs a look. The runner calls this."""
         self._box_crushed += 1
 
     def _collect_stats(self, translated: list[Segment]) -> dict:
-        """Figures the completion screen reports, all counted rather than estimated.
-
-        `clean_ratio` is the share of segments that finished without raising a review flag.
-        It is presented as layout fidelity because every reason a segment gets flagged - a
-        translation that would not fit its box, lost inline styling, a dropped protected
-        value, text handed back untranslated - is a way the output departs from the original.
-        """
-        total = len(translated)
-        done = sum(1 for s in translated if s.target)
-        flagged = sum(1 for s in translated if s.needs_review)
-        chars = sum(len(s.target or "") for s in translated)
-        elapsed = (time.monotonic() - self._started_at) if self._started_at else 0.0
-        return {
-            "segments_total": total,
-            "segments_done": done,
-            "segments_flagged": flagged,
-            "flagged_box_crushed": self._box_crushed,
-            "chars": chars,
-            "elapsed_s": elapsed,
-            "chars_per_second": (chars / elapsed) if elapsed > 0 else 0.0,
-            "clean_ratio": ((total - flagged) / total) if total else 0.0,
-        }
+        """Delegate to DocumentFinalizer.collect_stats."""
+        return self._make_finalizer(self._config).collect_stats(translated)
 
     def _fit_pdf_pass(
         self, doc: Document, segments: list[Segment], config: JobConfig, provider=None
