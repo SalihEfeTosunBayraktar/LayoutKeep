@@ -164,3 +164,41 @@ def test_the_translation_comes_back_in_document_order(monkeypatch) -> None:
     assert result is not None
     assert [seg.source for seg in result] == [seg.source for seg in segments]
     assert [seg.target for seg in result] == [f"T:{seg.source}" for seg in segments]
+
+
+def test_a_short_document_still_fills_the_configured_slots(monkeypatch) -> None:
+    """Driving the 0.9.10 exe: 32 segments with eight workers and batches of twenty went out as two
+    requests, one after the other in practice. A short document is split into smaller batches so
+    every configured slot has one - never below the floor, so a batch still carries context."""
+    provider = _OverlapProvider()
+    monkeypatch.setattr(
+        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+    )
+    tunables.set_value(KEY, 8)
+    tunables.set_value(CHUNK, 20)
+    worker = _Worker()
+    segments = _segments(32)
+
+    result = _run_translation_loop(
+        worker, provider, None, segments, len(segments), 100, source_lang="en", target_lang="tr"
+    )
+
+    assert result is not None and [seg.source for seg in result] == [seg.source for seg in segments]
+    assert provider.peak == 8, f"only {provider.peak} of 8 slots were used"
+
+
+def test_a_tiny_document_keeps_batches_of_the_floor_size(monkeypatch) -> None:
+    provider = _OverlapProvider()
+    monkeypatch.setattr(
+        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+    )
+    tunables.set_value(KEY, 8)
+    tunables.set_value(CHUNK, 20)
+    worker = _Worker()
+
+    result = _run_translation_loop(
+        worker, provider, None, _segments(8), 8, 100, source_lang="en", target_lang="tr"
+    )
+
+    assert result is not None
+    assert provider.peak == 2, "8 segments at a floor of 4 per batch are two requests"

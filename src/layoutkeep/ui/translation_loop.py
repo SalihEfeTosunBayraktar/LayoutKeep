@@ -20,6 +20,9 @@ from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
 from layoutkeep.ui.strings import UIStrings
 
+#: The smallest batch a short document is cut into, so each request keeps some context.
+_MIN_BATCH = 4
+
 
 def _segment_preview(source_text: str) -> str:
     """Build the short single-line preview shown next to the active segment."""
@@ -87,7 +90,11 @@ def _run_translation_loop(
     )
 
     workers = max(1, int(tunables.get("translation.workers") or 1))
-    chunk_size = int(tunables.get("batch.chunk_size"))
+    # A short document is cut into smaller batches so every configured slot gets one: 32 segments
+    # in batches of twenty were two requests for eight slots. Never below the floor - a batch still
+    # has to carry some context for the model.
+    configured = int(tunables.get("batch.chunk_size"))
+    chunk_size = min(configured, max(_MIN_BATCH, -(-total // workers)))
     batches = [segments[start : start + chunk_size] for start in range(0, total, chunk_size)]
     providers = _provider_pool(worker._config, provider, workers)
 
