@@ -51,6 +51,10 @@
   footer { color: var(--muted); font-size: .9rem; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.2rem; }
   code { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: .1rem .35rem; font-size: .9em; }
   .ok { color: var(--ok); }
+  table.bars { border-collapse: collapse; margin: 8px 0 4px; font-size: 15px; }
+  table.bars th, table.bars td { border: 1px solid var(--muted); padding: 6px 12px; text-align: left; }
+  table.bars small { font-weight: 400; color: var(--muted); }
+  p.note { font-size: 14px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -63,14 +67,22 @@
   </p>
 
   <p>
-    <strong>Which direction is ready:</strong> English → Turkish is what this project is built around,
-    and the only pair whose measured results are at this level. <strong>Every other direction is
-    experimental</strong> — Turkish → English is the measured gap, because Turkish is the longer
-    target language and the same paragraph that expands on the way in is squeezed on the way out.
-    <a href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep#readme">The README has the numbers.</a>
+    <strong>Which directions are ready:</strong> English → Turkish and Turkish → English. In
+    LayoutKeep 0.9.10 both cleared all three bars on a fixed bench of 21 documents × 3 pages
+    (google/gemma-4-e4b through LM Studio, commit 961de7a). <strong>Every other pair is
+    experimental</strong>: it translates, but it has not been measured.
   </p>
 
+  <table class="bars">
+    <tr><th></th><th>Quality<br><small>MQM judge, mean / acceptable</small></th><th>Term consistency</th><th>Layout<br><small>blocks drawn intact</small></th></tr>
+    <tr><td>English → Turkish</td><td>94.8 / 92%</td><td>94.2%</td><td>93.9%</td></tr>
+    <tr><td>Turkish → English</td><td>96.0 / 94%</td><td>92.7%</td><td>90.4%</td></tr>
+  </table>
+  <p class="note">Every page of that bench is published with the version, commit and model that
+  translated it and its own three numbers: <a href="docs/bench/">the 0.9.10 bench, page by page</a>.</p>
+
   <div class="cta">
+    <a class="button" href="docs/bench/">0.9.10 bench: 21 documents, both directions →</a>
     <a class="button" href="docs/comparison/">Open the page-by-page comparison →</a>
     <a class="button" href="docs/story/en/">Read the whole story — 8 chapters →</a>
     <a class="ghost" href="https://github.com/SalihEfeTosunBayraktar/LayoutKeep#readme">Read the README</a>

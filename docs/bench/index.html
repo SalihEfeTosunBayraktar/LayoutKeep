@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LayoutKeep — original and translation, side by side</title>
+<style>
+  :root { color-scheme: dark; --ink:#e8eaed; --muted:#9aa0a6; --line:#2b2f36; --accent:#4c8dff;
+           --warn:#e0a458; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, "Segoe UI", sans-serif; background:#0f1115; color:var(--ink); }
+  header { padding:18px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#0f1115f2; backdrop-filter:blur(6px); z-index:5; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; }
+  .langs { position:absolute; top:18px; right:22px; display:flex; gap:6px; }
+  .langs button { padding:4px 10px; border-radius:6px; border:1px solid var(--line); background:#151922;
+                   color:var(--muted); cursor:pointer; font:inherit; font-size:12px; }
+  .langs button.active { border-color:var(--accent); color:var(--ink); }
+  main { display:grid; grid-template-columns: 260px 1fr; gap:0; min-height: calc(100vh - 74px); }
+  nav { border-right:1px solid var(--line); padding:12px; overflow:auto; max-height: calc(100vh - 74px); }
+  nav button { display:block; width:100%; text-align:left; margin:0 0 6px; padding:8px 10px; border:1px solid var(--line);
+                border-radius:8px; background:#151922; color:var(--ink); cursor:pointer; font:inherit; }
+  nav button.active { border-color:var(--accent); background:#1b2433; }
+  nav button small { display:block; color:var(--muted); font-size:11px; }
+  section { padding:16px 20px 40px; }
+  h2 { font-size:16px; margin:4px 0 2px; }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  .meta.stale { color:var(--warn); }
+  .devtoggle { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted-foreground); padding: 4px 2px; }
+.devtoggle input { accent-color: var(--accent); }
+nav button.stale { border-color:var(--warn); }
+  .viewport { overflow:auto; max-height:82vh; border:1px solid var(--line); border-radius:10px; background:#14171d; }
+  .stage { position:relative; width:100%; touch-action:none; cursor:ew-resize; }
+  .stage img { display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }
+  .stage .after { position:absolute; inset:0; }
+  .stage .before { position:relative; z-index:2; clip-path: inset(0 50% 0 0); }
+  .handle { position:absolute; top:0; bottom:0; left:50%; width:2px; background:var(--accent); z-index:3; }
+  .handle::after { content:""; position:absolute; top:50%; left:50%; width:34px; height:34px; margin:-17px 0 0 -17px;
+                    border-radius:50%; border:2px solid var(--accent); background:#0f1115cc; }
+  .tag { position:absolute; top:10px; padding:3px 8px; border-radius:6px; font-size:12px; background:#0f1115cc; z-index:4; }
+  .tag.a { left:10px; } .tag.b { right:10px; }
+  .pages { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 0; }
+  .pages button { padding:5px 9px; border-radius:6px; border:1px solid var(--line); background:#151922; color:var(--ink); cursor:pointer; font:inherit; font-size:13px; }
+  .pages button.active { border-color:var(--accent); background:#1b2433; }
+  .hint { color:var(--muted); font-size:12px; margin-top:8px; }
+  .zoom { display:flex; align-items:center; gap:8px; margin:10px 0 8px; }
+  .zoom button { min-width:34px; padding:5px 10px; border-radius:6px; border:1px solid var(--line); background:#151922;
+                  color:var(--ink); cursor:pointer; font:inherit; font-size:14px; }
+  .zoom button:hover { border-color:var(--accent); }
+  .zoom .level { min-width:52px; text-align:center; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<header>
+  <h1 data-i18n="title">LayoutKeep — original and translation, side by side</h1>
+  <div class="sub" data-i18n="sub">Drag the divider (or use ← →): the original on the left, the translated page on the right. Ctrl + wheel zooms. 21 documents.</div>
+  <div class="langs">
+    <button type="button" data-lang="en">EN</button>
+    <button type="button" data-lang="tr">TR</button>
+  </div>
+</header>
+<main>
+  <nav id="docs"></nav>
+  <section>
+    <h2 id="title"></h2>
+    <div class="meta" id="meta"></div>
+    <div class="zoom">
+      <button id="zoom-out" title="Zoom out (Ctrl -)" data-i18n-title="zoom_out">−</button>
+      <span class="level" id="zoom-level">100%</span>
+      <button id="zoom-in" title="Zoom in (Ctrl +)" data-i18n-title="zoom_in">+</button>
+      <button id="zoom-fit" title="Fit to width (0)" data-i18n="zoom_fit" data-i18n-title="zoom_fit_title">Fit</button>
+      <span class="hint" data-i18n="zoom_hint">Ctrl + wheel also zooms; once zoomed in the page scrolls.</span>
+    </div>
+    <div class="viewport" id="viewport">
+      <div class="stage" id="stage">
+        <img class="before" id="before" alt="original page" data-i18n-alt="alt_before">
+        <div class="after"><img id="after" alt="translated page" data-i18n-alt="alt_after"></div>
+        <div class="tag a" data-i18n="tag_before">original</div>
+        <div class="tag b" data-i18n="tag_after">translation</div>
+        <div class="handle" id="handle"></div>
+      </div>
+    </div>
+    <div class="pages" id="pages"></div>
+    <div class="hint" data-i18n="footer_hint">Images at 144 dpi. Source: _artifacts/heldout/bench/961de7a-d.</div>
+  </section>
+</main>
+<script>
+const DATA = [{"title": "arxiv_18014 (EN → TR)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "93.1", "consistency": "100%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/arxiv_18014/0000_a.webp", "after": "img/arxiv_18014/0000_b.webp"}, {"page": 2, "before": "img/arxiv_18014/0001_a.webp", "after": "img/arxiv_18014/0001_b.webp"}, {"page": 3, "before": "img/arxiv_18014/0002_a.webp", "after": "img/arxiv_18014/0002_b.webp"}]}, {"title": "arxiv_19113 (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "93.0", "consistency": "100%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/arxiv_19113/0000_a.webp", "after": "img/arxiv_19113/0000_b.webp"}, {"page": 2, "before": "img/arxiv_19113/0001_a.webp", "after": "img/arxiv_19113/0001_b.webp"}, {"page": 3, "before": "img/arxiv_19113/0002_a.webp", "after": "img/arxiv_19113/0002_b.webp"}]}, {"title": "arxiv_19145 (EN → TR)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "91.8", "consistency": "94%", "layout": "84%"}, "dev": false, "pages": [{"page": 1, "before": "img/arxiv_19145/0000_a.webp", "after": "img/arxiv_19145/0000_b.webp"}, {"page": 2, "before": "img/arxiv_19145/0001_a.webp", "after": "img/arxiv_19145/0001_b.webp"}, {"page": 3, "before": "img/arxiv_19145/0002_a.webp", "after": "img/arxiv_19145/0002_b.webp"}]}, {"title": "cookbook_1907 (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "87.2", "consistency": "81%", "layout": "98%"}, "dev": false, "pages": [{"page": 1, "before": "img/cookbook_1907/0000_a.webp", "after": "img/cookbook_1907/0000_b.webp"}, {"page": 2, "before": "img/cookbook_1907/0001_a.webp", "after": "img/cookbook_1907/0001_b.webp"}, {"page": 3, "before": "img/cookbook_1907/0002_a.webp", "after": "img/cookbook_1907/0002_b.webp"}]}, {"title": "history_of_math (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "79.5", "consistency": "83%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/history_of_math/0000_a.webp", "after": "img/history_of_math/0000_b.webp"}, {"page": 2, "before": "img/history_of_math/0001_a.webp", "after": "img/history_of_math/0001_b.webp"}, {"page": 3, "before": "img/history_of_math/0002_a.webp", "after": "img/history_of_math/0002_b.webp"}]}, {"title": "irs_i1040gi (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "95.9", "consistency": "97%", "layout": "68%"}, "dev": false, "pages": [{"page": 1, "before": "img/irs_i1040gi/0000_a.webp", "after": "img/irs_i1040gi/0000_b.webp"}, {"page": 2, "before": "img/irs_i1040gi/0001_a.webp", "after": "img/irs_i1040gi/0001_b.webp"}, {"page": 3, "before": "img/irs_i1040gi/0002_a.webp", "after": "img/irs_i1040gi/0002_b.webp"}]}, {"title": "irs_p505 (EN → TR)", "losses": "3 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "97.8", "consistency": "99%", "layout": "97%"}, "dev": false, "pages": [{"page": 1, "before": "img/irs_p505/0000_a.webp", "after": "img/irs_p505/0000_b.webp"}, {"page": 2, "before": "img/irs_p505/0001_a.webp", "after": "img/irs_p505/0001_b.webp"}, {"page": 3, "before": "img/irs_p505/0002_a.webp", "after": "img/irs_p505/0002_b.webp"}]}, {"title": "mushrooms_1895 (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "94.1", "consistency": "92%", "layout": "92%"}, "dev": false, "pages": [{"page": 1, "before": "img/mushrooms_1895/0000_a.webp", "after": "img/mushrooms_1895/0000_b.webp"}, {"page": 2, "before": "img/mushrooms_1895/0001_a.webp", "after": "img/mushrooms_1895/0001_b.webp"}, {"page": 3, "before": "img/mushrooms_1895/0002_a.webp", "after": "img/mushrooms_1895/0002_b.webp"}]}, {"title": "nasa_scan (EN → TR)", "losses": "3 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "82.7", "layout": "69%"}, "dev": false, "pages": [{"page": 1, "before": "img/nasa_scan/0000_a.webp", "after": "img/nasa_scan/0000_b.webp"}]}, {"title": "nist_jres (EN → TR)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "95.5", "consistency": "94%", "layout": "90%"}, "dev": false, "pages": [{"page": 1, "before": "img/nist_jres/0000_a.webp", "after": "img/nist_jres/0000_b.webp"}, {"page": 2, "before": "img/nist_jres/0001_a.webp", "after": "img/nist_jres/0001_b.webp"}, {"page": 3, "before": "img/nist_jres/0002_a.webp", "after": "img/nist_jres/0002_b.webp"}]}, {"title": "nist_vapor_scan (EN → TR)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "97.0", "consistency": "94%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/nist_vapor_scan/0000_a.webp", "after": "img/nist_vapor_scan/0000_b.webp"}, {"page": 2, "before": "img/nist_vapor_scan/0001_a.webp", "after": "img/nist_vapor_scan/0001_b.webp"}, {"page": 3, "before": "img/nist_vapor_scan/0002_a.webp", "after": "img/nist_vapor_scan/0002_b.webp"}]}, {"title": "plos (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "97.6", "consistency": "91%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/plos/0000_a.webp", "after": "img/plos/0000_b.webp"}, {"page": 2, "before": "img/plos/0001_a.webp", "after": "img/plos/0001_b.webp"}, {"page": 3, "before": "img/plos/0002_a.webp", "after": "img/plos/0002_b.webp"}]}, {"title": "sbb_plan_12_en (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "97.7", "consistency": "95%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/sbb_plan_12_en/0000_a.webp", "after": "img/sbb_plan_12_en/0000_b.webp"}, {"page": 2, "before": "img/sbb_plan_12_en/0001_a.webp", "after": "img/sbb_plan_12_en/0001_b.webp"}, {"page": 3, "before": "img/sbb_plan_12_en/0002_a.webp", "after": "img/sbb_plan_12_en/0002_b.webp"}]}, {"title": "tr_cmk_5271 (TR → EN)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "96.5", "consistency": "89%", "layout": "89%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_cmk_5271/0000_a.webp", "after": "img/tr_cmk_5271/0000_b.webp"}, {"page": 2, "before": "img/tr_cmk_5271/0001_a.webp", "after": "img/tr_cmk_5271/0001_b.webp"}, {"page": 3, "before": "img/tr_cmk_5271/0002_a.webp", "after": "img/tr_cmk_5271/0002_b.webp"}]}, {"title": "tr_kalkinma_11 (TR → EN)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "97.8", "consistency": "93%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_kalkinma_11/0000_a.webp", "after": "img/tr_kalkinma_11/0000_b.webp"}, {"page": 2, "before": "img/tr_kalkinma_11/0001_a.webp", "after": "img/tr_kalkinma_11/0001_b.webp"}, {"page": 3, "before": "img/tr_kalkinma_11/0002_a.webp", "after": "img/tr_kalkinma_11/0002_b.webp"}]}, {"title": "tr_kalkinma_12 (TR → EN)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "95.5", "consistency": "88%", "layout": "92%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_kalkinma_12/0000_a.webp", "after": "img/tr_kalkinma_12/0000_b.webp"}, {"page": 2, "before": "img/tr_kalkinma_12/0001_a.webp", "after": "img/tr_kalkinma_12/0001_b.webp"}, {"page": 3, "before": "img/tr_kalkinma_12/0002_a.webp", "after": "img/tr_kalkinma_12/0002_b.webp"}]}, {"title": "tr_shk_2828 (TR → EN)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "94.4", "consistency": "100%", "layout": "80%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_shk_2828/0000_a.webp", "after": "img/tr_shk_2828/0000_b.webp"}, {"page": 2, "before": "img/tr_shk_2828/0001_a.webp", "after": "img/tr_shk_2828/0001_b.webp"}, {"page": 3, "before": "img/tr_shk_2828/0002_a.webp", "after": "img/tr_shk_2828/0002_b.webp"}]}, {"title": "tr_tck_5237 (TR → EN)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "96.6", "consistency": "96%", "layout": "95%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_tck_5237/0000_a.webp", "after": "img/tr_tck_5237/0000_b.webp"}, {"page": 2, "before": "img/tr_tck_5237/0001_a.webp", "after": "img/tr_tck_5237/0001_b.webp"}, {"page": 3, "before": "img/tr_tck_5237/0002_a.webp", "after": "img/tr_tck_5237/0002_b.webp"}]}, {"title": "tr_tmk_4721 (TR → EN)", "losses": "1 loss(es)", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "TR → EN", "date": "2026-09-23", "quality": "95.7", "consistency": "88%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/tr_tmk_4721/0000_a.webp", "after": "img/tr_tmk_4721/0000_b.webp"}, {"page": 2, "before": "img/tr_tmk_4721/0001_a.webp", "after": "img/tr_tmk_4721/0001_b.webp"}, {"page": 3, "before": "img/tr_tmk_4721/0002_a.webp", "after": "img/tr_tmk_4721/0002_b.webp"}]}, {"title": "wiki_photosynthesis (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "97.2", "consistency": "96%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/wiki_photosynthesis/0000_a.webp", "after": "img/wiki_photosynthesis/0000_b.webp"}, {"page": 2, "before": "img/wiki_photosynthesis/0001_a.webp", "after": "img/wiki_photosynthesis/0001_b.webp"}, {"page": 3, "before": "img/wiki_photosynthesis/0002_a.webp", "after": "img/wiki_photosynthesis/0002_b.webp"}]}, {"title": "wiki_printing_press (EN → TR)", "losses": "", "audited": true, "note": "", "stale": "", "record": {"version": "0.9.10", "commit": "961de7a", "model": "google/gemma-4-e4b", "direction": "EN → TR", "date": "2026-09-23", "quality": "91.4", "consistency": "86%", "layout": "100%"}, "dev": false, "pages": [{"page": 1, "before": "img/wiki_printing_press/0000_a.webp", "after": "img/wiki_printing_press/0000_b.webp"}, {"page": 2, "before": "img/wiki_printing_press/0001_a.webp", "after": "img/wiki_printing_press/0001_b.webp"}, {"page": 3, "before": "img/wiki_printing_press/0002_a.webp", "after": "img/wiki_printing_press/0002_b.webp"}]}];
+
+// The labels arrive from the generator (`TEXT` in comparison_site.py) as one object per language:
+// English is the default because this page is the project's public face, and Turkish is one
+// click away - the same rule the application itself follows.
+const TEXT = {"en": {"title": "LayoutKeep — original and translation, side by side", "sub": "Drag the divider (or use ← →): the original on the left, the translated page on the right. Ctrl + wheel zooms. 21 documents.", "zoom_out": "Zoom out (Ctrl -)", "zoom_in": "Zoom in (Ctrl +)", "zoom_fit": "Fit", "zoom_fit_title": "Fit to width (0)", "zoom_hint": "Ctrl + wheel also zooms; once zoomed in the page scrolls.", "alt_before": "original page", "alt_after": "translated page", "tag_before": "original", "tag_after": "translation", "footer_hint": "Images at 144 dpi. Source: _artifacts/heldout/bench/961de7a-d.", "dev_toggle": "show development runs", "pages": "pages", "stale": "recorded {c} (not current)", "audit": "audit", "no_findings": "lossless audit: nothing found", "note_latest": "latest code, real model", "quality": "quality", "consistency": "term consistency", "layout": "layout"}, "tr": {"title": "LayoutKeep — orijinal ve çeviri, yan yana", "sub": "Ayırıcıyı sürükle (ya da ← → tuşları): solda orijinal, sağda çevrilmiş sayfa. Ctrl + tekerlek yakınlaştırır. 21 belge.", "zoom_out": "Uzaklaştır (Ctrl -)", "zoom_in": "Yakınlaştır (Ctrl +)", "zoom_fit": "Sığdır", "zoom_fit_title": "Genişliğe sığdır (0)", "zoom_hint": "Ctrl + tekerlek de yakınlaştırır; yakınlaşınca sayfa kaydırılır.", "alt_before": "orijinal sayfa", "alt_after": "çevrilmiş sayfa", "tag_before": "orijinal", "tag_after": "çeviri", "footer_hint": "Görseller 144 dpi. Kaynak: _artifacts/heldout/bench/961de7a-d.", "dev_toggle": "geliştirme koşularını göster", "pages": "sayfa", "stale": "kayıt {c} (güncel değil)", "audit": "denetim", "no_findings": "kayıpsızlık denetimi: bulgu yok", "note_latest": "en güncel kod, gerçek model", "quality": "kalite", "consistency": "terim tutarlılığı", "layout": "düzen"}};
+
+let current = 0, page = 0, dragging = false, ratio = 0.5, zoom = 1;
+const $ = (id) => document.getElementById(id);
+
+function applyLanguage(lang) {
+  const t = TEXT[lang] || TEXT.en;
+  document.documentElement.lang = TEXT[lang] ? lang : "en";
+  document.title = t.title;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const text = t[el.dataset.i18n];
+    if (text) el.textContent = text;
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    const text = t[el.dataset.i18nTitle];
+    if (text) el.title = text;
+  });
+  document.querySelectorAll("[data-i18n-alt]").forEach((el) => {
+    const text = t[el.dataset.i18nAlt];
+    if (text) el.alt = text;
+  });
+  document.querySelectorAll("[data-lang]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.lang === document.documentElement.lang);
+  });
+  renderNav();
+  showDocument(current);
+  try { localStorage.setItem("lk_lang", document.documentElement.lang); } catch (e) { /* file:// may refuse */ }
+}
+
+function setRatio(value) {
+  ratio = Math.min(1, Math.max(0, value));
+  $("before").style.clipPath = `inset(0 ${(1 - ratio) * 100}% 0 0)`;
+  $("handle").style.left = `${ratio * 100}%`;
+}
+
+function setZoom(value) {
+  zoom = Math.min(4, Math.max(0.25, value));
+  $("stage").style.width = (zoom * 100) + "%";
+  $("zoom-level").textContent = Math.round(zoom * 100) + "%";
+}
+
+function showDocument(index) {
+  current = index; page = 0;
+  const doc = DATA[index];
+  const t = TEXT[document.documentElement.lang] || TEXT.en;
+  $("title").textContent = doc.title;
+  const audit = doc.audited ? (doc.losses ? t.audit + ": " + doc.losses : t.no_findings) : "";
+  const note = doc.note ? t["note_" + doc.note] || "" : "";
+  const stale = doc.stale ? t.stale.replace("{c}", doc.stale) : "";
+  const r = doc.record;
+  const record = r ? [r.direction, "LayoutKeep " + r.version + " (" + r.commit + ")", r.model,
+    r.quality ? t.quality + " " + r.quality : "", r.consistency ? t.consistency + " " + r.consistency : "",
+    r.layout ? t.layout + " " + r.layout : "", r.date].filter(Boolean).join(" · ") : "";
+  $("meta").textContent = [doc.pages.length + " " + t.pages, record, audit, note, stale]
+    .filter(Boolean).join(" · ");
+  $("meta").classList.toggle("stale", Boolean(doc.stale));
+  $("pages").replaceChildren(...doc.pages.map((record, i) => {
+    const button = document.createElement("button");
+    button.textContent = record.page;
+    button.onclick = () => showPage(i);
+    return button;
+  }));
+  [...$("docs").children].forEach((child, i) => child.classList.toggle("active", i === index));
+  showPage(0);
+}
+
+function showPage(index) {
+  page = index;
+  const record = DATA[current].pages[index];
+  $("before").src = record.before;
+  $("after").src = record.after;
+  [...$("pages").children].forEach((child, i) => child.classList.toggle("active", i === index));
+}
+
+const stage = $("stage");
+const move = (event) => {
+  const box = stage.getBoundingClientRect();
+  const x = (event.touches ? event.touches[0].clientX : event.clientX) - box.left;
+  setRatio(x / box.width);
+};
+stage.addEventListener("pointerdown", (event) => { dragging = true; move(event); });
+window.addEventListener("pointerup", () => { dragging = false; });
+window.addEventListener("pointermove", (event) => { if (dragging) move(event); });
+$("zoom-in").onclick = () => setZoom(zoom * 1.25);
+$("zoom-out").onclick = () => setZoom(zoom / 1.25);
+$("zoom-fit").onclick = () => setZoom(1);
+$("viewport").addEventListener("wheel", (event) => {
+  if (!event.ctrlKey) return;  // plain wheel still scrolls the page
+  event.preventDefault();
+  setZoom(zoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+}, { passive: false });
+window.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowLeft") showPage(Math.max(0, page - 1));
+  if (event.key === "ArrowRight") showPage(Math.min(DATA[current].pages.length - 1, page + 1));
+  if (event.key === "+" || event.key === "=") setZoom(zoom * 1.25);
+  if (event.key === "-" || event.key === "_") setZoom(zoom / 1.25);
+  if (event.key === "0") setZoom(1);
+});
+
+const nav = $("docs");
+// The sidebar is the shop window: the `fresh_*` entries are the fixture runs this project uses
+// to measure itself (one page each, named after the fixture), not documents anyone came to read.
+// They stay one checkbox away rather than gone, because they are the evidence behind the
+// numbers in the reports.
+const toggle = document.createElement("label");
+toggle.className = "devtoggle";
+toggle.innerHTML = `<input type="checkbox" id="showdev"> <span data-i18n="dev_toggle">show development runs</span>`;
+nav.append(toggle);
+toggle.querySelector("input").onchange = () => renderNav();
+
+function renderNav() {
+  [...nav.querySelectorAll("button")].forEach((b) => b.remove());
+  const showDev = toggle.querySelector("input").checked;
+  DATA.forEach((doc, index) => {
+    if (doc.dev && !showDev) return;
+    const button = document.createElement("button");
+    const t = TEXT[document.documentElement.lang] || TEXT.en;
+    const stale = doc.stale ? " · " + t.stale.replace("{c}", doc.stale) : "";
+    button.innerHTML = `${doc.title}<small>${doc.pages.length} ${t.pages}${stale}</small>`;
+    button.classList.toggle("stale", Boolean(doc.stale));
+    button.onclick = () => showDocument(index);
+    nav.append(button);
+  });
+}
+renderNav();
+setRatio(0.5);
+document.querySelectorAll("[data-lang]").forEach((b) => { b.onclick = () => applyLanguage(b.dataset.lang); });
+let initial = "en";
+try { initial = localStorage.getItem("lk_lang") || "en"; } catch (e) { /* file:// may refuse */ }
+applyLanguage(initial);
+showDocument(DATA.findIndex((d) => !d.dev) || 0);
+</script>
+</body>
+</html>
