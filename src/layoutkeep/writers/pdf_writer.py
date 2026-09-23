@@ -46,7 +46,7 @@ from layoutkeep.core.docir import BBox, Block, Document, Span, Style
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
 from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, missing_glyphs, resolve_font
-from layoutkeep.fitting.growth import free_below, may_grow
+from layoutkeep.fitting.growth import free_below, free_right, may_grow, may_grow_right
 from layoutkeep.fitting.room import room_below
 
 if TYPE_CHECKING:  # numpy is imported where it is used: writing a PDF does not need it
@@ -219,7 +219,17 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                         if not _unchanged(block) and may_grow(block)
                         else 0.0
                     )
-                    rect = _layout_rect(block.bbox, room, grant)
+                    # The paper beside the line, offered to every role that reads left to right:
+                    # widening a heading or a running header keeps its one line (which is what
+                    # those roles protect), while room *below* is what wraps them. A table cell and
+                    # a centred block are excluded (see `growth.may_grow_right`). The fitting pass
+                    # granted exactly this much, from the same rule.
+                    grant_right = (
+                        free_right(block, everything, obstacles=pictures)
+                        if not _unchanged(block) and may_grow_right(block)
+                        else 0.0
+                    )
+                    rect = _layout_rect(block.bbox, room, grant, grant_right)
                     _draw_block(page, rect, html, css, resolver.archive)
         # `garbage=4` dedupes identical objects: every block drawn in a given resolved font
         # embeds its own copy of that font's subset bytes (`insert_htmlbox`'s own font-loading
@@ -798,7 +808,8 @@ def _laid_out_whole(drawn: str, html: str) -> bool:
 
 
 def _layout_rect(
-    bbox: BBox, room_below: float | None = None, grant_below: float = 0.0
+    bbox: BBox, room_below: float | None = None, grant_below: float = 0.0,
+    grant_right: float = 0.0,
 ) -> pymupdf.Rect:
     """The box `insert_htmlbox` is given for a block, which is not quite the box the reader
     measured.
@@ -814,6 +825,12 @@ def _layout_rect(
     glyph still starts where the source's did. `measure_fit` and the draw both go through here:
     when they disagreed, fitting decided a label had to shrink and the writer then shrank it
     again from there.
+
+    `grant_right` is the paper the page has beside the block (`fitting.growth.free_right`), which
+    the fitting pass measured against: the tight box is one line tall, so a longer translation
+    that may reach into the empty paper beside it stays one line instead of wrapping into a line
+    the box has no height for - or being shrunk to the floor to avoid it. Same number on both
+    sides, for the reason `room_below` is shared: two rules drift, one cannot.
     """
     slack = float(tunables.get(_BOX_SLACK_KEY))
     rect = _rect(bbox)
@@ -828,7 +845,7 @@ def _layout_rect(
         rect.y1 + below + max(0.0, grant_below),
         rect.y0 + min(rect.height, _MIN_DRAW_HEIGHT),
     )
-    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack, bottom)
+    return pymupdf.Rect(rect.x0, rect.y0, rect.x1 + slack + max(0.0, grant_right), bottom)
 
 
 #: The least height a block is drawn in, whatever overlaps it from below.

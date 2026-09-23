@@ -774,6 +774,35 @@ TUNABLES: tuple[Tunable, ...] = (
     ),
 
     Tunable(
+        key="write.grant_room_right_pt",
+        label="Bloğun sağındaki boş alanı kullanma sınırı (punto)",
+        default=60.0,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.0,
+        maximum=400.0,
+        help_text=(
+            "Okuyucu bir satırın kutusunu gliflerin bittiği yere kadar ölçer; bu yüzden başlık "
+            "gibi kısa satırlar kendi genişliği kadardır. Çeviri daha uzun olduğunda satır, "
+            "yanındaki boş kâğıda doğru bu kadar puntoya kadar uzayabilir - yani ikinci satıra "
+            "kaymak ya da küçültülmek yerine tek satır kalır. Sınır sayfanın kendi içeriğine "
+            "göre ölçülür (sayfadaki en sağdaki bloğun bittiği yer); 0 kapatır."
+        ),
+        evidence=(
+            "Ölçüm (kayıtlı koşular, model yok): sınır 0/12/24/36/48/60/200 iken "
+            "tr_tck_5237 D1 = 12/9/8/8/7/7/7, arxiv_19145 D1 = 17/9/8/8/8/8/8. Kazanç 48 "
+            "puntoda doyuyor, 60 biraz pay bırakıyor. L3/L4/L7/L8/L10 hiçbir sınırda artmadı."
+        ),
+        warning=(
+            "0 yapmak eski davranışa döner: satırı kutusundan uzun olan çeviri ya ikinci satıra "
+            "kayar (kutu tek satırlıksa sığmaz) ya da taban puntoya kadar küçültülüp "
+            "işaretlenir. Komşusu olan satırlar etkilenmez; sınır yalnız boş kâğıda doğru "
+            "büyümeye izin verir."
+        ),
+    ),
+
+    Tunable(
         key="write.box_slack_pt",
         label="Kutuya verilen pay (punto)",
         default=3.0,

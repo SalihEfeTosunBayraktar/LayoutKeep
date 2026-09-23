@@ -32,6 +32,9 @@ KEEP_PT = 2.0
 #: The tunable that caps the grant: how far a block may grow into free space, in points.
 GRANT_KEY = "write.grant_room_pt"
 
+#: The tunable that caps how far a block may grow to the RIGHT, in points.
+GRANT_RIGHT_KEY = "write.grant_room_right_pt"
+
 #: Roles whose box is a single line by design: a running header, a page number, a title. A
 #: translation of one of those that needs a second line is better shrunk (and flagged) than wrapped
 #: - wrapping a header changes the shape of the page, which is what the reader was told not to do.
@@ -43,6 +46,25 @@ SINGLE_LINE_ROLES = frozenset({"heading", "title", "header", "footer", "page_num
 def may_grow(block: Block) -> bool:
     """Whether this block may take the room below it. False for the single-line design elements."""
     return block.role.value not in SINGLE_LINE_ROLES
+
+
+#: Roles whose box is a cell of a table. A table's column is a fixed width: a longer translation
+#: inside one must wrap onto another line of the cell or be shrunk, never leave the column. Measured
+#: on `tr_kalkinma_12` p2 (a ruled table): the cell "Ratio of Planned Industrial Areas ... to Country
+#: Area" fills its box to the last point, and with the paper beside it granted the renderer drew the
+#: line at full size and its last word crossed the column's rule by 5 pt. Every other role measured
+#: gained from the grant; this one only lost.
+TABLE_ROLES = frozenset({"table"})
+
+
+def may_grow_right(block: Block) -> bool:
+    """Whether this block may take the paper beside its line, in the direction it reads.
+
+    False for a centred or right-aligned block: the writer centres inside the box, so a wider box
+    moves the text rather than letting the line run on. A table cell may grow, but only as far as
+    its own column (see `free_right`).
+    """
+    return block.align == "left"
 
 
 def free_below(
@@ -77,3 +99,61 @@ def free_below(
             continue
         gap = min(gap, o.y0 - box.y1)
     return max(0.0, min(gap, limit) - keep)
+
+
+def free_right(
+    block: Block,
+    page_blocks: Sequence[Block],
+    *,
+    limit: float | None = None,
+    keep: float = KEEP_PT,
+    obstacles: Sequence[BBox | Block] = (),
+) -> float:
+    """How far `block` may grow to the right, in points, into space the page has free.
+
+    The horizontal twin of `free_below`, and for the same reason: the reader records the tight
+    glyph box, so a heading is only as wide as its own letters and a longer translation wraps into
+    a second line the one-line box has no height for. `free_below` cannot help a margin heading -
+    the article text sits directly under it - but the paper beside it is empty.
+
+    Bounded by the page's own content edge: the rightmost point any block on the page reaches. That
+    is measured, not assumed, so a full-width paragraph is granted nothing (its own edge *is* the
+    column's) and a two-column page cannot grow across its gutter - the other column's blocks are
+    neighbours in the same rows and bound it first. Bounded again by every neighbour whose rows
+    overlap this block's, by any obstacle (a picture, a drawing), and by `limit`; `keep` points of
+    the gap to a neighbour stay untouched.
+
+    A neighbour that starts inside this block's width and reaches past it owns the space - the shape
+    of a paragraph the block sits beside - so nothing is granted over its glyphs. Same rule as
+    `free_below`, same reason.
+    """
+    if limit is None:
+        limit = float(tunables.get(GRANT_RIGHT_KEY))
+    box = block.bbox
+    edge = max((getattr(o, "bbox", o).x1 for o in page_blocks), default=box.x1)
+    room = min(limit, edge - box.x1)
+    if block.role.value in TABLE_ROLES:
+        # A cell's column, not its row: a wrapped cell leaves the row beside it empty (the fragment
+        # is one line of a two-line cell), so the band bound above says "the paper is free" while
+        # the column next door is right there. Where the next column's content begins is the edge
+        # the cell may not pass.
+        for other in page_blocks:
+            if other is block:
+                continue
+            o = other.bbox
+            if o.x0 > box.x1 + 0.5:
+                room = min(room, o.x0 - box.x1)
+    for neighbour in [*page_blocks, *obstacles]:
+        if neighbour is block:
+            continue
+        o = getattr(neighbour, "bbox", neighbour)
+        # Another band: a block above or below neither hosts nor bounds this growth.
+        if min(box.y1, o.y1) - max(box.y0, o.y0) <= 0:
+            continue
+        if o.x1 <= box.x1 + 0.5:
+            continue  # entirely to the left of this block
+        if o.x0 <= box.x1:
+            room = 0.0
+            continue
+        room = min(room, o.x0 - box.x1)
+    return max(0.0, min(room, limit) - keep)

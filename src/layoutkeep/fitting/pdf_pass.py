@@ -17,7 +17,7 @@ from collections.abc import Callable
 
 from layoutkeep.core.docir import BBox, Block, Document, Segment, drawn_runs, strip_markers
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
-from layoutkeep.fitting.growth import free_below, may_grow
+from layoutkeep.fitting.growth import free_below, free_right, may_grow, may_grow_right
 from layoutkeep.fitting.measure import MeasureFn, TextMeasurer
 from layoutkeep.fitting.room import room_below
 
@@ -129,6 +129,10 @@ def fit_pdf_pass(
     #: Absent when the setting is 0, so a run that does not want the block to grow pays nothing
     #: for looking.
     grant_limit = float(tunables.get("write.grant_room_pt"))
+    #: The same number for the horizontal direction: a line whose translation runs longer may use
+    #: the paper beside it instead of wrapping into a second line its one-line box has no height
+    #: for. Read once, like the vertical limit, so a run cannot measure one way and draw another.
+    grant_right_limit = float(tunables.get("write.grant_room_right_pt"))
     measurers: dict[tuple, TextMeasurer | None] = {}
     drawn_fonts: dict[tuple, str | None] = {}
     def run_pass(retranslate_fn: Retranslate, *, apply_result: bool = True) -> list:
@@ -173,15 +177,29 @@ def fit_pdf_pass(
                 if abs(block.rotation) <= _ROTATION_EPS and grant_limit > 0 and may_grow(block)
                 else 0.0
             )
+            # The paper beside the line, for the same reason the paper below it is granted: the
+            # reader measured the tight glyph box, so a longer translation wraps into a line the
+            # box has no room for. Unlike the grant below, this one is offered to every role that
+            # reads left to right - widening a heading or a running header keeps its one line,
+            # which is the shape those roles exist to protect, while granting them room *below* is
+            # what wraps them (see `growth.SINGLE_LINE_ROLES`). A table cell is excluded, and so is
+            # a centred block: see `growth.may_grow_right` for both.
+            grant_right = (
+                free_right(block, page_blocks, limit=grant_right_limit,
+                           obstacles=drawn_of.get(seg.block_id, ()))
+                if grant_right_limit > 0 and abs(block.rotation) <= _ROTATION_EPS
+                and may_grow_right(block)
+                else 0.0
+            )
             measured_box = (
                 BBox(
-                    block.bbox.x0, block.bbox.y0, block.bbox.x1,
+                    block.bbox.x0, block.bbox.y0, block.bbox.x1 + grant_right,
                     max(
                         block.bbox.y0 + min(block.bbox.height, _MIN_BOX_HEIGHT_PT),
                         block.bbox.y1 - missing + grant,
                     ),
                 )
-                if missing > 0 or grant > 0 else block.bbox
+                if missing > 0 or grant > 0 or grant_right > 0 else block.bbox
             )
             # Measured as the *page* will carry it, not as the provider's reply stands (see
             # `measure_as_drawn`): the markers are markup, and counting them as glyphs flagged text
