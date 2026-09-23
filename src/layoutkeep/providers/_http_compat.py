@@ -19,6 +19,7 @@ Verified endpoint facts (see .claude/agents/lk-provider.md):
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -83,7 +84,9 @@ class OpenAIHTTPTransport:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
-        self.reasoning_effort = reasoning_effort
+        # A measurement can ask for thinking without touching the product default: the bench sets
+        # LAYOUTKEEP_REASONING_EFFORT (e.g. "medium") to compare a run with thinking against one without.
+        self.reasoning_effort = os.environ.get("LAYOUTKEEP_REASONING_EFFORT", reasoning_effort) or None
         #: How many HTTP calls this run made. The cost of a translation is dominated by
         #: per-request overhead, so this is the number to look at when a job feels slow: fewer
         #: requests for the same segments is the only real speed-up a local model offers.
