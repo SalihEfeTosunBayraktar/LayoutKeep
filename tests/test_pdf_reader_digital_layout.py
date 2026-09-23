@@ -280,3 +280,18 @@ def test_the_leftovers_of_one_block_are_split_where_the_model_claimed_lines() ->
     kara = next(b for b in page.blocks if "(2) Kara" in b.text)
     assert madde.id != kara.id, (madde.id, madde.text)
     assert madde.bbox.y1 < kara.bbox.y0, (madde.bbox, kara.bbox)
+
+
+def test_a_whitespace_line_does_not_stretch_a_leftover_block_over_a_heading() -> None:
+    """Same page, bench arm d-tr: the 'Madde 175' block's box began at y 96, the heading's own row -
+    a line holding nothing but spaces sat there and joined the run. The heading's translation was
+    then drawn inside the article's box and the two overlapped (L7, 7 word pairs). A line with no
+    text is no part of a paragraph, and no block of spaces is read at all.
+    """
+    src = Path(__file__).parent / "fixtures" / "pdf_tck_5237_p2.pdf"
+    page = read_pdf(src, layout=_Detector(_TCK_P2_REGIONS, _TCK_P2_SIZE)).pages[0]
+
+    assert all(b.text.strip() for b in page.blocks), [b.id for b in page.blocks if not b.text.strip()]
+    madde = next(b for b in page.blocks if "Madde 175" in b.text)
+    heading = next(b for b in page.blocks if b.text.strip().startswith("Akıl hastası") and b.id != madde.id)
+    assert madde.bbox.y0 >= heading.bbox.y1 - 1, (madde.bbox, heading.bbox)

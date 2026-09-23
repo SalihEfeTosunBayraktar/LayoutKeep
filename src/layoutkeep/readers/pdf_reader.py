@@ -299,6 +299,10 @@ def _regroup_by_layout(
                 members.setdefault(owner, []).append(line)
                 current = None
                 continue
+            # A line of spaces is no part of a paragraph: on the Turkish Penal Code one sat on a
+            # heading's row, joined the article's run and stretched its box over the heading (L7).
+            if not "".join(span.text for span in line.spans).strip():
+                continue
             if current is None:
                 current = []
                 runs.append(current)
