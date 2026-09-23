@@ -79,3 +79,27 @@ def open_targets(source_suffix: str) -> tuple[str, ...]:
 def lock_reason_key(target: str) -> str:
     """The UI string key explaining why a target is locked, or "" if it is not locked."""
     return LOCK_REASONS.get(target.lower(), "")
+
+
+#: Language pairs measured on the fixed bench (`tools/audit/bench.py`, 21 sources x 3 pages) with
+#: every bar above 90: quality (MQM judge, mean), term consistency and layout (blocks drawn intact),
+#: in percent, and the version the measurement belongs to. Every other pair translates, unmeasured.
+MEASURED_LANGUAGE_PAIRS: dict[tuple[str, str], dict[str, str]] = {
+    ("en", "tr"): {"version": "0.9.10", "quality": "94.8", "consistency": "94.2", "layout": "93.9"},
+    ("tr", "en"): {"version": "0.9.10", "quality": "96.0", "consistency": "92.7", "layout": "90.4"},
+}
+
+
+def language_pair_measurement(source: str, target: str) -> tuple[tuple[str, str], dict[str, str]] | None:
+    """The measured pair this job runs as, with its numbers; None when it has not been measured.
+
+    An auto-detected source counts as the measured pair's source when the target is one of them:
+    the document is then most likely in the other language, and saying "unmeasured" would be wrong
+    far more often than right.
+    """
+    source, target = source.lower(), target.lower()
+    if source == "auto":
+        pairs = [pair for pair in MEASURED_LANGUAGE_PAIRS if pair[1] == target]
+        return (pairs[0], MEASURED_LANGUAGE_PAIRS[pairs[0]]) if len(pairs) == 1 else None
+    pair = (source, target)
+    return (pair, MEASURED_LANGUAGE_PAIRS[pair]) if pair in MEASURED_LANGUAGE_PAIRS else None

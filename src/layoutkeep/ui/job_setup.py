@@ -128,6 +128,11 @@ class _JobSetupUiBuilder:
         self._range_hint.setWordWrap(True)
         self._range_hint.hide()
 
+        self._pair_note = QLabel()
+        self._pair_note.setObjectName("pairNote")
+        self._pair_note.setProperty("class", "muted")
+        self._pair_note.setWordWrap(True)
+
         self._init_provider_controls()
 
     def _init_provider_controls(self) -> None:
@@ -217,6 +222,7 @@ class _JobSetupUiBuilder:
         # language the window was built in. Seen by driving the built exe: an English dual-output
         # hint sitting in a Turkish window next to Turkish labels.
         self._range_hint.setText(UIStrings.RANGE_HINT)
+        self._refresh_pair_note()
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_mode.setItemText(0, UIStrings.RANGE_ALL)
         self._range_mode.setItemText(1, UIStrings.RANGE_CUSTOM)
@@ -294,18 +300,36 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
         self._build_layout()
         self._connect_signals()
         self._load_saved_settings()
+        self._refresh_pair_note()
 
     def _on_source_lang_changed(self, _text: str) -> None:
         # Kaynak dil tercihini anında kalıcı kaydeder / Saves source language preference immediately
         code = self._source_lang.currentText()
         if code:
             self._settings.setValue("source_lang", code)
+        self._refresh_pair_note()
 
     def _on_target_lang_changed(self, _text: str) -> None:
         # Hedef dil tercihini anında kalıcı kaydeder / Saves target language preference immediately
         code = self._target_lang.currentText()
         if code:
             self._settings.setValue("target_lang", code)
+        self._refresh_pair_note()
+
+    def _refresh_pair_note(self) -> None:
+        """Say under the language boxes whether this pair has been measured, and how it scored."""
+        from layoutkeep.core.capabilities import language_pair_measurement
+
+        measured = language_pair_measurement(
+            self._source_lang.currentText() or "auto", self._target_lang.currentText() or ""
+        )
+        if measured is None:
+            self._pair_note.setText(UIStrings.LANG_PAIR_UNMEASURED)
+            return
+        (source, target), numbers = measured
+        self._pair_note.setText(
+            UIStrings.LANG_PAIR_MEASURED.format(pair=f"{source.upper()} → {target.upper()}", **numbers)
+        )
 
     def _on_input_text_changed(self, text: str) -> None:
         # Input path dışarıdan değişirse dropzone ve çıktıyı senkronize eder / Syncs dropzone on path change

@@ -141,7 +141,12 @@ class SettingsCardBuilder:
         grid.addWidget(screen._out_file_label, 1, 0)
         grid.addLayout(out_row, 1, 1, 1, 2)
         grid.addWidget(screen._langs_label, 2, 0)
-        grid.addLayout(langs_row, 2, 1, 1, 2)
+        # Whether this pair has been measured, said under the pair itself (core/capabilities).
+        langs_column = QVBoxLayout()
+        langs_column.setSpacing(4)
+        langs_column.addLayout(langs_row)
+        langs_column.addWidget(screen._pair_note)
+        grid.addLayout(langs_column, 2, 1, 1, 2)
         grid.addWidget(screen._range_label, 3, 0)
         grid.addLayout(range_row, 3, 1, 1, 2)
         grid.addWidget(screen._range_hint, 5, 1, 1, 2)
