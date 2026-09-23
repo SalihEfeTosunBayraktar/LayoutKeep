@@ -53,7 +53,8 @@ DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     # Document and part identifiers: OMB No. 1545-0074, Form W-4, Cat. No. 10220Q.
     ("identifier", r"\b(?:OMB\s+No\.?|Cat\.?\s+No\.?|Form|Ref\.?|P/N|Part\s+No\.?)\s*[\w\-/.]+"),
     # A dotted or hyphenated code with at least one digit: 1545-0074, 00-0288-280.
-    ("code", r"\b(?=[\w\-/.]*\d)[A-Z0-9]+(?:[-/.][A-Z0-9]+){2,}\b"),
+    # Not digits joined by slashes alone: "2/1/2003" is a date (see the path rule below).
+    ("code", r"\b(?!\d+(?:/\d+)+\b(?![-.]))(?=[\w\-/.]*\d)[A-Z0-9]+(?:[-/.][A-Z0-9]+){2,}\b"),
     # A part number written as space-separated digit groups: "00 0288 280 0". Common on
     # machinery documentation, where the number identifies the exact manual revision.
     ("partnumber", r"\b\d{2,}(?:\s+\d{2,}){2,}(?:\s+\d)?\b"),
@@ -76,7 +77,10 @@ DEFAULT_PATTERNS: tuple[tuple[str, str], ...] = (
     # as "comp-vs-benzer", a link to nothing. Only a slash-joined token that also carries a hyphen,
     # underscore, dot or digit, or a second slash - so "and/or", "km/h" and "input/output" stay
     # prose the model may translate.
-    ("path", (r"(?<![\w/@.])(?=[\w.\-]*(?:/[\w.\-]+){2}|[\w.\-]*[\-_.\d][\w.\-]*/[\w.\-]"
+    # Digits joined by slashes alone ("2/1/2003", "2012/108", "1/2") are a date, a law number or a
+    # fraction, not a path: as tokens the model dropped them (TMK, CMK on the 0.9.10 bench).
+    ("path", (r"(?<![\w/@.])(?![\d./]+(?![\w/@.\-]))"
+              r"(?=[\w.\-]*(?:/[\w.\-]+){2}|[\w.\-]*[\-_.\d][\w.\-]*/[\w.\-]"
               r"|[\w.\-]+/[\w.\-]*[\-_.\d])[\w.\-]+(?:/[\w.\-]+)+")),
     # arXiv publication id: arXiv:2609.19145v1
     ("arxiv", r"\barXiv:\d{4}\.\d{4,5}(?:v\d+)?\b"),

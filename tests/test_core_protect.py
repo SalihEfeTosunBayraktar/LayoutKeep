@@ -202,6 +202,20 @@ def test_an_article_head_wrapped_in_style_markers_still_places_the_number():
 
 def test_a_short_fragment_keeps_its_leading_value():
     """CMK's block "2012/108 sayılı " came back as " sayılı": a fragment has no sentence to reorder."""
-    protection = protect("2012/108 sayılı ")
+    # That value is no longer a token at all (see the next test); a part number stands in for it.
+    protection = protect("00-0288-280 sayılı ")
 
-    assert restore(" numbered", protection) == ("2012/108 numbered", 0)
+    assert restore(" numbered", protection) == ("00-0288-280 numbered", 0)
+
+
+def test_a_date_or_a_law_number_is_text_not_a_path():
+    """Arm D lost "2/1/2003" (TMK) and "2012/108" (CMK): the path rule turned them into tokens and
+    the model dropped the token. Digits joined by slashes are a date, a number or a fraction - the
+    model keeps those as they are, and the number check sees it when it does not."""
+    for text in ("2/1/2003 tarihli ve 4778 sayılı Kanun", "2012/108 sayılı", "1/2 cup", "12/05/2024"):
+        assert protect(text).count == 0, text
+
+
+def test_a_repository_path_is_still_protected():
+    assert protect("see Ahmetcanyvz/comp-vs-like for code").count == 1
+    assert protect("files under docs/2024/report.pdf").count == 1
