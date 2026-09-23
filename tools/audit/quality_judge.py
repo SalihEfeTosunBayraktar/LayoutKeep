@@ -74,11 +74,21 @@ def sample(run: Path, per_source: int) -> list[tuple[str, str]]:
     return [pairs[int(i * step)] for i in range(per_source)]
 
 
+#: One judge call's limit. A hung call used to raise TimeoutExpired after 900 s and take the whole
+#: measurement with it (arm C's consistency pass died twice on one arXiv term); now it is an empty
+#: answer, which the callers treat as "not judged" and retry smaller.
+ASK_TIMEOUT_S = 300
+
+
 def _ask(prompt: str) -> str:
-    proc = subprocess.run(
-        [HERMES, "-z", prompt, *JUDGE], capture_output=True, text=True, encoding="utf-8",
-        errors="replace", timeout=900,
-    )
+    try:
+        proc = subprocess.run(
+            [HERMES, "-z", prompt, *JUDGE], capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=ASK_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        print("   judge call timed out - left unjudged", flush=True)
+        return ""
     return proc.stdout
 
 

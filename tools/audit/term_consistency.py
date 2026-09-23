@@ -97,6 +97,13 @@ def measure(run: Path, src: str, dst: str) -> dict:
     with ThreadPoolExecutor(max_workers=3) as pool:
         for part in pool.map(one, chunks):
             renderings.update(part)
+    # A chunk that timed out or came back unreadable leaves its terms out; ask those one at a time,
+    # so one hard term costs itself and not the four asked beside it.
+    missing = [[term] for term in names if term not in renderings]
+    if missing:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            for part in pool.map(one, missing):
+                renderings.update(part)
 
     per_term = {}
     for term in names:
