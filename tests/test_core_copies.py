@@ -173,3 +173,20 @@ def test_a_run_of_number_words_is_folded_to_the_value_it_names() -> None:
     assert spelled_numbers("nothing here", "tr") == {}
     # A language this has no words for contributes nothing rather than guessing.
     assert spelled_numbers("twenty pages", "xx") == {}
+
+
+def test_a_thousands_separator_the_target_writes_differently_is_the_same_number():
+    """Turkish writes 3.657 where English writes 3657 or 3,657: the law's number, not a lost one."""
+    from layoutkeep.core.copies import drops_numbers
+
+    assert not drops_numbers("3.657 sayılı Devlet Memurları Kanununa tabi", "the Law No. 3657", "en")
+    assert not drops_numbers("3.657 sayılı Kanun", "Law No. 3,657", "en")
+    assert not drops_numbers("paid 12,500 dollars", "12.500 dolar ödedi", "tr")
+    assert not drops_numbers("paid 12500 dollars", "12.500 dolar ödedi", "tr")
+
+
+def test_a_different_number_is_still_a_lost_one():
+    from layoutkeep.core.copies import drops_numbers
+
+    assert drops_numbers("3.657 sayılı Kanun", "Law No. 3658", "en")
+    assert drops_numbers("3.657 sayılı Kanun", "Law No. 657", "en")

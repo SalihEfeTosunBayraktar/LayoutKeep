@@ -240,6 +240,17 @@ def spelled_numbers(text: str, target_lang: str) -> Counter[str]:
     return found
 
 
+#: A number grouped in thousands, with either separator: 3.657, 12,500, 1.234.567. A decimal ("3.14")
+#: or a section number ("5.2.1") has no three-digit group and is left alone.
+_THOUSANDS = re.compile(r"(?<![\d.,])\d{1,3}(?:[.,]\d{3})+(?![.,]?\d)")
+
+
+def _joined_thousands(text: str) -> str:
+    """The text with thousands separators dropped: the languages disagree on the separator, and
+    Turkish writes a law's number as 3.657 where English writes 3657 or 3,657."""
+    return _THOUSANDS.sub(lambda match: re.sub(r"[.,]", "", match.group(0)), text)
+
+
 def drops_numbers(source: str, reply: str, target_lang: str = "") -> bool:
     """True when a number in the source is missing from the reply.
 
@@ -255,8 +266,8 @@ def drops_numbers(source: str, reply: str, target_lang: str = "") -> bool:
     is a report, not a gate - the fitting pass keeps the source when a segment's numbers came back
     wrong, and a human reads what is flagged.
     """
-    have = _digit_groups(reply) + spelled_numbers(reply, target_lang)
-    need = _digit_groups(source)
+    have = _digit_groups(_joined_thousands(reply)) + spelled_numbers(reply, target_lang)
+    need = _digit_groups(_joined_thousands(source))
     return any(have[digits] < count for digits, count in need.items())
 
 
