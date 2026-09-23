@@ -197,7 +197,11 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                         areas.extend(_rotated_quads(page, block))
                     else:
                         areas.append(_rect(block.bbox))
+                # Found before the text goes: clearing a block also removes the links inside it.
+                underlines = link_underlines(page, [b for b in blocks if not _unchanged(b)])
                 redact_keeping_forms(page, areas)
+                if underlines:
+                    redact_keeping_forms(page, underlines, line_art=True)
             for block in blocks:
                 if scanned and is_wordless(block):
                     # Left exactly as scanned - see `_MIN_WORDINESS`. Nothing was cleared under
@@ -334,6 +338,39 @@ _MIN_WORDINESS = 0.3
 _LETTER_RE = re.compile(r"[^\W\d_]", re.UNICODE)
 
 
+#: How thin a drawing is to be a link's underline, and how near the link's bottom edge it runs.
+_UNDERLINE_MAX_HEIGHT = 1.2
+_UNDERLINE_EDGE = 2.0
+
+
+def link_underlines(page: pymupdf.Page, changed: list[Block]) -> list[pymupdf.Rect]:
+    """The underlines of links inside blocks whose words are replaced, as areas to clear.
+
+    A browser prints a link's underline as a thin rectangle along the link's bottom edge. Once the
+    words above it are redrawn in another language the line marks nothing and runs through the new
+    text. Only such a line goes - thin, along a link's bottom edge, inside a changed block - so a
+    rule, a fraction bar or a table border stays.
+    """
+    links = [pymupdf.Rect(link["from"]) for link in page.get_links()]
+    boxes = [_rect(block.bbox) + pymupdf.Rect(-2, -2, 2, 2) for block in changed
+             if abs(block.rotation) <= _ROTATION_EPS]
+    if not links or not boxes:
+        return []
+    found: list[pymupdf.Rect] = []
+    for drawing in page.get_drawings():
+        line = drawing["rect"]
+        if line.height > _UNDERLINE_MAX_HEIGHT or line.width < 2:
+            continue
+        under_link = any(
+            abs(line.y1 - link.y1) <= _UNDERLINE_EDGE
+            and min(line.x1, link.x1) - max(line.x0, link.x0) >= 0.5 * line.width
+            for link in links
+        )
+        if under_link and any(box.contains(line) for box in boxes):
+            found.append(line + pymupdf.Rect(-0.5, -0.5, 0.5, 0.5))
+    return found
+
+
 def is_wordless(block: Block) -> bool:
     """True when a block carries essentially no letters, only digits and punctuation.
 
@@ -349,7 +386,7 @@ def is_wordless(block: Block) -> bool:
     return len(_LETTER_RE.findall(text)) / len(text) < _MIN_WORDINESS
 
 
-def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
+def redact_keeping_forms(page: pymupdf.Page, areas: list, *, line_art: bool = False) -> None:
     """Remove the text under `areas`, without disturbing forms the redaction did not touch.
 
     Applying redactions makes MuPDF rewrite the page, and it substitutes a rewritten copy for every
@@ -362,10 +399,12 @@ def redact_keeping_forms(page: pymupdf.Page, areas: list) -> None:
     before = page.get_xobjects()
     for area in areas:
         page.add_redact_annot(area, cross_out=False, fill=None)
+    # `line_art` removes the drawings the areas cover and keeps the text (a link's underline).
     page.apply_redactions(
         images=pymupdf.PDF_REDACT_IMAGE_NONE,
-        graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
-        text=pymupdf.PDF_REDACT_TEXT_REMOVE,
+        graphics=(pymupdf.PDF_REDACT_LINE_ART_REMOVE_IF_COVERED if line_art
+                  else pymupdf.PDF_REDACT_LINE_ART_NONE),
+        text=pymupdf.PDF_REDACT_TEXT_NONE if line_art else pymupdf.PDF_REDACT_TEXT_REMOVE,
     )
     after = page.get_xobjects()
     if not areas or len(before) != len(after):
