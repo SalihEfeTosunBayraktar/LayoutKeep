@@ -2,12 +2,13 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
-## Unreleased — 2026-09-22/23 (after 0.9.10)
+## 0.9.10 — 2026-09-23
 
 Measured on a fixed bench (`tools/audit/bench.py`, 21 sources × 3 pages, both directions) with three
 bars per direction: quality (MQM judge), term consistency, and layout (share of blocks drawn intact).
-Quality is above 90 in both directions; layout rose from 80.1% / 73.6% to 90.8% / 90.8%
-(EN→TR / TR→EN). Consistency is still being measured.
+Arm D (commit 961de7a, google/gemma-4-e4b Q4): quality 94.8 / 96.0 mean, 92% / 94% acceptable;
+layout 93.9% / 90.4% (EN→TR / TR→EN), up from 80.1% / 73.6%; 12 of 21 sources lossless.
+Consistency 94.2% / 92.7%: every bar is above 90 in both directions.
 
 ### Translation quality
 - An automatic document glossary (`translation.auto_glossary`, off by default): the document's
@@ -19,6 +20,11 @@ Quality is above 90 in both directions; layout rose from 80.1% / 73.6% to 90.8% 
   (`(1)`, `(b)`, `4.Text`) survive the model dropping them.
 - Academic reference lists can be kept untranslated from the application too
   (`translation.preserve_references`).
+- A book translated in chunks is translated with one term list for the whole book, not one per
+  chunk; the list is asked for with the first batch's time allowance, and a reply cut off mid-list
+  keeps the terms it finished.
+- A paragraph number the model dropped goes back where it stood ("Madde 178- (1)"), as does the
+  leading value of a two-word fragment ("2012/108 sayılı").
 
 ### Layout
 - A line may use the blank paper beside it, not only the space below (`write.grant_room_right_pt`).
@@ -33,7 +39,8 @@ Quality is above 90 in both directions; layout rose from 80.1% / 73.6% to 90.8% 
 ### Product
 - Every translated file records what translated it: version, commit, model, settings
   (`core/provenance.py`); `docs/campaign/RUNS.md` lists every run on disk.
-- The command line reads the stored settings, as the application does (D-020).
+- The command line and the book tool read the stored settings, as the application does (D-020).
+- A number written with another thousands separator (3.657 / 3657) is no longer reported lost.
 - Every interface text follows the chosen language (tr/en/de), settings included.
 - The desktop run checks glossary terms in the output; the CLI's memory key carries the glossary.
 
