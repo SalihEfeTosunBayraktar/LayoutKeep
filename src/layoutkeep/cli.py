@@ -13,7 +13,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from layoutkeep.core import tunables
+from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import (
     Document,
     apply_segments,
@@ -677,7 +677,9 @@ def _fit_pdf(doc: Document, segments, provider, args) -> dict[str, int] | None:
         seg.target = result.text
         if result.needs_review:
             seg.needs_review = True
-            seg.review_reason = result.review_reason or "REVIEW_FIT_FAILED"
+            # The engine reports a machine key; store the same UIStrings key the desktop runner
+            # stores, so a project file does not depend on which front-end produced it.
+            seg.review_reason = review.storage_key(result.review_reason) or "REVIEW_FIT_FAILED"
             block.needs_review = True
             block.review_reason = seg.review_reason
         _apply_scale(block, result.scale)
@@ -773,9 +775,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["side", "alternate"],
         default=None,
         metavar="MODE",
-        help=(
-UIStrings.DUAL_FILE_HINT
-        ),
+        help=UIStrings.DUAL_FILE_HINT,
     )
     tr.add_argument("--fit-mode", choices=["strict", "reflow"], default=None,
                     help="strict keeps the original boxes; reflow lets blocks grow (PDF only)")

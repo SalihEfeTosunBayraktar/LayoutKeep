@@ -64,3 +64,39 @@ def test_verify_loss_reasons_exist_in_all_languages() -> None:
         key = f"VERIFY_REVIEW_{kind}"
         for lang in ("tr", "en", "de"):
             assert key in _TRANSLATIONS[lang], f"{lang} missing verify review reason {key}"
+
+
+def test_format_review_reason_resolves_a_stored_key_in_every_language() -> None:
+    """The display-time resolver turns a stored key into the active language, never leaking it."""
+    from layoutkeep.ui.strings import UIStrings, format_review_reason
+
+    previous = UIStrings.get_language()
+    try:
+        for lang in ("tr", "en", "de"):
+            UIStrings.set_language(lang)
+            text = format_review_reason("REVIEW_FIT_FAILED")
+            assert text and text != "REVIEW_FIT_FAILED"
+    finally:
+        UIStrings.set_language(previous)
+
+
+def test_format_review_reason_maps_pipe_arguments_to_placeholders() -> None:
+    """`REVIEW_PROTECTED_VALUE_LOST|3` fills the translated template's `{lost}`, positionally."""
+    from layoutkeep.ui.strings import UIStrings, format_review_reason
+
+    previous = UIStrings.get_language()
+    try:
+        UIStrings.set_language("en")
+        text = format_review_reason("REVIEW_PROTECTED_VALUE_LOST|3")
+        assert "3" in text
+        assert "{lost}" not in text
+    finally:
+        UIStrings.set_language(previous)
+
+
+def test_format_review_reason_leaves_legacy_and_empty_values_unchanged() -> None:
+    """Projects written before reasons became keys hold plain sentences; they keep displaying."""
+    from layoutkeep.ui.strings import format_review_reason
+
+    assert format_review_reason("") == ""
+    assert format_review_reason("korunan değer çeviride yok") == "korunan değer çeviride yok"

@@ -5,28 +5,29 @@ Measured on the book: most flags are not a translation that could not be shorten
 `room_below` crushed to six points to keep clear of the next block - and nothing fits in six
 points. Telling a user "shrinking was not enough" then sends them to the wrong knob.
 
-The engine reports a *key* (`FitResult.review_reason`); each front-end turns it into its own
-language - the CLI uses `sentence()`, the desktop application uses its `UIStrings` table, the same
-split `ui.progress.format_phase` uses for phase names.
+The engine reports a machine *key* (`FitResult.review_reason`); each front-end stores the
+UIStrings key `storage_key` maps it to, so a project file reads the same whether the desktop
+runner or the CLI wrote it. Text reaches the user only at display time, through
+`ui.strings.format_review_reason` - the same split `ui.progress.format_phase` uses for phase
+names. This module stays pure keys on purpose: core must not import the UI layer.
 """
 
 from __future__ import annotations
 
-from layoutkeep.ui.strings import UIStrings
-
 #: The key the fitting pass sets when a block's measured box was shortened to its floor.
 BOX_CRUSHED = "box_crushed"
 
-#: Keys that mean "the box, not the text". Anything else is left to the front-end's generic line.
-_SENTENCES = {
+#: Machine keys that mean "the box, not the text", mapped to the UIStrings key both front-ends
+#: store. Anything unmapped is left to the front-end's generic line (`REVIEW_FIT_FAILED`).
+_STORAGE_KEYS = {
     BOX_CRUSHED: "REVIEW_BOX_CRUSHED",
 }
 
 
-def sentence(key: str) -> str:
-    """Return the translated sentence for a machine key, or an empty string if unknown.
+def storage_key(machine_key: str) -> str:
+    """The UIStrings key a front-end stores for an engine key, or "" for one we do not know.
 
-    Empty rather than the key itself: a caller that gets nothing falls back to its own wording,
-    which reads better than a machine name leaking into a review list.
+    Empty rather than a guess: the caller falls back to its own generic reason, which reads
+    better than a machine name leaking into a project file.
     """
-    return UIStrings.get(_SENTENCES.get(key, "")) if key in _SENTENCES else ""
+    return _STORAGE_KEYS.get(machine_key, "")

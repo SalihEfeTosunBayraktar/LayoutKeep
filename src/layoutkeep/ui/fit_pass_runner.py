@@ -125,12 +125,12 @@ class FitPassRunner:
             if result.needs_review:
                 seg.needs_review = True
                 if result.review_reason == review.BOX_CRUSHED:
-                    # The box, not the text: say so in the interface's own language, and count it
-                    # for the completion screen (the engine reports a key, the UI owns the words).
-                    seg.review_reason = "REVIEW_BOX_CRUSHED"
+                    # The box, not the text: count it for the completion screen (the engine
+                    # reports a key, the UI owns the words).
                     self._on_box_crushed()
-                else:
-                    seg.review_reason = "REVIEW_FIT_FAILED"
+                # Store the same UIStrings key the CLI stores, so a project file does not
+                # depend on which front-end produced it.
+                seg.review_reason = review.storage_key(result.review_reason) or "REVIEW_FIT_FAILED"
                 block.needs_review = True
                 block.review_reason = seg.review_reason
             apply_scale(block, result.scale)

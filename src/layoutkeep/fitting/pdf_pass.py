@@ -16,6 +16,7 @@ import dataclasses
 from collections.abc import Callable
 
 from layoutkeep.core.docir import BBox, Block, Document, Segment, drawn_runs, strip_markers
+from layoutkeep.core.review import BOX_CRUSHED
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
 from layoutkeep.fitting.growth import free_below, free_right, may_grow, may_grow_right
 from layoutkeep.fitting.measure import MeasureFn, TextMeasurer
@@ -227,7 +228,7 @@ def fit_pdf_pass(
                 # same split `ui.progress.format_phase` uses for phase names), and the completion
                 # screen counts it. A box shortened to its floor has nothing to draw in - no text fits
                 # in six points - and that is a different problem from a translation that is too long.
-                result.review_reason = "box_crushed"
+                result.review_reason = BOX_CRUSHED
             if report is not None:
                 report(seg, block, result)
             out.append(result)
