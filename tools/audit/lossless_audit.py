@@ -47,7 +47,9 @@ from layoutkeep.verify import (
     words,
 )
 
-_FIT_FAILED = "çeviri kutuya sığmadı"
+#: review_reason stores the UIStrings key since the i18n pass; project files written before it
+#: hold the plain Turkish sentence. Match both so old runs still audit.
+_FIT_FAILED_MARKERS = ("REVIEW_FIT_FAILED", "çeviri kutuya sığmadı")
 
 
 def _say(line: str) -> None:
@@ -92,7 +94,7 @@ def audit_chunk(src: Path, out: Path, project: Path, target_lang: str = "tr") ->
                     # Too short to tell a name from an untranslated phrase without knowing the
                     # language: listed for a human, not counted as a loss or as a success.
                     found["D2"].append(sample)
-                if _FIT_FAILED in (block.review_reason or ""):
+                if any(marker in (block.review_reason or "") for marker in _FIT_FAILED_MARKERS):
                     found["D1"].append(sample)
     return {"counts": {"blocks": checked}, "found": found}
 
