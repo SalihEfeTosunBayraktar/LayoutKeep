@@ -245,6 +245,12 @@ def main() -> int:
     if sys.stderr and hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
+    # The stored settings, as the CLI reads them (D-020): the default worker count below and the
+    # document glossary both come from them, and without this they were always the defaults.
+    from layoutkeep.core import tunables
+
+    tunables.load()
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
     parser.add_argument("--out", type=Path, required=True)

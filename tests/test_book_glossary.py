@@ -17,6 +17,8 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools" / "audit"))
 sys.path.insert(0, str(Path(__file__).parent / "fixtures"))
 
@@ -91,3 +93,25 @@ def test_terms_only_writes_the_glossary_and_translates_nothing(tmp_path, monkeyp
     assert code == cli.EXIT_OK, capsys.readouterr().out
     assert json.loads((tmp_path / "doc.glossary.json").read_text(encoding="utf-8")) == {"bold": "kalın"}
     assert not out.exists()
+
+
+def test_the_book_tool_reads_the_stored_settings(tmp_path, monkeypatch):
+    """Like the CLI (D-020): without loading them, the book never saw `auto_glossary` switched on."""
+    settings = tmp_path / "tunables.json"
+    settings.write_text(json.dumps({"translation.auto_glossary": True}), encoding="utf-8")
+    monkeypatch.setenv("LAYOUTKEEP_TUNABLES", str(settings))
+    monkeypatch.setattr(sys, "argv", ["translate_book", "in.pdf", "--out", "o.pdf", "--model", "m"])
+
+    class StopError(Exception):
+        pass
+
+    def stop(_args):
+        raise StopError
+
+    monkeypatch.setattr(translate_book, "_prepare_work_dir", stop)
+    with pytest.raises(StopError):
+        translate_book.main()
+    try:
+        assert tunables.get("translation.auto_glossary") is True
+    finally:
+        tunables.reset_all()
