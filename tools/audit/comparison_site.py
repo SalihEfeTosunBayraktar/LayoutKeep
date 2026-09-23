@@ -266,7 +266,7 @@ def _bench_table(run_dir: Path) -> dict[str, tuple[str, str]]:
         return rows
     for line in table.read_text(encoding="utf-8").splitlines():
         cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) > 5 and cells[1] in ("en->tr", "tr->en") and cells[-1].endswith("%"):
+        if len(cells) > 5 and "->" in cells[1] and cells[-1].endswith("%"):
             losses = next((c.strip("*") for c in cells if c.startswith("**")), "")
             rows[cells[0]] = (cells[-1], losses)
     return rows

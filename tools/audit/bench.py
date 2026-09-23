@@ -251,6 +251,8 @@ def main() -> int:
     parser.add_argument("--label", default="", help="arm name, appended to the bench directory")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                         help="pin a setting for this arm (repeatable)")
+    parser.add_argument("--to", default=None, metavar="LANG",
+                        help="translate every source into LANG instead of its usual target (a new pair)")
     parser.add_argument("--allow-dirty", action="store_true",
                         help="measure an uncommitted tree (the table is then marked -dirty)")
     args = parser.parse_args()
@@ -269,6 +271,9 @@ def main() -> int:
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
         wanted = [item for item in SUITE if args.only is None or item[0] in args.only]
+        if args.to:
+            # Another target for the same sources: every source not already in that language.
+            wanted = [(name, file, src, args.to) for name, file, src, _dst in wanted if src != args.to]
         print(f"[{time.strftime('%H:%M:%S')}] {len(wanted)} sources, {args.parallel} at a time", flush=True)
         with ThreadPoolExecutor(max_workers=args.parallel) as pool:
             futures = {pool.submit(_run_one, *item, run_dir, args): item[0] for item in wanted}

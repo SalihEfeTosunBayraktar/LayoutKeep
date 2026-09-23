@@ -34,7 +34,7 @@ from layoutkeep.core.docir import load_project
 
 HERMES = str(Path.home() / "AppData" / "Local" / "hermes" / "bin" / "hermes.exe")
 JUDGE = ["-m", "deepseek-v4.1-flash", "--provider", "opencode-go"]
-LANG = {"en": "English", "tr": "Turkish"}
+LANG = {"en": "English", "tr": "Turkish", "de": "German"}
 BATCH = 20
 ACCEPTABLE = 80
 _MARKER = re.compile(r"</?\d+>")
