@@ -2,6 +2,41 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
+## Unreleased — 2026-09-22/23 (after 0.9.10)
+
+Measured on a fixed bench (`tools/audit/bench.py`, 21 sources × 3 pages, both directions) with three
+bars per direction: quality (MQM judge), term consistency, and layout (share of blocks drawn intact).
+Quality is above 90 in both directions; layout rose from 80.1% / 73.6% to 90.8% / 90.8%
+(EN→TR / TR→EN). Consistency is still being measured.
+
+### Translation quality
+- An automatic document glossary (`translation.auto_glossary`, off by default): the document's
+  recurring terms are rendered once and enforced and checked in every segment.
+- A glossary term counts as honoured when inflected, capitalised or with a softened final consonant.
+- Grammar (Turkish postpositions, function words) is no longer offered as a term.
+- A block cut mid-sentence is translated as the fragment it is, never completed or trimmed.
+- Paths, repository names and e-mail addresses are protected; paragraph and list numbers
+  (`(1)`, `(b)`, `4.Text`) survive the model dropping them.
+- Academic reference lists can be kept untranslated from the application too
+  (`translation.preserve_references`).
+
+### Layout
+- A line may use the blank paper beside it, not only the space below (`write.grant_room_right_pt`).
+- Unchanged blocks (names, codes) are no longer fitted, shrunk and flagged.
+- Inline markers are no longer measured as drawn glyphs.
+- A Word PDF's leftover lines form one block per run; whitespace-only lines join none.
+- Two lines are not enough to call a block justified; titles are no longer stretched.
+- Restored form XObjects are matched by their box (a badge and an ORCID icon were destroyed).
+- A source font subset is reused only when it holds every letter the translation draws
+  (English w/q/x were drawn from another face).
+
+### Product
+- Every translated file records what translated it: version, commit, model, settings
+  (`core/provenance.py`); `docs/campaign/RUNS.md` lists every run on disk.
+- The command line reads the stored settings, as the application does (D-020).
+- Every interface text follows the chosen language (tr/en/de), settings included.
+- The desktop run checks glossary terms in the output; the CLI's memory key carries the glossary.
+
 ## 0.9.0 — 2026-09-10
 
 The first published build, and it does one thing.
