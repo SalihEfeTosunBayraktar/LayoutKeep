@@ -168,7 +168,41 @@ def restore(text: str, protection: Protection) -> tuple[str, int]:
         return protection.literals.get(index, match.group(0))
 
     result = _TOKEN_RE.sub(put_back, text)
+    for index in sorted(set(protection.literals) - seen, reverse=True):
+        placed = _put_back_leading(result, protection, index)
+        if placed is not None:
+            result = placed
+            seen.add(index)
     return result, len(protection.literals) - len(seen)
+
+
+#: Values that are labels - a paragraph number, a part marker - and so have a place of their own.
+_LABEL_KINDS = frozenset({"callout", "roman"})
+
+#: What may stand before a leading value: nothing, or an article head - "Madde 178-", "Article 12.".
+_HEAD = re.compile(r"^\s*(?:[^\W\d_]+\s+\d+[a-zA-Z]?\s*[-–.]?\s*)?")
+
+
+def _put_back_leading(result: str, protection: Protection, index: int) -> str | None:
+    """A dropped value whose place is certain: first in the text, or first after an article head.
+
+    Its position is the structure (a paragraph number, a label), so it goes back exactly there; a
+    value lost from mid-sentence has no such place and stays reported, never guessed.
+    """
+    if protection.kinds.get(index) not in _LABEL_KINDS:
+        return None
+    before = protection.text.split(_TOKEN.format(index), 1)[0]
+    head = _HEAD.match(before)
+    if head is None or head.end() != len(before):
+        return None
+    literal = protection.literals[index]
+    if not before.strip():
+        return f"{literal} {result.lstrip()}"
+    reply_head = _HEAD.match(result)
+    if reply_head is None or not reply_head.group(0).strip():
+        return None
+    cut = reply_head.end()
+    return f"{result[:cut].rstrip()} {literal} {result[cut:].lstrip()}"
 
 
 def describe(protection: Protection) -> str:

@@ -158,3 +158,34 @@ def test_paths_repositories_and_addresses_are_protected(text: str, literal: str)
 @pytest.mark.parametrize("text", ["you and/or your spouse", "a speed in km/h", "the input/output ratio"])
 def test_a_slash_in_prose_is_not_a_path(text: str) -> None:
     assert protect(text).count == 0
+
+
+def test_a_paragraph_number_after_an_article_head_is_put_back_where_it_stood():
+    """TCK's "Madde 178- (1) Herkesin ..." came back as "Article 178- A person ..." on every arm:
+    the model drops the token after the head, and the paragraph number was lost with it."""
+    protection = protect(" Madde 178- (1) Herkesin gelip geçtiği yerlerde")
+
+    text, lost = restore("Article 178- A person who fails to place signs", protection)
+
+    assert (text, lost) == ("Article 178- (1) A person who fails to place signs", 0)
+
+
+def test_a_leading_value_the_model_dropped_is_put_back_in_front():
+    protection = protect("(2) Bu fiil taksirle işlenirse")
+
+    assert restore("If this act is committed negligently", protection) == (
+        "(2) If this act is committed negligently", 0)
+
+
+def test_a_value_lost_from_mid_sentence_is_still_reported_not_guessed():
+    protection = protect("Tighten the bolts (3) to 34 Nm and check")
+
+    text, lost = restore("Cıvataları sıkın ve kontrol edin", protection)
+
+    assert lost == 2 and "(3)" not in text
+
+
+def test_a_leading_measurement_is_not_pushed_to_the_front_of_a_reordered_sentence():
+    protection = protect("34 Nm is the torque for these bolts")
+
+    assert restore("Bu cıvataların torku budur", protection)[1] == 1
