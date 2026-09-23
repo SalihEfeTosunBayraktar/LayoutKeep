@@ -189,3 +189,19 @@ def test_a_leading_measurement_is_not_pushed_to_the_front_of_a_reordered_sentenc
     protection = protect("34 Nm is the torque for these bolts")
 
     assert restore("Bu cıvataların torku budur", protection)[1] == 1
+
+
+def test_an_article_head_wrapped_in_style_markers_still_places_the_number():
+    """The bench's TCK block is "<0>Madde 178- </0>(1) Herkesin ...": the head is bold."""
+    protection = protect(" <0>Madde 178- </0>(1) Herkesin gelip geçtiği yerlerde")
+
+    text, lost = restore("<0>Article 178- </0>A person who fails", protection)
+
+    assert (text, lost) == ("<0>Article 178- </0> (1) A person who fails", 0)
+
+
+def test_a_short_fragment_keeps_its_leading_value():
+    """CMK's block "2012/108 sayılı " came back as " sayılı": a fragment has no sentence to reorder."""
+    protection = protect("2012/108 sayılı ")
+
+    assert restore(" numbered", protection) == ("2012/108 numbered", 0)
