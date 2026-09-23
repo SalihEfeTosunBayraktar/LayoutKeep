@@ -372,9 +372,7 @@ class TranslationWorker(QThread):
         if prepared is None:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return
-        # The run's config from here on: the translation loop builds its parallel chains from it, and
-        # the original lacks the merged glossary, so those chains keyed the memory without it.
-        self._config = prepared.config
+        self._config = prepared.config  # parallel chains need the merged glossary (see commit 438e14c)
 
         self.progress.emit(0, prepared.total)
         self.progress_detailed.emit(0, prepared.total, 0, prepared.total_chars, 0.0, "")
