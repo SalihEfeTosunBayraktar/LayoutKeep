@@ -42,6 +42,12 @@ Consistency 94.2% / 92.7%: every bar is above 90 in both directions.
 - The command line and the book tool read the stored settings, as the application does (D-020).
 - A number written with another thousands separator (3.657 / 3657) is no longer reported lost.
 - Every interface text follows the chosen language (tr/en/de), settings included.
+- The setup screen says under the language boxes whether the pair has been measured: EN→TR and
+  TR→EN with their three numbers, every other pair as unmeasured (experimental).
+- A short document fills every configured parallel slot (32 segments used two of eight), and the
+  extra parallel chains carry the merged glossary into the translation memory's key.
+- The comparison site can be built from one bench arm, each page saying which version, commit and
+  model translated it and how it scored (`comparison_site.py --bench`).
 - The desktop run checks glossary terms in the output; the CLI's memory key carries the glossary.
 
 ## 0.9.0 — 2026-09-10
