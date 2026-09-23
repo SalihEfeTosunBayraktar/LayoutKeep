@@ -513,3 +513,96 @@ kontrolleri `ui/setup_controls.py`'ye taşındı (kare düğme genişliği de or
 main_window 310, tweaks_dialog 258, floating_progress 254, openai_compat 235, progress 223)
 sıradaki oturuma kalıyor; yöntem aynı: AST haritası → çıkarma → ilgili testler → TAM paket →
 ayrı commit.
+
+## D-019 · TR->EN neden 72-74%'te takılıydı: satır kutusu yalnızca glif kadar (2026-09-23)
+
+**Soru:** TR->EN düzen skoru üç kolda 72-74% (EN->TR 80-82%). İngilizce Türkçeden kısa olduğu
+hâlde neden bu kadar blok işaretli?
+
+**Yöntem:** Kayıtlı koşular model çağrılmadan yeniden sığdırıldı + yeniden yazıldı + denetlendi
+(`tools/audit/refit_run.py`). Ölçüt aynı: L3/L4/L10/D1. Kayıtlı proje **sığdırma sonrası** hâli
+tutuyor; taşan bir bloğun ölçeği her zaman `min_scale` olduğu için boyut tam bölünerek geri
+alındı (`--restore-sizes`) — bu, koşunun kendi log'undaki taşma sayılarını birebir veriyor
+(tr_kalkinma_12 5/5, tr_tck_5237 12/14). İki kol aynı girdi, tek kod farkı.
+
+**Ölçüm (ilk tur):** TR->EN 17 işaretli blok: tablo 5, başlık 7, gövde 2, üstbilgi 2, altbilgi 1.
+Hepsi "sığmadı" — hiçbiri `box_crushed` değil. Sebep: okuyucu kutuyu **gliflerin bittiği yere**
+kadar ölçüyor, bu yüzden tek satırlık bir başlık kendi genişliği kadar. Ölçülen uzunluk oranı
+TR->EN'de 1,09-1,30x (log: `length target/source`), yani İngilizce bu belgelerde **uzun**;
+çeviri ikinci satıra kayıyor, kutunun yüksekliği tek satır. Alt tarafta yer yok (makale metni
+hemen altında), ama **yanında yüzlerce punto boş kâğıt var**. Model dışı ölçüm: dört kayıtlı
+koşuda işaretli 42 bloğun 28'i kutusu sağa uzatıldığında kendi puntosuyla sığıyor.
+
+**Karar (kabul):** `fitting/growth.free_right` — `free_below`'un yatay eşi. Sınır uydurulmaz:
+sayfanın kendi içerik kenarı (sayfadaki en sağdaki blok), satırları çakışan her komşu, her engel
+(görsel) ve `write.grant_room_right_pt`. Sığdırma ve yazıcı **aynı sayıyı** okur (`room_below`
+ile aynı gerekçe). İki istisna: ortalanmış blok (yazıcı kutunun ortasına koyar, geniş kutu metni
+kaydırır) ve tablo hücresi — hücre kendi **sütununa** kadar büyür, satırına değil (sarınmış bir
+hücrenin yanındaki satır boştur; sütun komşusunun başladığı yer sınırdır). Ayar metni ölçülen
+maliyeti ve sıfır etkiyi değil, **ölçülen eğriyi** yazar; varsayılan 60 punto (eğri 48'de
+doyuyor).
+
+**Ölçüm (sonra, aynı dört koşu, L3/L4/L7/L8/L10 hiçbirinde artış yok):**
+
+| koşu | yön | blok | D1 önce → sonra | düzen önce → sonra |
+|---|---|---|---|---|
+| tr_tck_5237 | tr->en | 39 | 12 → 7 | 69,2% → 82,1% |
+| tr_kalkinma_12 | tr->en | 33 | 5 → 3 | 81,8% → 87,9% |
+| plos (EN->TR) | en->tr | 58 | 4 → 0 | 93,1% → 100% |
+| arxiv_19145 (EN->TR) | en->tr | 64 | 17 → 8 | 73,4% → 87,5% |
+
+TR->EN toplam **75,0% → 84,7%** (72 blok, 18 → 11 bozuk). EN->TR (bu iki kaynak) **82,8% → 93,4%**.
+Sınır eğrisi (aynı koşular): 0/12/24/36/48/60/200 puntoda tr_tck D1 = 12/9/8/8/7/7/7,
+arxiv D1 = 17/9/8/8/8/8/8. Rol dağılımı: tablo 5→1, başlık 7→5, gövde 2→2, üstbilgi 2→1.
+
+**Gerekçe:** Kutu glif kadar olduğu için daha uzun çeviri, kâğıt varken bile küçültülüyor ya da
+işaretleniyordu. Tek satır kalan bir başlık sayfanın şeklini korur; ikinci satıra kaymak veya
+taban puntoya inmek bozar. Kazanç her iki yönde de var, hiçbir ölçüt kötüleşmedi.
+
+**Yanlış giden (ölçülmüş, gizlenmiyor):** İlk sürümde tablo hücreleri de sayfanın kenarına kadar
+büyüyebiliyordu. `tr_kalkinma_12` p2'deki çizgili tabloda bir hücrenin son kelimesi ("Area")
+sütun çizgisini **4 punto** aştı (A kolunda aşmıyordu; aynı sayfada değişiklikten **önce de** 5
+böyle aşma var). Sütun kuralı uygulandıktan sonra aşma 4 puntoya indi ve geçen blok sayısı
+değişmedi. **Açık kalan:** DocIR çizim (vektör) taşımıyor, bu yüzden `free_right` bir tablo
+çizgisini göremez; en yakın sınır "sonraki sütunun içeriği"dir. Yazıcının 3 puntoluk sağ payı da
+bu sınırı ~1 punto aşabilir.
+
+**İkinci yanlış giden:** İlk ölçüm aracı kayıtlı projeyi olduğu gibi yeniden sığdırdı; blok
+zaten taban puntoda olduğu için ikinci kez küçülüyor ve işaret kayboluyordu (tr_tck 14 → 6).
+Sebep bulundu: taşan bloğun ölçeği her zaman `min_scale`. Boyut geri alınınca sayılar koşunun
+kendi log'uyla eşleşti.
+
+**Üçüncü yanlış giden:** İlk tablo testi yanlış kuruldu (hücrenin altında 188 punto boşluk
+vardı, dikey pay devreye girdi ve blok sığdı). Test, hücrenin sütun sınırına dayandığı gerçek
+duruma çevrildi.
+
+**Kanıt:** `tests/test_fitting_growth_right.py` (14 test; tablo kuralı devre dışı bırakılınca
+3'ü kırmızı), `tools/audit/refit_run.py`, `src/layoutkeep/fitting/growth.py:free_right`,
+`src/layoutkeep/fitting/pdf_pass.py`, `src/layoutkeep/writers/pdf_writer.py:_layout_rect`,
+`src/layoutkeep/core/tunables.py:write.grant_room_right_pt`. Tam paket: 1402 passed.
+Karşılaştırma görüntüleri ve A/B log'ları bu worktree'de: `_artifacts/refit-right-grant/`
+(`evidence/{tck,kalkinma}/page_*.jpg` = kaynak | önce | sonra, `logs_{A,E}/`, birleşik PDF'ler,
+`rule_probe.py` = çizgi aşma ölçümü).
+
+## D-020 · Bench'in sabitlediği ayarlar CLI koşusuna hiç ulaşmıyor (2026-09-23) · **KAPALI (düzeltildi: `373698a`)**
+
+**Soru:** `bench.py` her kol için `tunables.json` yazıp `LAYOUTKEEP_TUNABLES` ile CLI'ye veriyor
+(`--set` ile ayar sabitlenebiliyor). Bu gerçekten etkiliyor mu?
+
+**Ölçüm:** `LAYOUTKEEP_TUNABLES=<dosya>` verilip `{"translation.workers": 8}` yazıldığında
+`tunables.get("translation.workers")` **2** (varsayılan) dönüyor, `tunables.overrides()` boş.
+Sebep: `tunables.load()` yalnızca `ui/app.py`'de çağrılıyor; CLI yolunda (`cli.py`,
+`translate_book.py`) hiç çağrılmıyor, `_overrides` boş kalıyor. Yani ayarlar bugün **yalnız
+arayüzde** geçerli; komut satırı koşusu her zaman varsayılanlarla çalışıyor.
+
+**Sonuç:** Kayıtlı kolları etkilemedi (o kolların `tunables.json`'ı yalnız iki anahtar taşıyor ve
+ikisi de varsayılana eşitti). Ama `--set` ile ayar sabitleyen bir kol **sessizce** varsayılanı
+ölçer. Bu oturumda yaşandı: `write.grant_room_right_pt` sınır taraması önce env ile yapıldı ve
+0/24/60/200 hep aynı sayıyı verdi; sebep ayarın hiç okunmamasıydı. Tarama `refit_run.py --set`
+(in-process `tunables.set_value`) ile tekrarlandı, o zaman eğri göründü.
+
+**Karar:** Bu oturumda düzeltilmedi (görev sığdırma kuralıydı). Düzeltme tek satır: CLI girişinde
+`tunables.load()` çağrılmalı.
+
+**Kanıt:** `src/layoutkeep/ui/app.py:141` (tek çağrı yeri) · `src/layoutkeep/core/tunables.py:981` ·
+`tools/audit/refit_run.py --set`.

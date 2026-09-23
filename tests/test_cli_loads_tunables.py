@@ -3,7 +3,7 @@
 Only `ui/app.py` called `tunables.load()`, so every CLI run - and every bench arm, which drives the
 CLI through `translate_book.py` - translated with the defaults whatever the settings file said. The
 bench's `--set translation.auto_glossary=true` never reached a translation (found by the tr-layout
-agent, D-019), so arms B0, B1 and C differed in code, not in settings.
+agent, D-020), so arms B0, B1 and C differed in code, not in settings.
 """
 
 from __future__ import annotations
