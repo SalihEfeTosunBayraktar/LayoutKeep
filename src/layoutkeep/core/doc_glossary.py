@@ -15,6 +15,7 @@ testable without a provider.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -49,6 +50,10 @@ def _excerpt(document, limit: int = CONTEXT_CHARS) -> str:
     return "\n".join(parts)[:limit]
 
 
+#: One complete `"term": "value"` pair, escapes included.
+_PAIR = re.compile(r'"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+
 def _parse_glossary(reply: str) -> dict[str, str]:
     """Pull a {term: translation} object out of a model answer, tolerating fences and prose.
 
@@ -60,12 +65,18 @@ def _parse_glossary(reply: str) -> dict[str, str]:
         text = text.split("```")[1] if "```" in text[3:] else text[3:]
         text = text.lstrip("json").strip()
     start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end < start:
+    if start < 0:
         return {}
     try:
-        data = json.loads(text[start : end + 1])
+        data = json.loads(text[start : end + 1]) if end > start else None
     except json.JSONDecodeError:
-        return {}
+        data = None
+    if data is None:
+        # A small model that loops runs into the output ceiling and never closes the object; the
+        # pairs it did finish are still its answer.
+        data = {}
+        for term, value in _PAIR.findall(text[start:]):
+            data.setdefault(json.loads(f'"{term}"'), json.loads(f'"{value}"'))
     if not isinstance(data, dict):
         return {}
     return {

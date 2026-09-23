@@ -236,6 +236,16 @@ def test_garbage_answers_do_not_invent_terms():
         assert glossary == {}, reply
 
 
+def test_a_reply_cut_off_mid_object_keeps_its_complete_pairs():
+    """A small model that loops ('ceza' three times) runs into the output ceiling and the object
+    never closes; the pairs it finished are still the model's answer and must not be thrown away."""
+    reply = f'{{\n"{TERM}": "{AUTO_TERM}",\n"{SECOND_TERM}": "{AUTO_TERM_2}",\n"{SECOND_TERM}": "unfini'
+
+    glossary = build_doc_glossary(_document(), lambda _s, _u: reply, source_lang="en", target_lang="tr")
+
+    assert glossary == {TERM: AUTO_TERM, SECOND_TERM: AUTO_TERM_2}
+
+
 def test_a_failed_call_is_an_empty_glossary_and_says_why(capsys):
     """A missing term policy must never cost a two-hour run."""
 
