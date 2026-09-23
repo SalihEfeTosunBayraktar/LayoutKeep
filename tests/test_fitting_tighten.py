@@ -25,7 +25,8 @@ from layoutkeep.fitting.measure import TextMeasurer, make_measure_fn
 #: A/B came back identical in both arms. The tests stay as the record of what was tried - they go
 #: green again the moment someone has evidence that a leading step helps. See
 #: docs/campaign/JOURNAL.md (2026-09-20) and the story's chapter 3.
-pytestmark = pytest.mark.xfail(
+#: The honest-overflow test below does not depend on that step and passes, so it is not marked.
+_reverted = pytest.mark.xfail(
     reason="leading step reverted: it measured nothing on the written page (bbf5958)",
     strict=False,
 )
@@ -46,6 +47,7 @@ def _segment(text: str) -> Segment:
 _TEXT = ("the quick brown fox jumps over the lazy dog and keeps going for a while " * 3).strip()
 
 
+@_reverted
 def test_a_translation_that_only_fits_with_tighter_lines_is_tightened() -> None:
     measure = _measure()
     style = Style(font_family="Carlito", size=11.0)
@@ -61,6 +63,7 @@ def test_a_translation_that_only_fits_with_tighter_lines_is_tightened() -> None:
     assert result.text == _TEXT, "tightening changes the leading, never the words"
 
 
+@_reverted
 def test_tightening_is_tried_before_asking_the_model() -> None:
     """The cheaper answer wins: the model is asked only when even the tightest leading fails."""
     measure = _measure()
@@ -80,6 +83,7 @@ def test_tightening_is_tried_before_asking_the_model() -> None:
     assert asked == [], "the model was asked for a shorter text that tightening made unnecessary"
 
 
+@_reverted
 def test_text_that_fits_as_is_is_not_tightened() -> None:
     """The step must not fire when there is nothing to rescue - every block in every document
     would come out with tighter leading."""
@@ -106,6 +110,7 @@ def test_text_that_fits_at_no_leading_still_overflows_and_flags() -> None:
     assert result.needs_review
 
 
+@_reverted
 def test_an_explicit_line_height_on_the_style_is_respected() -> None:
     """A block whose style already names a leading must not be tightened further on top of it."""
     measure = _measure()
