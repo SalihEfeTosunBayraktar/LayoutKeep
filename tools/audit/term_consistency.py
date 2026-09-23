@@ -69,11 +69,32 @@ def _occurrences(term: str, pairs: list[tuple[str, str]]) -> list[tuple[str, str
     return [pair for pair in pairs if pattern.search(pair[0])][:PER_TERM]
 
 
+def _distinct(found: dict[str, list[tuple[str, str]]]) -> dict[str, list[tuple[str, str]]]:
+    """The terms that are not another kept term measured again.
+
+    A term is dropped when it differs from a kept term only in case, or when a longer kept term
+    holds it as whole words and was sampled from the same sentences: "Hawk fed" and "fed upon" beside
+    "Hawk fed upon" are one disagreement, not three.
+    """
+    kept: list[str] = []
+    for term in sorted(found, key=len, reverse=True):
+        folded = term.casefold()
+        if any(
+            folded == other.casefold()
+            or (re.search(rf"(?<!\w){re.escape(folded)}(?!\w)", other.casefold())
+                and set(found[term]) <= set(found[other]))
+            for other in kept
+        ):
+            continue
+        kept.append(term)
+    return {term: occ for term, occ in found.items() if term in kept}
+
+
 def measure(run: Path, src: str, dst: str) -> dict:
     pairs = _pairs(run)
     terms = [c.phrase for c in candidates([s for s, _ in pairs], minimum_count=2, limit=TERMS * 2)]
     found = {term: occ for term in terms if len(occ := _occurrences(term, pairs)) >= 2}
-    found = dict(list(found.items())[:TERMS])
+    found = dict(list(_distinct(found).items())[:TERMS])
     if not found:
         return {"terms": {}, "consistent": 0, "occurrences": 0}
 
