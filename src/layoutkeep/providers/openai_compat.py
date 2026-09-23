@@ -380,8 +380,12 @@ def _is_context_overflow(text: str) -> bool:
 _ANY_TAG = re.compile(r"</?\s*([^\W\d][\w-]*)(?:\s[^<>]*)?/?>", re.UNICODE)
 
 
-#: A list label at the start of a text: "3.", "12)", "1.4.", "a.", "b)".
-_LEADING_LABEL = re.compile(r"^\s*((?:\d+(?:\.\d+)*[.)])|(?:[a-z][.)]))\s")
+#: A list label at the start of a text: "3.", "12)", "1.4.", "a.", "b)", "(1)", "(b)". A space may be
+#: missing before a letter - Turkish statutes set "4.Kapsama" - but not before a digit, so a year or a
+#: decimal ("2012 yılında", "3.5 m") is never taken for a label.
+_LEADING_LABEL = re.compile(
+    r"^\s*((?:\d+(?:\.\d+)*[.)])|(?:[a-z][.)])|(?:\((?:\d{1,2}|[a-z])\)))(?:\s|(?=[^\W\d_]))"
+)
 
 
 def _with_leading_label(source: str, reply: str) -> str:
