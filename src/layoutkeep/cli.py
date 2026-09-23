@@ -134,7 +134,7 @@ def _automatic_glossary(doc: Document, provider, args: argparse.Namespace) -> di
     Empty when the setting is off, when the provider has no chat call to ask with (DeepL), or when
     the model's answer cannot be read: the run then translates exactly as it did before.
     """
-    if not bool(tunables.get("translation.auto_glossary")):
+    if getattr(args, "no_auto_glossary", False) or not bool(tunables.get("translation.auto_glossary")):
         return {}
 
     from layoutkeep.core.doc_glossary import build_doc_glossary
@@ -356,6 +356,11 @@ def cmd_translate(args: argparse.Namespace) -> int:
         # with, and the document's own terms are part of them.
         args.glossary = str(target)
         provider, memory = _build_provider(args)
+
+    if getattr(args, "terms_only", False):
+        # A book translated in chunks asks for its terms once, here, and hands the list to every
+        # chunk (`tools/audit/translate_book.py`); nothing is translated on this call.
+        return EXIT_OK
 
     # Ne çevrildi, neyle: kaydın kendisi çıktıya ve proje dosyasına yazılır (core/provenance.py);
     # burada yalnız tek satırı gösterilir. Zincir yeniden kurulduktan SONRA çağrılır: koşunun
@@ -783,6 +788,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="SQLite translation memory; reuses earlier translations of repeated text")
     tr.add_argument("--glossary", default=None, metavar="PATH",
                     help="JSON terminology file: {\"source term\": \"target term\"}")
+    tr.add_argument("--no-auto-glossary", action="store_true", default=False,
+                    help="do not build this document's own term list, even when the setting is on")
+    tr.add_argument("--terms-only", action="store_true", default=False,
+                    help="write the automatic term list beside --output and stop")
     tr.add_argument("--limit", type=int, default=None, metavar="N",
                     help="translate only N segments (cheap smoke test)")
     tr.add_argument("--skip", type=int, default=0, metavar="N",

@@ -99,6 +99,10 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
         command.append("--preserve-references")
     if getattr(args, "fit_mode", None):
         command += ["--fit-mode", args.fit_mode]
+    if getattr(args, "glossary", None):
+        # The book's own term list, asked once for the whole input (`document_glossary`): a chunk
+        # that built its own would render a term one way on page one and another on page three.
+        command += ["--glossary", str(args.glossary), "--no-auto-glossary"]
     if getattr(args, "memory", None):
         # The translation memory is what makes a rerun cheap: segments the application (or an
         # earlier run) already translated never reach the model. Without this flag a long book
@@ -128,6 +132,34 @@ def translate_chunk(chunk: Path, out: Path, args: argparse.Namespace) -> tuple[P
             + " | ".join(lines[-3:])
         )
     return out, proc.returncode, f"{elapsed:6.0f}s | " + " | ".join(lines[-4:])
+
+
+def document_glossary(args: argparse.Namespace, work: Path) -> Path | None:
+    """The whole input's automatic term list, built once and reused by every chunk and rerun.
+
+    None when `translation.auto_glossary` is off or no terms came back; the chunks then translate
+    exactly as before. A list already in the work directory is kept, so a resumed book keeps the
+    terms its first pages were translated with.
+    """
+    from layoutkeep.core import tunables
+
+    if not bool(tunables.get("translation.auto_glossary")):
+        return None
+    target = work / "document.glossary.json"
+    if not target.exists():
+        command = [
+            sys.executable, "-m", "layoutkeep.cli", "translate", str(args.input),
+            "--to", args.to, "--from", getattr(args, "from"),
+            "--provider", "openai", "--base-url", args.base_url, "--model", args.model,
+            "-o", str(work / "document.pdf"), "--terms-only",
+        ]
+        if args.layout_detector:
+            command.append("--layout-detector")
+        if getattr(args, "preserve_references", False):
+            command.append("--preserve-references")
+        proc = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        (work / "document.glossary.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
+    return target if target.exists() else None
 
 
 def _keep_as_is(chunk: Path, out: Path) -> None:
@@ -287,6 +319,8 @@ def main() -> int:
     work = _prepare_work_dir(args)
     print(f"work directory: {work}", flush=True)
 
+    args.glossary = document_glossary(args, work)
+    print(f"document glossary: {args.glossary or 'none'}", flush=True)
     chunks = split_pages(args.input, work / "src", args.pages_per_chunk)
     if args.limit_chunks:
         chunks = chunks[: args.limit_chunks]
