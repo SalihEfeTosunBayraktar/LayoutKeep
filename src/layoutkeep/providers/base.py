@@ -53,6 +53,28 @@ def chat_callable(provider) -> Callable[[list[dict[str, str]]], str] | None:
     while target is not None:
         chat = getattr(target, "_chat", None)
         if chat is not None:
-            return chat
+            return _with_first_batch_timeout(target, chat)
         target = getattr(target, "inner", None)
     return None
+
+
+def _with_first_batch_timeout(target, chat: Callable[[list[dict[str, str]]], str]):
+    """The chat call, given the first batch's allowance while the timeout is adaptive.
+
+    A document-level call (the automatic glossary) comes before any batch, so it ran under the 60 s
+    starting timeout; a slow local server's forty-term answer did not fit and the glossary was lost.
+    A pinned `timeout` is left alone, and the run's own timeout is restored after the call.
+    """
+    allowance = getattr(target, "first_batch_base_timeout", None)
+    if getattr(target, "timeout", 0) is not None or allowance is None:
+        return chat
+
+    def call(messages: list[dict[str, str]]) -> str:
+        before = target._request_timeout
+        target._request_timeout = max(before, allowance)
+        try:
+            return chat(messages)
+        finally:
+            target._request_timeout = before
+
+    return call
