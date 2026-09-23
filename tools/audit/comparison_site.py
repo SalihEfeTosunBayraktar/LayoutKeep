@@ -81,6 +81,9 @@ class Document:
     #: site has to say so rather than let it pass for the current one.
     commit: str = ""
     stale: str = ""
+    #: What made this translation and how it measured, for a bench run: version, commit, model,
+    #: direction, quality, consistency, layout. Empty for a campaign run, which has no record.
+    record: dict | None = None
 
 
 def _translation_pdfs(run: Path) -> list[Path]:
@@ -255,6 +258,74 @@ def _live_documents(per_document: int = 12) -> list[Document]:
     return documents
 
 
+def _bench_table(run_dir: Path) -> dict[str, tuple[str, str]]:
+    """Per source, the layout share and loss count the bench wrote into BENCH.md."""
+    rows: dict[str, tuple[str, str]] = {}
+    table = run_dir / "BENCH.md"
+    if not table.exists():
+        return rows
+    for line in table.read_text(encoding="utf-8").splitlines():
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) > 5 and cells[1] in ("en->tr", "tr->en") and cells[-1].endswith("%"):
+            losses = next((c.strip("*") for c in cells if c.startswith("**")), "")
+            rows[cells[0]] = (cells[-1], losses)
+    return rows
+
+
+def _bench_documents(run_dir: Path) -> list[Document]:
+    """Every source of one bench arm, each with the record of what translated it and its bars.
+
+    The bench keeps the source pages it cut (`<name>/source.pdf`), the translation
+    (`<name>/<name>.<to>.pdf`), the provenance of the arm and the judges' files per source, so the
+    site can say for each page pair which version, commit and model produced it and how it scored.
+    """
+    table = _bench_table(run_dir)
+    documents: list[Document] = []
+    for folder in sorted(p for p in run_dir.iterdir() if (p / "bench.json").exists()):
+        meta = json.loads((folder / "bench.json").read_text(encoding="utf-8"))
+        direction = meta["direction"]
+        translated = folder / f"{folder.name}.{direction.split('->')[1]}.pdf"
+        source = folder / "source.pdf"
+        if not translated.exists() or not source.exists():
+            continue
+        with pymupdf.open(source) as original, pymupdf.open(translated) as output:
+            pages = min(original.page_count, output.page_count)
+        prov = meta.get("provenance") or {}
+        record = {
+            "version": prov.get("app_version", ""),
+            "commit": str(prov.get("commit", ""))[:7],
+            "model": prov.get("model", ""),
+            "direction": direction.replace("->", " → ").upper(),
+            "date": str(prov.get("started", ""))[:10],
+        }
+        quality = folder / "quality.json"
+        if quality.exists():
+            scores = [float(row["score"]) for row in json.loads(quality.read_text(encoding="utf-8"))
+                      if isinstance(row, dict) and "score" in row]
+            if scores:
+                record["quality"] = f"{sum(scores) / len(scores):.1f}"
+        consistency = folder / "consistency.json"
+        if consistency.exists():
+            data = json.loads(consistency.read_text(encoding="utf-8"))
+            if data.get("occurrences"):
+                record["consistency"] = f"{100 * data['consistent'] / data['occurrences']:.0f}%"
+        if folder.name in table:
+            record["layout"], losses = table[folder.name]
+        else:
+            losses = ""
+        documents.append(
+            Document(
+                name=folder.name,
+                title=f"{folder.name} ({record['direction']})",
+                pairs=[(source, i, translated, i) for i in range(pages)],
+                losses="" if losses in ("", "0") else f"{losses} loss(es)",
+                audited=True,
+                record=record,
+            )
+        )
+    return documents
+
+
 def collect(include_live: bool = True) -> list[Document]:
     """Every sample, freshest first, with a re-run standing in for the run it replaced.
 
@@ -342,6 +413,9 @@ TEXT = {
         "audit": "audit",
         "no_findings": "lossless audit: nothing found",
         "note_latest": "latest code, real model",
+        "quality": "quality",
+        "consistency": "term consistency",
+        "layout": "layout",
     },
     "tr": {
         "title": "LayoutKeep — orijinal ve çeviri, yan yana",
@@ -362,6 +436,9 @@ TEXT = {
         "audit": "denetim",
         "no_findings": "kayıpsızlık denetimi: bulgu yok",
         "note_latest": "en güncel kod, gerçek model",
+        "quality": "kalite",
+        "consistency": "terim tutarlılığı",
+        "layout": "düzen",
     },
 }
 
@@ -507,7 +584,11 @@ function showDocument(index) {{
   const audit = doc.audited ? (doc.losses ? t.audit + ": " + doc.losses : t.no_findings) : "";
   const note = doc.note ? t["note_" + doc.note] || "" : "";
   const stale = doc.stale ? t.stale.replace("{{c}}", doc.stale) : "";
-  $("meta").textContent = [doc.pages.length + " " + t.pages, audit, note, stale]
+  const r = doc.record;
+  const record = r ? [r.direction, "LayoutKeep " + r.version + " (" + r.commit + ")", r.model,
+    r.quality ? t.quality + " " + r.quality : "", r.consistency ? t.consistency + " " + r.consistency : "",
+    r.layout ? t.layout + " " + r.layout : "", r.date].filter(Boolean).join(" · ") : "";
+  $("meta").textContent = [doc.pages.length + " " + t.pages, record, audit, note, stale]
     .filter(Boolean).join(" · ");
   $("meta").classList.toggle("stale", Boolean(doc.stale));
   $("pages").replaceChildren(...doc.pages.map((record, i) => {{
@@ -597,9 +678,11 @@ def main() -> int:
     parser.add_argument("--dpi", type=int, default=144)
     parser.add_argument("--max-pages", type=int, default=8)
     parser.add_argument("--no-live", action="store_true")
+    parser.add_argument("--bench", type=Path, default=None,
+                        help="build from one bench arm (_artifacts/bench/<arm>) with its records")
     args = parser.parse_args()
 
-    documents = collect(include_live=not args.no_live)
+    documents = _bench_documents(args.bench) if args.bench else collect(include_live=not args.no_live)
     if not documents:
         print("no documents found under _artifacts/heldout", file=sys.stderr)
         return 1
@@ -615,13 +698,14 @@ def main() -> int:
                 "audited": document.audited,
                 "note": document.note,
                 "stale": document.stale,
+                "record": document.record,
                 "dev": document.name.startswith("fresh_") or "_smoke" in document.name,
                 "pages": pages,
             }
         )
 
     args.out.mkdir(parents=True, exist_ok=True)
-    origin = "sources + runs + live"
+    origin = f"bench/{args.bench.name}" if args.bench else "sources + runs + live"
     # The labels are filled in here, once: `{c}` stays literal (it is a commit the page substitutes
     # when a run is older than the tree) while the counts, dpi and origin are known right now.
     labels = {
