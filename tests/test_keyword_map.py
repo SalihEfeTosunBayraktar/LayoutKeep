@@ -201,7 +201,7 @@ def test_the_map_is_built_through_the_wrapper_stack(tmp_path, monkeypatch):
     finally:
         tunables.reset_all()
 
-    assert any(status.startswith("topic map:") for status in statuses), statuses
+    assert any(status.lower().startswith("topic map:") for status in statuses), statuses
     assert inner.calls, "the chat call under the wrappers was never reached"
     entries = json.loads(target.read_text(encoding="utf-8"))
     assert entries[0]["keywords"] == ["village", "Black Sea"]

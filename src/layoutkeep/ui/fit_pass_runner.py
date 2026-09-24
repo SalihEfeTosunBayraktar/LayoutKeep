@@ -15,6 +15,7 @@ from dataclasses import replace
 from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import Document, Segment
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["FitPassRunner"]
 
@@ -105,6 +106,7 @@ class FitPassRunner:
         fit_total = sum(1 for segment in segments if segment.translated)
         fit_chars = sum(len(segment.target or "") for segment in segments) or 1
         fit_state = {"done": 0, "chars": 0, "started": time.monotonic()}
+        layers: dict[str, int] = {}
 
         def on_fitted(seg: Segment, block, result) -> None:
             fit_state["done"] += 1
@@ -120,6 +122,7 @@ class FitPassRunner:
                     fit_state["done"] / spent,
                     "",
                 )
+            layers[result.layer.value] = layers.get(result.layer.value, 0) + 1
             # fit_segment is pure - it reports what would fit. Writing the result back is ours.
             seg.target = result.text
             if result.needs_review:
@@ -144,3 +147,7 @@ class FitPassRunner:
             target_lang=config.target_lang,
             on_fitted=on_fitted,
         )
+        if layers:
+            self._on_status(UIStrings.get("FEED_FIT_SUMMARY").format(
+                as_is=layers.get("as_is", 0), shrunk=layers.get("shrunk", 0),
+                retranslated=layers.get("retranslated", 0), overflow=layers.get("overflow", 0)))

@@ -64,8 +64,9 @@ def check_glossary_terms(
     translated, report = glossary.verify(translated)
     if provider is not None and config is not None:
         # A miss is asked once more with only its own terms, as the CLI does.
-        report["honoured"] += reask_misses(glossary, provider, translated,
-                                           src_lang=config.source_lang, tgt_lang=config.target_lang)
+        report["reasked"] = reask_misses(glossary, provider, translated,
+                                         src_lang=config.source_lang, tgt_lang=config.target_lang)
+        report["honoured"] += report["reasked"]
     return translated, report
 
 
@@ -132,7 +133,7 @@ class DocumentFinalizer:
                     glossary=read_glossary_terms(config.glossary_path),
                 )
             if recovered:
-                self._on_status(f"recovered {recovered} untranslated segments")
+                self._on_status(UIStrings.get("FEED_RECOVERED").format(n=recovered))
 
         flag_passthrough(translated)
         flag_untranslated(translated)
@@ -152,6 +153,8 @@ class DocumentFinalizer:
         # block to make it fit. What it flags is what the reviewer has to look at.
         terms = read_glossary_terms(config.glossary_path)
         translated, glossary_report = check_glossary_terms(terms, translated, provider, config)
+        if glossary_report.get("reasked"):
+            self._on_status(UIStrings.get("FEED_GLOSSARY_REASKED").format(n=glossary_report["reasked"]))
         if glossary_report["checked"]:
             self._on_status(
                 UIStrings.get("STATUS_GLOSSARY_CHECKED").format(
@@ -174,7 +177,7 @@ class DocumentFinalizer:
         slice_path = None
         if range_pages is not None:
             slice_path = _source_slice(src, range_pages, out.with_suffix(".range-src.pdf"))
-            self._on_status(f"output holds the selected {len(range_pages)} pages")
+            self._on_status(UIStrings.get("FEED_RANGE_OUTPUT").format(n=len(range_pages)))
         # The PDF writer renders *from the source file*, page by page, so a range is only honoured
         # when the writer is handed the sliced source: dropping pages from the document alone left
         # the whole book in the output (the pages the range left out simply went untouched).
@@ -198,9 +201,9 @@ class DocumentFinalizer:
             from layoutkeep.writers.dual_pdf import compose_dual
 
             dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
-            self._on_status("writing bilingual copy")
+            self._on_status(UIStrings.get("FEED_BILINGUAL_WRITING"))
             composed = compose_dual(src, out, dual_path, dual_mode)
-            self._on_status(f"bilingual copy: {composed} pages ({dual_mode})")
+            self._on_status(UIStrings.get("FEED_BILINGUAL_DONE").format(n=composed, mode=dual_mode))
 
         project_path = config.project_path or str(out.with_suffix(".lkproj"))
         save_project(doc, project_path)
@@ -262,7 +265,7 @@ class DocumentFinalizer:
             ),
         )
         if report.repaired:
-            self._on_status(f"verification mended {report.repaired} segments")
+            self._on_status(UIStrings.get("FEED_VERIFY_MENDED").format(n=report.repaired))
         return report
 
     def collect_stats(self, translated: list[Segment]) -> dict:

@@ -408,9 +408,9 @@ class TranslationWorker(QThread):
         try:
             written = timing.write_html(target)
         except OSError as exc:
-            self.status.emit(f"timing report could not be written: {exc}")
+            self.status.emit(UIStrings.get("FEED_TIMING_FAILED").format(error=exc))
             return
-        self.status.emit(f"timing report: {written.name}")
+        self.status.emit(UIStrings.get("FEED_TIMING_WRITTEN").format(name=written.name))
 
     def _emit_timeout(self, timeout: float) -> None:
         # Sağlayıcıya uygulanan zaman aşımını UI'a bildirir / Reports the timeout applied to the provider

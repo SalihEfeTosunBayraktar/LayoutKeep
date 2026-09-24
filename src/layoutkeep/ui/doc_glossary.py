@@ -18,6 +18,7 @@ from layoutkeep.core.doc_glossary import build_doc_glossary, merge_glossaries, w
 from layoutkeep.core.docir import Document
 from layoutkeep.providers.base import chat_callable
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["DocGlossaryBuilder"]
 
@@ -44,9 +45,9 @@ class DocGlossaryBuilder:
         """Returns (config pointing at the merged file, the merged terms), or the config as it came."""
         chat = chat_callable(provider)
         if chat is None:
-            self._on_status("automatic glossary skipped: this provider has no chat call")
+            self._on_status(UIStrings.get("FEED_GLOSSARY_SKIPPED"))
             return config, {}
-        self._on_status("asking for the document's terms")
+        self._on_status(UIStrings.get("FEED_GLOSSARY_ASKING"))
 
         def ask(system: str, user: str) -> str:
             return str(
@@ -65,16 +66,13 @@ class DocGlossaryBuilder:
             target_lang=config.target_lang,
         )
         if not automatic:
-            self._on_status("automatic glossary: no terms came back, translating as before")
+            self._on_status(UIStrings.get("FEED_GLOSSARY_EMPTY"))
             return config, {}
 
         user = self._user_terms(config)
         merged = merge_glossaries(automatic, user)
         target = write_glossary(merged, out.with_name(f"{out.stem}.glossary.json"))
-        self._on_status(
-            f"glossary: {len(automatic)} automatic terms, {len(user)} from the file "
-            f"-> {target.name}"
-        )
+        self._on_status(UIStrings.get("FEED_GLOSSARY_BUILT").format(auto=len(automatic), user=len(user)))
         return replace(config, glossary_path=str(target)), merged
 
     @staticmethod

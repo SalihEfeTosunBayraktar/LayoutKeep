@@ -13,6 +13,7 @@ from pathlib import Path
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import Document
 from layoutkeep.providers.base import chat_callable
+from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["TopicMapBuilder"]
 
@@ -39,11 +40,11 @@ class TopicMapBuilder:
         # provider - the case `providers/base.chat_callable` exists for.
         chat = chat_callable(provider)
         if chat is None:
-            self._on_status("topic map skipped: this provider has no chat call")
+            self._on_status(UIStrings.get("FEED_TOPIC_SKIPPED"))
             # The setting's real value, not "": the caller puts back what this returns, and an empty
             # string erased the user's own map path whenever the provider could not be asked (DeepL).
             return None, str(tunables.get("translation.keyword_map_path") or "")
-        self._on_status("building the topic map")
+        self._on_status(UIStrings.get("FEED_TOPIC_BUILDING"))
 
         def ask(system: str, user: str) -> str:
             return str(
@@ -60,5 +61,5 @@ class TopicMapBuilder:
         previous = str(tunables.get("translation.keyword_map_path") or "")
         tunables.set_value("translation.keyword_map_path", str(target))
         filled, words = filled_entries(entries)
-        self._on_status(f"topic map: {filled}/{len(entries)} stretches, {words} keywords")
+        self._on_status(UIStrings.get("FEED_TOPIC_DONE").format(filled=filled, total=len(entries), words=words))
         return target, previous

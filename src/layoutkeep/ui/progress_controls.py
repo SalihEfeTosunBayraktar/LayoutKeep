@@ -66,6 +66,9 @@ class ProgressControlsBuilder:
         panel._extra_info = QLabel("")
         panel._extra_info.setProperty("class", "muted")
 
+        from layoutkeep.ui.activity_feed import ActivityFeed
+
+        panel._feed = ActivityFeed()
         panel._flags_label = QLabel("")
         panel._flags_label.setProperty("class", "muted")
         panel._flags_label.setVisible(False)

@@ -164,7 +164,7 @@ def test_the_worker_preserves_the_bibliography_when_the_setting_is_on(qtbot, tmp
     written = _text_of(out)
     assert CITATION in written, "the worker sent the bibliography to the model"
     assert "[tr] References" not in written
-    assert any(line.startswith("references:") for line in statuses), statuses
+    assert any(line.lower().startswith("references:") for line in statuses), statuses
 
 
 def test_the_worker_translates_the_bibliography_when_the_setting_is_off(qtbot, tmp_path) -> None:
@@ -180,4 +180,4 @@ def test_the_worker_translates_the_bibliography_when_the_setting_is_off(qtbot, t
     worker.run()
 
     assert f"[tr] {CITATION}" in _text_of(out)
-    assert not any(line.startswith("references:") for line in statuses), statuses
+    assert not any(line.lower().startswith("references:") for line in statuses), statuses

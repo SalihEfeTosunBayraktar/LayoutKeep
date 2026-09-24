@@ -21,6 +21,7 @@ from layoutkeep.core.docir import Document, Segment, segments_from_document
 from layoutkeep.core.timing import PhaseTimer
 from layoutkeep.ui.doc_glossary import DocGlossaryBuilder
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.topic_map import TopicMapBuilder
 
 __all__ = ["DocumentPreparer", "PreparedDocument"]
@@ -161,7 +162,7 @@ class DocumentPreparer:
 
         tagged = tag_bibliography_blocks(doc, preserve=True)
         if tagged:
-            self._on_status(f"references: {tagged} bibliography blocks preserved untouched")
+            self._on_status(UIStrings.get("FEED_REFERENCES").format(n=tagged))
 
     def _build_topic_map(self, doc: Document, out: Path, provider) -> None:
         """Delegate to TopicMapBuilder, keeping the setting it borrowed so it can be put back.
@@ -214,4 +215,4 @@ class DocumentPreparer:
                 target_lang=config.target_lang,
                 headroom=1.2 if prefit == "loose" else 1.0,
             )
-        self._on_status(f"character budgets: {filled} of {total} boxes ({prefit})")
+        self._on_status(UIStrings.get("FEED_BUDGETS").format(filled=filled, total=total, mode=prefit))

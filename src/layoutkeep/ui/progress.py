@@ -125,6 +125,8 @@ class ProgressCardLayout:
         # text below them. Stacking them underneath in a 2x2 grid left the card looking
         # scattered at the width the window actually opens at.
         card_layout.addLayout(self._build_stats_grid())
+        # The run's events as they happen (activity_feed.py): the status line alone overwrote them.
+        card_layout.addWidget(self._panel._feed)
         card_layout.addWidget(self._build_preview_card(), 1)
 
         card = QFrame()
@@ -272,6 +274,7 @@ class ProgressWidget(QWidget):
         self._extra_info.setText("")
         self._flags_label.setVisible(False)
         self._flags_label.setText("")
+        self._feed.start_over()
         self._preview_pairs.clear()
         self._preview_source.clear()
         self._preview_target.clear()
@@ -282,6 +285,7 @@ class ProgressWidget(QWidget):
 
     def set_status(self, text: str) -> None:
         self._status.setText(format_phase(text))
+        self._feed.add(format_phase(text))
 
     def set_review_flags(self, flagged: int, done: int) -> None:
         """Show how many segments have been flagged so far.
@@ -293,6 +297,7 @@ class ProgressWidget(QWidget):
         self._flags_label.setVisible(bool(flagged))
         if flagged:
             self._flags_label.setText(UIStrings.PROGRESS_FLAGS.format(count=flagged))
+            self._feed.add(UIStrings.PROGRESS_FLAGS.format(count=flagged))
 
     def set_active_segment(self, index: int, preview: str) -> None:
         # Aktif işlenen segmentin başlığını günceller / Updates the active segment heading
