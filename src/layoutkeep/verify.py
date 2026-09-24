@@ -177,11 +177,34 @@ def output_losses(source_pdf: Path, output_pdf: Path, doc: Document) -> list[Los
     return losses
 
 
+def _rejoined(drawn: list) -> list[str]:
+    """The page's words with a word the writer hyphenated at a line end put back together.
+
+    A soft hyphen breaks "Steuererklärungen" into "Steuer-" at the end of one line and "erklärungen"
+    at the start of the next; read as two words, neither is the one the block holds, and the block
+    was reported as not on the page (L3).
+    """
+    texts: list[str] = []
+    carry = ""
+    for index, word in enumerate(drawn):
+        text = word[4]
+        following = drawn[index + 1] if index + 1 < len(drawn) else None
+        line_end = following is None or (following[5], following[6]) != (word[5], word[6])
+        if text.endswith("-") and line_end and following is not None and text[-2:-1].isalpha():
+            carry += text[:-1]
+            continue
+        texts.append(carry + text)
+        carry = ""
+    if carry:
+        texts.append(carry)
+    return texts
+
+
 def _page_losses(source_page, page, page_data, index: int, source_markup: set[str]) -> list[Loss]:
     losses: list[Loss] = []
     rect = page.rect
     drawn = page.get_text("words")
-    on_page = Counter(w for word in drawn for w in words(word[4]))
+    on_page = Counter(w for text in _rejoined(drawn) for w in words(text))
 
     for word in drawn:
         x0, y0, x1, y1 = word[:4]

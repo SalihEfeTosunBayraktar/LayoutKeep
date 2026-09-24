@@ -43,6 +43,7 @@ from fontTools.varLib.instancer import instantiateVariableFont
 
 from layoutkeep.core import provenance, tunables
 from layoutkeep.core.docir import BBox, Block, Document, Span, Style
+from layoutkeep.core.hyphenate import soft_hyphens
 from layoutkeep.fitting import rotated_block_fits
 from layoutkeep.fitting.fit import min_scale_setting
 from layoutkeep.fitting.fontmatch import FontMatch, MatchQuality, missing_glyphs, resolve_font
@@ -1080,7 +1081,9 @@ def span_markup(text: str, style: Style, dominant: Style) -> str:
 
 
 def _span_html(span: Span, dominant: Style, resolver: _FontResolver) -> str:
-    text = span_markup(span.text, span.style, dominant)
+    # Soft hyphens only here, in what is drawn (core/hyphenate.py): a long German word breaks
+    # instead of shrinking its block. The fitting pass measures the same string.
+    text = span_markup(soft_hyphens(span.text, resolver.target_lang), span.style, dominant)
     if not text:
         return ""
     style = span.style
@@ -1287,6 +1290,10 @@ class _FontResolver:
         self.archive = pymupdf.Archive()
         self._next_id = 0
 
+    @property
+    def target_lang(self) -> str:
+        return self._target_lang
+
     def register(self, page: pymupdf.Page, block: Block) -> None:
         # Every span's own style is resolved, not just the block's dominant one: a paragraph
         # commonly mixes a regular run with inline bold/italic runs (see `_span_html`), and each
@@ -1302,6 +1309,8 @@ class _FontResolver:
     def _register_style(self, page: pymupdf.Page, style: Style, text: str) -> None:
         key = _style_key(style)
         self._chars.setdefault(key, set()).update(text)
+        if soft_hyphens(text, self._target_lang) != text:
+            self._chars[key].add("-")  # drawn where a soft hyphen breaks a line
         if key in self._matches or key in self._preset_paths:
             return
         self._styles[key] = style

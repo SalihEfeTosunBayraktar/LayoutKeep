@@ -16,6 +16,7 @@ import dataclasses
 from collections.abc import Callable
 
 from layoutkeep.core.docir import BBox, Block, Document, Segment, drawn_runs, strip_markers
+from layoutkeep.core.hyphenate import soft_hyphens
 from layoutkeep.core.review import BOX_CRUSHED
 from layoutkeep.fitting.fit import FitMode, fit_segment, summarize
 from layoutkeep.fitting.growth import free_below, free_right, may_grow, may_grow_right
@@ -40,7 +41,7 @@ _ROTATION_EPS = 0.01
 _MIN_BOX_HEIGHT_PT = 6.0
 
 
-def measure_as_drawn(block: Block) -> MeasureFn:
+def measure_as_drawn(block: Block, target_lang: str | None = None) -> MeasureFn:
     """The `MeasureFn` for one block: its translation measured as the *page* will carry it.
 
     The provider's reply is handed back with the inline markers it was given (`log(<0>N</0>)`), and
@@ -72,7 +73,8 @@ def measure_as_drawn(block: Block) -> MeasureFn:
             )
         dominant = block.dominant_style()
         markup = "".join(
-            span_markup(span.text, span.style, dominant) for span in drawn_runs(block, text)
+            span_markup(soft_hyphens(span.text, target_lang), span.style, dominant)
+            for span in drawn_runs(block, text)
         )
         return measure_fit(markup, style, bbox, scale_low=scale_low, rotation=rotation, markup=True)
 
@@ -209,7 +211,7 @@ def fit_pdf_pass(
                 seg,
                 style,
                 measured_box,
-                measure_as_drawn(block),
+                measure_as_drawn(block, target_lang),
                 mode=mode,
                 retranslate=retranslate_fn,
                 # Without a real budget the engine's under-fill direction has no honest
@@ -267,7 +269,7 @@ def fit_pdf_pass(
                 blocks[r_seg.block_id].bbox,
                 # The same measurement the ladder used: how much room the drawn translation needs,
                 # not how much the provider's syntax would need.
-                measure_as_drawn(blocks[r_seg.block_id]),
+                measure_as_drawn(blocks[r_seg.block_id], target_lang),
             )
             for r_seg, r in zip(segments, results, strict=False)
             if r.reflow and r_seg.block_id in blocks

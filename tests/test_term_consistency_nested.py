@@ -34,3 +34,15 @@ def test_a_shorter_term_seen_in_other_sentences_too_is_kept():
     found = {"Standard Reference": [A, B], "Reference": [A, C]}
 
     assert list(_distinct(found)) == ["Standard Reference", "Reference"]
+
+
+def test_a_compound_built_on_the_rendering_agrees_with_it():
+    from collections import Counter
+
+    from term_consistency import _agrees, _tally
+
+    assert _agrees("neutronenstreuung", "neutron")
+    assert _agrees("forschung", "forschungszentrum")
+    assert not _agrees("torte", "kuchen")
+    assert not _agrees("arm", "warm"), "a short rendering is not looked for inside another word"
+    assert _tally(Counter({"neutron": 4, "neutronenstreuung": 1, "teilchen": 1}))["consistent"] == 5

@@ -48,6 +48,7 @@ _IGNORED_PATHS = {
     "layoutkeep/core/terms.py",
     "layoutkeep/core/protect.py",
     "layoutkeep/core/langs.py",
+    "layoutkeep/core/hyphenate.py",
     "layoutkeep/core/capabilities.py",
     "layoutkeep/core/reference.py",
     "layoutkeep/core/keywords.py",

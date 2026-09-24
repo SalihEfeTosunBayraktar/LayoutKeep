@@ -90,6 +90,31 @@ def _distinct(found: dict[str, list[tuple[str, str]]]) -> dict[str, list[tuple[s
     return {term: occ for term, occ in found.items() if term in kept}
 
 
+#: A rendering this short is not looked for inside another word: "arm" is in "warm".
+_MIN_COMPOUND_PART = 4
+
+
+def _agrees(form: str, top: str) -> bool:
+    """Whether `form` renders the term the way `top` does, a compound built on it included.
+
+    German writes a term inside a compound: "Neutron" and "Neutronenstreuung", "Forschung" and
+    "Forschungszentrum" are the same choice, and counting them as two made EN->DE look inconsistent
+    for its grammar rather than its terms.
+    """
+    if form == top:
+        return True
+    shorter, longer = sorted((form.replace(" ", ""), top.replace(" ", "")), key=len)
+    return len(shorter) >= _MIN_COMPOUND_PART and shorter in longer
+
+
+def _tally(forms: Counter) -> dict:
+    """A term's renderings, its most common one, and how many occurrences agree with it."""
+    top, _count = forms.most_common(1)[0]
+    consistent = sum(count for form, count in forms.items() if _agrees(form, top))
+    total = sum(forms.values())
+    return {"forms": dict(forms), "top": top, "share": consistent / total, "consistent": consistent}
+
+
 def measure(run: Path, src: str, dst: str) -> dict:
     pairs = _pairs(run)
     terms = [c.phrase for c in candidates([s for s, _ in pairs], minimum_count=2, limit=TERMS * 2)]
@@ -131,9 +156,8 @@ def measure(run: Path, src: str, dst: str) -> dict:
         forms = [str(f).strip().casefold() for f in renderings.get(term) or [] if f]
         if len(forms) < 2:
             continue
-        top, count = Counter(forms).most_common(1)[0]
-        per_term[term] = {"forms": dict(Counter(forms)), "top": top, "share": count / len(forms)}
-    consistent = sum(max(v["forms"].values()) for v in per_term.values())
+        per_term[term] = _tally(Counter(forms))
+    consistent = sum(v["consistent"] for v in per_term.values())
     occurrences = sum(sum(v["forms"].values()) for v in per_term.values())
     return {"terms": per_term, "consistent": consistent, "occurrences": occurrences}
 
@@ -142,6 +166,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("bench", type=Path)
     parser.add_argument("--only", nargs="*", default=None)
+    parser.add_argument("--recount", action="store_true",
+                        help="re-tally the recorded renderings (consistency.json) without asking the judge")
     args = parser.parse_args()
 
     totals: dict[str, list[int]] = {}
@@ -156,7 +182,13 @@ def main() -> int:
         if not meta.exists():
             continue
         src, dst = json.loads(meta.read_text(encoding="utf-8"))["direction"].split("->")
-        result = measure(run, src, dst)
+        if args.recount and (run / "consistency.json").exists():
+            recorded = json.loads((run / "consistency.json").read_text(encoding="utf-8"))
+            terms = {term: _tally(Counter(v["forms"])) for term, v in recorded.get("terms", {}).items()}
+            result = {"terms": terms, "consistent": sum(v["consistent"] for v in terms.values()),
+                      "occurrences": sum(sum(v["forms"].values()) for v in terms.values())}
+        else:
+            result = measure(run, src, dst)
         (run / "consistency.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
         occ, ok = result["occurrences"], result["consistent"]
         totals.setdefault(f"{src}->{dst}", [0, 0])
