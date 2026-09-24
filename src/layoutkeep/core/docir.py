@@ -47,6 +47,7 @@ class BlockRole(StrEnum):
     FORMULA = "formula"
     CODE = "code"
     FIGURE = "figure"          # image region, no text
+    FIGURE_LABEL = "figure_label"  # a prose label inside a figure, translated in its own box
     BIBLIOGRAPHY = "bibliography"  # references, citation entries
     UNKNOWN = "unknown"
 

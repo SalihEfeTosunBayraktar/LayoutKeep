@@ -40,7 +40,7 @@ GRANT_RIGHT_KEY = "write.grant_room_right_pt"
 #: - wrapping a header changes the shape of the page, which is what the reader was told not to do.
 #: Held-out: a running header's translation wrapped onto two lines the moment the grant reached it,
 #: and `test_page_number_and_header_survive_untouched` caught it at the full suite.
-SINGLE_LINE_ROLES = frozenset({"heading", "title", "header", "footer", "page_number"})
+SINGLE_LINE_ROLES = frozenset({"heading", "title", "header", "footer", "page_number", "figure_label"})
 
 
 def may_grow(block: Block) -> bool:
@@ -64,7 +64,8 @@ def may_grow_right(block: Block) -> bool:
     moves the text rather than letting the line run on. A table cell may grow, but only as far as
     its own column (see `free_right`).
     """
-    return block.align == "left"
+    # A figure's label keeps its own box: wider, it would run across the diagram's lines.
+    return block.align == "left" and block.role.value != "figure_label"
 
 
 def free_below(

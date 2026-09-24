@@ -194,6 +194,16 @@ TUNABLES: tuple[Tunable, ...] = (
         warning="TUNABLE_translation.preserve_references_warning",
     ),
     Tunable(
+        key="translation.figure_text",
+        label="TUNABLE_translation.figure_text_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.figure_text_help_text",
+        warning="TUNABLE_translation.figure_text_warning",
+    ),
+    Tunable(
         key="translation.prefit_budget",
         label="TUNABLE_translation.prefit_budget_label",
         default="",

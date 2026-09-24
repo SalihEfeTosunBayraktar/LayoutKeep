@@ -39,7 +39,7 @@ from layoutkeep.ocr.engine import TextBox
 from layoutkeep.ocr.layout_detector import LABEL_TO_ROLE, LayoutDetector, resolve_duplicates
 from layoutkeep.ocr.layout_vlm import ChatFn
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
-from layoutkeep.readers._nonprose import is_code_like, is_formula_like
+from layoutkeep.readers._nonprose import is_code_like, is_formula_like, is_prose_label
 from layoutkeep.readers._segment import segment
 from layoutkeep.readers.image_reader import (
     expected_characters,
@@ -262,6 +262,19 @@ def _horizontal_rules(page: pymupdf.Page) -> list[pymupdf.Rect]:
     return [d["rect"] for d in page.get_drawings() if d["rect"].height <= 1.5 and d["rect"].width >= 5]
 
 
+def _label_role(role: BlockRole, group: list[Line]) -> BlockRole:
+    """A figure's line becomes a translated label when the setting is on and it reads as words.
+
+    Off by default (translation.figure_text): diagram labels are mostly names and signals, and
+    translating them broke diagrams before (Think Python p. 97). Names, code and pin runs stay
+    part of the picture even when it is on (`_nonprose.is_prose_label`).
+    """
+    if role is not BlockRole.FIGURE or not tunables.get("translation.figure_text"):
+        return role
+    text = " ".join(span.text for line in group for span in line.spans)
+    return BlockRole.FIGURE_LABEL if is_prose_label(text) else role
+
+
 def _table_cells(lines: list[Line], rules: list[pymupdf.Rect], line_height: float) -> list[list[Line]]:
     """A table's lines grouped into cells: one block per cell, not one per line.
 
@@ -419,7 +432,8 @@ def _regroup_by_layout(
                 box = box.union(line.bbox)
             built.append(
                 Block(
-                    id=f"p{index}#m{owner}.{len(built)}", role=role, bbox=box, lines=group,
+                    id=f"p{index}#m{owner}.{len(built)}", role=_label_role(role, group), bbox=box,
+                    lines=group,
                     align=infer_alignment(box, width),
                 )
             )

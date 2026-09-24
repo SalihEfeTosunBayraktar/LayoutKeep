@@ -109,3 +109,23 @@ def is_formula_like(text: str) -> bool:
     if len(stripped.split()) > _FORMULA_WORDS:
         return False
     return any(character in _MATH_OPERATORS for character in stripped)
+
+
+#: A picture label worth translating has at least this many ordinary words.
+_LABEL_WORDS = 2
+_LABEL_WORD = re.compile(r"[^\W\d_]{2,}")
+
+
+def is_prose_label(text: str) -> bool:
+    """Whether a label inside a picture reads as words a reader should get translated.
+
+    "Instruction stream byte queue" is; "AX", "D0-D7", "ALE", "__main__", "delete_head" are names
+    and signals that a translation would rename (Think Python p. 97: "letters" became "harfler" and
+    the diagram no longer described the code). Two ordinary words or more, no code shape, and not an
+    all-capitals run of pin or register names.
+    """
+    stripped = " ".join(text.split())
+    words = _LABEL_WORD.findall(stripped)
+    if len(words) < _LABEL_WORDS or is_code_like(stripped) or _SNAKE_CASE.search(stripped):
+        return False
+    return not all(word.isupper() and len(word) <= 5 for word in words)
