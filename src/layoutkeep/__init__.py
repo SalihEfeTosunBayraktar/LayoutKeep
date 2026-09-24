@@ -6,4 +6,4 @@ like nothing happened (which is exactly what the first 0.9.1 build did - the fla
 boolean, and an update left it set).
 """
 
-__version__ = "0.9.11"
+__version__ = "0.9.12"

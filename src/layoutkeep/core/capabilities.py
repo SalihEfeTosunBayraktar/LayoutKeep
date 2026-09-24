@@ -85,8 +85,8 @@ def lock_reason_key(target: str) -> str:
 #: every bar above 90: quality (MQM judge, mean), term consistency and layout (blocks drawn intact),
 #: in percent, and the version the measurement belongs to. Every other pair translates, unmeasured.
 MEASURED_LANGUAGE_PAIRS: dict[tuple[str, str], dict[str, str]] = {
-    ("en", "tr"): {"version": "0.9.11", "quality": "94.4", "consistency": "91.3", "layout": "93.0"},
-    ("tr", "en"): {"version": "0.9.11", "quality": "96.1", "consistency": "90.5", "layout": "90.4"},
+    ("en", "tr"): {"version": "0.9.12", "quality": "94.8", "consistency": "95.0", "layout": "94.5"},
+    ("tr", "en"): {"version": "0.9.12", "quality": "96.3", "consistency": "94.9", "layout": "95.0"},
 }
 
 

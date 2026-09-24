@@ -635,3 +635,22 @@ kayıpsız 14/21 (D'de 12/21). Üç ölçüt iki yönde de %90 üstünde kalıyo
 
 **Kanıt:** `LayoutKeep_bench/_artifacts/bench/7dd70ab-{e,think,en-de}/` (BENCH.md, QUALITY.md,
 CONSISTENCY.md, provenance.json).
+
+## D-022 · İlk istekte karakter bütçesi varsayılan: `loose` (2026-09-24)
+
+**Soru:** D-011'deki karakter bütçesinin (`translation.prefit_budget`) katkısı tek başına ne?
+
+**Ölçüm (commit `5692d98`, google/gemma-4-e4b Q4, 21 kaynak × 3 sayfa; F = bütçesiz, G = `loose`):**
+
+| | EN→TR tutarlılık / düzen | TR→EN tutarlılık / düzen | EN→DE tutarlılık / düzen |
+|---|---|---|---|
+| F | 94.3 / 93.9 | 93.2 / 94.4 | 90.3 / 86.5 |
+| G | **95.0 / 94.5** | **94.9 / 95.0** | 91.0 / 85.7 |
+
+Sığmayan blok (mutlak): EN→TR 59 → 51, TR→EN 15 → 11 (G'de bazı kısa bloklar kaynakla aynı kaldığı
+için payda küçüldü; oran yalnız başına okunmaz). Kalite düşmedi (F: 94.8 / 96.3).
+
+**Karar:** `translation.prefit_budget` varsayılanı `loose` (kutu +%20). EN→DE'de bütçe kazandırmadı;
+Almanca ayrı bir sığdırma çalışması ister.
+
+**Kanıt:** `LayoutKeep_bench/_artifacts/bench/5692d98-{f,g,f-de,g-de}/`.

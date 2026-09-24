@@ -2,6 +2,23 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
+## 0.9.12 — 2026-09-25
+
+Arm G (commit 5692d98, same bench and model): term consistency 95.0% / 94.9%, layout 94.5% / 95.0%
+(EN→TR / TR→EN), quality 94.8 / 96.3.
+
+- The first request carries each PDF box's character budget by default (`translation.prefit_budget`
+  = loose, D-022).
+- Turkish and German long words break at soft hyphens in narrow boxes instead of shrinking the block.
+- A request states only the glossary terms its segments contain; a segment that missed a term is
+  asked once more with only those terms.
+- A table cell wrapped over several lines is read as one block (one form: 88 blocks became 41).
+- Labels inside figures can be translated (`translation.figure_text`, off by default): prose labels
+  from the text layer, and labels in the picture's pixels via OCR, erased and redrawn; names and
+  signals stay as they are.
+- The progress screen shows a live feed of the run's events, in the interface language.
+- The architecture atlas is on the site in English, Turkish and German.
+
 ## 0.9.11 — 2026-09-24
 
 Arm E (commit 7dd70ab, the same bench and model as 0.9.10's arm D): quality 94.4 / 96.1, term

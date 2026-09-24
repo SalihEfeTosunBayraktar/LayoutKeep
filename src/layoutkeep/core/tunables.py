@@ -206,7 +206,9 @@ TUNABLES: tuple[Tunable, ...] = (
     Tunable(
         key="translation.prefit_budget",
         label="TUNABLE_translation.prefit_budget_label",
-        default="",
+        # "loose" since 0.9.12 (D-022): measured on the bench, both Turkish directions gained in
+        # consistency and layout with no loss of quality.
+        default="loose",
         kind="str",
         section=ADVANCED,
         group="PROMPT",
