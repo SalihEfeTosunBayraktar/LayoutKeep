@@ -2,6 +2,21 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
+## 0.9.11 — 2026-09-24
+
+Arm E (commit 7dd70ab, the same bench and model as 0.9.10's arm D): quality 94.4 / 96.1, term
+consistency 91.3% / 90.5%, layout 93.0% / 90.4% (EN→TR / TR→EN); 14 of 21 sources lossless (12).
+
+- A link's underline goes with the words it underlined: it no longer runs through the translated
+  text like a strike-through (61 stray lines on one Wikipedia page → 4, all under untranslated blocks).
+- A date or a law number written with slashes ("2/1/2003", "2012/108") is sent as text, not as a
+  protected token the model could drop; the number check still sees it.
+- Measured and decided (D-021): the model's thinking stays off — on the same four sources it took
+  2.8× the time for the same quality. EN→DE reaches 95.6 quality but 85% consistency and layout,
+  so it stays unmeasured (experimental) in the application.
+- The bench can measure a new pair (`--to`), and a measurement can switch thinking on
+  (`LAYOUTKEEP_REASONING_EFFORT`) without changing what the application sends.
+
 ## 0.9.10 — 2026-09-23
 
 Measured on a fixed bench (`tools/audit/bench.py`, 21 sources × 3 pages, both directions) with three
