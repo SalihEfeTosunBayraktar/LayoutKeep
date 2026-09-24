@@ -253,6 +253,63 @@ _ONE_BLOCK_PER_LINE = frozenset({"document_index", "table", "form", "key_value_r
 _DIGITAL_REGION_MEMBERSHIP = 0.5
 
 
+#: Lines of one table cell sit this close: within a line spacing of each other, left edges aligned.
+_CELL_GAP = 0.6
+
+
+def _horizontal_rules(page: pymupdf.Page) -> list[pymupdf.Rect]:
+    """The page's horizontal rules: what separates one table row from the next."""
+    return [d["rect"] for d in page.get_drawings() if d["rect"].height <= 1.5 and d["rect"].width >= 5]
+
+
+def _table_cells(lines: list[Line], rules: list[pymupdf.Rect], line_height: float) -> list[list[Line]]:
+    """A table's lines grouped into cells: one block per cell, not one per line.
+
+    Arm E, tr_shk_2828: a cell wrapped over "Mülki / İdare / Amirliği" came out as three blocks,
+    each word translated alone ("aybaşında" -> "at the full moon") and too long for its one-line
+    box. Lines join a cell when they are stacked in its column (left edges within a line height, or
+    overlapping by half the narrower line for a centred cell),
+    a line spacing apart at most, and no rule runs between them - a rule or a wider gap is a row.
+    """
+    groups: list[list[Line]] = []
+    blank: list[list[Line]] = []
+    for line in lines:  # sorted top to bottom
+        if not "".join(span.text for span in line.spans).strip():
+            blank.append([line])  # a blank line joins no cell and separates none
+            continue
+        box = line.bbox
+        home = None
+        for group in reversed(groups):
+            last = group[-1].bbox
+            if box.y0 < last.y1 - 0.5 * line_height:
+                # On the same row: a piece of a justified line inside the cell's width belongs to
+                # it ("... tabi personel kadroları Mülki İdare" came as four pieces); one beside it
+                # is the next column.
+                left = min(line.bbox.x0 for line in group)
+                right = max(line.bbox.x1 for line in group)
+                if left - 1 <= box.x0 and box.x1 <= right + 1:
+                    home = group
+                    break
+                continue
+            overlap = min(last.x1, box.x1) - max(last.x0, box.x0)
+            narrower = min(last.x1 - last.x0, box.x1 - box.x0)
+            aligned = abs(last.x0 - box.x0) <= line_height or overlap >= 0.5 * narrower
+            if not aligned or box.y0 - last.y1 > _CELL_GAP * line_height:
+                continue
+            ruled = any(
+                last.y1 - 1 <= rule.y0 <= box.y0 + 1 and rule.x0 < box.x1 and rule.x1 > box.x0
+                for rule in rules
+            )
+            if not ruled:
+                home = group
+            break
+        if home is None:
+            groups.append([line])
+        else:
+            home.append(line)
+    return groups + blank
+
+
 def _regroup_by_layout(
     page: pymupdf.Page, index: int, blocks: list[Block], layout: LayoutDetector
 ) -> tuple[list[Block], list[Block]]:
@@ -329,11 +386,16 @@ def _regroup_by_layout(
         line.bbox.y1 - line.bbox.y0 for block in blocks for line in block.lines if line.bbox is not None
     ]
     line_height = statistics.median(heights) if heights else 1.0
+    rules: list[pymupdf.Rect] | None = None  # read once, only when the page has a table
     built: list[Block] = []
     for owner, lines in sorted(members.items()):
         label, _box = regions[owner]
         lines.sort(key=lambda line: (line.bbox.y0, line.bbox.x0))
-        if label in _ONE_BLOCK_PER_LINE:
+        if label == "table":
+            if rules is None:
+                rules = _horizontal_rules(page)
+            groups = _table_cells(lines, rules, line_height)
+        elif label in _ONE_BLOCK_PER_LINE:
             groups = [[line] for line in lines]
         else:
             # A region can hold more than one column - a references page's "[SP800-57 part 1]" label
