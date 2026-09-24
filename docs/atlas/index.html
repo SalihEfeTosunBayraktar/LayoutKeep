@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html,body{margin:0}</style>
+<title>LayoutKeep Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ground: #eef2f0;
+  --paper: #fbfcfb;
+  --ink: #16211f;
+  --muted: #5b6a66;
+  --line: #c9d3cf;
+  --accent: #2c6e5a;
+  --accent-soft: #d8e8e1;
+  --loss: #b8502b;
+  --loss-soft: #f4e0d6;
+  --ext: #4a5a8a;
+  --ext-soft: #e0e4f1;
+  --ui: #7a5a1f;
+  --ui-soft: #f1e8d2;
+  --focus: #1f5fbf;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #111816; --paper: #18211e; --ink: #e3ebe7; --muted: #93a39d; --line: #2e3a36;
+    --accent: #6cc2a3; --accent-soft: #1f3a31; --loss: #e58a63; --loss-soft: #3d251b;
+    --ext: #9aa9e0; --ext-soft: #242a45; --ui: #d7b36a; --ui-soft: #3a2f18; --focus: #8ab4ff;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #111816; --paper: #18211e; --ink: #e3ebe7; --muted: #93a39d; --line: #2e3a36;
+  --accent: #6cc2a3; --accent-soft: #1f3a31; --loss: #e58a63; --loss-soft: #3d251b;
+  --ext: #9aa9e0; --ext-soft: #242a45; --ui: #d7b36a; --ui-soft: #3a2f18; --focus: #8ab4ff;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", system-ui, sans-serif; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 22px; }
+header.top { display: grid; gap: 8px; }
+.eyebrow { font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 600 clamp(28px, 4vw, 44px)/1.08 "Newsreader", Georgia, serif; margin: 0; text-wrap: balance; }
+.lede { max-width: 68ch; color: var(--muted); margin: 0; }
+.bars { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 12.5px/1 "IBM Plex Mono", monospace; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-variant-numeric: tabular-nums; }
+.chip b { color: var(--accent); font-weight: 600; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.langs { display: flex; gap: 4px; }
+.langs button { font: 600 12px/1 "IBM Plex Mono", monospace; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+.langs button[aria-pressed="true"] { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.tools input { flex: 1 1 240px; min-width: 0; font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); }
+.tools button { font: 500 13px/1 "IBM Plex Sans", sans-serif; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; }
+.tools button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 980px) { .stage { grid-template-columns: 1fr; } }
+.map { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+svg { display: block; width: 100%; min-width: 900px; height: auto; }
+.lane-label { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; fill: var(--muted); }
+.lane-bg { fill: var(--ground); opacity: .55; }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.4; }
+.edge.flow { stroke: var(--accent); stroke-width: 1.8; opacity: .55; }
+.edge.hot { stroke: var(--focus); stroke-width: 2.4; opacity: 1; }
+.node { cursor: pointer; }
+.node rect { stroke-width: 1.2; rx: 8; }
+.node text { pointer-events: none; }
+.node .t { font: 600 12.5px "IBM Plex Sans", sans-serif; fill: var(--ink); }
+.node .s { font: 400 10.5px "IBM Plex Mono", monospace; fill: var(--muted); }
+.k-core rect { fill: var(--accent-soft); stroke: var(--accent); }
+.k-verify rect { fill: var(--loss-soft); stroke: var(--loss); }
+.k-ext rect { fill: var(--ext-soft); stroke: var(--ext); }
+.k-ui rect { fill: var(--ui-soft); stroke: var(--ui); }
+.node.dim { opacity: .22; }
+.node.sel rect { stroke-width: 3; stroke: var(--focus); }
+aside.panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; max-height: calc(100vh - 40px); overflow: auto; }
+@media (max-width: 980px) { aside.panel { position: static; max-height: none; } }
+.panel h2 { font: 600 22px/1.15 "Newsreader", Georgia, serif; margin: 0; }
+.panel .kind { font: 500 11px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.panel p { margin: 0; }
+.panel h3 { font: 600 11.5px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; }
+.panel ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.panel code, .files code { font: 400 12.5px "IBM Plex Mono", monospace; background: var(--ground); padding: 1px 5px; border-radius: 4px; }
+.files { display: flex; flex-wrap: wrap; gap: 6px; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; }
+.links button { font: 500 12px/1 "IBM Plex Sans", sans-serif; padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--ground); color: var(--ink); cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.2px solid; }
+.lg-core::before { background: var(--accent-soft); border-color: var(--accent) !important; }
+.lg-verify::before { background: var(--loss-soft); border-color: var(--loss) !important; }
+.lg-ext::before { background: var(--ext-soft); border-color: var(--ext) !important; }
+.lg-ui::before { background: var(--ui-soft); border-color: var(--ui) !important; }
+table.loss { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.loss td { border-top: 1px solid var(--line); padding: 4px 6px; vertical-align: top; }
+table.loss td:first-child { font: 600 12px "IBM Plex Mono", monospace; color: var(--loss); white-space: nowrap; }
+footer { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .node rect, .edge { transition: opacity .15s, stroke .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="topline">
+      <div class="eyebrow" data-i18n="eyebrow">LayoutKeep 0.9.11 · architecture</div>
+      <div class="langs" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="tr" aria-pressed="false">TR</button>
+        <button type="button" data-lang="de" aria-pressed="false">DE</button>
+      </div>
+    </div>
+    <h1 data-i18n="h1">The words change, the page does not — how that is built</h1>
+    <p class="lede" data-i18n="lede">Every stage a document passes through, from the file you open to the loss report at the end, and every library and service it leans on. Click a box to see its files, why it exists and what it was measured at.</p>
+    <div class="bars" aria-label="0.9.11 bench">
+      <span class="chip">EN→TR <span data-i18n="quality">quality</span> <b>94.4</b></span><span class="chip"><span data-i18n="consistency">consistency</span> <b>92.6%</b></span><span class="chip"><span data-i18n="layout">layout</span> <b>93.0%</b></span>
+      <span class="chip">TR→EN <span data-i18n="quality">quality</span> <b>96.1</b></span><span class="chip"><span data-i18n="consistency">consistency</span> <b>91.9%</b></span><span class="chip"><span data-i18n="layout">layout</span> <b>90.4%</b></span>
+      <span class="chip"><span data-i18n="tests">tests</span> <b>1497</b></span>
+    </div>
+  </header>
+
+  <div class="tools">
+    <label for="q" hidden>Search</label>
+    <input id="q" type="search" data-i18n-ph="search" placeholder="Search a stage, file or library — e.g. glossary, pymupdf, L6">
+    <button type="button" data-k="all" aria-pressed="true" data-i18n="f_all">All</button>
+    <button type="button" data-k="core" aria-pressed="false" data-i18n="f_core">Pipeline</button>
+    <button type="button" data-k="verify" aria-pressed="false" data-i18n="f_verify">Checks</button>
+    <button type="button" data-k="ui" aria-pressed="false" data-i18n="f_ui">Front-ends &amp; tools</button>
+    <button type="button" data-k="ext" aria-pressed="false" data-i18n="f_ext">Libraries &amp; services</button>
+  </div>
+  <div class="legend"><span class="lg-core" data-i18n="k_core">pipeline stage</span><span class="lg-verify" data-i18n="k_verify">checks &amp; measurement</span><span class="lg-ui" data-i18n="k_ui">front-end / tooling</span><span class="lg-ext" data-i18n="k_ext">external library or service</span></div>
+
+  <div class="stage">
+    <div class="map"><svg id="map" viewBox="0 0 1180 760" role="img" aria-label="LayoutKeep architecture map"></svg></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <footer data-i18n="footer">Built from the source tree at commit 6fcdd19: module summaries are the modules' own docstrings; numbers are the 0.9.11 bench (21 documents × 3 pages, google/gemma-4-e4b Q4 through LM Studio).</footer>
+</div>
+
+<script>
+const LANES = [
+  { y: 20,  h: 110, label: "front-ends & tooling" },
+  { y: 140, h: 250, label: "the pipeline, left to right" },
+  { y: 400, h: 150, label: "inside the translation chain" },
+  { y: 560, h: 190, label: "libraries & services it stands on" },
+];
+
+const N = [
+  // front-ends & tooling
+  { id: "gui", k: "ui", x: 30, y: 45, w: 170, t: "Desktop app", s: "ui/ · 53 files",
+    d: "PySide6 window in three steps: document, translation, done. The setup screen picks file, languages, output format and provider; since 0.9.10 it also says under the language boxes whether the pair has been measured, with its three numbers.",
+    f: ["ui/main_window.py", "ui/job_setup.py", "ui/worker.py", "ui/translation_loop.py", "ui/document_prep.py", "ui/document_finalizer.py"],
+    n: ["Batches go out in waves of translation.workers; a short document is split so every slot has one (min. 4 segments a batch).", "Parallel chains are built from the run's config, so the merged glossary reaches the memory key."],
+    e: ["pyside6", "prep", "loop"] },
+  { id: "cli", k: "ui", x: 220, y: 45, w: 150, t: "Command line", s: "cli.py",
+    d: "The same engine without a window: layoutkeep translate. Reads the stored settings exactly as the app does (D-020) — before that fix every bench --set flag was silently ignored.",
+    f: ["cli.py"], n: ["--terms-only writes the document glossary and stops; --no-auto-glossary uses a given list instead."], e: ["prep"] },
+  { id: "book", k: "ui", x: 390, y: 45, w: 160, t: "Book tool", s: "translate_book.py",
+    d: "Cuts a long book into page chunks and runs the CLI on each in parallel, then merges. Asks the whole book for its terms once and hands that one list to every chunk.",
+    f: ["tools/audit/translate_book.py"], n: ["A failed chunk is retried once before the book is given up on."], e: ["cli"] },
+  { id: "bench", k: "verify", x: 570, y: 45, w: 170, t: "Bench", s: "tools/audit/bench.py",
+    d: "The fixed yardstick: 21 sources × 3 pages (first, middle, last-but-one), both directions. Every arm is pinned to a commit and a settings file and writes provenance.json, so no number is read without knowing what produced it.",
+    f: ["tools/audit/bench.py", "_artifacts/bench/<commit>-<arm>/"], n: ["Arm E (7dd70ab): 14 of 21 sources lossless (8 in arm C).", "--to measures a new pair: EN→DE reached quality 95.6, layout 84.9%.", "The comparison site is built from an arm with --bench."], e: ["book", "judge", "audit"] },
+  { id: "judge", k: "verify", x: 760, y: 45, w: 180, t: "Judges", s: "quality · consistency",
+    d: "A stronger model that is never the model under test (DeepSeek through Hermes) scores a sample of segments on an MQM scale and names how each recurring term was rendered, in dictionary form.",
+    f: ["tools/audit/quality_judge.py", "tools/audit/term_consistency.py"], n: ["Acceptable = score ≥ 80.", "Consistency counts one disagreement once, not once per nested phrase."], e: ["hermes"] },
+  { id: "site", k: "ui", x: 960, y: 45, w: 190, t: "Comparison site", s: "GitHub Pages · docs/bench/",
+    d: "Every bench page, original against translation under a draggable divider, each labelled with version, commit, model and its own three numbers.",
+    f: ["tools/audit/comparison_site.py", "docs/bench/", "docs/comparison/"], n: ["No network, no CDN: the site opens from disk."], e: ["bench"] },
+
+  // pipeline
+  { id: "read", k: "core", x: 30, y: 180, w: 160, t: "Read", s: "readers/ · 9 files",
+    d: "Every format becomes one DocIR document. The PDF reader takes spans, styles and boxes from PyMuPDF and regroups lines into blocks by the page's own whitespace; scans go through OCR; EPUB and DOCX are read from their XML.",
+    f: ["readers/pdf_reader.py", "readers/_segment.py", "readers/epub_reader.py", "readers/docx_reader.py", "readers/image_reader.py"],
+    n: ["A whitespace-only line joins no leftover paragraph (it used to stretch a block over a heading)."], e: ["pymupdf", "lxml", "ebooklib", "heron", "rapidocr", "docir"] },
+  { id: "docir", k: "core", x: 210, y: 180, w: 150, t: "DocIR", s: "core/docir.py",
+    d: "The single intermediate representation: pages, blocks, spans, styles, boxes. Readers produce it, writers consume it, and the translation layer never learns which format it came from.",
+    f: ["core/docir.py", "docs/CONTRACT.md"], n: ["Inline styling travels as numeric markers (<0>…</0>) so a bold run survives translation."], e: ["prep"] },
+  { id: "prep", k: "core", x: 380, y: 180, w: 170, t: "Prepare", s: "glossary · protect · refs",
+    d: "Before a word is sent: bibliography blocks are kept untranslated, values that must come back byte-identical are replaced by tokens, the document's recurring terms are rendered once into an automatic glossary, and text the document repeats is sent once.",
+    f: ["core/doc_glossary.py", "core/protect.py", "core/reference.py", "core/repeats.py", "core/terms.py", "core/range_helper.py"],
+    n: ["The glossary call gets the first batch's time allowance (240 s), not the 60 s default.", "A reply cut off mid-JSON keeps the terms it finished."], e: ["chain"] },
+  { id: "chain", k: "core", x: 570, y: 180, w: 170, t: "Translate", s: "providers/ · 15 files",
+    d: "A stack of wrappers around one model call. Each wrapper does one job — protect values, share repeats, remember, retry, split — so the model sees clean text and the caller gets back exactly what it sent, translated.",
+    f: ["providers/base.py", "providers/openai_compat.py", "providers/batching.py"],
+    n: ["Batches are sized by content, not segment count; the first batch's timeout adapts from the measured rate."], e: ["protected", "lmstudio", "deepl"] },
+  { id: "fit", k: "core", x: 760, y: 180, w: 160, t: "Fit", s: "fitting/ · 9 files",
+    d: "Makes a longer translation fit the original box: use the blank paper below and beside it, shrink within a readability floor, then ask the model for a shorter version, and only then flag it.",
+    f: ["fitting/fit.py", "fitting/growth.py", "fitting/room.py", "fitting/measure.py", "fitting/fontmatch.py", "fitting/pdf_pass.py"],
+    n: ["write.grant_room_right_pt (60 pt): TR→EN layout 75% → 84.7% with no model call.", "Unchanged blocks (names, codes) are no longer fitted or shrunk.", "German: words of ten letters or more break at soft hyphens instead of shrinking the block."], e: ["fonttools", "write"] },
+  { id: "write", k: "core", x: 940, y: 180, w: 210, t: "Write", s: "writers/ · 11 files",
+    d: "Edits the original file in place: the old words are redacted, the translation is drawn into the same box with a font that has every glyph it needs, and figures and vector art are left untouched.",
+    f: ["writers/pdf_writer.py", "writers/epub_writer.py", "writers/docx_writer.py", "writers/dual_pdf.py"],
+    n: ["A link's underline now goes with the words it underlined (61 stray lines on one wiki page → 4).", "Form XObjects the redaction rewrote are restored from the original."], e: ["pymupdf", "verify"] },
+  { id: "verify", k: "verify", x: 760, y: 290, w: 390, t: "Verify: ten loss criteria", s: "verify.py · lossless_audit.py",
+    d: "Checked on what was written, not on what was meant. A block that lost a number, stayed in the source language or came back garbled is asked again; everything else lands in the review queue with a reason.",
+    f: ["verify.py", "tools/audit/lossless_audit.py"], loss: true, e: ["bench"] },
+  { id: "tm", k: "core", x: 30, y: 290, w: 330, t: "Translation memory & provenance", s: "providers/memory.py · core/provenance.py",
+    d: "SQLite memory keyed by source, languages, model and glossary fingerprint, so a changed term list never answers from an old run. Every output records version, commit, model, endpoint and settings.",
+    f: ["providers/memory.py", "providers/cached.py", "core/provenance.py", "docs/campaign/RUNS.md"], n: ["The bench runs with memory off."], e: ["chain"] },
+  { id: "loop", k: "ui", x: 380, y: 290, w: 360, t: "The run, end to end", s: "read → prepare → translate → fit → write → verify",
+    d: "One run, in order: the document is read, prepared, translated in parallel waves, fitted, written back and verified; the phase timer reports where the time went.",
+    f: ["core/timing.py", "ui/run_controller.py", "fitting/pdf_pass.py"], n: ["EN→TR arm D: 21 sources in 40 minutes on an RTX 4070 laptop GPU."], e: ["read", "prep", "chain", "fit", "write", "verify"] },
+
+  // chain
+  { id: "protected", k: "core", x: 30, y: 430, w: 170, t: "ProtectedProvider", s: "providers/protected.py",
+    d: "Torques, tolerances, part numbers, DOIs, URLs, paths and small callouts are swapped for tokens before the model sees the text and restored from the source afterwards.",
+    f: ["providers/protected.py", "core/protect.py"], n: ["A dropped paragraph number goes back where it stood: after an article head (\"Madde 178- (1)\"), or in front of a two-word fragment."], e: ["dedupe"] },
+  { id: "dedupe", k: "core", x: 220, y: 430, w: 150, t: "Repeats", s: "providers/dedupe.py",
+    d: "Text the document repeats is translated once and every occurrence gets that translation — one source, one rendering.", f: ["providers/dedupe.py", "core/repeats.py"], e: ["cached"] },
+  { id: "cached", k: "core", x: 390, y: 430, w: 150, t: "Memory", s: "providers/cached.py",
+    d: "Answers a segment from the memory when the key matches, and stores what comes back.", f: ["providers/cached.py"], e: ["retry"] },
+  { id: "retry", k: "core", x: 560, y: 430, w: 170, t: "Retry & split", s: "retry · split · echo",
+    d: "A missing reply gets one more attempt; a segment the model will not translate is cut into pieces it will; a reply that is the source handed back is caught.", f: ["providers/retry.py", "providers/split.py", "providers/passthrough.py"], e: ["model"] },
+  { id: "model", k: "core", x: 750, y: 430, w: 190, t: "Model call", s: "openai_compat · deepl · fake",
+    d: "Any OpenAI-compatible endpoint (LM Studio, Ollama, llama.cpp, cloud), DeepL, or a clearly labelled test provider. Paragraph and list labels the model drops — (1), (b), 4.Text — are put back.",
+    f: ["providers/openai_compat.py", "providers/_http_compat.py", "providers/deepl.py", "providers/fake.py"], n: ["Output ceiling: one token per character sent, so a looping reply cannot hold a slot until the context is full."], e: ["lmstudio", "deepl"] },
+  { id: "glossary", k: "core", x: 960, y: 430, w: 190, t: "Glossary check", s: "providers/glossary.py",
+    d: "Terms go into every request and are checked in the reply; a term counts as honoured when inflected, capitalised or with a softened final consonant (tampon → tamponun, ışık → ışığın).", f: ["providers/glossary.py"], n: ["Arm E term consistency: EN→TR 92.6%, TR→EN 91.9% (arm C without a working glossary: 87.2%)."], e: ["model"] },
+
+  // libraries & services
+  { id: "pymupdf", k: "ext", x: 30, y: 590, w: 150, t: "PyMuPDF", s: "pdf read · redact · draw",
+    d: "Reads spans and boxes, redacts old text, draws the translation with insert_htmlbox, and renders the pages the site shows.", f: ["pip: pymupdf ≥ 1.28.2"], e: [] },
+  { id: "lxml", k: "ext", x: 200, y: 590, w: 120, t: "lxml", s: "EPUB / DOCX XML",
+    d: "Edits EPUB and DOCX content in place (python-docx is avoided: it re-serializes document.xml on save).", f: ["pip: lxml ≥ 6.1.2"], e: [] },
+  { id: "ebooklib", k: "ext", x: 340, y: 590, w: 120, t: "ebooklib", s: "EPUB spine",
+    d: "Reads the EPUB package and spine; the content itself is edited with lxml.", f: ["pip: ebooklib ≥ 0.20"], e: [] },
+  { id: "fonttools", k: "ext", x: 480, y: 590, w: 130, t: "fontTools", s: "metrics · subsets",
+    d: "Real glyph metrics for fitting and font subsets for writing; a source subset is reused only when it holds every letter the translation draws.", f: ["pip: fonttools ≥ 4.0"], e: [] },
+  { id: "rapidocr", k: "ext", x: 630, y: 590, w: 150, t: "RapidOCR + ONNX", s: "scanned pages",
+    d: "Text detection and recognition for scans, on onnxruntime with headless OpenCV.", f: ["pip: rapidocr ≥ 3.9.2", "onnxruntime ≥ 1.29"], e: [] },
+  { id: "heron", k: "ext", x: 800, y: 590, w: 170, t: "Docling Heron", s: "IBM layout model · ONNX",
+    d: "IBM Docling's layout detector: labels a page's regions (paragraph, heading, caption, figure). It returns regions, not reading order — the reader orders them by rule. Runs locally on the CPU.",
+    f: ["ocr/layout_detector.py", "%APPDATA%/LayoutKeep/models/docling-layout-heron-onnx"], e: [] },
+  { id: "pyside6", k: "ext", x: 990, y: 590, w: 160, t: "PySide6 · PyInstaller", s: "window · one-file exe",
+    d: "Qt for the desktop app; PyInstaller packs it into one unsigned LayoutKeep.exe (~165 MB).", f: ["packaging/layoutkeep_onefile.spec", "packaging/build.bat"], e: [] },
+  { id: "lmstudio", k: "ext", x: 30, y: 670, w: 260, t: "LM Studio + gemma-4-e4b Q4", s: "local model · OpenAI API · CUDA",
+    d: "The reference model of every measurement: google/gemma-4-e4b Q4 through LM Studio's OpenAI-compatible server on the local GPU. Q2 quantisations of the same family scored 23–84 on the same bench and are not fit for this.",
+    f: ["http://127.0.0.1:1234/v1"], n: ["Unsloth Studio's llama.cpp build wants CUDA 13 (cublas64_13.dll): without it the model ran on two CPU threads at ~16 tok/s."], e: [] },
+  { id: "deepl", k: "ext", x: 310, y: 670, w: 150, t: "DeepL", s: "machine translation",
+    d: "An alternative provider: a translation service rather than an instruction-following model; it has no chat call, so no automatic glossary.", f: ["providers/deepl.py"], e: [] },
+  { id: "hermes", k: "ext", x: 480, y: 670, w: 230, t: "Hermes → DeepSeek", s: "the judge, never the tested model",
+    d: "The quality and consistency judges call DeepSeek through Hermes one-shot (hermes -z) with opencode-go, with a timeout so one hung call cannot end a measurement.", f: ["tools/audit/quality_judge.py"], e: [] },
+  { id: "github", k: "ext", x: 730, y: 670, w: 200, t: "GitHub", s: "releases · Pages · CI",
+    d: "Releases carry the exe with its SHA-256; Pages serves the landing page, the comparison site and the bench; CI runs the suite and ruff.", f: ["github.com/SalihEfeTosunBayraktar/LayoutKeep"], e: [] },
+];
+
+const LOSSES = [
+  ["L1", "page count differs"], ["L2", "left untranslated — asked again"], ["L3", "text not on the page"],
+  ["L4", "drawn off the page"], ["L5", "markup leaked"], ["L6", "numbers lost — asked again"],
+  ["L7", "text drawn over text"], ["L8", "untouched text moved"], ["L9", "garbled letters — asked again"],
+  ["L10", "text drawn over a figure"], ["D1", "below the readability floor (reported)"],
+  ["D2", "short blocks left unchanged (reported)"], ["D3", "lines squeezed into each other (reported)"],
+];
+
+const FLOW = [["read","docir"],["docir","prep"],["prep","chain"],["chain","fit"],["fit","write"],["write","verify"],
+  ["protected","dedupe"],["dedupe","cached"],["cached","retry"],["retry","model"],["glossary","model"]];
+
+const svg = document.getElementById("map");
+const NS = "http://www.w3.org/2000/svg";
+const byId = Object.fromEntries(N.map(n => [n.id, n]));
+const H = 48;
+const center = n => ({ x: n.x + n.w / 2, y: n.y + H / 2 });
+let kind = "all", selected = null;
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+LANES.forEach(l => {
+  el("rect", { x: 8, y: l.y, width: 1164, height: l.h, rx: 10, class: "lane-bg" }, svg);
+  el("text", { x: 20, y: l.y + 14, class: "lane-label" }, svg).textContent = l.label;
+});
+
+const edges = [];
+const seen = new Set();
+function addEdge(a, b, flow) {
+  const key = [a, b].sort().join("|");
+  if (seen.has(key) || !byId[a] || !byId[b]) return;
+  seen.add(key);
+  const p = center(byId[a]), q = center(byId[b]);
+  const my = (p.y + q.y) / 2;
+  const path = el("path", { d: `M${p.x},${p.y} C${p.x},${my} ${q.x},${my} ${q.x},${q.y}`, class: "edge" + (flow ? " flow" : "") }, svg);
+  edges.push({ a, b, path });
+}
+FLOW.forEach(([a, b]) => addEdge(a, b, true));
+N.forEach(n => (n.e || []).forEach(t => addEdge(n.id, t, false)));
+
+const nodes = {};
+N.forEach(n => {
+  const g = el("g", { class: `node k-${n.k}`, tabindex: 0, role: "button", "aria-label": n.t, transform: `translate(${n.x},${n.y})` }, svg);
+  el("rect", { width: n.w, height: H }, g);
+  el("text", { x: 10, y: 20, class: "t" }, g).textContent = n.t;
+  el("text", { x: 10, y: 37, class: "s" }, g).textContent = n.s;
+  g.addEventListener("click", () => select(n.id));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(n.id); } });
+  nodes[n.id] = g;
+});
+
+const KIND = { core: "pipeline stage", verify: "checks & measurement", ui: "front-end / tooling", ext: "external library or service" };
+const panel = document.getElementById("panel");
+
+function neighbours(id) {
+  return edges.filter(e => e.a === id || e.b === id).map(e => (e.a === id ? e.b : e.a));
+}
+
+function esc(s) { return s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+function select(id) {
+  selected = id;
+  const n = byId[id];
+  Object.entries(nodes).forEach(([k, g]) => g.classList.toggle("sel", k === id));
+  edges.forEach(e => e.path.classList.toggle("hot", e.a === id || e.b === id));
+  const rel = neighbours(id);
+  let html = `<div class="kind">${KIND[n.k]}</div><h2>${esc(n.t)}</h2><p>${esc(n.d)}</p>`;
+  if (n.loss) {
+    html += `<h3>${UI[lang].h_checked}</h3><table class="loss">${LOSSES.map(([c, t]) => `<tr><td>${c}</td><td>${esc(t)}</td></tr>`).join("")}</table>`;
+  }
+  if (n.n && n.n.length) html += `<h3>${UI[lang].h_measured}</h3><ul>${n.n.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  if (n.f && n.f.length) html += `<h3>${UI[lang].h_files}</h3><div class="files">${n.f.map(x => `<code>${esc(x)}</code>`).join("")}</div>`;
+  if (rel.length) html += `<h3>${UI[lang].h_links}</h3><div class="links">${rel.map(r => `<button type="button" data-go="${r}">${esc(byId[r].t)}</button>`).join("")}</div>`;
+  panel.innerHTML = html;
+  panel.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.dataset.go)));
+  try { localStorage.setItem("lk-atlas-sel", id); } catch (e) {}
+}
+
+function applyFilter() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  N.forEach(n => {
+    const hay = [n.t, n.s, n.d, ...(n.f || []), ...(n.n || []), n.loss ? LOSSES.flat().join(" ") : ""].join(" ").toLowerCase();
+    const show = (kind === "all" || n.k === kind) && (!q || hay.includes(q));
+    nodes[n.id].classList.toggle("dim", !show);
+  });
+}
+
+document.getElementById("q").addEventListener("input", applyFilter);
+document.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => {
+  kind = b.dataset.k;
+  document.querySelectorAll("[data-k]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  applyFilter();
+}));
+
+
+const UI = {
+  en: { eyebrow: "LayoutKeep 0.9.11 · architecture", h1: "The words change, the page does not — how that is built",
+    lede: "Every stage a document passes through, from the file you open to the loss report at the end, and every library and service it leans on. Click a box to see its files, why it exists and what it was measured at.",
+    quality: "quality", consistency: "consistency", layout: "layout", tests: "tests",
+    search: "Search a stage, file or library — e.g. glossary, pymupdf, L6",
+    f_all: "All", f_core: "Pipeline", f_verify: "Checks", f_ui: "Front-ends & tools", f_ext: "Libraries & services",
+    k_core: "pipeline stage", k_verify: "checks & measurement", k_ui: "front-end / tooling", k_ext: "external library or service",
+    h_checked: "What is checked", h_measured: "Measured & decided", h_files: "Where it lives", h_links: "Connected to",
+    lanes: ["front-ends & tooling", "the pipeline, left to right", "inside the translation chain", "libraries & services it stands on"],
+    footer: "Built from the source tree at commit 6fcdd19: module summaries are the modules' own docstrings; numbers are the 0.9.11 bench (21 documents × 3 pages, google/gemma-4-e4b Q4 through LM Studio)." },
+  tr: { eyebrow: "LayoutKeep 0.9.11 · mimari", h1: "Kelimeler değişir, sayfa değişmez — bunun nasıl kurulduğu",
+    lede: "Bir belgenin açtığınız dosyadan son kayıp raporuna kadar geçtiği her aşama ve dayandığı her kütüphane ve servis. Bir kutuya tıklayın: dosyaları, neden var olduğu ve ne ölçüldüğü açılır.",
+    quality: "kalite", consistency: "tutarlılık", layout: "düzen", tests: "test",
+    search: "Aşama, dosya ya da kütüphane ara — örn. glossary, pymupdf, L6",
+    f_all: "Tümü", f_core: "Boru hattı", f_verify: "Denetimler", f_ui: "Arayüzler ve araçlar", f_ext: "Kütüphaneler ve servisler",
+    k_core: "boru hattı aşaması", k_verify: "denetim ve ölçüm", k_ui: "arayüz / araç", k_ext: "dış kütüphane ya da servis",
+    h_checked: "Neler denetlenir", h_measured: "Ölçülen ve karar verilen", h_files: "Nerede", h_links: "Bağlantılı olduğu",
+    lanes: ["arayüzler ve araçlar", "boru hattı, soldan sağa", "çeviri zincirinin içi", "dayandığı kütüphaneler ve servisler"],
+    footer: "6fcdd19 commit'indeki kaynak ağacından üretildi: modül özetleri modüllerin kendi docstring'leri; sayılar 0.9.11 tezgâhından (21 belge × 3 sayfa, LM Studio üzerinden google/gemma-4-e4b Q4)." },
+  de: { eyebrow: "LayoutKeep 0.9.11 · Architektur", h1: "Die Wörter ändern sich, die Seite nicht — wie das gebaut ist",
+    lede: "Jede Stufe, die ein Dokument durchläuft, von der geöffneten Datei bis zum Verlustbericht am Ende, und jede Bibliothek und jeder Dienst, auf den es sich stützt. Klicken Sie auf ein Feld: Dateien, Zweck und Messwerte.",
+    quality: "Qualität", consistency: "Konsistenz", layout: "Layout", tests: "Tests",
+    search: "Stufe, Datei oder Bibliothek suchen — z. B. glossary, pymupdf, L6",
+    f_all: "Alle", f_core: "Pipeline", f_verify: "Prüfungen", f_ui: "Oberflächen & Werkzeuge", f_ext: "Bibliotheken & Dienste",
+    k_core: "Pipeline-Stufe", k_verify: "Prüfung & Messung", k_ui: "Oberfläche / Werkzeug", k_ext: "externe Bibliothek oder Dienst",
+    h_checked: "Was geprüft wird", h_measured: "Gemessen & entschieden", h_files: "Wo es liegt", h_links: "Verbunden mit",
+    lanes: ["Oberflächen & Werkzeuge", "die Pipeline, von links nach rechts", "innerhalb der Übersetzungskette", "Bibliotheken & Dienste darunter"],
+    footer: "Erzeugt aus dem Quellbaum bei Commit 6fcdd19: Modulbeschreibungen sind die Docstrings der Module; Zahlen aus dem 0.9.11-Bench (21 Dokumente × 3 Seiten, google/gemma-4-e4b Q4 über LM Studio)." },
+};
+
+const LOSS_T = {
+  tr: ["sayfa sayısı farklı", "çevrilmeden kalmış — yeniden sorulur", "metin sayfada yok", "sayfanın dışına çizilmiş", "işaretleme sızmış", "sayı kaybolmuş — yeniden sorulur", "metin metnin üstüne çizilmiş", "dokunulmamış metin yer değiştirmiş", "bozuk harfler — yeniden sorulur", "metin bir görselin üstüne çizilmiş", "okunabilirlik tabanının altında (raporlanır)", "değişmeden kalan kısa bloklar (raporlanır)", "satırlar birbirine sıkışmış (raporlanır)"],
+  de: ["Seitenzahl weicht ab", "unübersetzt geblieben — neu angefragt", "Text nicht auf der Seite", "außerhalb der Seite gezeichnet", "Markup durchgesickert", "Zahlen verloren — neu angefragt", "Text über Text gezeichnet", "unberührter Text verschoben", "verstümmelte Buchstaben — neu angefragt", "Text über einer Abbildung", "unter der Lesbarkeitsgrenze (nur berichtet)", "kurze unveränderte Blöcke (nur berichtet)", "Zeilen ineinander gequetscht (nur berichtet)"],
+};
+
+const NT = {
+  gui: { tr: { t: "Masaüstü uygulaması", d: "Üç adımlı PySide6 penceresi: belge, çeviri, bitti. Kurulum ekranı dosyayı, dilleri, çıktı biçimini ve sağlayıcıyı seçer; 0.9.10'dan beri dil kutularının altında çiftin ölçülüp ölçülmediğini üç sayısıyla söyler.", n: ["Paketler translation.workers dalgalarıyla gider; kısa bir belge her slota bir paket düşecek şekilde bölünür (paket başına en az 4 segment).", "Paralel zincirler koşunun config'inden kurulur, böylece birleşik sözlük bellek anahtarına ulaşır."] },
+         de: { t: "Desktop-App", d: "PySide6-Fenster in drei Schritten: Dokument, Übersetzung, fertig. Der Einrichtungsbildschirm wählt Datei, Sprachen, Ausgabeformat und Anbieter; seit 0.9.10 zeigt er unter den Sprachfeldern, ob das Paar gemessen ist, mit seinen drei Werten.", n: ["Batches gehen in Wellen von translation.workers hinaus; ein kurzes Dokument wird so geteilt, dass jeder Slot einen hat (mind. 4 Segmente pro Batch).", "Parallele Ketten entstehen aus der Konfiguration des Laufs, damit das zusammengeführte Glossar den Speicherschlüssel erreicht."] } },
+  cli: { tr: { t: "Komut satırı", d: "Pencere olmadan aynı motor: layoutkeep translate. Kayıtlı ayarları uygulama gibi okur (D-020) — bu düzeltmeden önce tezgâhın her --set bayrağı sessizce yok sayılıyordu.", n: ["--terms-only belge sözlüğünü yazar ve durur; --no-auto-glossary verilen listeyi kullanır."] },
+         de: { t: "Kommandozeile", d: "Dieselbe Engine ohne Fenster: layoutkeep translate. Liest die gespeicherten Einstellungen wie die App (D-020) — vor dieser Korrektur wurde jedes --set des Bench stillschweigend ignoriert.", n: ["--terms-only schreibt das Dokumentglossar und hält an; --no-auto-glossary nutzt eine vorgegebene Liste."] } },
+  book: { tr: { t: "Kitap aracı", d: "Uzun bir kitabı sayfa parçalarına böler, her birinde komut satırını paralel çalıştırır ve birleştirir. Terimleri bütün kitap için bir kez sorar ve o tek listeyi her parçaya verir.", n: ["Başarısız bir parça, kitaptan vazgeçilmeden önce bir kez daha denenir."] },
+          de: { t: "Buchwerkzeug", d: "Teilt ein langes Buch in Seitenblöcke, übersetzt sie parallel über die Kommandozeile und fügt sie zusammen. Fragt die Begriffe einmal für das ganze Buch ab und gibt jedem Block dieselbe Liste.", n: ["Ein fehlgeschlagener Block wird einmal wiederholt, bevor das Buch aufgegeben wird."] } },
+  bench: { tr: { t: "Tezgâh", d: "Sabit ölçü: 21 kaynak × 3 sayfa (ilk, orta, sondan bir önceki), iki yönde. Her kol bir commit'e ve bir ayar dosyasına sabitlenir ve provenance.json yazar; hiçbir sayı onu neyin ürettiği bilinmeden okunmaz.", n: ["E kolu (7dd70ab): 21 kaynaktan 14'ü kayıpsız (C kolunda 8).", "--to yeni bir çifti ölçer: EN→DE kalite 95.6, düzen %84.9.", "Karşılaştırma sitesi bir koldan --bench ile üretilir."] },
+           de: { t: "Bench", d: "Der feste Maßstab: 21 Quellen × 3 Seiten (erste, mittlere, vorletzte), beide Richtungen. Jeder Arm ist an einen Commit und eine Einstellungsdatei gebunden und schreibt provenance.json, damit keine Zahl ohne ihre Herkunft gelesen wird.", n: ["Arm E (7dd70ab): 14 von 21 Quellen verlustfrei (Arm C: 8).", "--to misst ein neues Paar: EN→DE erreichte Qualität 95.6, Layout 84,9 %.", "Die Vergleichsseite wird mit --bench aus einem Arm gebaut."] } },
+  judge: { tr: { t: "Yargıçlar", s: "kalite · tutarlılık", d: "Test edilen model olmayan daha güçlü bir model (Hermes üzerinden DeepSeek) segment örneklerini MQM ölçeğiyle puanlar ve her tekrarlayan terimin nasıl çevrildiğini sözlük biçiminde söyler.", n: ["Kabul edilebilir = puan ≥ 80.", "Bir tutarsızlık iç içe her ifade için değil bir kez sayılır; bileşik kelime (Neutron / Neutronenstreuung) aynı karşılık sayılır."] },
+           de: { t: "Gutachter", s: "Qualität · Konsistenz", d: "Ein stärkeres Modell, das nie das getestete ist (DeepSeek über Hermes), bewertet Segmentstichproben nach MQM und nennt, wie jeder wiederkehrende Begriff wiedergegeben wurde, in Grundform.", n: ["Akzeptabel = Wert ≥ 80.", "Eine Abweichung zählt einmal, nicht je verschachtelter Phrase; ein Kompositum (Neutron / Neutronenstreuung) gilt als dieselbe Wiedergabe."] } },
+  site: { tr: { t: "Karşılaştırma sitesi", d: "Tezgâhın her sayfası, sürüklenebilir bir ayırıcının iki yanında orijinal ve çeviri; her birinde onu çeviren sürüm, commit ve model ile kendi üç sayısı yazar.", n: ["Ağ yok, CDN yok: site diskten açılır."] },
+          de: { t: "Vergleichsseite", d: "Jede Bench-Seite, Original gegen Übersetzung unter einem verschiebbaren Teiler, jeweils mit Version, Commit und Modell, die sie übersetzt haben, und ihren eigenen drei Werten.", n: ["Kein Netz, kein CDN: die Seite öffnet sich von der Platte."] } },
+  read: { tr: { t: "Okuma", d: "Her biçim tek bir DocIR belgesine dönüşür. PDF okuyucu PyMuPDF'ten parçaları, stilleri ve kutuları alır ve satırları sayfanın kendi boşluklarına göre bloklara toplar; taramalar OCR'dan geçer; EPUB ve DOCX XML'lerinden okunur.", n: ["Yalnız boşluktan oluşan bir satır artık hiçbir paragrafa katılmaz (önceden bir bloğu başlığın üstüne uzatıyordu)."] },
+          de: { t: "Lesen", d: "Jedes Format wird zu einem DocIR-Dokument. Der PDF-Leser holt Spans, Stile und Boxen aus PyMuPDF und gruppiert Zeilen nach dem eigenen Weißraum der Seite; Scans gehen durch OCR; EPUB und DOCX werden aus ihrem XML gelesen.", n: ["Eine Zeile nur aus Leerzeichen schließt sich keinem Absatz mehr an (sie zog einen Block über eine Überschrift)."] } },
+  docir: { tr: { d: "Tek ara temsil: sayfalar, bloklar, parçalar, stiller, kutular. Okuyucular üretir, yazıcılar tüketir; çeviri katmanı hangi biçimden geldiğini hiç öğrenmez.", n: ["Satır içi biçim sayısal işaretlerle (<0>…</0>) taşınır; kalın bir parça çeviriden sağ çıkar."] },
+           de: { d: "Die eine Zwischendarstellung: Seiten, Blöcke, Spans, Stile, Boxen. Leser erzeugen sie, Schreiber verbrauchen sie, und die Übersetzungsschicht erfährt nie, aus welchem Format sie stammt.", n: ["Inline-Formatierung reist als numerische Marker (<0>…</0>), damit ein fetter Teil die Übersetzung übersteht."] } },
+  prep: { tr: { t: "Hazırlık", s: "sözlük · koruma · kaynakça", d: "Tek kelime gönderilmeden önce: kaynakça blokları çevrilmeden tutulur, aynen geri gelmesi gereken değerler token'a çevrilir, belgenin tekrarlayan terimleri bir kez otomatik sözlüğe çevrilir ve belgenin tekrarladığı metin bir kez gönderilir.", n: ["Sözlük çağrısı 60 sn varsayılan değil ilk partinin süresini (240 sn) alır.", "Yarıda kesilen bir JSON yanıtı bitirdiği terimleri korur."] },
+          de: { t: "Vorbereiten", s: "Glossar · Schutz", d: "Bevor ein Wort gesendet wird: Literaturblöcke bleiben unübersetzt, Werte, die unverändert zurückkommen müssen, werden durch Token ersetzt, die wiederkehrenden Begriffe werden einmal in ein automatisches Glossar übersetzt, und wiederholter Text wird einmal gesendet.", n: ["Der Glossaraufruf bekommt die Zeit des ersten Batches (240 s), nicht die 60 s Voreinstellung.", "Eine mitten im JSON abgeschnittene Antwort behält die fertigen Begriffe."] } },
+  chain: { tr: { t: "Çeviri", d: "Tek bir model çağrısının etrafında bir sarmalayıcı yığını. Her sarmalayıcı tek iş yapar — değerleri korumak, tekrarları paylaşmak, hatırlamak, yeniden denemek, bölmek — böylece model temiz metin görür ve çağıran gönderdiğini çevrilmiş olarak geri alır.", n: ["Paketler segment sayısına değil içeriğe göre boyutlanır; ilk paketin zaman aşımı ölçülen hızdan uyarlanır."] },
+           de: { t: "Übersetzen", d: "Ein Stapel von Hüllen um einen Modellaufruf. Jede Hülle macht eine Sache — Werte schützen, Wiederholungen teilen, merken, wiederholen, teilen —, damit das Modell sauberen Text sieht und der Aufrufer genau das Gesendete übersetzt zurückbekommt.", n: ["Batches werden nach Inhalt bemessen, nicht nach Segmentzahl; das Zeitlimit des ersten passt sich der gemessenen Rate an."] } },
+  fit: { tr: { t: "Sığdırma", d: "Daha uzun bir çeviriyi orijinal kutuya sığdırır: altındaki ve yanındaki boş kâğıdı kullanır, okunabilirlik tabanına kadar küçültür, sonra modelden daha kısa bir sürüm ister ve ancak o zaman işaretler.", n: ["write.grant_room_right_pt (60 pt): TR→EN düzen %75 → %84.7, model çağrısı olmadan.", "Değişmeyen bloklar (adlar, kodlar) artık sığdırılmıyor ve küçültülmüyor.", "Almanca: on harf ve üzeri kelimeler bloğu küçültmek yerine yumuşak tirede bölünür."] },
+         de: { t: "Einpassen", d: "Passt eine längere Übersetzung in die Originalbox: nutzt freies Papier darunter und daneben, verkleinert bis zur Lesbarkeitsgrenze, bittet das Modell um eine kürzere Fassung und markiert erst dann.", n: ["write.grant_room_right_pt (60 pt): TR→EN-Layout 75 % → 84,7 % ohne Modellaufruf.", "Unveränderte Blöcke (Namen, Codes) werden nicht mehr eingepasst oder verkleinert.", "Deutsch: Wörter ab zehn Buchstaben brechen an weichen Trennstrichen, statt den Block zu verkleinern."] } },
+  write: { tr: { t: "Yazma", d: "Orijinal dosyayı yerinde düzenler: eski kelimeler redakte edilir, çeviri aynı kutuya çizdiği her glifi taşıyan bir fontla çizilir, görseller ve vektör çizimler dokunulmadan kalır.", n: ["Bir bağlantının alt çizgisi artık altını çizdiği kelimelerle birlikte gidiyor (bir wiki sayfasında 61 kaçak çizgi → 4).", "Redaksiyonun yeniden yazdığı form XObject'ler orijinalden geri yüklenir."] },
+           de: { t: "Schreiben", d: "Bearbeitet die Originaldatei an Ort und Stelle: die alten Wörter werden geschwärzt, die Übersetzung wird in dieselbe Box mit einer Schrift gezeichnet, die jedes benötigte Zeichen hat, Abbildungen und Vektorgrafik bleiben unberührt.", n: ["Die Unterstreichung eines Links geht jetzt mit ihren Wörtern (61 verirrte Linien auf einer Wiki-Seite → 4).", "Von der Schwärzung neu geschriebene Form-XObjects werden aus dem Original wiederhergestellt."] } },
+  verify: { tr: { t: "Doğrulama: on kayıp ölçütü", d: "Kastedilen değil yazılan üzerinde denetlenir. Bir sayı kaybeden, kaynak dilde kalan ya da bozuk gelen blok yeniden sorulur; geri kalan her şey gerekçesiyle inceleme kuyruğuna düşer." },
+            de: { t: "Prüfen: zehn Verlustkriterien", d: "Geprüft wird, was geschrieben wurde, nicht was gemeint war. Ein Block, der eine Zahl verlor, in der Ausgangssprache blieb oder verstümmelt zurückkam, wird neu angefragt; alles andere landet mit Grund in der Prüfliste." } },
+  tm: { tr: { t: "Çeviri belleği ve köken kaydı", d: "Kaynak, diller, model ve sözlük parmak iziyle anahtarlanan SQLite bellek; değişen bir terim listesi asla eski bir koşudan cevap almaz. Her çıktı sürümü, commit'i, modeli, uç noktayı ve ayarları kaydeder.", n: ["Tezgâh belleği kapalı çalışır."] },
+        de: { t: "Übersetzungsspeicher & Herkunft", d: "SQLite-Speicher, geschlüsselt nach Quelle, Sprachen, Modell und Glossar-Fingerabdruck, damit eine geänderte Begriffsliste nie aus einem alten Lauf antwortet. Jede Ausgabe hält Version, Commit, Modell, Endpunkt und Einstellungen fest.", n: ["Der Bench läuft mit ausgeschaltetem Speicher."] } },
+  loop: { tr: { t: "Bir koşu, baştan sona", s: "oku → hazırla → çevir → sığdır → yaz → doğrula", d: "Tek koşu, sırasıyla: belge okunur, hazırlanır, paralel dalgalarla çevrilir, sığdırılır, geri yazılır ve doğrulanır; aşama zamanlayıcısı zamanın nereye gittiğini raporlar.", n: ["EN→TR D kolu: 21 kaynak 40 dakikada, RTX 4070 dizüstü GPU'da."] },
+          de: { t: "Ein Lauf, von Anfang bis Ende", s: "lesen → … → einpassen → schreiben → prüfen", d: "Ein Lauf, der Reihe nach: das Dokument wird gelesen, vorbereitet, in parallelen Wellen übersetzt, eingepasst, zurückgeschrieben und geprüft; der Phasentimer zeigt, wohin die Zeit ging.", n: ["EN→TR Arm D: 21 Quellen in 40 Minuten auf einer RTX-4070-Laptop-GPU."] } },
+  protected: { tr: { d: "Torklar, toleranslar, parça numaraları, DOI'ler, URL'ler, yollar ve küçük işaret numaraları model metni görmeden token'la değiştirilir ve sonra kaynaktan geri konur.", n: ["Düşen bir paragraf numarası durduğu yere geri gider: madde başlığından hemen sonra (\"Madde 178- (1)\") ya da iki kelimelik bir parçanın başına.", "Eğik çizgiyle yazılmış tarih ve kanun numarası (\"2/1/2003\", \"2012/108\") token değil metin olarak gider."] },
+               de: { d: "Drehmomente, Toleranzen, Teilenummern, DOIs, URLs, Pfade und kleine Hinweisnummern werden durch Token ersetzt, bevor das Modell den Text sieht, und danach aus der Quelle wiederhergestellt.", n: ["Eine verlorene Absatznummer kommt an ihre Stelle zurück: direkt nach einem Artikelkopf (\"Madde 178- (1)\") oder vor ein Fragment aus zwei Wörtern.", "Datum und Gesetzesnummer mit Schrägstrich (\"2/1/2003\", \"2012/108\") gehen als Text, nicht als Token."] } },
+  dedupe: { tr: { t: "Tekrarlar", d: "Belgenin tekrarladığı metin bir kez çevrilir ve her geçişi o çeviriyi alır — bir kaynak, bir karşılık." },
+            de: { t: "Wiederholungen", d: "Text, den das Dokument wiederholt, wird einmal übersetzt, und jedes Vorkommen erhält diese Übersetzung — eine Quelle, eine Wiedergabe." } },
+  cached: { tr: { t: "Bellek", d: "Anahtar eşleşince bir segmenti bellekten cevaplar ve geri geleni saklar." },
+            de: { t: "Speicher", d: "Beantwortet ein Segment aus dem Speicher, wenn der Schlüssel passt, und speichert, was zurückkommt." } },
+  retry: { tr: { t: "Yeniden dene ve böl", s: "yeniden dene · böl · yankı", d: "Gelmeyen bir yanıt bir kez daha denenir; modelin çevirmediği bir segment çevireceği parçalara bölünür; kaynağı aynen geri veren bir yanıt yakalanır." },
+           de: { t: "Wiederholen & Teilen", s: "wiederholen · teilen", d: "Eine fehlende Antwort bekommt einen weiteren Versuch; ein Segment, das das Modell nicht übersetzt, wird in übersetzbare Teile geschnitten; eine Antwort, die die Quelle zurückgibt, wird erkannt." } },
+  model: { tr: { t: "Model çağrısı", d: "OpenAI uyumlu her uç nokta (LM Studio, Ollama, llama.cpp, bulut), DeepL ya da açıkça etiketli bir test sağlayıcısı. Modelin düşürdüğü paragraf ve liste etiketleri — (1), (b), 4.Metin — geri konur.", n: ["Çıktı tavanı: gönderilen karakter başına bir token; döngüye giren bir yanıt bağlam dolana kadar slotu tutamaz.", "Düşünme kapalı: aynı dört kaynakta 2,8 kat süre, aynı kalite (D-021)."] },
+           de: { t: "Modellaufruf", d: "Jeder OpenAI-kompatible Endpunkt (LM Studio, Ollama, llama.cpp, Cloud), DeepL oder ein klar gekennzeichneter Testanbieter. Absatz- und Listenmarken, die das Modell fallen lässt — (1), (b), 4.Text — werden zurückgesetzt.", n: ["Ausgabegrenze: ein Token pro gesendetem Zeichen, damit eine Schleife keinen Slot bis zum vollen Kontext hält.", "Denken ausgeschaltet: auf denselben vier Quellen 2,8-fache Zeit bei gleicher Qualität (D-021)."] } },
+  glossary: { tr: { t: "Sözlük denetimi", d: "Terimler her isteğe girer ve yanıtta denetlenir; bir terim çekimli, büyük harfli ya da son ünsüzü yumuşamış hâliyle de (tampon → tamponun, ışık → ışığın) uyulmuş sayılır.", n: ["E kolu terim tutarlılığı: EN→TR %92.6, TR→EN %91.9 (çalışan sözlüğü olmayan C kolu: %87.2)."] },
+              de: { t: "Glossarprüfung", d: "Begriffe gehen in jede Anfrage und werden in der Antwort geprüft; ein Begriff gilt auch flektiert, großgeschrieben oder mit erweichtem Endkonsonanten als eingehalten (tampon → tamponun, ışık → ışığın).", n: ["Arm E Terminologie-Konsistenz: EN→TR 92,6 %, TR→EN 91,9 % (Arm C ohne funktionierendes Glossar: 87,2 %)."] } },
+  pymupdf: { tr: { s: "okuma · redaksiyon", d: "Parçaları ve kutuları okur, eski metni redakte eder, çeviriyi insert_htmlbox ile çizer ve sitenin gösterdiği sayfaları işler." }, de: { s: "lesen · schwärzen", d: "Liest Spans und Boxen, schwärzt alten Text, zeichnet die Übersetzung mit insert_htmlbox und rendert die Seiten der Website." } },
+  lxml: { tr: { d: "EPUB ve DOCX içeriğini yerinde düzenler (python-docx kullanılmaz: kaydederken document.xml'i yeniden yazar)." }, de: { d: "Bearbeitet EPUB- und DOCX-Inhalte an Ort und Stelle (python-docx wird gemieden: es schreibt document.xml beim Speichern neu)." } },
+  ebooklib: { tr: { d: "EPUB paketini ve sırasını okur; içeriğin kendisi lxml ile düzenlenir." }, de: { d: "Liest EPUB-Paket und Spine; der Inhalt selbst wird mit lxml bearbeitet." } },
+  fonttools: { tr: { s: "ölçüler", d: "Sığdırma için gerçek glif ölçüleri ve yazma için font alt kümeleri; kaynağın alt kümesi yalnızca çevirinin çizdiği her harfi taşıyorsa yeniden kullanılır." }, de: { s: "Metriken", d: "Echte Glyphenmetriken fürs Einpassen und Schrift-Teilmengen fürs Schreiben; eine Quell-Teilmenge wird nur genutzt, wenn sie jeden gezeichneten Buchstaben hat." } },
+  rapidocr: { tr: { s: "taranmış sayfalar", d: "Taramalar için metin tespiti ve tanıma; onnxruntime ve başsız OpenCV üzerinde." }, de: { s: "gescannte Seiten", d: "Texterkennung für Scans, auf onnxruntime mit Headless-OpenCV." } },
+  heron: { tr: { s: "IBM düzen modeli · ONNX", d: "IBM Docling'in düzen dedektörü: bir sayfanın bölgelerini (paragraf, başlık, altyazı, görsel) etiketler. Okuma sırasını değil bölgeleri verir — sırayı okuyucu kurala göre kurar. Yerelde CPU'da çalışır." }, de: { s: "IBM-Layoutmodell · ONNX", d: "IBM Doclings Layout-Detektor: beschriftet Regionen einer Seite (Absatz, Überschrift, Bildunterschrift, Abbildung). Er liefert Regionen, keine Lesereihenfolge — die ordnet der Leser nach Regeln. Läuft lokal auf der CPU." } },
+  pyside6: { tr: { s: "pencere · tek dosya exe", d: "Masaüstü uygulaması için Qt; PyInstaller onu tek, imzasız LayoutKeep.exe'ye (~165 MB) paketler." }, de: { s: "Fenster · Ein-Datei-EXE", d: "Qt für die Desktop-App; PyInstaller packt sie in eine unsignierte LayoutKeep.exe (~165 MB)." } },
+  lmstudio: { tr: { s: "yerel model · OpenAI API · CUDA", d: "Her ölçümün referans modeli: yerel GPU'da LM Studio'nun OpenAI uyumlu sunucusu üzerinden google/gemma-4-e4b Q4. Aynı ailenin Q2 nicemlemeleri aynı tezgâhta 23–84 aldı ve bu iş için uygun değil.", n: ["Unsloth Studio'nun llama.cpp derlemesi CUDA 13 (cublas64_13.dll) istiyor: o olmadan model iki CPU çekirdeğinde ~16 tok/sn çalıştı."] },
+              de: { s: "lokales Modell · OpenAI-API · CUDA", d: "Das Referenzmodell jeder Messung: google/gemma-4-e4b Q4 über den OpenAI-kompatiblen Server von LM Studio auf der lokalen GPU. Q2-Quantisierungen derselben Familie erreichten 23–84 und taugen dafür nicht.", n: ["Der llama.cpp-Build von Unsloth Studio verlangt CUDA 13 (cublas64_13.dll): ohne lief das Modell auf zwei CPU-Threads mit ~16 tok/s."] } },
+  deepl: { tr: { s: "makine çevirisi", d: "Alternatif bir sağlayıcı: talimat izleyen bir model değil bir çeviri servisi; sohbet çağrısı olmadığı için otomatik sözlük yok." }, de: { s: "maschinelle Übersetzung", d: "Ein alternativer Anbieter: ein Übersetzungsdienst statt eines Anweisungsmodells; ohne Chat-Aufruf gibt es kein automatisches Glossar." } },
+  hermes: { tr: { s: "yargıç, asla test edilen model değil", d: "Kalite ve tutarlılık yargıçları DeepSeek'i Hermes üzerinden tek atışlık (hermes -z) opencode-go ile çağırır; zaman aşımı sayesinde takılan tek bir çağrı ölçümü bitiremez." }, de: { s: "Gutachter, nie das Testmodell", d: "Die Qualitäts- und Konsistenzgutachter rufen DeepSeek über Hermes als Einzelaufruf (hermes -z) mit opencode-go auf, mit Zeitlimit, damit ein hängender Aufruf keine Messung beendet." } },
+  github: { tr: { s: "sürümler · Pages · CI", d: "Sürümler exe'yi SHA-256'sıyla taşır; Pages giriş sayfasını, karşılaştırma sitesini ve tezgâhı sunar; CI testleri ve ruff'ı çalıştırır." }, de: { s: "Releases · Pages · CI", d: "Releases tragen die EXE mit SHA-256; Pages liefert Startseite, Vergleichsseite und Bench; die CI führt Tests und ruff aus." } },
+};
+
+let lang = "en";
+const EN = Object.fromEntries(N.map(n => [n.id, { t: n.t, s: n.s, d: n.d, n: n.n }]));
+const LOSS_EN = LOSSES.map(r => r[1]);
+function applyLang(code) {
+  lang = UI[code] ? code : "en";
+  document.documentElement.lang = lang;
+  const ui = UI[lang];
+  document.querySelectorAll("[data-i18n]").forEach(el => { const v = ui[el.dataset.i18n]; if (v) el.textContent = v; });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = ui[el.dataset.i18nPh]; });
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  document.querySelectorAll(".lane-label").forEach((el, i) => { el.textContent = ui.lanes[i]; });
+  N.forEach(n => {
+    const base = EN[n.id], tr = (NT[n.id] || {})[lang] || {};
+    Object.assign(n, { t: tr.t || base.t, s: tr.s || base.s, d: tr.d || base.d, n: tr.n || base.n });
+    const g = nodes[n.id];
+    g.querySelector(".t").textContent = n.t;
+    g.querySelector(".s").textContent = n.s;
+    g.setAttribute("aria-label", n.t);
+  });
+  KIND.core = ui.k_core; KIND.verify = ui.k_verify; KIND.ui = ui.k_ui; KIND.ext = ui.k_ext;
+  LOSSES.forEach((row, i) => { row[1] = lang === "en" ? LOSS_EN[i] : LOSS_T[lang][i]; });
+  try { localStorage.setItem("lk-atlas-lang", lang); } catch (e) {}
+  if (selected) select(selected);
+  applyFilter();
+}
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang)));
+
+let start = "loop";
+try { const s = localStorage.getItem("lk-atlas-sel"); if (s && byId[s]) start = s; } catch (e) {}
+if (location.hash && byId[location.hash.slice(1)]) start = location.hash.slice(1);
+select(start);
+let startLang = "en";
+try { const l = localStorage.getItem("lk-atlas-lang"); if (l && UI[l]) startLang = l; else { const nav = (navigator.language || "en").slice(0, 2); if (UI[nav]) startLang = nav; } } catch (e) {}
+applyLang(startLang);
+</script>
