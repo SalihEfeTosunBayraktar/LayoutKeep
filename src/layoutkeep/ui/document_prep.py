@@ -79,6 +79,9 @@ class DocumentPreparer:
     ) -> PreparedDocument | None:
         """Returns the run's segments and chain, or None when the range holds no text."""
         self._preserve_references(doc)
+        labels = sum(1 for _page, block in doc.iter_blocks() if block.role.value == "figure_label")
+        if labels:
+            self._on_status(UIStrings.get("FEED_FIGURE_LABELS").format(n=labels))
         provider, memory, glossary = self._build_provider(config)
 
         # Belge sözlüğü (ayar açıksa) bölümlemeden ÖNCE gelir (D-007): terim listesi bu koşunun her
