@@ -26,8 +26,10 @@ from itertools import pairwise
 
 SOFT_HYPHEN = "­"
 
-#: Languages whose long words are broken; the rules below are German's.
-HYPHENATED_LANGUAGES = frozenset({"de"})
+#: Languages whose long words are broken: German by the rules below, Turkish by its own (one vowel
+#: per syllable, the last consonant of a run starts the next one, two vowels side by side part).
+HYPHENATED_LANGUAGES = frozenset({"de", "tr"})
+_TR_VOWELS = "aeıioöuüâîû"
 
 #: Shorter words are left whole: the gain is small and a broken short word reads worst.
 _MIN_WORD = 10
@@ -44,11 +46,23 @@ _ONSETS = frozenset((
     "phr", "pl", "pr", "qu", "schl", "schm", "schn", "schr", "schw", "sk", "sp", "spl", "spr", "st",
     "str", "tr", "zw",
 ))
-_WORD = re.compile("[A-Za-zÄÖÜäöüß]+")
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def _turkish_break_points(word: str) -> list[int]:
+    """Turkish syllables: "ki-tap-lık-lar", "Türk-çe", "sa-at" - every vowel ends or opens one."""
+    lower = word.replace("I", "ı").replace("İ", "i").lower()
+    vowels = [i for i, ch in enumerate(lower) if ch in _TR_VOWELS]
+    points: list[int] = []
+    for left, right in pairwise(vowels):
+        point = right if right == left + 1 else right - 1  # V-V, or before the last consonant
+        if _MIN_PART <= point <= len(word) - _MIN_PART:
+            points.append(point)
+    return points
 
 
 def _break_points(word: str) -> list[int]:
-    """Indexes inside `word` where a soft hyphen may go."""
+    """Indexes inside `word` where a soft hyphen may go (German rules)."""
     lower = word.lower()
     # Tokenise into (kind, start, end): vowel groups and consonant units.
     units: list[tuple[str, int, int]] = []
@@ -83,11 +97,11 @@ def _break_points(word: str) -> list[int]:
     return points
 
 
-def hyphenate_word(word: str) -> str:
+def hyphenate_word(word: str, lang: str = "de") -> str:
     """`word` with soft hyphens at its break points, or unchanged when it is short or not a word."""
     if len(word) < _MIN_WORD or any(ch.isupper() for ch in word[1:]):
         return word
-    points = _break_points(word)
+    points = _turkish_break_points(word) if lang == "tr" else _break_points(word)
     if not points:
         return word
     parts, last = [], 0
@@ -100,6 +114,7 @@ def hyphenate_word(word: str) -> str:
 
 def soft_hyphens(text: str, lang: str | None) -> str:
     """`text` with soft hyphens in its long words, for a language that is hyphenated; else as is."""
-    if not text or (lang or "").split("-")[0].lower() not in HYPHENATED_LANGUAGES:
+    code = (lang or "").split("-")[0].lower()
+    if not text or code not in HYPHENATED_LANGUAGES:
         return text
-    return _WORD.sub(lambda match: hyphenate_word(match.group(0)), text)
+    return _WORD.sub(lambda match: hyphenate_word(match.group(0), code), text)

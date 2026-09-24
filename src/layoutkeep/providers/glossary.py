@@ -157,3 +157,37 @@ def glossary_fingerprint(terms: dict[str, str]) -> str:
     """
     payload = chr(0).join(f"{k}={v}" for k, v in sorted(terms.items())).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:12]
+
+
+def reask_misses(glossary: Glossary, provider, segments: list[Segment], *, src_lang: str,
+                 tgt_lang: str) -> int:
+    """Ask once more for the segments the term check flagged, with only the terms each missed.
+
+    A flagged miss used to wait for a reviewer while the same term read two ways in the document.
+    The new request carries the segment's missing terms as a requirement, and its reply replaces
+    the old one only when it honours every one of them. Returns how many segments were fixed.
+    """
+    missed: dict[int, dict[str, str]] = {}
+    for index, seg in enumerate(segments):
+        if seg.review_reason != "REVIEW_GLOSSARY_MISS" or not seg.target:
+            continue
+        terms = {src: tgt for src, tgt in glossary.terms_in(seg.source)
+                 if not _target_pattern(tgt).search(seg.target)}
+        if terms:
+            missed[index] = terms
+    fixed = 0
+    for index, terms in missed.items():
+        seg = segments[index]
+        request = Segment(block_id=seg.block_id, source=seg.source, context_before=seg.context_before,
+                          context_after=seg.context_after, max_len=seg.max_len)
+        try:
+            reply = provider.translate([request], src_lang=src_lang, tgt_lang=tgt_lang, glossary=terms)
+        except Exception:  # noqa: BLE001, S112 - a failed extra request leaves the flag, not a crash
+            continue
+        target = reply[0].target if reply else None
+        if target and all(_target_pattern(tgt).search(target) for tgt in terms.values()):
+            seg.target = target
+            seg.needs_review = False
+            seg.review_reason = ""
+            fixed += 1
+    return fixed

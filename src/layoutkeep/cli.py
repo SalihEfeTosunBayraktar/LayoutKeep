@@ -469,7 +469,13 @@ def cmd_translate(args: argparse.Namespace) -> int:
         )
 
     if glossary:
+        from layoutkeep.providers.glossary import reask_misses
+
         translated, report = glossary.verify(translated)
+        fixed = reask_misses(glossary, provider, translated, src_lang=args.from_lang, tgt_lang=args.to_lang)
+        if fixed:
+            print(f"glossary  {fixed} segment(s) asked again for a missed term and fixed")
+            report["honoured"] += fixed
         checked, honoured = report["checked"], report["honoured"]
         if checked:
             print(f"glossary  {honoured}/{checked} term occurrences honoured"

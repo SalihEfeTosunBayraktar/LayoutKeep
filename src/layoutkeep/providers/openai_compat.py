@@ -519,9 +519,19 @@ def _build_messages(
             "per input segment, no prose, no markdown fences."
         ),
     ]
-    if glossary:
-        terms = "; ".join(f"{src} -> {tgt}" for src, tgt in glossary.items())
-        system_lines.append(f"Use this glossary where the term appears: {terms}")
+    # Only the terms this batch contains, as a requirement: all forty on one line let a small model
+    # miss the one that mattered, and a term came out differently from page to page.
+    text = " ".join(seg.source for seg in segments)
+    present = {
+        src: tgt for src, tgt in (glossary or {}).items()
+        if re.search(rf"(?<!\w){re.escape(src)}(?!\w)", text, re.IGNORECASE)
+    }
+    if present:
+        terms = "; ".join(f"{src} -> {tgt}" for src, tgt in present.items())
+        system_lines.append(
+            "These terms occur in the segments. Translate each one exactly as given (inflect it only "
+            f"as the grammar requires), every time it occurs: {terms}"
+        )
 
     # The wire protocol above is not negotiable: a reply that is not the JSON array, or that lost a
     # marker or a protected token, is a reply the pipeline cannot put back on the page. What a user

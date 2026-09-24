@@ -165,7 +165,9 @@ def test_build_messages_marks_context_as_not_to_translate():
 
 
 def test_build_messages_includes_glossary_terms():
-    messages = _build_messages(_segments(), "en", "fr", glossary={"widget": "gadget"})
+    # A term is sent only when the batch contains it (test_provider_glossary_prompt.py).
+    segments = [Segment(block_id="w", source="Attach the widget to the frame.")]
+    messages = _build_messages(segments, "en", "fr", glossary={"widget": "gadget"})
     system_text = messages[0]["content"]
     assert "widget -> gadget" in system_text
 

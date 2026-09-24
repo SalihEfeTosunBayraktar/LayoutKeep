@@ -360,7 +360,7 @@ def test_the_worker_translates_with_the_merged_glossary(qtbot, tmp_path, monkeyp
     expected = {candidates[0]: USER_TERM, candidates[1]: AUTO_TERM_2}
     assert json.loads(_glossary_file(out).read_text(encoding="utf-8")) == expected
     assert len(chats) == 1, "the document must be asked about once"
-    assert seen and all(handed == expected for handed in seen), seen
+    assert seen and any(handed == expected for handed in seen) and all(handed.items() <= expected.items() for handed in seen), seen
 
 
 def test_the_memory_key_carries_the_merged_glossary(qtbot, tmp_path, monkeypatch):
@@ -479,7 +479,7 @@ def test_the_cli_merges_the_automatic_terms_with_the_glossary_file(tmp_path, cap
     assert "glossary  2 automatic terms (+1 from the file)" in printed, printed
     expected = {candidates[0]: USER_TERM, candidates[1]: AUTO_TERM_2}
     assert json.loads(_glossary_file(out).read_text(encoding="utf-8")) == expected
-    assert all(handed == expected for handed in seen), seen
+    assert any(handed == expected for handed in seen) and all(handed.items() <= expected.items() for handed in seen), seen
     # The check that reports which terms were honoured reads the merged list, not the file alone.
     assert "term occurrences honoured" in printed, printed
 

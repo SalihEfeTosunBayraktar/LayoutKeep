@@ -41,7 +41,7 @@ def read_glossary_terms(path: str | None) -> dict[str, str] | None:
 
 
 def check_glossary_terms(
-    terms: dict[str, str] | None, translated: list[Segment]
+    terms: dict[str, str] | None, translated: list[Segment], provider=None, config=None
 ) -> tuple[list[Segment], dict[str, int]]:
     """The term check the CLI makes after translating (`providers/glossary.Glossary.verify`).
 
@@ -58,9 +58,15 @@ def check_glossary_terms(
         return translated, {"checked": 0, "honoured": 0}
     # The terms are the run's merged list: `DocGlossaryBuilder` points the config at the file it
     # wrote, so the model's own terms are held to the same check as the file's.
-    from layoutkeep.providers.glossary import Glossary
+    from layoutkeep.providers.glossary import Glossary, reask_misses
 
-    return Glossary(terms).verify(translated)
+    glossary = Glossary(terms)
+    translated, report = glossary.verify(translated)
+    if provider is not None and config is not None:
+        # A miss is asked once more with only its own terms, as the CLI does.
+        report["honoured"] += reask_misses(glossary, provider, translated,
+                                           src_lang=config.source_lang, tgt_lang=config.target_lang)
+    return translated, report
 
 
 class DocumentFinalizer:
@@ -145,7 +151,7 @@ class DocumentFinalizer:
         # the untranslated flags and the repeat merge, before the fitting pass, which may reword a
         # block to make it fit. What it flags is what the reviewer has to look at.
         terms = read_glossary_terms(config.glossary_path)
-        translated, glossary_report = check_glossary_terms(terms, translated)
+        translated, glossary_report = check_glossary_terms(terms, translated, provider, config)
         if glossary_report["checked"]:
             self._on_status(
                 UIStrings.get("STATUS_GLOSSARY_CHECKED").format(

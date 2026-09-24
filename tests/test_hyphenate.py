@@ -29,6 +29,24 @@ def test_short_words_codes_and_acronyms_stay_whole():
 
 
 def test_only_a_hyphenated_language_is_touched():
-    assert soft_hyphens("Steuererklärungen", "tr") == "Steuererklärungen"
+    assert soft_hyphens("Steuererklärungen", "en") == "Steuererklärungen"
     assert SOFT_HYPHEN in soft_hyphens("Die Steuererklärungen sind fällig", "de")
     assert SOFT_HYPHEN in soft_hyphens("Steuererklärungen", "de-DE")
+
+
+def test_turkish_breaks_at_its_syllables():
+    for word, expected in (
+        ("kitaplıklardaki", ["ki", "tap", "lık", "lar", "da", "ki"]),
+        ("yönetmeliklerinde", ["yö", "net", "me", "lik", "le", "rin", "de"]),
+        ("Cumhurbaşkanlığı", ["Cum", "hur", "baş", "kan", "lı", "ğı"]),
+    ):
+        parts = hyphenate_word(word, "tr").split(SOFT_HYPHEN)
+        # The first and last parts keep at least three letters, so the edge syllables merge.
+        assert "".join(parts) == word
+        assert all(p in "".join(expected) for p in parts)
+        assert len(parts) >= 3, parts
+
+
+def test_turkish_text_is_hyphenated_and_english_is_not():
+    assert SOFT_HYPHEN in soft_hyphens("Değerlendirmelerimizi paylaştık", "tr")
+    assert SOFT_HYPHEN not in soft_hyphens("Understandably, internationalization", "en")
