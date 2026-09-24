@@ -204,6 +204,9 @@ class Block:
     #: file. Carries the same inline markers as `Segment.source`, so the editor can render the
     #: original's bold and italic runs rather than showing flattened text.
     source_text: str = ""
+    #: True for a label OCR read out of a picture's pixels on a born-digital page: there is no text
+    #: layer to redact, so the writer erases its ink from the picture and draws the translation.
+    raster: bool = False
     #: Grid position for a `role == TABLE` block; -1 on every other block. A reader that finds
     #: a table already knows which cell sits where - the alternative was throwing that away and
     #: asking a writer to guess it back from reading order, which is how a rebuilt table became
@@ -727,6 +730,7 @@ def _block_from_dict(b: dict[str, Any]) -> Block:
         review_reason=b.get("review_reason", ""),
         source_text=b.get("source_text", ""),
         rotation=b.get("rotation", 0.0),
+        raster=b.get("raster", False),
     )
 
 

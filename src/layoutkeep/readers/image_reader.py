@@ -47,6 +47,7 @@ from layoutkeep.ocr.layout_detector import (
 )
 from layoutkeep.ocr.layout_vlm import ChatFn, classify
 from layoutkeep.readers._layout import infer_alignment, join_hyphenation
+from layoutkeep.readers._nonprose import is_prose_label
 from layoutkeep.readers._segment import segment
 
 #: Below this OCR confidence, the containing block is flagged for human review.
@@ -423,7 +424,12 @@ def _page_from_image(
             # translated one cell at a time. An index's entries are one line each, as on born-digital
             # pages: a scanned catalogue read as one block came back as its first column heading.
             if label == "picture":
-                role = BlockRole.FIGURE
+                # translation.figure_text: a label that reads as words is translated in its own
+                # box; names, signals and subscripts stay as scanned (`_nonprose.is_prose_label`).
+                prose = tunables.get("translation.figure_text") and is_prose_label(
+                    " ".join(box.text for box in line)
+                )
+                role = BlockRole.FIGURE_LABEL if prose else BlockRole.FIGURE
             elif label == "document_index":
                 role = BlockRole.BODY
             else:

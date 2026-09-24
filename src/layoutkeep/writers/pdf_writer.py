@@ -191,6 +191,8 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
             else:
                 areas: list[pymupdf.Rect | pymupdf.Quad] = []
                 for block in blocks:
+                    if block.raster:
+                        continue  # no text layer: its words are pixels, erased below
                     if abs(block.rotation) > _ROTATION_EPS:
                         # A rotated line's axis-aligned bbox is bigger than its glyphs (see
                         # `Block.rotation`'s docstring); redacting that whole rectangle would eat
@@ -201,6 +203,11 @@ def write_pdf(doc: Document, src_path: str | Path, out_path: str | Path) -> None
                 # Found before the text goes: clearing a block also removes the links inside it.
                 underlines = link_underlines(page, [b for b in blocks if not _unchanged(b)])
                 redact_keeping_forms(page, areas)
+                # A label OCR read from a picture (translation.figure_text): its ink is erased from
+                # the picture the way a scanned page's is, and the translation drawn in its place.
+                raster = [b for b in blocks if b.raster]
+                if raster:
+                    _cover_scanned_blocks(page, raster)
                 if underlines:
                     redact_keeping_forms(page, underlines, line_art=True)
             for block in blocks:
