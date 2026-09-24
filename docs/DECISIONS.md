@@ -606,3 +606,32 @@ ikisi de varsayılana eşitti). Ama `--set` ile ayar sabitleyen bir kol **sessiz
 
 **Kanıt:** `src/layoutkeep/ui/app.py:141` (tek çağrı yeri) · `src/layoutkeep/core/tunables.py:981` ·
 `tools/audit/refit_run.py --set`.
+
+## D-021 · Çeviride düşünme kapalı kalır; EN→DE henüz "ölçüldü" değil (2026-09-24)
+
+**Soru:** (1) Modelin düşünmesini açmak kaliteyi artırır mı, süreye ne yapar? (2) EN→DE, EN↔TR gibi
+üç ölçütü de geçiyor mu?
+
+**Ölçüm (commit `7dd70ab`, google/gemma-4-e4b Q4, LM Studio):**
+
+| Kol | Kaynak | Süre | Kalite (ort.) |
+|---|---|---|---|
+| E (düşünme yok, `reasoning_effort=none`) | wiki, arxiv_19145, tr_tck, tr_kalkinma_11 | 971 s | 94.9 |
+| think (`LAYOUTKEEP_REASONING_EFFORT=medium`) | aynı 4 kaynak | 2684 s | 94.9 |
+
+Düşünme **2,8 kat süre**, kalite aynı (kaynak bazında ±2, yargıç gürültüsü içinde). Not: E 3, think
+2 kaynağı aynı anda çevirdi; paralellik farkı sürenin tamamını açıklamaz.
+
+EN→DE (15 İngilizce kaynak, `bench.py --to de`): kalite **95.6 / %95** ✓, terim tutarlılığı
+**%85.3** ✗, düzen **%84.9** ✗ (9/15 kayıpsız). Almanca metin kutudan uzun; TR→EN'deki gibi bir
+sığdırma çalışması gerekir.
+
+**Karar:** Ürün `reasoning_effort="none"` göndermeye devam eder (ölçüm anahtarı ortam değişkeni
+olarak kalır). EN→DE `MEASURED_LANGUAGE_PAIRS`'e eklenmez; uygulama onu "ölçülmedi (deneysel)"
+göstermeye devam eder.
+
+**Aynı gece E kolu (21 kaynak):** kalite 94.4 / 96.1, tutarlılık %91.3 / %90.5, düzen %93.0 / %90.4,
+kayıpsız 14/21 (D'de 12/21). Üç ölçüt iki yönde de %90 üstünde kalıyor.
+
+**Kanıt:** `LayoutKeep_bench/_artifacts/bench/7dd70ab-{e,think,en-de}/` (BENCH.md, QUALITY.md,
+CONSISTENCY.md, provenance.json).
