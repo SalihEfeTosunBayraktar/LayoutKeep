@@ -4,13 +4,21 @@ Bu rapor, "başka ne yapılabilir, nerede yetersiziz" sorusuna **ölçülmüş d
 karşılaştırma noktaları** üzerinden cevap veriyor. İddialar kaynaklı; nerede olduğumuz kendi
 denetimlerimizle (L1–L10, D1–D3, `tools/audit/*`) yazılı.
 
-Tarih: 2026-09-20 · Kaynaklar: BabelDOC (ACL 2026 demo, arXiv 2605.10845, AGPLv3), mineru-translate
-(PyPI 0.1.2), ticari derlemeler (Doclingo, Lara Translate, Doctranslate, Bluente).
+İlk sürüm: 2026-09-20 · **Son güncelleme: 2026-09-29** · Kaynaklar: BabelDOC (ACL 2026 demo, arXiv
+2605.10845, AGPLv3), mineru-translate (PyPI 0.1.2), ticari derlemeler (Doclingo, Lara Translate,
+Doctranslate, Bluente).
 
 > **Düzeltme (2026-09-20, aynı gün).** Bu raporun ilk sürümü "terim sözlüğü" ve "koşular arası
 > önbellek" satırlarını "yok" diye yazmıştı: yanlıştı. İkisi de kodda var (`providers/glossary.py`,
 > `providers/memory.py`, ikisinin de kendi testleri var); eksik olan, ikisinin de uygulamadan
 > erişilememesiydi. Satırlar düzeltildi, arayüz bağlantısı aynı gün yapıldı.
+
+> **Güncelleme (2026-09-29).** 20 Eylül'den bu yana kalan "Kalan" kalemlerinin hepsi kapandı ya da
+> ölçülüp karara bağlandı: sözlüğü dışa aktarma, önizlemeli ve çok dilli terim adayları, ayar
+> profilleri (zaten vardı; rapor eskimişti), üst üste çift dilli PDF, görsel sayfa seçici. 4. madde
+> (örtüşme kademesi) büyük ölçüde yapılmış durumda; 7. madde (sayfa-ötesi bağlam) ölçüldü ve üründe
+> zaten var olduğu görüldü (D-023). Açık kalan tek madde 6 (küçük editör), o da CONTRACT.md D6 ile
+> çeliştiği için kullanıcı kararı bekliyor.
 
 ---
 
@@ -20,94 +28,101 @@ Tarih: 2026-09-20 · Kaynaklar: BabelDOC (ACL 2026 demo, arXiv 2605.10845, AGPLv
 |---|---|
 | Boru hattı | DocIR (tek ara temsil) → okuyucu/yazıcı çiftleri; PDF, EPUB, DOCX, PNG, JPG |
 | Kayıpsızlık denetimi | **L1–L10 + D1–D3**, hem uygulamada (`verify.py`) hem CLI'da, hem de kayıtlı koşularda (`tools/audit/lossless_audit.py`) |
-| Sığdırma | İki yönlü merdiven (kısalt → küçült → gerekirse büyüt), `fitting/`, ayarlanabilir eşikler |
+| Sığdırma | İki yönlü merdiven (kısalt → küçült → gerekirse büyüt), kutunun altındaki ve yanındaki boş kâğıdı kullanma (`fitting/growth.py`), deneysel `reflow` modunda alttaki blokları aşağı itme (`fitting/elastic_flow.py`), ayarlanabilir eşikler |
 | Çeviri belleği | Aynı metni bir kez çevirme, tekrarları çoğunluk çevirisiyle birleştirme |
-| **Koşular arası bellek** | `providers/memory.py`: SQLite, (kaynak, diller, model) anahtarlı; CLI'da `--memory`, uygulamada ayar anahtarı (2026-09-20'de arayüze bağlandı) |
-| **Terim sözlüğü** | `providers/glossary.py`: JSON sözlük isteme eklenir, çıktıda kullanımı denetlenir; CLI'da `--glossary`, uygulamada ayar alanı (2026-09-20'de bağlandı) |
+| **Koşular arası bellek** | `providers/memory.py`: SQLite, (kaynak, diller, model, sözlük parmak izi) anahtarlı; CLI'da `--memory`, uygulamada ayar anahtarı |
+| **Terim sözlüğü** | `providers/glossary.py`: JSON veya CSV/TSV; isteme eklenir, çıktıda denetlenir, kaçan terim bir kez yeniden sorulur. Uygulama içi tablo düzenleyici: yükle (JSON/CSV/TSV), farklı kaydet, **dışa aktar**, **önizlemeli "Belgeden öner"** |
+| **Otomatik belge sözlüğü** | `core/doc_glossary.py`: belgenin tekrar eden terimleri tek istekle çevrilir (`translation.auto_glossary`) |
+| **Terim adayları** | `core/terms.py` + `core/stopwords.py`: sıklık kuralı, 8 dil için işlev sözcükleri, kesme işaretli ekler, künye/URL parçaları dışarıda |
+| **Ayar profilleri** | `core/profiles.py`: "hızlı taslak" / "yayın kalitesi", ayarlar penceresinde seçilir |
 | Sağlayıcılar | OpenAI uyumlu (LM Studio, bulut), DeepL |
 | Paralellik | Bölüm/parça bazlı paralel koşu, `.lkproj` kontrol noktası + `--resume` |
-| Arayüz | PySide6: kurulum, ilerleme (yüzen çubuk), tamamlanma, gelişmiş ayarlar, karşılama ekranı |
-| Vitrin | 18 belgelik karşılaştırma sitesi (zoom'lu), `docs/LOSSLESS-REPORT.md` |
+| **Çift dilli PDF** | `writers/dual_pdf.py`: yan yana, almaşık ve **üst üste (iki katman)** |
+| **Sayfa aralığı** | Metin alanı + **görsel sayfa seçici** (PDF küçük resimleri); çıktı yalnız seçilen sayfaları içerir, proje tüm belgeyi saklar |
+| Arayüz | PySide6: kurulum, ilerleme (yüzen çubuk, canlı olay akışı), tamamlanma, gelişmiş ayarlar, karşılama ekranı; tr/en/de |
+| Vitrin | Karşılaştırma sitesi (zoom'lu), tarihçe kitabı, mimari atlas, `docs/LOSSLESS-REPORT.md` |
 
 ## 2. Dışarıda ne var, bizde ne yok
 
 BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2) ve mineru-translate'in
-özellik listesinden bizde **olmayan** kalemler:
+özellik listesinden:
 
 | Özellik | Kimde var | Bizde | Değer |
 |---|---|---|---|
-| **Çift dilli çıktı** (kaynak+çeviri yan yana ya da almaşık sayfalar) | BabelDOC, mineru-translate, Doclingo, Lara | site var, **PDF yok** | Yüksek: inceleme akışının tamamı buna bakıyor |
-| Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON **veya CSV/TSV**, istem + çıktı denetimi, uygulama içi tablo düzenleyici) | Kalan: sözlük dışa aktarma, otomatik terim adayları |
-| **Otomatik terim çıkarımı** | BabelDOC | yok | Orta: sözlüğü elle doldurmak yerine aday listesi |
-| **Sayfa-ötesi bağlam** | BabelDOC | kısmi (`context_before/after`) | Orta: paragraf bölünmelerinde zamir/atıf tutarlılığı |
-| **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | kısmi (`--fit-mode reflow` deneysel) | Orta: D1'e düşen 801 blok (kitap koşusu) tam bu sınıf |
-| Çeviri önbelleği (koşular arası) | mineru-translate | **var** (SQLite bellek) | Kalan: arayüzde isabet oranını göstermek, sözlük değişince geçersiz kılmak (sözlük parmak izi anahtara eklendi) |
-| **Görsel/tablo içi metin çevirisi** | BabelDOC | yok (kilitli) | Düşük-orta: manga/infografik boru hattı |
-| **Kaynakça + dipnot yeniden kurma** | BabelDOC | blok olarak korunuyor, "yeniden kurma" yok | Düşük: akademik akış |
-| **Editör / sonradan düzeltme** | Doclingo, Lara, X-doc | yok (D6 akışı kaldırıldı) | Orta: "ilk geçiş + inceleme" vaadimizin devamı |
+| **Çift dilli çıktı** | BabelDOC, mineru-translate, Doclingo, Lara | **var**: yan yana, almaşık, üst üste (katman) | — |
+| Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON/CSV/TSV, istem + çıktı denetimi, düzenleyici, dışa aktarma) | — |
+| **Otomatik terim çıkarımı** | BabelDOC | **var** (aday listesi önizlemeli; otomatik belge sözlüğü modelle) | Kalan: tutarlılık yargıcıyla yeni aday listesinin etkisini ölçmek |
+| **Sayfa-ötesi bağlam** | BabelDOC | **var** (bağlam belgenin tamamı üzerinden kurulur; D-023) | — |
+| **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | büyük ölçüde (boş kâğıdı kullanma varsayılan; aşağı itme `reflow`'da; satır aralığı adımı ölçüldü, geri alındı) | Kalan: `reflow`'u varsayılana almak için bench ölçümü |
+| Çeviri önbelleği (koşular arası) | mineru-translate | **var** (SQLite bellek, sözlük parmak izi anahtarda, tamamlanma ekranında isabet) | — |
+| **Görsel/tablo içi metin çevirisi** | BabelDOC | kısmi (`translation.figure_text`, varsayılan kapalı: metin katmanından ve OCR ile) | Düşük-orta |
+| **Kaynakça + dipnot yeniden kurma** | BabelDOC | kaynakça korunabiliyor (`translation.preserve_references`), "yeniden kurma" yok | Düşük: akademik akış |
+| **Editör / sonradan düzeltme** | Doclingo, Lara, X-doc | yok (D6 akışı bilinçli kaldırıldı) | Kullanıcı kararı bekliyor (madde 6) |
 | **Eklenti ekosistemi** (Zotero, Word) | BabelDOC/PDFMathTranslate | yok | Düşük: kapsam dışı, bilinçli |
 | **Kurumsal uygunluk** (SOC2/ISO) | Bluente | yok | Düşük: yerel-önce olmamız zaten farklı bir cevap |
 
 **Bizde olup onlarda görünmeyen:** L1–L10 kayıpsızlık denetimi (kaynağa karşı sayfa sayfa), inceleme
-bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırma sitesi, ayarların
-(bağlam penceresi, sığdırma eşikleri) çalışma anında değiştirilebilmesi, AGPLv3 + tam yerel çalışma.
+bayrakları + gerekçe, sabit bench (21 kaynak, iki yön, üç ölçüt), gerçek held-out örneklerden
+üretilen karşılaştırma sitesi, ayarların çalışma anında değiştirilebilmesi, AGPLv3 + tam yerel
+çalışma.
 
-## 3. Önerilen sıra (etki / emek / nasıl ölçülür)
+## 3. Maddeler (durum / ölçüm)
 
-0. ~~Sayfa aralığının çıktıyı da daraltması~~ **yapıldı (2026-09-20)**: aralık artık yazılan kopyaya
-   uygulanıyor (çıktı yalnız seçilen sayfalar), kaydedilen `.lkproj` belgenin tamamını saklıyor;
-   PDF yazıcısı kaynağın dilimini alıyor, dilimdeki sayfalar 0..n yeniden numaralanıyor ki
-   doğrulama sayfa N'i N ile karşılaştırsın. Arayüzde/yardımda ne olacağı yazılı (tr/en/de).
-   Ölçüm: 15 sayfalık corpus PDF'inde aralık "1-2" → çıktı 2 sayfa, proje 15 sayfa (11 test).
-   Kalan: aralık seçimini görsel bir sayfa seçiciyle (küçük önizleme) yapmak.
-1. ~~Ayar ekranındaki ölü anahtar~~ **yapıldı (2026-09-20)**: `timeout.first_batch_s` hiçbir şey
-   okumuyordu; worker'a bağlandı ve "bildirilen her ayar kodda geçmeli" testi eklendi. Kalan:
-   ayarları profillere ayırma (ör. "hızlı taslak" / "yayın kalitesi" ön ayarları).
-
-1. ~~Çift dilli PDF çıktısı~~ **yapıldı (2026-09-20)**: `--dual side|alternate` (CLI) + arayüzde
-   "Çift dilli PDF" kutusu. Boru hattına dokunulmadı: birleştirme sonradan, iki bitmiş dosyadan
-   yapılır, böylece çevrilmiş PDF ve `audit.json` değişmez (denetim sayfa N'i N ile eşler).
-   `writers/dual_pdf.py`, 5 test + 5 arayüz testi; gerçek koşuyla görsel doğrulama. Plan:
-   `docs/DUAL-OUTPUT-PLAN.md`. Kalan: kaynak ve çeviriyi **aynı sayfada üst üste** gösterme
-   seçeneği (şu an yalnız yan yana ve almaşık).
-2. ~~Sözlüğü ve belleği arayüzün parçası yapmak~~ **yapıldı (2026-09-20)**: sözlük dosyası ve bellek
-   anahtarı Gelişmiş Ayarlar'da, uygulama içi tablo düzenleyici (satır ekle/sil, dosyadan yükle,
-   farklı kaydet), CSV/TSV içe alma, sözlük parmak izi bellek anahtarında, tamamlanma ekranında
-   bellek isabeti. Kalan: otomatik terim adayları ve sözlüğü dışa aktarma.
-4. **Örtüşme çözümü** (2026-09-20 ölçümü: satır aralığı adımı denendi, **geri alındı** — geçişin
-   kendi fontuyla hiçbir bloğu kurtarmıyor, yazılmış sayfada iki kol birebir aynı. Taşan blokların
-   derdi satır değil **kutu**: `room_below` kutuyu 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Asıl
-   kol bu madde): `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
-   aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
-   `type_map.py`'nin kutu başına verdiği `shrunk` / `flattened` sayılarının düşmesi (bugünkü
-   düzeltme 12→2 yaptı; kalan sınıf bu).
-   **Ölçülmüş taban (2026-09-20, beş kayıtlı koşu):** Türkçeye çevrilen belgede kutuların **%43'ü**
-   ezilirken (arxiv, EN→TR) İngilizceye çevrilen SBB planında yalnız **%6** (TR→EN) — ezilme hedef
-   dilin uzunluğunu izliyor, yani kaldıraç tam bu merdiven. Satır-içi boyut kaybı (`flattened`)
-   belge başına **6–15 kutu**: görünür ama küçük bir sınıf, o yüzden merdivenin önüne geçmiyor.
-   **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
-   kutuya sığmadı, küçültme yetmedi" ile işaretlendi — en büyük tek sınıf; ikincisi 36 (model
-   metni çevirmeden geri verdi). Yani darboğaz model ya da okuyucu değil, **sığdırma merdiveninin
-   sonu**. **Tasarım:** (a) `_css_for_block` blok stilinde `line_height` varsa `line-height` yazsın
-   — bugün ölçüm `style.line_height`'ı kullanıyor, yazıcı kullanmıyor (gizli uyuşmazlık; okuyucu
-   alanı hiç doldurmadığı için uykuda); (b) merdiven, küçültme tabanına inince ve hâlâ taşıyorsa
-   satır aralığını 1.15 → 1.0 → 0.92 oranlarıyla sıkıp yeniden ölçsün (`FitResult` yeni bir
-   `line_height` alanı taşır, `pdf_pass` blok stillerine yazar); (c) model çağrısından **önce**
-   denenir (bedava) ve kabul ölçütü aynı: L7 ve D3 artmamalı. **Ölçüm yolu:** `rewrite_run.py`
-   kayıtlı çevirileri yeniden yazar — model gerekmez, A/B aynı girdiyle yapılır. **Not:** bu
-   değişiklik `fitting/`'i etkilediği için çalışan bir koşu sürerken yapılmaz (her parça yeni
-   süreç başlatır → parçalar arası tutarsızlık olur).
-5. ~~Otomatik terim adayları~~ **yapıldı (2026-09-20)**: `core/terms.py` (sıklık kuralı, dürüstçe
-   "anlama değil tekrar" diye yazılı) + sözlük düzenleyicisinde **"Belgeden öner"** düğmesi
-   (kurulumdaki dosyayı okur, adayları boş hedef hücreleriyle ekler, hedef sütununu insan yazar).
-   Dışlama kuralı: sözlükte zaten olan terim önerilmez. 9 test. Kalan: adayları çok dilli
-   stopword listeleriyle iyileştirmek ve terim adaylarını **önizlemeli** göstermek (şu an
-   doğrudan satır ekliyor).
-6. **Küçük editör**: inceleme bayraklı blokları uygulama içinde düzeltip yeniden yazma. Emek:
-   yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri bozulmadan.
-7. **Sayfa-ötesi bağlam**: parça sınırında önceki parçanın son 2 bloğunu isteme eklemek. Emek:
-   düşük. Ölçüm: L2 (çevrilmemiş/başka dilde) ve D2 sayılarının düşmesi; insan okumasında zamir
-   tutarlılığı.
+0. ~~Sayfa aralığının çıktıyı da daraltması~~ **yapıldı (2026-09-20)**: aralık yazılan kopyaya
+   uygulanıyor, kaydedilen `.lkproj` belgenin tamamını saklıyor. Ölçüm: 15 sayfalık PDF'te aralık
+   "1-2" → çıktı 2 sayfa, proje 15 sayfa (11 test).
+   ~~Kalan: görsel sayfa seçici~~ **yapıldı (2026-09-29)**: "Sayfaları seç…" PDF sayfalarını
+   işaretli küçük resimler olarak gösterir ve alanın zaten aldığı aralık metnini yazar
+   (`ui/page_picker.py`, `range_helper.format_page_range`; 200 rastgele seçimde gidiş-dönüş
+   birebir). Hiç sayfa işaretli değilse onay kapalı (boş aralık "tümü" demek).
+1. ~~Ayar ekranındaki ölü anahtar~~ **yapıldı (2026-09-20)**. ~~Kalan: ayar profilleri~~ **zaten
+   vardı**: `core/profiles.py` ("hızlı taslak" / "yayın kalitesi"), ayarlar penceresinde seçiliyor,
+   `tests/test_core_profiles.py`. Bu rapor 20 Eylül'den sonra güncellenmediği için "kalan" diye
+   duruyordu.
+2. ~~Çift dilli PDF çıktısı~~ **yapıldı (2026-09-20)**: yan yana ve almaşık, `--dual` + ayar.
+   ~~Kalan: üst üste~~ **yapıldı (2026-09-29)**: `overlay` modu sayfa boyutunu ve sayısını korur;
+   çeviri ve kaynak aynı sayfada iki PDF katmanıdır (çeviri açık, kaynak kapalı), görüntüleyicinin
+   katman panelinden çevrilir. Gerçek koşuda (TCK 5237, TR→EN) varsayılan sayfa çevrilmiş sayfayla,
+   katman çevrilince kaynak sayfayla piksel piksel aynı. Aynı işte düzeltilen hata: ayar listesi
+   iki seçenek için ham anahtar ve koda gömülü Türkçe etiket gösteriyordu.
+3. ~~Sözlüğü ve belleği arayüzün parçası yapmak~~ **yapıldı (2026-09-20)**. ~~Kalan: sözlüğü dışa
+   aktarma~~ **yapıldı (2026-09-29)**: "Dışa aktar…" tablonun kopyasını CSV/TSV/JSON yazar; çalışmanın
+   okuduğu dosya yerinden oynamaz. Aynı işte: "Dosyadan yükle" filtresi CSV/TSV gösterip yalnız JSON
+   okuyordu; başlık satırı olan tabloda ayırıcı artık başlıktan alınıyor (virgüllü terimli TSV
+   CSV sanılıyordu).
+4. **Örtüşme çözümü: büyük ölçüde yapıldı.**
+   - Kutunun altındaki boş kâğıdı kullanma (`fitting/growth.py`, `write.grant_room_pt`, varsayılan
+     24 pt) ve satırın yanındaki kâğıdı kullanma (`write.grant_room_right_pt`, 60 pt): **varsayılan
+     açık**, fitting geçişi ve yazıcı aynı fonksiyonu okur. Bu, 2026-09-20 ölçümünün asıl
+     darboğazını ("`room_below` kutuyu 6pt'ye eziyor") kapatan adım.
+   - Aşağı itme (`fitting/elastic_flow.py`): alttaki blokları aynı sütunda öteler; **yalnız `reflow`
+     modunda** (`fitting.reflow`, varsayılan kapalı).
+   - Satır aralığını sıkma adımı: 2026-09-20'de denendi, **geri alındı** (geçişin kendi fontuyla
+     hiçbir bloğu kurtarmadı; iki kolun yazılmış sayfası birebir aynıydı).
+   - Bugünkü düzen ölçütü (0.9.12, G kolu): bloğun şekli korunan payı EN→TR %94.5, TR→EN %95.0.
+   **Kalan:** `reflow`'u varsayılana almak ancak bench ile (L7 ve D3 artmadan D1 düşerse).
+5. ~~Otomatik terim adayları~~ **yapıldı (2026-09-20)**. ~~Kalan: önizleme ve çok dilli
+   stopword~~ **yapıldı (2026-09-29)**:
+   - "Belgeden öner" önce önizleme açar (`ui/term_candidates_dialog.py`): her aday kullanım
+     sayısıyla, işaretli; yalnız işaretliler tabloya girer. Aday sayısı ayardan
+     (`translation.suggest_limit`, varsayılan 25).
+   - `core/stopwords.py`: en, tr, de, fr, es, it, pt, nl için işlev sözcükleri; dil belgeden, yoksa
+     metinden tahmin. Kesme işaretinden sonraki ek ayrılır ("Türkiye’nin" → "Türkiye"), öbek ekin
+     üstünden geçmez; URL/künye parçaları hiçbir dilde terim değil.
+   - **Ölçüm (bench'in 21 kaynağı, model gerekmez):** 600 adaydan 110'u değişti: `your`,
+     `through`, `tarafından`, `yönelik`, `https doi org`, `ncbi nlm nih gov`, `SKA ların` gitti;
+     yerine `machine translation`, `estimated tax`, `Sosyal Politikalar Bakanlığı` gibi terimler geldi.
+   **Kalan:** otomatik belge sözlüğü de bu listeyi kullandığı için, terim tutarlılığına etkisi
+   tutarlılık yargıcıyla (bulut modeli) ölçülmeli.
+6. **Küçük editör** (açık, **kullanıcı kararı bekliyor**): inceleme bayraklı blokları uygulama
+   içinde düzeltip yeniden yazma. CONTRACT.md D6, düzeltme editörünü bilinçli olarak kaldırdı; bu
+   madde o kararı geri almak demek. Emek: yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri
+   bozulmadan.
+7. ~~Sayfa-ötesi bağlam~~ **ölçüldü, üründe zaten var (2026-09-29, D-023)**: bağlam belgenin tamamı
+   üzerinden, partilemeden ve sayfa aralığından önce kurulur; sayfanın ilk bloğu önceki sayfanın son
+   bloğunu bağlam olarak taşır (`tests/test_context_across_pages.py`). Sınır yalnız kitap aracının
+   parça başına ayrı süreç açtığı yerde kesiliyor; iki bench kolunda parça başındaki 60 bloğun
+   bayraklı 5'i de "PLOS ONE" sayfa başlığı. Bağlama bağlanabilecek L2/D2: 0. Kod değişmedi.
 
 ## 4. Bilinçli olarak yapılmayacaklar
 
@@ -119,22 +134,32 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 
 ## 5. Bugünkü dürüst tablo (nerede zayıfız)
 
-- **D1 = 801 / 4491 blok** (220 sayfalık ders kitabı): "çeviri kutusuna sığmadı" bayrağı. Bunların
-  bir kısmı gerçekten zor (tablo hücreleri), ama 3. maddedeki kademeli çözüm bu sayıyı düşürmeli.
-- **L2 = 2, L6 = 4** (aynı kitap): modelin çevirmediği ya da sayı düşürdüğü bloklar; hepsi inceleme
-  kuyruğuna düşüyor ama kapanmıyor.
+**Bench, 2026-09-29 (commit `a8b2f80`, modül bölme refaktörlerinin ardından, G kolunun ayarlarıyla,
+google/gemma-4-e4b):** 21 kaynakta kayıp 11 (G: 14), kayıpsız kaynak 13/21 (G: 12/21), düzen EN→TR
+%94.2 / TR→EN %94.6 (G: %94.5 / %95.0). 21 kaynağın 20'sinde denetlenen blok sayısı G ile birebir;
+irs_p505'te 243 → 246, ama blok kimlikleri üç parçada da aynı: fark, üç form satırının bu koşuda
+modelin çevirisiyle denetim kapsamına girmesi, okuyucudan değil. Refaktörler çıktıyı değiştirmedi;
+kalan oynama model gürültüsü aralığında.
+
+- **Kalan kayıp sınıfları (a8b2f80):** L2 = 6 (NASA taramasında 3, arXiv'lerde 3: model bloğu
+  çevirmedi), L3 = 2, L6 = 2 (sayı düşürme), L10 = 1. D1 (sığmadı) = 63 blok; en çok IRS formunda
+  (17) ve arXiv 19145'te (9): dar tablo hücreleri.
+
+- **Yerel küçük modelin dil becerisi**: kalite yargıcı EN→TR 94.8, TR→EN 96.3 veriyor (0.9.12);
+  EN→DE %85–86 düzenle hâlâ "ölçülmedi (deneysel)" (D-021, D-022).
 - **Taramalarda OCR**: %98-100 okuma ölçülüyor; eğik/lekeli sayfalarda bu düşer, henüz ölçülmüş bir
   eğim düzeltme yok.
-- **Yerel küçük modelin dil becerisi**: deyim ve terimlerde zayıf; bulut sağlayıcı belirgin fark
-  yaratıyor (ölçüm: aynı belgede terim uyumu karşılaştırması henüz yapılmadı — yapılacak).
+- **D-009** (EPUB→PDF az metinli sayfa) teşhisli, düzeltilmedi.
 
 ## 6. Nasıl ölçeriz (hazır araçlar)
 
 | Soru | Araç |
 |---|---|
+| Ürün bugün ne durumda? | `tools/audit/bench.py` (21 kaynak × 3 sayfa, iki yön; commit başına tablo) |
 | Kayıp var mı? | `tools/audit/lossless_audit.py --work <koşu>` (L1–L10, D1–D3) |
 | Metin görselin üstünde mi? | `tools/audit/text_over_image.py <koşu>` |
-| Tipografi kaynaktan sapmış mı? | `tools/audit/type_drift.py <koşu>` (büyümüş/küçülmüş/hizası değişmiş/okunamaz) — **sayı yanıltıcıdır**: kutunun içindeki her satırı kutunun *tek* stiline böler, o yüzden karışık puntolu bloklar sahte "küçülme" verir |
-| Kutuda hangi punto **kayboldu**? | `tools/audit/type_map.py <koşu>` — kutu başına kaynak ve çıktının punto *kümelerini* karşılaştırır: `faithful` / `flattened` (küçük parça blok boyutunda çizildi) / `shrunk` (merdiven) / `grown` / `mixed`. `type_drift`'in kör noktasını kapatır |
+| Tipografi kaynaktan sapmış mı? | `tools/audit/type_drift.py <koşu>` — **sayı yanıltıcıdır**: kutunun içindeki her satırı kutunun *tek* stiline böler |
+| Kutuda hangi punto **kayboldu**? | `tools/audit/type_map.py <koşu>` — `faithful` / `flattened` / `shrunk` / `grown` / `mixed` |
+| Terimler tutarlı mı? | `tools/audit/term_consistency.py` (bulut yargıç) |
 | İstek sayısı ve süre? | her koşunun sonundaki `spent read | translate | write | verify` satırı |
 | Değişiklik işe yaradı mı? | `rewrite_run.py` (yazıcı) / `reader_ab.py` (okuyucu) — model gerekmez |

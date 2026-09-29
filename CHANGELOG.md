@@ -2,6 +2,25 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
+## Unreleased
+
+Bench after the module splits (commit a8b2f80, arm G's settings, same model): 11 losses (G: 14),
+13 of 21 sources lossless (12), layout 94.2% / 94.6% (EN→TR / TR→EN; G: 94.5% / 95.0%). Block ids
+match G on every source: the refactors changed no output.
+
+- The glossary editor exports a copy as CSV, TSV or JSON, and loads CSV/TSV files as its filter
+  always promised.
+- "Suggest from document" shows the candidates for preview, each with its count; only the ticked
+  ones are added. The number offered is a setting (`translation.suggest_limit`).
+- Term candidates use function-word lists for eight languages, keep a name's stem before an
+  apostrophe suffix ("Türkiye’nin" → "Türkiye") and leave URL and citation pieces out: 110 of 600
+  candidates on the bench's sources changed, grammar and `https doi org` out, real terms in.
+- Bilingual PDF, overlaid: source and translation as two layers on one page, switched in the
+  viewer's layer panel (`--dual overlay`).
+- The page range can be picked on the PDF's thumbnails ("Pick pages…").
+- Fixed: the bilingual setting's list showed a raw key and a Turkish label in every language.
+- Measured and decided (D-023): context already crosses page and batch boundaries.
+
 ## 0.9.12 — 2026-09-25
 
 Arm G (commit 5692d98, same bench and model): term consistency 95.0% / 94.9%, layout 94.5% / 95.0%
