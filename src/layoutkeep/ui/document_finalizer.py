@@ -198,7 +198,8 @@ class DocumentFinalizer:
 
             dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
             self._on_status(UIStrings.get("FEED_BILINGUAL_WRITING"))
-            composed = compose_dual(src, out, dual_path, dual_mode)
+            composed = compose_dual(src, out, dual_path, dual_mode,
+                                    (UIStrings.DUAL_LAYER_SOURCE, UIStrings.DUAL_LAYER_TRANSLATION))
             self._on_status(UIStrings.get("FEED_BILINGUAL_DONE").format(n=composed, mode=dual_mode))
 
         project_path = config.project_path or str(out.with_suffix(".lkproj"))

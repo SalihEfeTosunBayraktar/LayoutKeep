@@ -66,9 +66,9 @@ def test_the_timing_report_setting_is_off_by_default():
     assert tunables.get("output.timing_report") is False
 
 
-def test_the_dual_pdf_setting_is_off_by_default_and_offers_three_choices():
+def test_the_dual_pdf_setting_is_off_by_default_and_offers_four_choices():
     spec = tunables.definition("output.dual_mode")
     assert spec is not None
     assert spec.default == ""
-    assert [value for value, _label in spec.choices] == ["", "side", "alternate"]
+    assert [value for value, _label in spec.choices] == ["", "side", "alternate", "overlay"]
     assert spec.group == "TEST_TOOLS"  # a stable key; the heading text comes from UIStrings

@@ -600,9 +600,10 @@ TUNABLES: tuple[Tunable, ...] = (
         section=ADVANCED,
         group="TEST_TOOLS",
         choices=(
-            ("", "TUNABLE_output.dual_mode_choice_off"),
-            ("side", "Yan yana (kaynak solda)"),
-            ("alternate", "TUNABLE_output.dual_mode_choice_alternate"),
+            ("", "DUAL_OFF"),
+            ("side", "DUAL_SIDE"),
+            ("alternate", "DUAL_ALTERNATE"),
+            ("overlay", "DUAL_OVERLAY"),
         ),
         help_text="TUNABLE_output.dual_mode_help_text",
         warning="TUNABLE_output.dual_mode_warning",

@@ -39,7 +39,8 @@ def test_the_bilingual_choice_lives_in_the_settings(qtbot) -> None:
     """Moved off the setup screen on request: a rarely used output extra, edited in the settings.
 
     The old test pinned the combo in the setup screen. It now pins both halves of the move - the
-    screen no longer carries it, and the settings offer the same three values with "off" as default.
+    screen no longer carries it, and the settings offer the modes (three, and the overlaid one since)
+    with "off" as default.
     """
     from layoutkeep.ui.job_setup import JobSetupWidget
     from layoutkeep.ui.tweaks_dialog import TweaksDialog
@@ -52,7 +53,7 @@ def test_the_bilingual_choice_lives_in_the_settings(qtbot) -> None:
     qtbot.addWidget(dialog)
     editor = dialog._editors["output.dual_mode"]
     values = [editor.itemData(row) for row in range(editor.count())]
-    assert values == ["", "side", "alternate"], values
+    assert values == ["", "side", "alternate", "overlay"], values
     assert editor.currentData() == "", "the default must be off"
 
 

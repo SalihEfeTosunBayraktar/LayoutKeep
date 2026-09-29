@@ -550,7 +550,8 @@ def cmd_translate(args: argparse.Namespace) -> int:
         from layoutkeep.writers.dual_pdf import compose_dual
 
         dual_path = out.with_name(f"{out.stem}.dual{out.suffix}")
-        composed = compose_dual(src, out, dual_path, args.dual)
+        composed = compose_dual(src, out, dual_path, args.dual,
+                                (UIStrings.DUAL_LAYER_SOURCE, UIStrings.DUAL_LAYER_TRANSLATION))
         print(f"dual      {dual_path} ({composed} pages, mode={args.dual})")
 
     _verify(doc, translated, src, out, provider, glossary, args, phases)
@@ -783,7 +784,7 @@ def build_parser() -> argparse.ArgumentParser:
                          "(0 checks and flags without asking again)")
     tr.add_argument(
         "--dual",
-        choices=["side", "alternate"],
+        choices=["side", "alternate", "overlay"],
         default=None,
         metavar="MODE",
         help=UIStrings.DUAL_FILE_HINT,
