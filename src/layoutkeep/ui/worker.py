@@ -7,8 +7,10 @@ reimplements translation, fitting or I/O logic (see docs/CONTRACT.md, D1/D2).
 
 from __future__ import annotations
 
+import copy
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -17,12 +19,15 @@ from layoutkeep.core import tunables
 from layoutkeep.core.docir import (
     Document,
     Segment,
-    apply_segments,
-    save_project,
-    segments_from_document,
 )
+from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.providers.glossary import glossary_fingerprint, load_terms
+from layoutkeep.ui.document_finalizer import DocumentFinalizer
+from layoutkeep.ui.document_prep import DocumentPreparer
+from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
+from layoutkeep.ui.translation_loop import _run_translation_loop
 
 #: How many segments the worker hands the provider at a time.
 #:
@@ -47,7 +52,12 @@ _MAX_BATCH_TIMEOUT_S = 900.0
 
 
 def _batch_timeout(chars: int, *, is_first: bool, chars_per_second: float | None) -> float:
-    base = _FIRST_BATCH_BASE_TIMEOUT_S if is_first else _WARM_BATCH_BASE_TIMEOUT_S
+    # The first batch pays for a cold model load, and how long that takes is a property of the
+    # machine, not of this code - so it is a setting (`timeout.first_batch_s`), with the constant
+    # as the fallback. It used to be a declared-but-unread switch: visible in the dialog, wired to
+    # nothing.
+    first = tunables.get("timeout.first_batch_s")
+    base = float(first if is_first and first else _FIRST_BATCH_BASE_TIMEOUT_S if is_first else _WARM_BATCH_BASE_TIMEOUT_S)
     rate = chars_per_second or _DEFAULT_CHARS_PER_SECOND
     estimate = base + chars / rate
     return max(_MIN_BATCH_TIMEOUT_S, min(_MAX_BATCH_TIMEOUT_S, estimate))
@@ -61,16 +71,117 @@ def _set_provider_timeout(provider, seconds: float) -> None:
         target.timeout = seconds
 
 
-def _read_document(path: Path) -> Document:
+#: Says "the caller handed over no layout model", so `_read_document` keeps loading the installed
+#: one by itself while `_run` - which has to record whether a model was in hand - passes the very
+#: detector it read with instead of loading a 171 MB model a second time.
+_UNSET = object()
+
+
+def _load_layout_detector():
+    from layoutkeep.ocr.layout_detector import load_detector
+
+    return load_detector()
+
+
+def _read_document(path: Path, layout=_UNSET) -> Document:
     from layoutkeep.writers.converter import read_any_document
 
-    return read_any_document(path)
+    # The local layout model when it is installed, as the CLI reads (cli._layout_detector): the
+    # desktop application read every page without it, although the campaign measured every result
+    # with it.
+    if layout is _UNSET:
+        layout = _load_layout_detector()
+    return read_any_document(path, layout=layout)
 
 
 def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
     from layoutkeep.writers.converter import write_any_document
 
     return write_any_document(doc, source, out)
+
+
+def _output_document(doc: Document, config) -> tuple[Document, set[int] | None]:
+    """What the range promises, made true: the written file holds the selected pages.
+
+    WHY THIS EXISTS: a page range used to narrow only what was *translated*, so choosing
+    "40-60" produced a translation of those pages inside a copy of the whole book - reported as
+    "shouldn't it output only the range I selected?". The project still keeps every page (the
+    reviewer needs the rest, and re-exporting must not silently shorten the document), so the
+    range is applied to a copy used for writing, not to the document that is saved.
+
+    Sayfa aralığı artık çıktıyı da daraltır; kaydedilen proje belgenin tamamını korur.
+    """
+    if not (config.page_range and doc.pages):
+        return doc, None
+
+    from layoutkeep.core.range_helper import filter_document_by_pages, parse_page_range
+
+    selected = parse_page_range(config.page_range, len(doc.pages))
+    if len(selected) >= len(doc.pages):
+        return doc, None
+
+    subset = filter_document_by_pages(doc, selected)
+    # The verification pass pairs source page N with output page N through `source_ref`, so the
+    # kept pages are renumbered to their position inside the slice. They are deep-copied first:
+    # filter_document_by_pages shares the Page objects with the project's document, and
+    # renumbering those in place would corrupt the saved project.
+    pages = []
+    for index, page in enumerate(subset.pages):
+        copied = copy.deepcopy(page)
+        copied.source_ref = str(index)
+        pages.append(copied)
+    return replace(subset, pages=pages), selected
+
+
+def _source_slice(src: Path, selected: set[int], destination: Path) -> Path | None:
+    """The selected pages of the source, as their own PDF, so verification compares like with like.
+
+    A subset output cannot be checked against the full source: page 1 of the output is not page 1
+    of the book, and every loss rule would read the wrong pair.
+    """
+    if src.suffix.lower() != ".pdf":
+        return None
+    import pymupdf
+
+    with pymupdf.open(str(src)) as source:
+        out = pymupdf.open()
+        try:
+            for number in sorted(selected):
+                if 1 <= number <= source.page_count:
+                    out.insert_pdf(source, from_page=number - 1, to_page=number - 1)
+            if out.page_count in (0, source.page_count):
+                return None
+            out.save(str(destination))
+        finally:
+            out.close()
+    return destination
+
+
+def load_glossary_terms(path: str | None) -> dict[str, str] | None:
+    """Read a JSON glossary, or None when no file is configured.
+
+    A broken file is not a reason to fail the job: it is reported by the caller and the run goes
+    on without the glossary, which is the same document the user would have got before.
+
+    The reading itself is `providers/glossary.load_terms`, the one the command line uses too; what
+    this name adds is the window's own exception, which its callers report instead of stopping for.
+    """
+    try:
+        return load_terms(path)
+    except (OSError, ValueError) as exc:
+        # A typo in a path or a hand-edited JSON file must not end a two-hour run before it
+        # starts; the caller reports it and the document is translated as it would have been.
+        raise GlossaryUnreadableError(path, str(exc)) from exc
+
+
+class GlossaryUnreadableError(Exception):
+    """The configured glossary file could not be read; the run continues without it."""
+
+
+#: The glossary hash, folding a term list into the memory key. It lives with the glossary now
+#: (`providers/glossary.glossary_fingerprint`) so the command line folds in the same one: two
+#: front-ends computing that key differently is one serving the other's translations.
+_glossary_fingerprint = glossary_fingerprint
 
 
 def _build_provider(config: JobConfig):
@@ -98,16 +209,24 @@ def _build_provider(config: JobConfig):
         )
         model_id = f"{config.provider.base_url}:{config.provider.model}"
 
+    from layoutkeep.providers.dedupe import DedupeProvider
     from layoutkeep.providers.protected import ProtectedProvider
 
+    try:
+        terms = load_glossary_terms(config.glossary_path)
+    except GlossaryUnreadableError:
+        terms = None  # the job runs without it; the settings dialog is where this is fixed
+    if terms:
+        model_id = f"{model_id}|gloss:{_glossary_fingerprint(terms)}"
+
     if not config.memory_path:
-        return ProtectedProvider(provider), None
+        return ProtectedProvider(DedupeProvider(provider)), None, terms
 
     from layoutkeep.providers.cached import CachedProvider
     from layoutkeep.providers.memory import TranslationMemory
 
     memory = TranslationMemory(config.memory_path)
-    return ProtectedProvider(CachedProvider(provider, memory, model_id)), memory
+    return ProtectedProvider(CachedProvider(DedupeProvider(provider), memory, model_id)), memory, terms
 
 
 # ---------------------------------------------------------------------------
@@ -116,137 +235,12 @@ def _build_provider(config: JobConfig):
 # ---------------------------------------------------------------------------
 
 
-def _segment_preview(source_text: str) -> str:
-    """Build the short single-line preview shown next to the active segment."""
-    clean = source_text.strip().replace("\n", " ")
-    return clean[:77] + "…" if len(clean) > 80 else clean
-
-
 def _timeout_error_message(base_url: str, timeout: float) -> str:
-    return (
-        f"Sunucu ({base_url}) {timeout:.0f} saniye içinde yanıt vermedi.\n"
-        "Büyük bir yerel model yüklenmesi dakikalar sürebilir; sunucu tamamen hazır "
-        "olduktan sonra tekrar deneyin, ya da Sağlayıcı Ayarları'ndan zaman aşımını "
-        "elle yükseltin."
-    )
+    return UIStrings.get("ERROR_TIMEOUT").format(url=base_url, s=f"{timeout:.0f}")
 
 
 def _connection_error_message(base_url: str, exc: Exception) -> str:
-    return (
-        f"{base_url} adresine ulaşılamıyor: {exc}\n"
-        "LM Studio (1234 portu) veya Ollama (11434 portu) sunucusunun çalıştığından "
-        "ve sunucu modunun etkin olduğundan emin olun."
-    )
-
-
-def _run_translation_loop(
-    worker: TranslationWorker,
-    provider,
-    memory,
-    segments: list[Segment],
-    total: int,
-    total_chars: int,
-    *,
-    source_lang: str,
-    target_lang: str,
-) -> list[Segment] | None:
-    """Translate `segments` in batches; returns None if cancelled or a batch errored."""
-    from layoutkeep.providers.batching import BatchProgress
-
-    worker.status.emit("translating")
-    translated: list[Segment] = []
-    chars_per_second: float | None = None
-    done_chars = 0
-
-    chunk_size = tunables.get("batch.chunk_size")
-    for batch_index, start in enumerate(range(0, total, chunk_size)):
-        if worker._cancelled:
-            worker.status.emit("cancelled")
-            return None
-
-        if not worker._pause_event.is_set():
-            # Reached the boundary: now it really is paused, not merely asked to.
-            worker.status.emit(UIStrings.STATUS_PAUSED)
-        while not worker._pause_event.is_set():
-            if worker._cancelled:
-                worker.status.emit("cancelled")
-                return None
-            time.sleep(0.1)
-
-        batch = segments[start : start + chunk_size]
-        worker.active_segment.emit(start + 1, _segment_preview(batch[0].source))
-        batch_chars = sum(len(s.source) for s in batch)
-        timeout = _compute_batch_timeout(
-            provider,
-            worker._config.provider.timeout,
-            batch_chars,
-            is_first=batch_index == 0,
-            chars_per_second=chars_per_second,
-        )
-        _set_provider_timeout(provider, timeout)
-        worker.batch_timeout.emit(timeout)
-
-        hits_before = memory.stats()["hits"] if memory is not None else 0
-        started = time.monotonic()
-        base_done = len(translated)
-        base_chars = done_chars
-
-        def _sub_progress(
-            bp: BatchProgress,
-            b_done: int = base_done,
-            b_chars: int = base_chars,
-        ) -> None:
-            curr_done = b_done + bp.segments_done
-            curr_chars = b_chars + bp.chars_done
-            worker.progress.emit(curr_done, total)
-            worker.progress_detailed.emit(curr_done, total, curr_chars, total_chars, 0.0, "")
-
-        try:
-            result = provider.translate(
-                batch,
-                src_lang=source_lang,
-                tgt_lang=target_lang,
-                on_progress=_sub_progress,
-            )
-        except TimeoutError:
-            worker.failed.emit(_timeout_error_message(worker._config.provider.base_url, timeout))
-            return None
-        except OSError as exc:
-            worker.failed.emit(_connection_error_message(worker._config.provider.base_url, exc))
-            return None
-
-        elapsed = time.monotonic() - started
-        hit_this = memory is not None and memory.stats()["hits"] > hits_before
-        # Her gerçek (memory-hit olmayan) batch'te hızı güncelle: hem timeout hesabı hem UI
-        # hız göstergesi için. İlk ölçüme kilitlenmek yanlış - soğuk model yüklemesi ilk
-        # batch'i her zaman yavaşlatır ve sonraki batch'ler daha hızlıdır.
-        measured = batch_chars > 0 and elapsed > 0 and not hit_this
-        if measured:
-            chars_per_second = batch_chars / elapsed
-
-        translated.extend(result)
-        # The progress screen shows source and translation side by side; until now only the
-        # source was emitted, so the right-hand panel had nothing to draw.
-        for produced in result:
-            if produced.target:
-                worker.segment_translated.emit(
-                    _segment_preview(produced.source), _segment_preview(produced.target)
-                )
-        worker.review_flags.emit(
-            sum(1 for seg in translated if seg.needs_review), len(translated)
-        )
-        done_chars += batch_chars
-        # UI'a giden hız: bu batch'in ölçülen hızı (batch_chars / elapsed), kümülatif değil.
-        # Memory hit batch'leri ~0 saniyede döner - onların "hızı" gerçek değildir, 0.0
-        # gönder (EtaCalculator 0.0'ı ölçüm yok sayar).
-        rate = chars_per_second if measured else 0.0
-        worker.progress.emit(len(translated), total)
-        worker.progress_detailed.emit(len(translated), total, done_chars, total_chars, rate, "")
-        if memory is not None:
-            st = memory.stats()
-            worker.memory_stats.emit(st["hits"], st["hits"] + st["misses"])
-
-    return translated
+    return UIStrings.get("ERROR_CONNECTION").format(url=base_url, exc=exc)
 
 
 def _compute_batch_timeout(
@@ -292,6 +286,10 @@ class TranslationWorker(QThread):
         self._pause_event.set()
         #: Wall clock at the start of _run, for the completion screen's total time.
         self._started_at: float | None = None
+        #: Flags whose cause is the box rather than the text (core.review.BOX_CRUSHED), counted
+        #: for the completion screen - a user reading "N need review" deserves to know how many
+        #: of them are a layout problem no amount of rephrasing would fix.
+        self._box_crushed = 0
 
     def pause(self) -> None:
         """Ask the loop to stop at the next chunk boundary.
@@ -343,10 +341,18 @@ class TranslationWorker(QThread):
         config = self._config
         src = Path(config.input_path)
         out = Path(config.output_path)
+        # Where the time went. Filled as the run goes and, when the user asked for it, written next
+        # to the output at the end - the same directory, so the report travels with its document.
+        self._timing = TimingReport(document=src.name)
+        phases = PhaseTimer(self._timing)
 
         self.status.emit("reading document")
+        # Read once, here: the detector is both what the reader uses and part of what the run
+        # records about itself (`document_prep.DocumentPreparer._record_provenance`).
+        detector = _load_layout_detector()
         try:
-            doc = _read_document(src)
+            with phases.phase("read", src.suffix.lower() or "input"):
+                doc = _read_document(src, detector)
         except FileNotFoundError as exc:
             # A1: eksik/okunamayan girdi traceback degil, tek cumle / missing input → one line
             self.failed.emit(str(exc))
@@ -357,46 +363,76 @@ class TranslationWorker(QThread):
         doc.source_lang = config.source_lang
         doc.target_lang = config.target_lang
 
-        segments = self._filter_segments(doc, config)
-        total = len(segments)
-        if total == 0:
-            self.failed.emit("Belgede çevrilebilir metin bulunamadı.")
+        # Hazırlığın tamamı (kaynakça, sözlük, konu haritası, aralık, bütçe) DocumentPreparer'da
+        # yaşar; worker yalnız hangi sinyalin yayılacağına karar verir. / The whole preparation
+        # lives in DocumentPreparer; the worker keeps the signals.
+        prepared = DocumentPreparer(
+            on_status=self.status.emit, build_provider=_build_provider
+        ).prepare(doc, src, out, config, phases=phases, layout_model=detector is not None)
+        if prepared is None:
+            self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))
             return
+        self._config = prepared.config  # parallel chains need the merged glossary (see commit 438e14c)
 
-        total_chars = sum(len(s.source) for s in segments)
-        provider, memory = _build_provider(config)
-        self.progress.emit(0, total)
-        self.progress_detailed.emit(0, total, 0, total_chars, 0.0, "")
+        self.progress.emit(0, prepared.total)
+        self.progress_detailed.emit(0, prepared.total, 0, prepared.total_chars, 0.0, "")
 
-        translated = _run_translation_loop(
-            self,
-            provider,
-            memory,
-            segments,
-            total,
-            total_chars,
-            source_lang=config.source_lang,
-            target_lang=config.target_lang,
-        )
+        with phases.phase(
+            "translate", f"{prepared.total} segments, {prepared.total_chars:,} chars"
+        ):
+            translated = _run_translation_loop(
+                self,
+                prepared.provider,
+                prepared.memory,
+                prepared.segments,
+                prepared.total,
+                prepared.total_chars,
+                source_lang=prepared.config.source_lang,
+                target_lang=prepared.config.target_lang,
+                glossary=prepared.glossary,
+            )
         if translated is None:
             return
 
-        self._finalize_document(doc, translated, src, out, config, provider)
+        self._finalize_document(
+            doc, translated, src, out, prepared.config, prepared.provider, phases
+        )
+        self._write_timing_report(out)
 
-    def _filter_segments(self, doc: Document, config: JobConfig) -> list[Segment]:
-        # Belgeden segmentleri çıkarır ve aralığa göre filtreler / Extracts and filters segments
-        segments = segments_from_document(doc)
-        if config.page_range and doc.pages:
-            from layoutkeep.core.range_helper import block_ids_for_pages, parse_page_range
-
-            selected_pages = parse_page_range(config.page_range, len(doc.pages))
-            allowed = block_ids_for_pages(doc, selected_pages)
-            segments = [seg for seg in segments if seg.block_id in allowed]
-        return segments
+    def _write_timing_report(self, out: Path) -> None:
+        """Write the phase breakdown beside the output, and only when the setting asks for it."""
+        timing = getattr(self, "_timing", None)
+        if timing is None or not tunables.get("output.timing_report"):
+            return
+        target = out.with_name(f"{out.stem}.timing.html")
+        try:
+            written = timing.write_html(target)
+        except OSError as exc:
+            self.status.emit(UIStrings.get("FEED_TIMING_FAILED").format(error=exc))
+            return
+        self.status.emit(UIStrings.get("FEED_TIMING_WRITTEN").format(name=written.name))
 
     def _emit_timeout(self, timeout: float) -> None:
         # Sağlayıcıya uygulanan zaman aşımını UI'a bildirir / Reports the timeout applied to the provider
         self.batch_timeout.emit(timeout)
+
+    def _make_finalizer(self, config: JobConfig, provider=None) -> DocumentFinalizer:
+        """The write-back path lives in DocumentFinalizer; this wires the worker's signals in."""
+        return DocumentFinalizer(
+            config,
+            on_status=self.status.emit,
+            on_job_stats=self.job_stats.emit,
+            on_finished=self.finished_ok.emit,
+            fit_pass=lambda d, s: self._fit_pdf_pass(d, s, config, provider),
+            box_crushed=lambda: self._box_crushed,
+            started_at=self._started_at,
+            on_flagged=self._set_flagged,
+        )
+
+    def _set_flagged(self, flagged: int) -> None:
+        """The finalizer counts the flagged segments; the timing report shows them."""
+        if getattr(self, "_timing", None) is not None:
+            self._timing.flagged = flagged
 
     def _finalize_document(
         self,
@@ -406,89 +442,36 @@ class TranslationWorker(QThread):
         out: Path,
         config: JobConfig,
         provider=None,
+        phases: PhaseTimer | None = None,
     ) -> None:
-        from layoutkeep.providers.passthrough import flag_passthrough
+        """Delegate to DocumentFinalizer: writing, verification and stats live there now."""
+        self._make_finalizer(config, provider).finalize(
+            doc, translated, src, out, provider=provider, phases=phases
+        )
 
-        flag_passthrough(translated)
+    def _verify(self, doc, translated, src: Path, out: Path, config: JobConfig, provider=None,
+                source_slice: Path | None = None):
+        """Delegate to DocumentFinalizer.verify."""
+        return self._make_finalizer(config, provider).verify(
+            doc, translated, src, out, config, provider, source_slice=source_slice
+        )
 
-        # PDF: translated text must fit its original boxes, exactly like the CLI fits it
-        # (the GUI drifting from the CLI here is a bug - both run the same pdf_pass).
-        if src.suffix.lower() == ".pdf":
-            self._fit_pdf_pass(doc, translated, config, provider)
-
-        self.status.emit("applying translation")
-        apply_segments(doc, translated)
-
-        self.status.emit("writing output")
-        _write_document(doc, src, out)
-
-        project_path = config.project_path or str(out.with_suffix(".lkproj"))
-        save_project(doc, project_path)
-        self.job_stats.emit(self._collect_stats(translated))
-        self.finished_ok.emit(project_path)
+    def _count_box_crushed(self) -> None:
+        """One more block whose box, not its text, needs a look. The runner calls this."""
+        self._box_crushed += 1
 
     def _collect_stats(self, translated: list[Segment]) -> dict:
-        """Figures the completion screen reports, all counted rather than estimated.
-
-        `clean_ratio` is the share of segments that finished without raising a review flag.
-        It is presented as layout fidelity because every reason a segment gets flagged - a
-        translation that would not fit its box, lost inline styling, a dropped protected
-        value, text handed back untranslated - is a way the output departs from the original.
-        """
-        total = len(translated)
-        done = sum(1 for s in translated if s.target)
-        flagged = sum(1 for s in translated if s.needs_review)
-        chars = sum(len(s.target or "") for s in translated)
-        elapsed = (time.monotonic() - self._started_at) if self._started_at else 0.0
-        return {
-            "segments_total": total,
-            "segments_done": done,
-            "segments_flagged": flagged,
-            "chars": chars,
-            "elapsed_s": elapsed,
-            "chars_per_second": (chars / elapsed) if elapsed > 0 else 0.0,
-            "clean_ratio": ((total - flagged) / total) if total else 0.0,
-        }
+        """Delegate to DocumentFinalizer.collect_stats."""
+        return self._make_finalizer(self._config).collect_stats(translated)
 
     def _fit_pdf_pass(
         self, doc: Document, segments: list[Segment], config: JobConfig, provider=None
     ) -> None:
-        """Run the shared two-directional PDF fitting pass (mirrors cli._fit_pdf).
-
-        The retranslate callback asks the real provider for a shorter/longer rendering within
-        a character budget; the write-back (text, scale, review flag) is shared pdf_pass code
-        so the GUI applies exactly what the CLI applies.
-        """
-        from layoutkeep.fitting import FitMode
-        from layoutkeep.fitting.pdf_pass import apply_scale, fit_pdf_pass
-
-        if provider is None:
-            provider, _memory = _build_provider(config)
-
-        def retranslate(segment: Segment, budget: int) -> str:
-            segment.max_len = budget
-            again = provider.translate(
-                [segment],
-                src_lang=config.source_lang,
-                tgt_lang=config.target_lang,
-            )
-            return again[0].target if again and again[0].target else segment.target
-
-        def on_fitted(seg: Segment, block, result) -> None:
-            # fit_segment is pure - it reports what would fit. Writing the result back is ours.
-            seg.target = result.text
-            if result.needs_review:
-                seg.needs_review = True
-                seg.review_reason = "çeviri kutuya sığmadı, küçültme yetmedi"
-                block.needs_review = True
-                block.review_reason = seg.review_reason
-            apply_scale(block, result.scale)
-
-        fit_pdf_pass(
-            doc,
-            segments,
-            retranslate=retranslate,
-            mode=FitMode.STRICT,
-            target_lang=config.target_lang,
-            on_fitted=on_fitted,
-        )
+        """Delegate to FitPassRunner: the fitting pass lives there now, not in this class."""
+        FitPassRunner(
+            config,
+            on_status=self.status.emit,
+            on_progress=self.progress.emit,
+            on_progress_detailed=self.progress_detailed.emit,
+            on_box_crushed=self._count_box_crushed,
+        ).run(doc, segments, provider=provider)

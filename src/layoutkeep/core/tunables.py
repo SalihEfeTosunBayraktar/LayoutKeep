@@ -44,291 +44,566 @@ class Tunable:
     minimum: float | None = None
     maximum: float | None = None
     help_text: str = ""
-    #: Shown next to advanced entries. Says what goes wrong, not merely "be careful".
+    #: Shown next to advanced entries. Says what goes wrong, not merely "be careful". One or two
+    #: sentences: a warning that runs to a paragraph stops being read.
     warning: str = ""
+    #: The measurement behind the warning - the numbers, the documents, the tool that produced them.
+    #: Shown under the warning in a muted style, so the evidence survives without the row becoming
+    #: an essay. `tests/test_tunables_groups.py` keeps a warning short by pointing long ones here.
+    evidence: str = ""
     #: Heading this entry sits under in the dialog. Entries sharing one are shown together;
     #: an empty group means "no heading", which is how the list read before there were enough
     #: entries to need any.
     group: str = ""
+    #: For a setting with a fixed set of values: (value, label) pairs, shown as a dropdown.
+    choices: tuple[tuple[str, str], ...] = ()
 
 
 TUNABLES: tuple[Tunable, ...] = (
     # -- basic -------------------------------------------------------------
     Tunable(
+        key="translation.memory",
+        label="TUNABLE_translation.memory_label",
+        default=True,
+        kind="bool",
+        group="TRANSLATION",
+        help_text="TUNABLE_translation.memory_help_text",
+        warning="TUNABLE_translation.memory_warning",
+    ),
+    Tunable(
+        key="translation.glossary_path",
+        label="TUNABLE_translation.glossary_path_label",
+        default="",
+        kind="str",
+        group="TRANSLATION",
+        help_text="TUNABLE_translation.glossary_path_help_text",
+    ),
+    Tunable(
+        key="translation.reuse_repeats",
+        group="TRANSLATION",
+        label="TUNABLE_translation.reuse_repeats_label",
+        default=True,
+        kind="bool",
+        help_text="TUNABLE_translation.reuse_repeats_help_text",
+    ),
+    Tunable(
+        key="translation.piecewise_max_pieces",
+        group="TRANSLATION",
+        label="TUNABLE_translation.piecewise_max_pieces_label",
+        default=12,
+        kind="int",
+        section=ADVANCED,
+        minimum=0,
+        maximum=40,
+        help_text="TUNABLE_translation.piecewise_max_pieces_help_text",
+        warning="TUNABLE_translation.piecewise_max_pieces_warning",
+    ),
+    Tunable(
+        key="passthrough.min_words",
+        label="TUNABLE_passthrough.min_words_label",
+        default=4,
+        kind="int",
+        section=ADVANCED,
+        group="TRANSLATION",
+        minimum=1,
+        maximum=50,
+        help_text="TUNABLE_passthrough.min_words_help_text",
+        warning="TUNABLE_passthrough.min_words_warning",
+    ),
+    Tunable(
+        key="translation.protect_romans",
+        label="TUNABLE_translation.protect_romans_label",
+        default=True,
+        kind="bool",
+        section=ADVANCED,
+        group="TRANSLATION",
+        help_text="TUNABLE_translation.protect_romans_help_text",
+        warning="TUNABLE_translation.protect_romans_warning",
+    ),
+
+    Tunable(
+        key="translation.context_max_chars",
+        label="TUNABLE_translation.context_max_chars_label",
+        default=400,
+        kind="int",
+        section=ADVANCED,
+        group="PROMPT",
+        minimum=0,
+        maximum=20000,
+        help_text="TUNABLE_translation.context_max_chars_help_text",
+        warning="TUNABLE_translation.context_max_chars_warning",
+    ),
+    Tunable(
+        key="provider.system_prompt_file",
+        label="TUNABLE_provider.system_prompt_file_label",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="PROMPT",
+        help_text="TUNABLE_provider.system_prompt_file_help_text",
+        warning="TUNABLE_provider.system_prompt_file_warning",
+    ),
+    Tunable(
+        key="provider.system_prompt_extra",
+        label="TUNABLE_provider.system_prompt_extra_label",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="PROMPT",
+        help_text="TUNABLE_provider.system_prompt_extra_help_text",
+        warning="TUNABLE_provider.system_prompt_extra_warning",
+    ),
+    Tunable(
+        key="translation.keyword_map_path",
+        label="TUNABLE_translation.keyword_map_path_label",
+        default="",
+        kind="str",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.keyword_map_path_help_text",
+        warning="TUNABLE_translation.keyword_map_path_warning",
+    ),
+    Tunable(
+        key="translation.keyword_map_auto",
+        label="TUNABLE_translation.keyword_map_auto_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.keyword_map_auto_help_text",
+        warning="TUNABLE_translation.keyword_map_auto_warning",
+    ),
+    Tunable(
+        key="translation.auto_glossary",
+        label="TUNABLE_translation.auto_glossary_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.auto_glossary_help_text",
+        warning="TUNABLE_translation.auto_glossary_warning",
+    ),
+    Tunable(
+        key="translation.preserve_references",
+        label="TUNABLE_translation.preserve_references_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.preserve_references_help_text",
+        warning="TUNABLE_translation.preserve_references_warning",
+    ),
+    Tunable(
+        key="translation.figure_text",
+        label="TUNABLE_translation.figure_text_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="PROMPT",
+        help_text="TUNABLE_translation.figure_text_help_text",
+        warning="TUNABLE_translation.figure_text_warning",
+    ),
+    Tunable(
+        key="translation.prefit_budget",
+        label="TUNABLE_translation.prefit_budget_label",
+        # "loose" since 0.9.12 (D-022): measured on the bench, both Turkish directions gained in
+        # consistency and layout with no loss of quality.
+        default="loose",
+        kind="str",
+        section=ADVANCED,
+        group="PROMPT",
+        choices=(
+            ("", "TUNABLE_translation.prefit_budget_choice_off"),
+            ("loose", "TUNABLE_translation.prefit_budget_choice_loose"),
+            ("strict", "TUNABLE_translation.prefit_budget_choice_strict"),
+        ),
+        help_text="TUNABLE_translation.prefit_budget_help_text",
+        warning="TUNABLE_translation.prefit_budget_warning",
+    ),
+    Tunable(
+        key="translation.document_preamble",
+        label="TUNABLE_translation.document_preamble_label",
+        default="",
+        kind="str",
+        section=BASIC,
+        group="PROMPT",
+        help_text="TUNABLE_translation.document_preamble_help_text",
+        warning="TUNABLE_translation.document_preamble_warning",
+    ),
+    Tunable(
+        key="translation.workers",
+        group="PROVIDER",
+        label="TUNABLE_translation.workers_label",
+        default=2,
+        kind="int",
+        minimum=1,
+        maximum=32,
+        help_text="TUNABLE_translation.workers_help_text",
+        warning="TUNABLE_translation.workers_warning",
+    ),
+    Tunable(
+        key="batch.adaptive_start_segments",
+        label="TUNABLE_batch.adaptive_start_segments_label",
+        default=1,
+        kind="int",
+        section=ADVANCED,
+        group="PROVIDER",
+        minimum=1,
+        maximum=20,
+        help_text="TUNABLE_batch.adaptive_start_segments_help_text",
+        warning="TUNABLE_batch.adaptive_start_segments_warning",
+        evidence="TUNABLE_batch.adaptive_start_segments_evidence",
+    ),
+    Tunable(
         key="batch.chunk_size",
-        label="Parti boyutu (iptal/duraklat aralığı)",
+        group="PROVIDER",
+        label="TUNABLE_batch.chunk_size_label",
         default=20,
         kind="int",
         minimum=1,
         maximum=200,
-        help_text=(
-            "Worker'ın sağlayıcıya bir seferde verdiği segment sayısı. İstek boyutu değildir - "
-            "sağlayıcı kendi istek boyutunu ayrıca uyarlar. Küçültmek iptal ve duraklatmayı "
-            "daha çabuk hissettirir, büyütmek istek sayısını azaltır."
-        ),
+        help_text="TUNABLE_batch.chunk_size_help_text",
     ),
     Tunable(
         key="timeout.first_batch_s",
-        label="İlk parti zaman aşımı (sn)",
+        group="PROVIDER",
+        label="TUNABLE_timeout.first_batch_s_label",
         default=240.0,
         kind="float",
         minimum=10.0,
         maximum=3600.0,
-        help_text=(
-            "Soğuk bir yerel model ilk yanıtı vermeden önce dakikalarca yüklenebilir. "
-            "Büyük modellerde bunu yükseltin."
-        ),
+        help_text="TUNABLE_timeout.first_batch_s_help_text",
     ),
     Tunable(
         key="timeout.warm_batch_s",
-        label="Sonraki parti zaman aşımı (sn)",
+        group="PROVIDER",
+        label="TUNABLE_timeout.warm_batch_s_label",
         default=15.0,
         kind="float",
         minimum=5.0,
         maximum=600.0,
-        help_text="Model yüklendikten sonraki partiler için taban süre; metin uzunluğuna göre artar.",
-    ),
-    Tunable(
-        key="preview.keep_segments",
-        label="Canlı önizlemede tutulan segment",
-        default=40,
-        kind="int",
-        minimum=5,
-        maximum=500,
-        help_text="İlerleme ekranındaki yan yana görünümde kaç segment saklanacağı.",
+        help_text="TUNABLE_timeout.warm_batch_s_help_text",
     ),
     Tunable(
         key="deepl.max_texts_per_request",
-        label="DeepL: istek başına metin",
+        group="PROVIDER",
+        label="TUNABLE_deepl.max_texts_per_request_label",
         default=40,
         kind="int",
         minimum=1,
         maximum=50,
-        help_text="DeepL istek başına en fazla 50 metin kabul eder.",
+        help_text="TUNABLE_deepl.max_texts_per_request_help_text",
     ),
     # -- advanced ----------------------------------------------------------
     Tunable(
         key="batch.adaptive_max_segments",
-        label="Uyarlanabilir parti tavanı",
+        label="TUNABLE_batch.adaptive_max_segments_label",
         default=20,
         kind="int",
         section=ADVANCED,
-        group="Parti ve istek",
+        group="PROVIDER",
         minimum=1,
         maximum=100,
-        help_text="Sağlayıcının tek istekte deneyebileceği en fazla segment sayısı.",
-        warning=(
-            "Ölçüldü: denenen modellerin hiçbiri tek JSON dizisinde 6 segmenti eksiksiz "
-            "döndüremedi. Sağlayıcı bozuk yanıtta küçülerek kendini toparlar, ama bu değeri "
-            "yükseltmek boşa giden istek demektir."
-        ),
-    ),
-    Tunable(
-        key="passthrough.min_words",
-        label="Geçirme tespiti: en az kelime",
-        default=4,
-        kind="int",
-        section=ADVANCED,
-        group="Çeviri denetimi",
-        minimum=1,
-        maximum=50,
-        help_text="Bu kadar veya daha uzun bir metin aynen geri gelirse çevrilmemiş sayılır.",
-        warning=(
-            "Düşürmek yanlış alarm üretir: başlıklar, isimler ve kodlar doğru olarak "
-            "kendileriyle aynı çevrilir. Yükseltmek gerçek geçirmeleri kaçırır."
-        ),
-    ),
-    Tunable(
-        key="fit.min_scale",
-        label="En küçük yazı tipi ölçeği",
-        default=0.85,
-        kind="float",
-        section=ADVANCED,
-        group="Sığdırma",
-        minimum=0.5,
-        maximum=1.0,
-        help_text="Çeviri kutuya sığmazsa yazı tipi bu orana kadar küçültülür.",
-        warning=(
-            "Çok düşürmek metni okunmaz hale getirir ve sığmayan bir çeviriyi sığmış gibi "
-            "gösterir - inceleme bayrağı kalkmaz, sorun görünmez olur."
-        ),
-    ),
-    Tunable(
-        key="ocr.needs_review_threshold",
-        label="OCR inceleme eşiği",
-        default=0.80,
-        kind="float",
-        section=ADVANCED,
-        group="OCR",
-        minimum=0.0,
-        maximum=1.0,
-        help_text="Bu güvenin altındaki OCR blokları incelenmek üzere işaretlenir.",
-        warning="Düşürmek şüpheli OCR metnini sessizce kabul eder.",
-    ),
-    Tunable(
-        key="table.cell_overlap_ratio",
-        label="Tablo: hücre örtüşme oranı",
-        default=0.35,
-        kind="float",
-        section=ADVANCED,
-        group="Tablo tanıma",
-        minimum=0.05,
-        maximum=0.95,
-        help_text=(
-            "Bir bloğun satırları yan yana mı duruyor yoksa alt alta mı? Yatay örtüşmeleri "
-            "dar olanın bu kesrinden azsa ayrı hücre sayılırlar."
-        ),
-        warning=(
-            "Ölçüldü: tablo başlık satırı PDF'ten tek blok olarak gelir. Yükseltmek satırı "
-            "yeniden tek hücreye çöktürür - çeviri ilk hücreye yazılır, kalanlar boş kalır. "
-            "Düşürmek sarmalanmış paragraf satırlarını hücre sanıp paragrafı böler."
-        ),
-    ),
-    Tunable(
-        key="table.row_overlap_ratio",
-        label="Tablo: satır örtüşme oranı",
-        default=0.6,
-        kind="float",
-        section=ADVANCED,
-        group="Tablo tanıma",
-        minimum=0.1,
-        maximum=1.0,
-        help_text="İki hücrenin aynı satırda sayılması için yüksekliklerinin örtüşmesi gereken kesir.",
-        warning=(
-            "Düşürmek 0.5 punto'luk örtüşmelerin satırları birbirine zincirlemesine yol açar: "
-            "iki ayrı tablo tek bir bandda birleşir ve ikisi de tanınmaz."
-        ),
-    ),
-    Tunable(
-        key="table.column_align_ratio",
-        label="Tablo: sütun hizalama payı",
-        default=1.2,
-        kind="float",
-        section=ADVANCED,
-        group="Tablo tanıma",
-        minimum=0.2,
-        maximum=5.0,
-        help_text=(
-            "İki hücrenin aynı sütunda sayılması için sol kenarları, satır yüksekliğinin bu "
-            "katı kadar yaklaşık olmalı."
-        ),
-        warning=(
-            "Yükseltmek ilgisiz blokları sütun sanıp paragrafları tablo gibi dondurur; "
-            "düşürmek gerçek tabloları kaçırır ve satırlar tekrar tek bloğa birleşir."
-        ),
-    ),
-    Tunable(
-        key="table.height_similarity",
-        label="Tablo: yükseklik benzerliği",
-        default=1.6,
-        kind="float",
-        section=ADVANCED,
-        group="Tablo tanıma",
-        minimum=1.0,
-        maximum=5.0,
-        help_text="Aynı satırdaki hücrelerin yükseklikleri en fazla bu katı kadar farklı olabilir.",
-        warning="Yükseltmek başlık ile gövde metnini aynı tablo satırında birleştirir.",
-    ),
-    Tunable(
-        key="merge.line_gap_ratio",
-        label="Satır birleştirme: boşluk oranı",
-        default=0.6,
-        kind="float",
-        section=ADVANCED,
-        group="Satır ve paragraf birleştirme",
-        minimum=0.0,
-        maximum=3.0,
-        help_text=(
-            "İki blok, aralarındaki boşluk punto boyutunun bu katından küçükse aynı "
-            "paragrafın ardışık satırları sayılır."
-        ),
-        warning=(
-            "Düşürmek çok satırlı bir başlığı satır satır çevirtir - her satır kendi cümlesi "
-            "sanılır ve dilbilgisi bozulur. Yükseltmek ayrı paragrafları birbirine yapıştırır."
-        ),
-    ),
-    Tunable(
-        key="merge.line_height_ratio",
-        label="Satır birleştirme: satır yüksekliği katsayısı",
-        default=1.2,
-        kind="float",
-        section=ADVANCED,
-        group="Satır ve paragraf birleştirme",
-        minimum=0.8,
-        maximum=2.5,
-        help_text=(
-            "Döndürülmüş bir satırın merkezinden kenarlarına gitmek için punto boyutunun "
-            "çarpıldığı katsayı. Yazıcının satırları geri istiflerken varsaydığı değerle aynı."
-        ),
-        warning="Değiştirmek yalnızca döndürülmüş metni etkiler; yatay metin bundan etkilenmez.",
-    ),
-    Tunable(
-        key="merge.rotation_eps_deg",
-        label="Aynı açı toleransı (derece)",
-        default=0.5,
-        kind="float",
-        section=ADVANCED,
-        group="Satır ve paragraf birleştirme",
-        minimum=0.0,
-        maximum=10.0,
-        help_text=(
-            "Bu farktan az açı farkı olan bloklar aynı açıda kabul edilir; daha fazlası "
-            "\"farklı açı, aynı paragraf değil\" demektir."
-        ),
-        warning=(
-            "Yükseltmek yelpaze gibi dizilmiş ayrı etiketleri tek paragrafa toplar."
-        ),
-    ),
-    Tunable(
-        key="write.box_slack_pt",
-        label="Kutuya verilen pay (punto)",
-        default=3.0,
-        kind="float",
-        section=ADVANCED,
-        group="Yazma",
-        minimum=0.0,
-        maximum=12.0,
-        help_text=(
-            "Okuyucunun ölçtüğü kutu gliflere tam oturur; PDF'e yazan motor ise kendi iç "
-            "boşluğu için biraz daha yer ister. Metin kutusuna sığmadığında sağına ve altına "
-            "bu kadar punto eklenip bir kez daha denenir."
-        ),
-        warning=(
-            "Ölçüldü: 6 punto'luk bir grafik ekseni etiketi bu pay olmadan 4.4 punto'ya kadar "
-            "küçülüyordu - hiç çevrilmemiş sayılar bile. Sıfırlamak o küçülmeyi geri getirir; "
-            "çok yükseltmek bir bloğun komşusunun üzerine taşmasına yol açabilir."
-        ),
-    ),
-    Tunable(
-        key="redact.coverage_ratio",
-        label="Silme kapsama oranı",
-        default=0.6,
-        kind="float",
-        section=ADVANCED,
-        group="Kaynak metni silme",
-        minimum=0.1,
-        maximum=1.0,
-        help_text=(
-            "Döndürülmüş bir satırın altında bulunan parçalar, satırın kendi kutusunun bu "
-            "kesrini kaplamıyorsa satır yeniden aranır."
-        ),
-        warning=(
-            "Ölçüldü: eşleşemeyen bir karakter (sembol fontundan gelen kesme işareti gibi) "
-            "satırı parçalara böler. Düşürmek kaynak metnin çevirinin altında görünür "
-            "kalmasına yol açar - ikisi üst üste okunur."
-        ),
+        help_text="TUNABLE_batch.adaptive_max_segments_help_text",
+        warning="TUNABLE_batch.adaptive_max_segments_warning",
     ),
     Tunable(
         key="http.max_retry_after_s",
-        label="Retry-After üst sınırı (sn)",
+        label="TUNABLE_http.max_retry_after_s_label",
         default=60.0,
         kind="float",
         section=ADVANCED,
-        group="Ağ",
+        group="PROVIDER",
         minimum=1.0,
         maximum=600.0,
-        help_text="Sunucu 'şu kadar bekle' derse en fazla bu kadar beklenir.",
-        warning="Yükseltmek uygulamayı donmuş gibi gösterebilir.",
+        help_text="TUNABLE_http.max_retry_after_s_help_text",
+        warning="TUNABLE_http.max_retry_after_s_warning",
+    ),
+    # -- ek test araçları ---------------------------------------------------
+    # Kurulum ekranından buraya taşındı: her çeviride karşılaştırma sayfası üretmek isteyen
+    # kullanıcı sayısı az, ama seçenek orada durup asıl kararları kalabalıklaştırıyordu.
+    Tunable(
+        key="reader.scan_text_density",
+        label="TUNABLE_reader.scan_text_density_label",
+        default=1.0,
+        kind="float",
+        section=ADVANCED,
+        group="READING",
+        minimum=0.0,
+        maximum=50.0,
+        help_text="TUNABLE_reader.scan_text_density_help_text",
+        warning="TUNABLE_reader.scan_text_density_warning",
+    ),
+    Tunable(
+        key="reader.scan_image_coverage",
+        label="TUNABLE_reader.scan_image_coverage_label",
+        default=0.05,
+        kind="float",
+        section=ADVANCED,
+        group="READING",
+        minimum=0.0,
+        maximum=1.0,
+        help_text="TUNABLE_reader.scan_image_coverage_help_text",
+        warning="TUNABLE_reader.scan_image_coverage_warning",
+    ),
+    Tunable(
+        key="reader.scan_image_coverage_layer",
+        label="TUNABLE_reader.scan_image_coverage_layer_label",
+        default=0.5,
+        kind="float",
+        section=ADVANCED,
+        group="READING",
+        minimum=0.0,
+        maximum=1.0,
+        help_text="TUNABLE_reader.scan_image_coverage_layer_help_text",
+        warning="TUNABLE_reader.scan_image_coverage_layer_warning",
+    ),
+    Tunable(
+        key="ocr.needs_review_threshold",
+        label="TUNABLE_ocr.needs_review_threshold_label",
+        default=0.80,
+        kind="float",
+        section=ADVANCED,
+        group="READING",
+        minimum=0.0,
+        maximum=1.0,
+        help_text="TUNABLE_ocr.needs_review_threshold_help_text",
+        warning="TUNABLE_ocr.needs_review_threshold_warning",
+    ),
+    Tunable(
+        key="table.cell_overlap_ratio",
+        label="TUNABLE_table.cell_overlap_ratio_label",
+        default=0.35,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.05,
+        maximum=0.95,
+        help_text="TUNABLE_table.cell_overlap_ratio_help_text",
+        warning="TUNABLE_table.cell_overlap_ratio_warning",
+    ),
+    Tunable(
+        key="table.row_overlap_ratio",
+        label="TUNABLE_table.row_overlap_ratio_label",
+        default=0.6,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.1,
+        maximum=1.0,
+        help_text="TUNABLE_table.row_overlap_ratio_help_text",
+        warning="TUNABLE_table.row_overlap_ratio_warning",
+    ),
+    Tunable(
+        key="table.column_align_ratio",
+        label="TUNABLE_table.column_align_ratio_label",
+        default=1.2,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.2,
+        maximum=5.0,
+        help_text="TUNABLE_table.column_align_ratio_help_text",
+        warning="TUNABLE_table.column_align_ratio_warning",
+    ),
+    Tunable(
+        key="table.height_similarity",
+        label="TUNABLE_table.height_similarity_label",
+        default=1.6,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=1.0,
+        maximum=5.0,
+        help_text="TUNABLE_table.height_similarity_help_text",
+        warning="TUNABLE_table.height_similarity_warning",
+    ),
+    Tunable(
+        key="merge.line_gap_ratio",
+        label="TUNABLE_merge.line_gap_ratio_label",
+        default=0.6,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.0,
+        maximum=3.0,
+        help_text="TUNABLE_merge.line_gap_ratio_help_text",
+        warning="TUNABLE_merge.line_gap_ratio_warning",
+    ),
+    Tunable(
+        key="merge.line_height_ratio",
+        label="TUNABLE_merge.line_height_ratio_label",
+        default=1.2,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.8,
+        maximum=2.5,
+        help_text="TUNABLE_merge.line_height_ratio_help_text",
+        warning="TUNABLE_merge.line_height_ratio_warning",
+    ),
+    Tunable(
+        key="merge.rotation_eps_deg",
+        label="TUNABLE_merge.rotation_eps_deg_label",
+        default=0.5,
+        kind="float",
+        section=ADVANCED,
+        group="TABLES",
+        minimum=0.0,
+        maximum=10.0,
+        help_text="TUNABLE_merge.rotation_eps_deg_help_text",
+        warning="TUNABLE_merge.rotation_eps_deg_warning",
+    ),
+    Tunable(
+        key="fit.shorten_below_scale",
+        label="TUNABLE_fit.shorten_below_scale_label",
+        default=0.95,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.0,
+        maximum=1.0,
+        help_text="TUNABLE_fit.shorten_below_scale_help_text",
+        warning="TUNABLE_fit.shorten_below_scale_warning",
+    ),
+
+    Tunable(
+        key="fitting.reflow",
+        label="TUNABLE_fitting.reflow_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="FITTING",
+        help_text="TUNABLE_fitting.reflow_help_text",
+        warning="TUNABLE_fitting.reflow_warning",
+        evidence="TUNABLE_fitting.reflow_evidence",
+    ),
+    Tunable(
+        key="fit.min_scale",
+        label="TUNABLE_fit.min_scale_label",
+        default=0.85,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.5,
+        maximum=1.0,
+        help_text="TUNABLE_fit.min_scale_help_text",
+        warning="TUNABLE_fit.min_scale_warning",
+    ),
+    Tunable(
+        key="writer.inline_span_sizes",
+        label="TUNABLE_writer.inline_span_sizes_label",
+        default=True,
+        kind="bool",
+        section=ADVANCED,
+        group="FITTING",
+        help_text="TUNABLE_writer.inline_span_sizes_help_text",
+        warning="TUNABLE_writer.inline_span_sizes_warning",
+        evidence="TUNABLE_writer.inline_span_sizes_evidence",
+    ),
+    Tunable(
+        key="fitting.batched_requests",
+        label="TUNABLE_fitting.batched_requests_label",
+        default=True,
+        kind="bool",
+        section=ADVANCED,
+        group="FITTING",
+        help_text="TUNABLE_fitting.batched_requests_help_text",
+        warning="TUNABLE_fitting.batched_requests_warning",
+    ),
+    Tunable(
+        key="write.grant_room_pt",
+        label="TUNABLE_write.grant_room_pt_label",
+        default=24.0,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.0,
+        maximum=120.0,
+        help_text="TUNABLE_write.grant_room_pt_help_text",
+        warning="TUNABLE_write.grant_room_pt_warning",
+    ),
+
+    Tunable(
+        key="write.grant_room_right_pt",
+        label="TUNABLE_write.grant_room_right_pt_label",
+        default=60.0,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.0,
+        maximum=400.0,
+        help_text="TUNABLE_write.grant_room_right_pt_help_text",
+        evidence="TUNABLE_write.grant_room_right_pt_evidence",
+        warning="TUNABLE_write.grant_room_right_pt_warning",
+    ),
+
+    Tunable(
+        key="write.box_slack_pt",
+        label="TUNABLE_write.box_slack_pt_label",
+        default=3.0,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.0,
+        maximum=12.0,
+        help_text="TUNABLE_write.box_slack_pt_help_text",
+        warning="TUNABLE_write.box_slack_pt_warning",
+    ),
+    Tunable(
+        key="redact.coverage_ratio",
+        label="TUNABLE_redact.coverage_ratio_label",
+        default=0.6,
+        kind="float",
+        section=ADVANCED,
+        group="FITTING",
+        minimum=0.1,
+        maximum=1.0,
+        help_text="TUNABLE_redact.coverage_ratio_help_text",
+        warning="TUNABLE_redact.coverage_ratio_warning",
+    ),
+    Tunable(
+        key="ui.floating_progress",
+        label="TUNABLE_ui.floating_progress_label",
+        default=True,
+        kind="bool",
+        group="INTERFACE",
+        help_text="TUNABLE_ui.floating_progress_help_text",
+    ),
+    Tunable(
+        key="preview.keep_segments",
+        group="INTERFACE",
+        label="TUNABLE_preview.keep_segments_label",
+        default=40,
+        kind="int",
+        minimum=5,
+        maximum=500,
+        help_text="TUNABLE_preview.keep_segments_help_text",
+    ),
+    Tunable(
+        key="output.dual_mode",
+        label="TUNABLE_output.dual_mode_label",
+        default="",
+        kind="str",
+        section=ADVANCED,
+        group="TEST_TOOLS",
+        choices=(
+            ("", "TUNABLE_output.dual_mode_choice_off"),
+            ("side", "Yan yana (kaynak solda)"),
+            ("alternate", "TUNABLE_output.dual_mode_choice_alternate"),
+        ),
+        help_text="TUNABLE_output.dual_mode_help_text",
+        warning="TUNABLE_output.dual_mode_warning",
+    ),
+    Tunable(
+        key="output.timing_report",
+        label="TUNABLE_output.timing_report_label",
+        default=False,
+        kind="bool",
+        section=ADVANCED,
+        group="TEST_TOOLS",
+        help_text="TUNABLE_output.timing_report_help_text",
+        warning="TUNABLE_output.timing_report_warning",
     ),
 )
 
@@ -362,6 +637,10 @@ def get(key: str) -> Any:
 def _coerce(spec: Tunable, value: Any) -> Any:
     if spec.kind == "bool":
         return bool(value)
+    if spec.kind == "str":
+        # A path is stored as typed (trimmed), never parsed as a number: the settings dialog
+        # writes every editor's value through here, and an empty path means "no glossary".
+        return str(value or "").strip()
     number = float(value)
     if spec.minimum is not None:
         number = max(spec.minimum, number)

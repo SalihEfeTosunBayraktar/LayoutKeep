@@ -15,9 +15,8 @@ identical translation is implausible is flagged.
 
 from __future__ import annotations
 
-import re
-
-from layoutkeep.core import tunables
+from layoutkeep.core import copies, tunables
+from layoutkeep.core.copies import is_copy
 from layoutkeep.core.docir import Segment
 from layoutkeep.core.protect import is_data_only
 
@@ -27,8 +26,20 @@ from layoutkeep.core.protect import is_data_only
 MIN_WORDS = 4
 
 
-def _normalised(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().casefold()
+def is_identical(segment: Segment) -> bool:
+    """The reply is the source, whatever its length (markers ignored). `is_passthrough` adds the
+    length floor that decides what is worth FLAGGING; retrying needs no floor, because asking
+    again is cheap and a name that really translates to itself just comes back the same."""
+    if not segment.target or is_data_only(segment.source):
+        return False
+    return copies.is_identical(segment.source, segment.target)
+
+
+def is_copy_of_source(segment: Segment) -> bool:
+    """The reply is the source, verbatim or lightly edited (see `core.copies.is_copy`)."""
+    if not segment.target or is_data_only(segment.source):
+        return False
+    return is_copy(segment.source, segment.target)
 
 
 def is_passthrough(segment: Segment) -> bool:
@@ -36,7 +47,7 @@ def is_passthrough(segment: Segment) -> bool:
         return False
     if len(segment.source.split()) < tunables.get("passthrough.min_words"):
         return False
-    return _normalised(segment.target) == _normalised(segment.source)
+    return copies.is_identical(segment.source, segment.target)
 
 
 def flag_passthrough(segments: list[Segment]) -> int:
@@ -45,6 +56,31 @@ def flag_passthrough(segments: list[Segment]) -> int:
     for segment in segments:
         if is_passthrough(segment):
             segment.needs_review = True
-            segment.review_reason = "model metni çevirmeden aynen geri verdi"
+            segment.review_reason = "REVIEW_PASSTHROUGH"
             found += 1
+    return found
+
+
+def flag_untranslated(segments: list[Segment]) -> int:
+    """Mark every segment whose reply never arrived. Returns how many.
+
+    The other half of `flag_passthrough`, and the one that actually bit: a segment with no
+    `target` is not written as an empty box, it keeps the block's existing source text, so the
+    output document silently contains a paragraph in the wrong language. On six real pages of
+    `computer-systems-Architecture.pdf` seventeen segments came back this way and the only sign
+    was the count `193/210`.
+
+    Data-only segments are excluded for the same reason `is_passthrough` excludes them:
+    protection answers those without a request by design, so an unchanged target there is
+    correct and flagging it would bury the genuine losses.
+    """
+    found = 0
+    for segment in segments:
+        if segment.target or is_data_only(segment.source):
+            continue
+        found += 1
+        segment.needs_review = True
+        # Whatever flagged this first (low OCR confidence, a lost marker) knows more about why.
+        if not segment.review_reason:
+            segment.review_reason = "REVIEW_PASSTHROUGH_SOURCE"
     return found

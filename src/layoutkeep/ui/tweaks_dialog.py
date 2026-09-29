@@ -9,21 +9,26 @@ goes wrong, not merely that care is needed. Those are the settings where a bad v
 quietly worse output instead of an obvious error - a font scale low enough to make text
 unreadable still "fits", and a passthrough threshold set too high hides exactly the failure it
 exists to catch.
+
+Satırlar ve sayfalar `tweaks_editors` modülünde kurulur; bu dosya diyalogun kendisini ve
+uygula / sıfırla / hazır ayar akışını tutar.
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from typing import Any
+
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
-    QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
-    QScrollArea,
-    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
@@ -31,42 +36,54 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.core import tunables
-from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.theme import ThemeManager
-
-#: Width the label column is fixed to, for the same reason.
-_LABEL_WIDTH = 210
-
-#: Width the value column is fixed to. Word-wrapped help and warning text needs a known
-#: width before it can report the height it will occupy.
-_FIELD_WIDTH = 300
+from layoutkeep.ui.tweaks_editors import TEXT_WIDTH, build_section_page
 
 
-def _editor_for(spec: tunables.Tunable) -> QSpinBox | QDoubleSpinBox:
-    # Türüne uygun düzenleyici üretir / Builds the editor matching the tunable's type
-    if spec.kind == "int":
-        box: QSpinBox | QDoubleSpinBox = QSpinBox()
-        box.setRange(int(spec.minimum or 0), int(spec.maximum or 10_000))
-    else:
-        box = QDoubleSpinBox()
-        box.setDecimals(2)
-        box.setSingleStep(0.05)
-        box.setRange(float(spec.minimum or 0.0), float(spec.maximum or 10_000.0))
-    box.setValue(tunables.get(spec.key))
-    return box
+def _editor_value(editor: QWidget) -> Any:
+    """The editor's current value, whichever kind of editor it is."""
+    if isinstance(editor, QComboBox):
+        return editor.currentData()
+    if isinstance(editor, QCheckBox):
+        return editor.isChecked()
+    if isinstance(editor, QLineEdit):
+        return editor.text().strip()
+    if isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+        return editor.value()
+    return None
+
+
+def _set_editor_value(editor: QWidget, value: Any) -> None:
+    """Put a value back into an editor of any kind (used by Reset)."""
+    if isinstance(editor, QComboBox):
+        index = editor.findData(str(value or ""))
+        editor.setCurrentIndex(index if index >= 0 else 0)
+    elif isinstance(editor, QCheckBox):
+        editor.setChecked(bool(value))
+    elif isinstance(editor, QLineEdit):
+        editor.setText(str(value or ""))
+    elif isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+        editor.setValue(float(value) if isinstance(editor, QDoubleSpinBox) else int(value))
 
 
 class TweaksDialog(QDialog):
+    #: "Show the welcome screen": it is dismissed for good on a first run.
+    welcome_requested = Signal()
     """Edits tunables. `applied` fires whenever values change, so the app can refresh."""
 
     applied = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, document_path: str = "") -> None:
         super().__init__(parent)
         self.setWindowTitle(UIStrings.TWEAKS_TITLE)
         self.setMinimumWidth(620)
-        self._editors: dict[str, QSpinBox | QDoubleSpinBox] = {}
+        # Without this the dialog opens as wide as its longest unwrapped text - the profile hint and
+        # the advanced banner ran to 1300px on a 1366px screen, which is wider than the app itself.
+        self.resize(760, 620)
+        self._editors: dict[str, QWidget] = {}
+        # The job's input, so the glossary editor can offer terms the document repeats. Empty when
+        # the dialog is opened outside a job - the suggestion button stays off.
+        self._document_path = document_path
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -82,120 +99,88 @@ class TweaksDialog(QDialog):
 
         self._reset_btn = QPushButton(UIStrings.TWEAKS_RESET)
         self._reset_btn.clicked.connect(self._reset_all)
+        # The welcome screen is dismissed for good on a first run, so this is the way back to it.
+        self._welcome_btn = QPushButton(UIStrings.WELCOME_SHOW)
+        self._welcome_btn.clicked.connect(self.welcome_requested.emit)
 
         bottom = QHBoxLayout()
         bottom.addWidget(self._reset_btn)
+        bottom.addWidget(self._welcome_btn)
         bottom.addStretch()
         bottom.addWidget(buttons)
 
         self._footer = QLabel(UIStrings.TWEAKS_FOOTER)
         self._footer.setProperty("class", "muted")
         self._footer.setWordWrap(True)
+        self._footer.setFixedWidth(TEXT_WIDTH)
+        self._footer.setMinimumHeight(self._footer.heightForWidth(TEXT_WIDTH))
+
+        # Hazır ayar: birkaç değeri birlikte değiştiren tek seçim. Değerler yine aynı doğrulanmış
+        # yoldan yazılır, yani sonrasında tek tek düzenlenebilir ve dialogda görünür.
+        self._profile = QComboBox()
+        self._profile.addItem(UIStrings.PROFILE_CUSTOM, "")
+        self._profile.addItem(UIStrings.PROFILE_DRAFT, "draft")
+        self._profile.addItem(UIStrings.PROFILE_QUALITY, "quality")
+        self._profile.setToolTip(UIStrings.PROFILE_HINT)
+        self._sync_profile()
+        self._profile.currentIndexChanged.connect(self._on_profile_changed)
+
+        hint = QLabel(UIStrings.PROFILE_HINT)
+        hint.setProperty("class", "muted")
+        hint.setWordWrap(True)
+        hint.setFixedWidth(TEXT_WIDTH)
+        hint.setMinimumHeight(hint.heightForWidth(TEXT_WIDTH))
+
+        profile_row = QHBoxLayout()
+        profile_row.addWidget(QLabel(UIStrings.PROFILE_LABEL))
+        profile_row.addWidget(self._profile)
+        profile_row.addWidget(hint, 1)
 
         layout = QVBoxLayout(self)
+        layout.addLayout(profile_row)
         layout.addWidget(tabs)
         layout.addWidget(self._footer)
         layout.addLayout(bottom)
 
     def _build_section(self, section: str) -> QWidget:
-        page = QWidget()
-        page.setObjectName("scrollPage")
-        form = QFormLayout(page)
-        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-
-        if section == tunables.ADVANCED:
-            banner = QLabel(UIStrings.TWEAKS_ADVANCED_BANNER)
-            banner.setWordWrap(True)
-            banner.setStyleSheet(
-                f"color: {ThemeManager.current_palette().warning}; font-weight: 600;"
-            )
-            form.addRow(banner)
-
-        current_group = ""
-        for spec in tunables.definitions(section):
-            if spec.group and spec.group != current_group:
-                # Thirteen entries in one flat list read as a wall. The headings come from the
-                # registry rather than being spelled out here, so a new tunable lands under the
-                # right one by naming its key.
-                current_group = spec.group
-                heading = QLabel(spec.group)
-                heading.setStyleSheet("font-weight: 700; margin-top: 10px;")
-                form.addRow(heading)
-            editor = _editor_for(spec)
-            self._editors[spec.key] = editor
-
-            caption = QLabel(spec.help_text)
-            caption.setProperty("class", "muted")
-            caption.setWordWrap(True)
-
-            cell = QVBoxLayout()
-            cell.setSpacing(4)
-            cell.setContentsMargins(0, 0, 0, 8)
-            cell.addWidget(editor)
-            cell.addWidget(caption)
-            if spec.warning:
-                warn = QLabel(spec.warning)
-                warn.setWordWrap(True)
-                warn.setStyleSheet(f"color: {ThemeManager.current_palette().warning};")
-                # The mark is drawn from the icon set rather than typed as a character: a font
-                # glyph renders differently on every machine, and as an empty box where the
-                # font has none.
-                warn_icon = QLabel()
-                warn_icon.setPixmap(
-                    get_svg_icon(
-                        "alert-triangle",
-                        color=ThemeManager.current_palette().warning,
-                        size=14,
-                    ).pixmap(14, 14)
-                )
-                warn_icon.setAlignment(Qt.AlignmentFlag.AlignTop)
-                warn_row = QHBoxLayout()
-                warn_row.setSpacing(6)
-                warn_row.addWidget(warn_icon, 0, Qt.AlignmentFlag.AlignTop)
-                warn_row.addWidget(warn, 1)
-                cell.addLayout(warn_row)
-
-            holder = QWidget()
-            holder.setLayout(cell)
-            # A word-wrapped QLabel reports its height for a given width, and a layout that
-            # never fixes a width gets the wrong answer: the rows came out too short and the
-            # warnings - the entire reason this tab is separated - were clipped and overlapped
-            # the next row. Fixing the width lets heightForWidth resolve.
-            holder.setMinimumWidth(_FIELD_WIDTH)
-            holder.setSizePolicy(
-                QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
-            )
-            caption.setFixedWidth(_FIELD_WIDTH)
-            caption.setMinimumHeight(caption.heightForWidth(_FIELD_WIDTH))
-            if spec.warning:
-                # The icon takes 14px plus the row spacing out of the field width.
-                text_width = _FIELD_WIDTH - 20
-                warn.setFixedWidth(text_width)
-                warn.setMinimumHeight(warn.heightForWidth(text_width))
-
-            row_label = QLabel(spec.label)
-            row_label.setWordWrap(True)
-            # Its own width, or the field column squeezes it until the wrapped lines of one
-            # label run into the next one.
-            row_label.setFixedWidth(_LABEL_WIDTH)
-            row_label.setMinimumHeight(row_label.heightForWidth(_LABEL_WIDTH))
-            row_label.setAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
-            )
-            form.addRow(row_label, holder)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(page)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        return scroll
+        # Satırlar ve katlanan gruplar `tweaks_editors`'te kurulur / Rows and groups are built there
+        return build_section_page(section, self._editors, self._document_path)
 
     # -- actions -----------------------------------------------------------
     def apply_values(self) -> None:
         """Store every editor's value and persist. Out-of-range values are clamped."""
         for key, editor in self._editors.items():
-            tunables.set_value(key, editor.value())
+            value = _editor_value(editor)
+            if value is not None:
+                tunables.set_value(key, value)
         tunables.save()
+        self.applied.emit()
+
+    def _sync_profile(self) -> None:
+        """Point the combo at the profile the settings currently match (or "custom")."""
+        from layoutkeep.core import profiles
+
+        matched = profiles.current() or ""
+        index = self._profile.findData(matched)
+        self._profile.blockSignals(True)
+        self._profile.setCurrentIndex(index if index >= 0 else 0)
+        self._profile.blockSignals(False)
+
+    def _on_profile_changed(self, _index: int) -> None:
+        from layoutkeep.core import profiles
+
+        chosen = self._profile.currentData() or ""
+        if not chosen:
+            return
+        try:
+            profiles.apply(chosen)
+        except ValueError as error:
+            self._footer.setText(str(error))
+            return
+        # The widgets show the values the dialog will save: a profile that moved them behind the
+        # dialog's back would be overwritten by the next OK press.
+        for key, editor in self._editors.items():
+            _set_editor_value(editor, tunables.get(key))
         self.applied.emit()
 
     def _apply_and_close(self) -> None:
@@ -206,5 +191,5 @@ class TweaksDialog(QDialog):
         tunables.reset_all()
         tunables.save()
         for key, editor in self._editors.items():
-            editor.setValue(tunables.get(key))
+            _set_editor_value(editor, tunables.get(key))
         self.applied.emit()

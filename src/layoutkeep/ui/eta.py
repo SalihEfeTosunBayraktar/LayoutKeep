@@ -8,6 +8,8 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
+from layoutkeep.ui.strings import UIStrings
+
 
 @dataclass(slots=True)
 class EtaSnapshot:
@@ -178,23 +180,27 @@ class EtaCalculator:
 
     @staticmethod
     def format_remaining(seconds: float | None) -> str:
-        # Kalan süreyi formatlar / Formats remaining time into friendly Turkish
+        # Kalan süreyi biçimlendirir; sözcükler arayüz dilinden gelir / Formats remaining time,
+        # with the wording read from the interface language rather than hard-coded: an English
+        # window was showing "Hesaplanıyor…" because these strings never went through UIStrings.
         if seconds is None:
-            return "Hesaplanıyor…"
+            return UIStrings.get("ETA_CALCULATING")
         s = round(seconds)
         if s <= 5:
-            return "Tamamlanmak üzere"
+            return UIStrings.get("ETA_ALMOST")
         if s < 60:
-            return f"~{s} sn kaldı"
+            return UIStrings.get("ETA_SECONDS").format(s=s)
         mins, rem_secs = divmod(s, 60)
         if mins < 60:
-            return f"~{mins} dk {rem_secs} sn" if rem_secs > 0 else f"~{mins} dk"
+            key = "ETA_MINUTES" if rem_secs > 0 else "ETA_MINUTES_ONLY"
+            return UIStrings.get(key).format(m=mins, s=rem_secs)
         hrs, rem_mins = divmod(mins, 60)
-        return f"~{hrs} sa {rem_mins} dk" if rem_mins > 0 else f"~{hrs} sa"
+        key = "ETA_HOURS" if rem_mins > 0 else "ETA_HOURS_ONLY"
+        return UIStrings.get(key).format(h=hrs, m=rem_mins)
 
     @staticmethod
     def format_speed(chars_per_sec: float | None) -> str:
-        # Çeviri hızını formatlar / Formats translation throughput
+        # Çeviri hızını biçimlendirir / Formats translation throughput
         if chars_per_sec is None or chars_per_sec <= 0:
-            return "Ölçülüyor…"
-        return f"~{chars_per_sec:.1f} kar/sn"
+            return UIStrings.get("ETA_MEASURING")
+        return UIStrings.get("ETA_SPEED").format(v=f"{chars_per_sec:.1f}")

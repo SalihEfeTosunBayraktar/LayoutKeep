@@ -284,6 +284,9 @@ def generate_docx_from_docir(doc: Document, out_path: str | Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        # Ne çevrildi, neyle kaydı (core/provenance.py) buraya YAZILMAZ: bu yazıcı yeni bir paket
+        # kurar ve core.xml'in de eklenmesi [Content_Types].xml ile .rels düzenlemesi gerektirir.
+        # Kayıt .lkproj'dadır; kaynak DOCX ise docx_writer onu core.xml'e yazar.
         zf.writestr("[Content_Types].xml", _content_types_xml(images).strip())
         zf.writestr("_rels/.rels", _ROOT_RELS.strip())
         zf.writestr("word/document.xml", doc_xml.strip())

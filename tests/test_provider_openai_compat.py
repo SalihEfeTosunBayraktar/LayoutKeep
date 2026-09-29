@@ -165,13 +165,18 @@ def test_build_messages_marks_context_as_not_to_translate():
 
 
 def test_build_messages_includes_glossary_terms():
-    messages = _build_messages(_segments(), "en", "fr", glossary={"widget": "gadget"})
+    # A term is sent only when the batch contains it (test_provider_glossary_prompt.py).
+    segments = [Segment(block_id="w", source="Attach the widget to the frame.")]
+    messages = _build_messages(segments, "en", "fr", glossary={"widget": "gadget"})
     system_text = messages[0]["content"]
     assert "widget -> gadget" in system_text
 
 
 def test_parse_reply_rejects_non_list_json():
-    assert _parse_reply(json.dumps({"id": "b1", "text": "x"})) is None
+    # A single {id, text} item is read as a list of one (see the held-out test below); JSON that is
+    # neither a list nor an item is still not a reply.
+    assert _parse_reply(json.dumps({"result": "x"})) is None
+    assert _parse_reply(json.dumps("x")) is None
 
 
 def test_parse_reply_rejects_items_missing_fields():
@@ -438,3 +443,143 @@ def test_parse_chat_response_handles_missing_choices():
     with pytest.raises(RuntimeError, match="Yapay zeka yanıtı 'choices' içermiyor"):
         provider._parse_chat_response({"detail": "service unavailable"})
 
+
+
+def test_a_field_name_tag_the_model_appended_is_removed() -> None:
+    """Book page 251, round 5: a paragraph ended in "...sunmaktadir.</text" on the page. The
+    reply format is a JSON array of {"id", "text"}, and the model sometimes closes the text value
+    with a tag named after the field. No source contains it; the inline markers <0>...</0> are
+    digits and are not touched."""
+    from layoutkeep.providers.openai_compat import _parse_reply
+
+    reply = (
+        '[{"id": "a", "text": "Son bolum RISC kavramini sunmaktadir.</text"},'
+        ' {"id": "b", "text": "<text>Bir <0>kalin</0> kelime</text>"}]'
+    )
+    parsed = _parse_reply(reply)
+    assert parsed == {"a": "Son bolum RISC kavramini sunmaktadir.", "b": "Bir <0>kalin</0> kelime"}
+
+
+def test_html_line_breaks_the_model_invents_are_removed() -> None:
+    """NIST campaign run, page 34: "<br/>" drawn on the page. A document's text reaches the model
+    as plain text; an HTML tag in the reply is the model's formatting, not the source's."""
+    from layoutkeep.providers.openai_compat import _parse_reply
+
+    parsed = _parse_reply('[{"id": "a", "text": "Birinci satir<br/>ikinci <b>satir</b> <0>kalin</0>"}]')
+    assert parsed == {"a": "Birinci satir ikinci satir <0>kalin</0>"}
+
+
+def test_a_tag_the_source_does_not_have_is_removed_whatever_its_name() -> None:
+    """Electricity in Agriculture: "</vagon>" (Turkish for "wagon") drawn on the page. A model
+    that invents tags names them after anything; only a tag the source itself contains is kept."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _apply_result
+
+    seg = Segment(block_id="a", source="The <0>truck</0> is a covered wagon.")
+    out = _apply_result(seg, "<0>Kamyon</0> kapali bir <vagon>vagondur</vagon>.")
+    assert out.target == "<0>Kamyon</0> kapali bir vagondur."
+
+
+def test_a_leading_list_number_the_model_dropped_is_put_back() -> None:
+    """Think Python exercise "3. The wordlist I provided, words.txt, ..." came back without "3."
+    through three repair rounds. A list number is the list's structure, not text to translate; if
+    the source starts with one and the reply does not, it goes back in front."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _apply_result
+
+    src = "3. The wordlist I provided, words.txt, doesn't contain single letter words."
+    out = _apply_result(Segment(block_id="e", source=src), "Sagladigim kelime listesi, words.txt, tek harfli kelimeler icermiyor.")
+    assert out.target.startswith("3. Sagladigim")
+    kept = _apply_result(Segment(block_id="e", source=src), "3. Sagladigim kelime listesi tek harfli kelimeler icermiyor.")
+    assert kept.target.startswith("3. Sagladigim") and not kept.target.startswith("3. 3.")
+    sub = _apply_result(Segment(block_id="s", source="a. FULL = 1 and EMTY = 0?"), "FULL = 1 ve EMTY = 0 ise?")
+    assert sub.target.startswith("a. FULL")
+
+
+def test_a_raw_backslash_in_a_reply_does_not_lose_the_whole_batch():
+    """Held-out arXiv 2609.19145: a paragraph with inline math ("S_k = S_{k-1} minus {s}", the
+    set-minus written as a backslash) never came back, through the batch and every lone retry. A
+    model copies that backslash as it is, and a backslash that starts no JSON escape made json.loads
+    reject the reply with every segment in it."""
+    backslash = chr(92)
+    reply = '[{"id": "b1", "text": "Bu, S' + backslash + ' {s} verir."}, {"id": "b2", "text": "Merhaba"}]'
+    assert _parse_reply(reply) == {"b1": "Bu, S" + backslash + " {s} verir.", "b2": "Merhaba"}
+
+
+def test_valid_escapes_are_left_as_json_means_them():
+    text = 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve\tsekme"
+    reply = json.dumps([{"id": "b1", "text": text}])
+    assert _parse_reply(reply) == {"b1": 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve sekme"}
+
+
+def test_why_a_reply_could_not_be_read_is_said(monkeypatch, capsys):
+    """Held-out: two long paragraphs were never answered, and nothing recorded why - the raw reply
+    is not kept, so the cause could only be guessed. An unreadable reply now leaves its reason and
+    the text around the fault in the log."""
+    provider = _multi_segment_provider()
+    monkeypatch.setattr(provider, "_chat", lambda messages: '[{"id": "b1", "text": "a "quoted" word"}]')
+
+    provider.translate(_segments(), "en", "fr")
+
+    err = capsys.readouterr().err
+    assert "unreadable for 2 segment(s)" in err and "delimiter" in err and "quoted" in err, err
+
+
+def test_a_single_item_reply_without_its_list_is_read():
+    """Held-out Wikipedia "Photosynthesis": asked for one segment, the model answered with the item
+    itself - {"id": ..., "text": ...} - not a list of one. The logged reason was "a dict, not a list",
+    and the paragraph stayed in English."""
+    assert _parse_reply(json.dumps({"id": "b1", "text": "Merhaba"})) == {"b1": "Merhaba"}
+
+
+def test_items_written_one_per_line_instead_of_a_list_are_read():
+    """Held-out NASA scan: asked for two segments, the model wrote two items one after the other,
+    not inside a list. The log said "Extra data at character 392", and both translations were lost."""
+    reply = '{"id": "b1", "text": "Daha hızlı ve verimli."}\n{"id": "b2", "text": "Güvenlik"}'
+    assert _parse_reply(reply) == {"b1": "Daha hızlı ve verimli.", "b2": "Güvenlik"}
+
+
+def test_the_prompt_names_the_language_and_its_script() -> None:
+    """"from en to tr" makes the model guess; the guess came back with Chinese inside Vietnamese.
+
+    Measured on arXiv 2507.03009's appendix, whose table lists 56 language names: asked for `tr`,
+    gemma-4-e4b answered `Urdu, Ukraynaca, Việt語, Galce` - the one loss the held-out campaign has
+    not closed (L9). The prompt now names the language and, when it is not written in Latin
+    letters, the script to write it in.
+    """
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _build_messages
+
+    segment = Segment(block_id="p0#0", source="Water boils at 100 degrees.")
+    system = _build_messages([segment], "en", "vi", None)[0]["content"]
+    assert "English to Vietnamese" in system
+    assert "entirely in Vietnamese" in system
+
+    chinese = _build_messages([segment], "en", "zh", None)[0]["content"]
+    assert "Chinese characters" in chinese, "a non-Latin target must say which script to write in"
+
+    latin = _build_messages([segment], "en", "tr", None)[0]["content"]
+    assert "Turkish" in latin
+    assert "writing system" not in latin, "Turkish needs no script note"
+
+
+def test_an_unknown_language_code_is_still_sent_as_it_came() -> None:
+    """A code nobody listed must not become "None" in the prompt."""
+    from layoutkeep.core.docir import Segment
+    from layoutkeep.providers.openai_compat import _build_messages
+
+    segment = Segment(block_id="p0#0", source="Hello.")
+    system = _build_messages([segment], "en", "xx", None)[0]["content"]
+    assert "to xx" in system
+
+
+def test_build_messages_forbids_completing_or_dropping_a_fragment():
+    """A block the page cuts mid-sentence must be translated as the fragment it is.
+
+    The quality judge found the model finishing a cut-off sentence from its context (content added)
+    and dropping a leading 'are added.' (content lost): 4 of 13 critical errors on four documents.
+    """
+    messages = _build_messages(_segments(), "en", "tr", glossary=None)
+    system_text = messages[0]["content"].lower()
+    assert "mid-sentence" in system_text
+    assert "never complete" in system_text

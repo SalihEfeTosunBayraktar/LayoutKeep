@@ -56,8 +56,14 @@ _SVG_TEMPLATES: dict[str, str] = {
 }
 
 
-def get_svg_icon(name: str, color: str = "#2563eb", size: int = 24) -> QIcon:
+def get_svg_icon(name: str, color: str | None = None, size: int = 24) -> QIcon:
     # İsme ve renge göre QIcon nesnesi döndürür / Returns QIcon object based on name and color
+    if color is None:
+        # No hardcoded hex: the fallback is the theme's own accent, resolved at call time so a
+        # theme switch is picked up (the import is local to avoid a cycle at module load).
+        from layoutkeep.ui.theme import ThemeManager
+
+        color = ThemeManager.current_palette().accent
     svg_raw = _SVG_TEMPLATES.get(name)
     if not svg_raw:
         return QIcon()

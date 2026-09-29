@@ -1,0 +1,6998 @@
+{
+ "generated": "2026-09-23 01:07",
+ "generator": "tools/audit/run_registry.py",
+ "roots": [
+  {
+   "label": "heldout/live",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live",
+   "exists": true,
+   "runs": 41,
+   "not_runs": 0
+  },
+  {
+   "label": "heldout/runs",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs",
+   "exists": true,
+   "runs": 15,
+   "not_runs": 0
+  },
+  {
+   "label": "campaign",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign",
+   "exists": true,
+   "runs": 10,
+   "not_runs": 3
+  },
+  {
+   "label": "bench",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\bench",
+   "exists": true,
+   "runs": 2,
+   "not_runs": 0
+  },
+  {
+   "label": "bench-repo",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench",
+   "exists": true,
+   "runs": 51,
+   "not_runs": 0
+  }
+ ],
+ "runs": [
+  {
+   "id": "heldout/live/arxiv_19113_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\arxiv_19113_r2",
+   "arm": null,
+   "source": {
+    "value": "29 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:10",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 506,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 68,
+      "D2": 23,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/arxiv_19145_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\arxiv_19145_r2",
+   "arm": null,
+   "source": {
+    "value": "20 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:10",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 489,
+     "losses": 9,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 4,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 292,
+      "D2": 4,
+      "D3": 3
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/arxiv_2510_03959",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\arxiv_2510_03959",
+   "arm": null,
+   "source": {
+    "value": "81 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 08:46",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/arxiv_2601_00135_run",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\arxiv_2601_00135_run",
+   "arm": null,
+   "source": {
+    "value": "6 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 07:06",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 212,
+     "losses": 32,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 6,
+      "L3": 20,
+      "L4": 0,
+      "L5": 0,
+      "L6": 5,
+      "L7": 0,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 97,
+      "D2": 3,
+      "D3": 9
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/arxiv_2605_18014",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\arxiv_2605_18014",
+   "arm": null,
+   "source": {
+    "value": "24 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0004.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 11:28",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/cookbook_1907_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\cookbook_1907_r2",
+   "arm": null,
+   "source": {
+    "value": "35 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 510,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 2,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 144,
+      "D2": 2,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/en_sbb_plan_12",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\en_sbb_plan_12",
+   "arm": null,
+   "source": {
+    "value": "66 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 21:51",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_p05_grant",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_p05_grant",
+   "arm": null,
+   "source": {
+    "value": "1 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 33,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 22,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_grant",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_grant",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 148,
+     "losses": 4,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 1,
+      "L9": 1,
+      "L10": 0,
+      "D1": 63,
+      "D2": 6,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_r4",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_r4",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 149,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 1,
+      "L10": 0,
+      "D1": 66,
+      "D2": 7,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_r5",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_r5",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 149,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 1,
+      "L10": 0,
+      "D1": 66,
+      "D2": 6,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_r6",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_r6",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 149,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 1,
+      "L10": 0,
+      "D1": 65,
+      "D2": 7,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_shorten",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_shorten",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 148,
+     "losses": 4,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 1,
+      "L8": 0,
+      "L9": 1,
+      "L10": 0,
+      "D1": 64,
+      "D2": 6,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_shorten_rewritten",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_shorten_rewritten",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 148,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 1,
+      "L10": 0,
+      "D1": 64,
+      "D2": 6,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/fresh_pdfmt_strict",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\fresh_pdfmt_strict",
+   "arm": null,
+   "source": {
+    "value": "8 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0004.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0004.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 36,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 28,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/gutenberg_56464",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\gutenberg_56464",
+   "arm": null,
+   "source": {
+    "value": null,
+    "status": "unknown",
+    "from": "no source file in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "gutenberg_56464.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 03:39",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/gutenberg_math",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\gutenberg_math",
+   "arm": null,
+   "source": {
+    "value": "139 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 17:53",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/irs_i1040gi_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\irs_i1040gi_r2",
+   "arm": null,
+   "source": {
+    "value": "32 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 1166,
+     "losses": 7,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 4,
+      "L7": 0,
+      "L8": 2,
+      "L9": 0,
+      "L10": 0,
+      "D1": 338,
+      "D2": 3,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/irs_p505_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\irs_p505_r2",
+   "arm": null,
+   "source": {
+    "value": "48 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 2145,
+     "losses": 27,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 5,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 9,
+      "L7": 11,
+      "L8": 2,
+      "L9": 0,
+      "L10": 0,
+      "D1": 454,
+      "D2": 6,
+      "D3": 5
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/irs_reflow",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\irs_reflow",
+   "arm": null,
+   "source": {
+    "value": "32 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 101,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 1,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/mushrooms_1895_sample_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\mushrooms_1895_sample_r2",
+   "arm": null,
+   "source": {
+    "value": "41 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 267,
+     "losses": 4,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 2,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 24,
+      "D2": 10,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nasa_grant",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nasa_grant",
+   "arm": null,
+   "source": {
+    "value": "1 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 5,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nasa_ntrs_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nasa_ntrs_scan",
+   "arm": null,
+   "source": {
+    "value": "1 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 5,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nasa_ntrs_scan_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nasa_ntrs_scan_r2",
+   "arm": null,
+   "source": {
+    "value": "1 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 7,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nist_ir6643_reflow",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nist_ir6643_reflow",
+   "arm": null,
+   "source": {
+    "value": "61 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 29,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 4,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nist_ir6643_vapor_pressure",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nist_ir6643_vapor_pressure",
+   "arm": null,
+   "source": {
+    "value": "61 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 29,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 4,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nist_jres_reflow",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nist_jres_reflow",
+   "arm": null,
+   "source": {
+    "value": "157 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 114,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 7,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/nist_jres_v98n1",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\nist_jres_v98n1",
+   "arm": null,
+   "source": {
+    "value": "157 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 158,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 54,
+      "D2": 8,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/plos_animal_movement_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\plos_animal_movement_r2",
+   "arm": null,
+   "source": {
+    "value": "30 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 468,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 101,
+      "D2": 75,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/ross_stats",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\ross_stats",
+   "arm": null,
+   "source": {
+    "value": "211 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 4491,
+     "losses": 9,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 4,
+      "L7": 1,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 801,
+      "D2": 163,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/ross_stats_full",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\ross_stats_full",
+   "arm": null,
+   "source": {
+    "value": "106 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 17:51",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_cmk_5271",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_cmk_5271",
+   "arm": null,
+   "source": {
+    "value": "23 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 20:06",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_plan_11",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_plan_11",
+   "arm": null,
+   "source": {
+    "value": "50 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 16:57",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_plan_12",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_plan_12",
+   "arm": null,
+   "source": {
+    "value": "64 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 22:44",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_tck_5237",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_tck_5237",
+   "arm": null,
+   "source": {
+    "value": "22 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 16:57",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_tck_5237_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_tck_5237_r2",
+   "arm": null,
+   "source": {
+    "value": "22 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 02:07",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_tck_5237_r3",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_tck_5237_r3",
+   "arm": null,
+   "source": {
+    "value": "22 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 05:25",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 1594,
+     "losses": 105,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 32,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 43,
+      "L7": 14,
+      "L8": 16,
+      "L9": 0,
+      "L10": 0,
+      "D1": 359,
+      "D2": 9,
+      "D3": 2
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_tck_smoke",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_tck_smoke",
+   "arm": null,
+   "source": {
+    "value": "22 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-21 02:08",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/tr_tmk_4721",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\tr_tmk_4721",
+   "arm": null,
+   "source": {
+    "value": "41 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 20:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/wikipedia_photosynthesis_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\wikipedia_photosynthesis_r2",
+   "arm": null,
+   "source": {
+    "value": "33 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 354,
+     "losses": 7,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 4,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 2,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 20,
+      "D2": 6,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/live/wikipedia_printing_press_r2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\live\\wikipedia_printing_press_r2",
+   "arm": null,
+   "source": {
+    "value": "19 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 07:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 260,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 2,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 7,
+      "D2": 9,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/arxiv_19113",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\arxiv_19113",
+   "arm": null,
+   "source": {
+    "value": "29 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 16:41",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "6390410",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 511,
+     "losses": 9,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 7,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 96,
+      "D2": 28,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/arxiv_19145",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\arxiv_19145",
+   "arm": null,
+   "source": {
+    "value": "20 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 17:36",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "bad981a",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 478,
+     "losses": 13,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 7,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 2,
+      "L7": 1,
+      "L8": 2,
+      "L9": 0,
+      "L10": 0,
+      "D1": 296,
+      "D2": 7,
+      "D3": 2
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/arxiv_19145_v2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\arxiv_19145_v2",
+   "arm": null,
+   "source": {
+    "value": "20 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-19 04:07",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "aff28d6",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 489,
+     "losses": 22,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 7,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 3,
+      "L7": 6,
+      "L8": 6,
+      "L9": 0,
+      "L10": 0,
+      "D1": 299,
+      "D2": 18,
+      "D3": 6
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/cookbook_1907",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\cookbook_1907",
+   "arm": null,
+   "source": {
+    "value": "35 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-19 05:30",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "a0f1a21",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 444,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 129,
+      "D2": 0,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/cookbook_1907_rewritten",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\cookbook_1907_rewritten",
+   "arm": null,
+   "source": {
+    "value": "35 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 06:10",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "a0f1a21",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 444,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 129,
+      "D2": 0,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/gutenberg_sherlock",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\gutenberg_sherlock",
+   "arm": null,
+   "source": {
+    "value": null,
+    "status": "unknown",
+    "from": "no source file in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "gutenberg_sherlock.tr.lkproj"
+   },
+   "date": {
+    "value": "2026-09-19 05:14",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "e839938",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0001.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 2624,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/irs_i1040gi",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\irs_i1040gi",
+   "arm": null,
+   "source": {
+    "value": "32 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-19 06:14",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "2f0f94e",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 737,
+     "losses": 10,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 6,
+      "L7": 0,
+      "L8": 3,
+      "L9": 0,
+      "L10": 0,
+      "D1": 209,
+      "D2": 3,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/irs_p505",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\irs_p505",
+   "arm": null,
+   "source": {
+    "value": "48 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 18:54",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "dd52021",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 2144,
+     "losses": 12,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 8,
+      "L7": 0,
+      "L8": 2,
+      "L9": 0,
+      "L10": 0,
+      "D1": 509,
+      "D2": 4,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/irs_p505_rewritten",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\irs_p505_rewritten",
+   "arm": null,
+   "source": {
+    "value": "48 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-20 06:24",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "dd52021",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 2144,
+     "losses": 12,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 8,
+      "L7": 0,
+      "L8": 2,
+      "L9": 0,
+      "L10": 0,
+      "D1": 509,
+      "D2": 4,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/mushrooms_1895_sample",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\mushrooms_1895_sample",
+   "arm": null,
+   "source": {
+    "value": "41 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-19 05:39",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "360fad5",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 264,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 34,
+      "D2": 11,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/nasa_ntrs_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\nasa_ntrs_scan",
+   "arm": null,
+   "source": {
+    "value": "1 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 17:42",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "e45ddb8",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/plos_animal_movement",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\plos_animal_movement",
+   "arm": null,
+   "source": {
+    "value": "30 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 17:10",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "6390410",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 468,
+     "losses": 11,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 8,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 102,
+      "D2": 84,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/wikipedia_photosynthesis",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\wikipedia_photosynthesis",
+   "arm": null,
+   "source": {
+    "value": "33 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 17:35",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "ccf5348",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 359,
+     "losses": 6,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 5,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 24,
+      "D2": 11,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/wikipedia_printing_press",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\wikipedia_printing_press",
+   "arm": null,
+   "source": {
+    "value": "19 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 16:14",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "583027d",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 250,
+     "losses": 5,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 4,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 8,
+      "D2": 20,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "heldout/runs/wpa_poster",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\heldout\\runs\\wpa_poster",
+   "arm": null,
+   "source": {
+    "value": null,
+    "status": "unknown",
+    "from": "no source file in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "wpa_poster.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 15:57",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "bad981a",
+    "status": "recorded",
+    "from": "commit.txt"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "run.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "campaign/digital_pilot",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\digital_pilot",
+   "arm": null,
+   "source": {
+    "value": "30 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 01:33",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 406,
+     "losses": 4,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 4,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 52,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/digital_pilot2",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\digital_pilot2",
+   "arm": null,
+   "source": {
+    "value": "30 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 01:58",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 418,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 2,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 52,
+      "D2": 10,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/pilot10",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\pilot10",
+   "arm": null,
+   "source": {
+    "value": "10 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-16 23:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 149,
+     "losses": 5,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 5,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 16,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/pilot10b",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\pilot10b",
+   "arm": null,
+   "source": {
+    "value": "10 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-16 23:45",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 149,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 12,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/architecture",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\architecture",
+   "arm": null,
+   "source": {
+    "value": "524 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 14:38",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 7417,
+     "losses": 80,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 41,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 39,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 567,
+      "D2": 99,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/electricity_1922",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\electricity_1922",
+   "arm": null,
+   "source": {
+    "value": "148 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 13:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 956,
+     "losses": 27,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 9,
+      "L3": 0,
+      "L4": 0,
+      "L5": 1,
+      "L6": 13,
+      "L7": 3,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 22,
+      "D2": 13,
+      "D3": 16
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/nist",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\nist",
+   "arm": null,
+   "source": {
+    "value": "101 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 13:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 1585,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 269,
+      "D2": 124,
+      "D3": 2
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/popular_science_1920",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\popular_science_1920",
+   "arm": null,
+   "source": {
+    "value": "144 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 13:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 4222,
+     "losses": 127,
+     "lossless": false,
+     "counts": {
+      "L1": 1,
+      "L2": 34,
+      "L3": 17,
+      "L4": 0,
+      "L5": 3,
+      "L6": 11,
+      "L7": 61,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 846,
+      "D2": 89,
+      "D3": 88
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/think_python",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\think_python",
+   "arm": null,
+   "source": {
+    "value": "244 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 14:23",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 3506,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 390,
+      "D2": 12,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "campaign/time_machine",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\campaign\\runs\\time_machine",
+   "arm": null,
+   "source": {
+    "value": "120 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-17 12:41",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 532,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 72,
+      "D2": 0,
+      "D3": 20
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench/nasa_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\bench\\e911715\\nasa_scan",
+   "arm": null,
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 20:35",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "e911715",
+    "status": "inferred",
+    "from": "the directory name (e911715)"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 7,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench/tck_rewrite",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep\\_artifacts\\bench\\tck_rewrite",
+   "arm": null,
+   "source": {
+    "value": "3 chunk files",
+    "status": "recorded",
+    "from": "src/ holds chunk_*.pdf - the original document is not in the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "t_0000.lkproj"
+   },
+   "date": {
+    "value": "2026-09-22 21:28",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no record, no commit.txt and no commit in the directory name"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "t_0000.log: the provider line the CLI prints"
+   },
+   "settings": {
+    "value": null,
+    "status": "unknown",
+    "from": "no pinned settings for this run"
+   },
+   "audit": {
+    "value": null,
+    "status": "unknown",
+    "from": "no audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_18014",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\arxiv_18014",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-23 00:58",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 109,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 11,
+      "D2": 2,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19113",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\arxiv_19113",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:33",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 40,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19145",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\arxiv_19145",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:52",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 64,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 29,
+      "D2": 4,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/cookbook_1907",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\cookbook_1907",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:09",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 87,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 2,
+      "D2": 0,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/history_of_math",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\history_of_math",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:11",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 4,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_i1040gi",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\irs_i1040gi",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:59",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 82,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 28,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_p505",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\irs_p505",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:05",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 270,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 77,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/mushrooms_1895",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\mushrooms_1895",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:12",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 62,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nasa_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\nasa_scan",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:09",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_jres",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\nist_jres",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:06",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 71,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 10,
+      "D2": 6,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_vapor_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\nist_vapor_scan",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:15",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 80,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 1,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 4,
+      "D2": 3,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/plos",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\plos",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:39",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 58,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 7,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/sbb_plan_12_en",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\sbb_plan_12_en",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:14",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 38,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_kalkinma_12",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\tr_kalkinma_12",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:15",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 33,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 5,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_tck_5237",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\tr_tck_5237",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:16",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 39,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 14,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_photosynthesis",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\wiki_photosynthesis",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:45",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 32,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 3,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_printing_press",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b0\\wiki_printing_press",
+   "arm": "34495d6-b0",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:48",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 44,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 2,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_18014",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\arxiv_18014",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-23 00:58",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 108,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 11,
+      "D2": 2,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19113",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\arxiv_19113",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:24",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 40,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 4,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19145",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\arxiv_19145",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:43",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 64,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 28,
+      "D2": 4,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/cookbook_1907",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\cookbook_1907",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:01",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 87,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 3,
+      "D2": 0,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/history_of_math",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\history_of_math",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:01",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 4,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_i1040gi",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\irs_i1040gi",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:50",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 82,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 27,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_p505",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\irs_p505",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:58",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 270,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 79,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/mushrooms_1895",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\mushrooms_1895",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:04",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 62,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nasa_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\nasa_scan",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:01",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_jres",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\nist_jres",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:57",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 71,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 2,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 11,
+      "D2": 6,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_vapor_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\nist_vapor_scan",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:05",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 80,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 4,
+      "D2": 3,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/plos",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\plos",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:32",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 58,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 8,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/sbb_plan_12_en",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\sbb_plan_12_en",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:03",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 38,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_kalkinma_12",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\tr_kalkinma_12",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:06",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 33,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 4,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_tck_5237",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\tr_tck_5237",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 23:07",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 39,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 14,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_photosynthesis",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\wiki_photosynthesis",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:38",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 32,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 3,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_printing_press",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\34495d6-b1\\wiki_printing_press",
+   "arm": "34495d6-b1",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 22:39",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "34495d6",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8,
+     "translation.auto_glossary": true,
+     "translation.preserve_references": true
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 44,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 2,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_18014",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\arxiv_18014",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:37",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 106,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 9,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19113",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\arxiv_19113",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:38",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 40,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 6,
+      "D2": 1,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/arxiv_19145",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\arxiv_19145",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:39",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 64,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 3,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 34,
+      "D2": 4,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/cookbook_1907",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\cookbook_1907",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:40",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 87,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 3,
+      "D2": 0,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/history_of_math",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\history_of_math",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:40",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 4,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_i1040gi",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\irs_i1040gi",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:41",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 82,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 29,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/irs_p505",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\irs_p505",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:42",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 270,
+     "losses": 3,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 1,
+      "L9": 0,
+      "L10": 0,
+      "D1": 81,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/mushrooms_1895",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\mushrooms_1895",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:43",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 62,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 4,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nasa_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\nasa_scan",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:43",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 13,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 2,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 7,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_jres",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\nist_jres",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:44",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 71,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 10,
+      "D2": 6,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/nist_vapor_scan",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\nist_vapor_scan",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:44",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 80,
+     "losses": 2,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 17,
+      "D2": 3,
+      "D3": 1
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/plos",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\plos",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:45",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 58,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 1,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 5,
+      "D2": 9,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/sbb_plan_12_en",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\sbb_plan_12_en",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:46",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 38,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 0,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_kalkinma_12",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\tr_kalkinma_12",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:47",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 33,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 1,
+      "D1": 4,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/tr_tck_5237",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\tr_tck_5237",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "tr->en",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 39,
+     "losses": 4,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 3,
+      "L7": 1,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 14,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_photosynthesis",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\wiki_photosynthesis",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:49",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 32,
+     "losses": 1,
+     "lossless": false,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 1,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 3,
+      "D2": 0,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  },
+  {
+   "id": "bench-repo/wiki_printing_press",
+   "path": "C:\\MyProjects\\AntigravityProjects\\AI_and_LLM\\LayoutKeep_bench\\_artifacts\\bench\\d9f2129\\wiki_printing_press",
+   "arm": "d9f2129",
+   "source": {
+    "value": "source.pdf",
+    "status": "recorded",
+    "from": "the run directory"
+   },
+   "direction": {
+    "value": "en->tr",
+    "status": "recorded",
+    "from": "bench.json"
+   },
+   "date": {
+    "value": "2026-09-22 21:51",
+    "status": "recorded",
+    "from": "the newest file in the run directory"
+   },
+   "commit": {
+    "value": "d9f2129",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "model": {
+    "value": "google/gemma-4-e4b",
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "settings": {
+    "value": {
+     "output.timing_report": true,
+     "translation.workers": 8
+    },
+    "status": "recorded",
+    "from": "the bench arm's provenance.json"
+   },
+   "audit": {
+    "value": {
+     "blocks": 44,
+     "losses": 0,
+     "lossless": true,
+     "counts": {
+      "L1": 0,
+      "L2": 0,
+      "L3": 0,
+      "L4": 0,
+      "L5": 0,
+      "L6": 0,
+      "L7": 0,
+      "L8": 0,
+      "L9": 0,
+      "L10": 0,
+      "D1": 0,
+      "D2": 3,
+      "D3": 0
+     }
+    },
+    "status": "recorded",
+    "from": "audit.json"
+   }
+  }
+ ],
+ "not_runs": [
+  {
+   "path": "campaign/books",
+   "why": "no audit.json, no log and no translated output at its top; holds: electricity_agriculture_1922.pdf, nist_sp800_12r1.pdf, popular_science_1920_01.pdf, think_python_2e.pdf, time_machine.pdf"
+  },
+  {
+   "path": "campaign/echo_experiment",
+   "why": "no audit.json, no log and no translated output at its top; holds: result.txt, result_batch.txt, result_context.txt, result_markers.txt, result_numbers.txt, result_parallel.txt ..."
+  },
+  {
+   "path": "campaign/nist_layout_probe",
+   "why": "no audit.json, no log and no translated output at its top; holds: pure_nist_sp800_12r1_p20.png, pure_nist_sp800_12r1_p35.png, pure_nist_sp800_12r1_p6.png, pure_nist_sp800_12r1_p60.png, pure_nist_sp800_12r1_p7.png"
+  }
+ ],
+ "loose_files": {
+  "heldout/live": [],
+  "heldout/runs": [],
+  "campaign": [
+   "nist_p20.pdf",
+   "nist_p7.pdf",
+   "runs_stdout.log"
+  ],
+  "bench": [
+   "consA.log",
+   "early_arxiv_19145_r2.json",
+   "early_tr_plan_12.json",
+   "early_tr_tck_5237_r3.json",
+   "early_wikipedia_photosynthesis_r2.json",
+   "judgeA.log"
+  ],
+  "bench-repo": []
+ }
+}

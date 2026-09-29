@@ -28,6 +28,7 @@ import ebooklib
 from ebooklib import epub
 from lxml import etree
 
+from layoutkeep.core import provenance
 from layoutkeep.core.docir import Block, Document, Page, Span
 from layoutkeep.readers.epub_reader import (
     _BOLD_TAGS,
@@ -55,6 +56,18 @@ def write_epub(doc: Document, src_path: str | Path, out_path: str | Path) -> Non
     opf_path = _find_opf_path(contents[_CONTAINER_PATH])
     if doc.target_lang:
         contents[opf_path] = _update_opf_language(contents[opf_path], doc.target_lang)
+
+    # Ne çevrildi, neyle: kayıt kitabın İÇİNDE gitsin diye zip'e bir dosya olarak eklenir
+    # (core/provenance.py). Manifeste de yazılır - bildirilmemiş bir dosya, bu yazıcının
+    # kaçındığı başıboş kayıt olurdu; kayıt, kitabın bir parçası olmalı.
+    entry = posixpath.join(posixpath.dirname(opf_path), provenance.FILE_NAME)
+    info = provenance.of(doc)
+    if info and entry not in contents:
+        declared = _declare_in_manifest(contents[opf_path], provenance.FILE_NAME)
+        if declared is not None:
+            contents[opf_path] = declared
+            contents[entry] = provenance.as_bytes(info)
+            names.append(entry)
 
     # ebooklib used ONLY to resolve which files are spine XHTML documents and their hrefs -
     # never to parse or re-emit their content.
@@ -90,11 +103,37 @@ def _write_zip(
             if name == "mimetype":
                 zout.writestr(zipfile.ZipInfo(name), data, compress_type=zipfile.ZIP_STORED)
                 continue
-            src_info = infos[name]
+            src_info = infos.get(name)
+            if src_info is None:
+                # An entry this writer added - the run's record. It has no source ZipInfo to
+                # carry over, so it is stored like any new file would be.
+                zout.writestr(name, data, compress_type=zipfile.ZIP_DEFLATED)
+                continue
             zi = zipfile.ZipInfo(name, date_time=src_info.date_time)
             zi.compress_type = src_info.compress_type
             zi.external_attr = src_info.external_attr
             zout.writestr(zi, data)
+
+
+#: The closing tag of the OPF's manifest, whichever namespace prefix the file uses, with the
+#: indentation in front of it so the item added below lines up with the items already there.
+_MANIFEST_END_RE = re.compile(rb"([ \t]*)</(?:\w+:)?manifest\s*>")
+
+
+def _declare_in_manifest(opf: bytes, file_name: str) -> bytes | None:
+    """Add `file_name` to the OPF's manifest, or None when there is no manifest to add it to.
+
+    A resource that is not declared is a stray entry in the zip rather than part of the book, so
+    the record is declared like every other item - and the manifest edit is surgical, exactly as
+    the language edit above it: one item inserted before the closing tag, nothing else touched.
+    """
+    match = _MANIFEST_END_RE.search(opf)
+    if match is None:
+        return None
+    item = (
+        f'<item id="layoutkeep-provenance" href="{file_name}" media-type="application/json"/>'
+    ).encode()
+    return opf[: match.start()] + item + b"\n" + match.group(1) + opf[match.start() :]
 
 
 def _find_opf_path(container_xml: bytes) -> str:
@@ -188,6 +227,14 @@ def _apply_edits(text: str, edits: list[tuple[int, int, str]]) -> str:
     out: list[str] = []
     cursor = 0
     for start, end, new in ordered:
+        if end <= cursor:
+            # An edit that lies wholly inside one already applied: its own text is gone, so
+            # splicing it in would corrupt the document (and moving `cursor` back to `end` would
+            # duplicate what the earlier edit already replaced).
+            continue
+        # Never let `cursor` walk backwards: `text[cursor:start]` with start < cursor is empty and
+        # a later `cursor = end` would drop or duplicate the text in between.
+        start = max(start, cursor)
         out.append(text[cursor:start])
         out.append(new)
         cursor = end
@@ -305,7 +352,69 @@ def _render_inline_html(spans: list[Span], dominant_key: tuple[bool, bool], tag_
     return "".join(out)
 
 
-def _block_replacement_html(block: Block, source_root: etree._Element, tag: str, idx: int) -> str:
+#: Inline tags a Span cannot describe - <a>, <span>, <sup> and friends. A block tag is not in here
+#: on purpose: a <blockquote> around a paragraph is the reader's structure, not the paragraph's
+#: markup, and rebuilding that paragraph from its spans is the right thing to do.
+_INLINE_TAGS_A_SPAN_CANNOT_CARRY = frozenset(
+    {"a", "span", "sup", "sub", "small", "code", "abbr", "u", "s", "q", "cite", "mark", "kbd", "var"}
+)
+
+
+def _has_markup_a_span_cannot_carry(inner_html: str) -> bool:
+    """True when the source wrapped the words in something a Span cannot describe.
+
+    A Span records bold and italic and nothing else. So a link, a span or a superscript run vanishes
+    when a block is rebuilt from its spans. That is how a translated book came back with a link's
+    markup gone.
+    """
+    for m in re.finditer(r"</?([a-zA-Z0-9]+)[^>]*?>", inner_html):
+        if m.group(1).lower() in _INLINE_TAGS_A_SPAN_CANNOT_CARRY:
+            return True
+    return False
+
+
+def _splice_translation(inner_html: str, translated: str) -> str:
+    """Put `translated` back inside the source's own tags, keeping every one of them.
+
+    Words are handed to the source's text runs in proportion to how much text each held. Each cut is
+    snapped to a word boundary. So the paragraph still reads as one sentence, and a link keeps
+    wrapping roughly the part of it the source wrapped. Words are escaped here: this text came from
+    the model, not from the file.
+    """
+    runs = re.split(r"(<[^>]+>)", inner_html)
+    text_runs = [i for i, r in enumerate(runs) if r and not r.startswith("<")]
+    if not text_runs:
+        return _escape_text(translated)
+
+    words = translated.split()
+    weights = [len(runs[i]) for i in text_runs]
+    total = sum(weights) or 1
+    out = list(runs)
+    taken = 0
+    seen = 0
+    for n, i in enumerate(text_runs):
+        seen += weights[n]
+        last = n == len(text_runs) - 1
+        share = len(words) if last else round(len(words) * seen / total)
+        take = words[taken:max(share, taken)]
+        if not take and taken < len(words):
+            take = [words[taken]]
+        if not last and take and taken + len(take) >= len(words):
+            take = take[:-1]  # leave words for the runs that follow
+        body = " ".join(take)
+        if body:
+            if runs[i][:1].isspace():
+                body = " " + body
+            if runs[i][-1:].isspace():
+                body = body + " "
+        out[i] = _escape_text(body) if body else ""
+        taken += len(take)
+    return "".join(out)
+
+
+def _block_replacement_html(
+    block: Block, source_root: etree._Element, tag: str, idx: int, inner_html: str = ""
+) -> str:
     """The HTML to put where `block`'s old text was: plain escaped text unless the translation
     kept styling worth carrying, in which case inline tags are rebuilt around it.
 
@@ -315,6 +424,14 @@ def _block_replacement_html(block: Block, source_root: etree._Element, tag: str,
     inline marker was ever generated, and the pre-fix writer wrote the tag away silently.
     What the source element actually wrapped the text in is decided by `_source_tag_map`,
     which re-walks the original XHTML - not by the span count alone."""
+    if inner_html and _has_markup_a_span_cannot_carry(inner_html):
+        # The source wrapped the words in something a Span cannot describe (a link, a span, a
+        # superscript). Rebuilding from the spans would drop it. So the source's own tags stay and
+        # only the words move. The words come from the spans: `block.text` is the source text.
+        translated = " ".join(s.text for line in block.lines for s in line.spans).strip()
+        if translated:
+            return _splice_translation(inner_html, translated)
+
     spans = block.lines[0].spans if block.lines else []
     if len(spans) <= 1:
         text = _escape_text(block.text)
@@ -417,7 +534,9 @@ def _rewrite_page(raw: bytes, page: Page, target_lang: str | None) -> bytes:
 
         target = tag_span(tag, idx)
         if target:
-            html = _block_replacement_html(block, get_source_root(), tag, idx)
+            html = _block_replacement_html(
+                block, get_source_root(), tag, idx, inner_html=text[target[0] : target[1]]
+            )
             edits.append((target[0], target[1], html))
 
     text = _apply_edits(text, edits)

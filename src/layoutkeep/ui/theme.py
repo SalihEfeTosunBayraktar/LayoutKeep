@@ -25,7 +25,11 @@ def _build_qss(palette: ColorPalette) -> str:
         font-family: {FONT_FAMILY};
         font-size: 13px;
     }}
-    QFrame#headerBar, QFrame#headerBar QLabel, QFrame#headerBar QComboBox {{
+    QFrame#headerBar {{
+        background: {palette.header};
+        color: {palette.text_primary};
+    }}
+    QFrame#headerBar QLabel, QFrame#headerBar QComboBox {{
         background: transparent;
         color: {palette.text_primary};
     }}
@@ -168,7 +172,9 @@ def _build_qss(palette: ColorPalette) -> str:
         background-color: {palette.dropzone_bg};
         border: 2px dashed {palette.dropzone_border};
         border-radius: {RADIUS_MD};
-        padding: 16px;
+        /* 8, not 16: at 16 the 68px one-row zone had only 32px of room inside the padding and
+           border, so the 38px Browse button overflowed the row and sat low. */
+        padding: 8px;
     }}
     #dropZone[dragHover="true"] {{
         background-color: {palette.surface_hover};
@@ -255,7 +261,7 @@ def _build_qss(palette: ColorPalette) -> str:
         border-radius: {RADIUS_SM};
         background-color: {palette.surface_active};
         text-align: center;
-        color: #ffffff;
+        color: {palette.accent_text};
         font-weight: bold;
         font-size: 12px;
         height: 24px;

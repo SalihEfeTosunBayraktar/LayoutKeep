@@ -139,3 +139,83 @@ def test_every_pattern_compiles_and_is_named() -> None:
     for name, pattern in DEFAULT_PATTERNS:
         assert name.isidentifier(), f"{name!r} must be usable as a regex group name"
         re.compile(pattern)
+
+
+# arXiv 2609.19145's first page: the code link "Ahmetcanyvz/comp-vs-like" came back as
+# "Ahmetcanyvz/comp-vs-benzer" - a repository name translated, and so a link to nothing.
+@pytest.mark.parametrize(
+    ("text", "literal"),
+    [
+        ("Code: Ahmetcanyvz/comp-vs-like", "Ahmetcanyvz/comp-vs-like"),
+        ("see src/layoutkeep/cli.py for the entry point", "src/layoutkeep/cli.py"),
+        ("Contact ayavuz@ethz.ch for the data.", "ayavuz@ethz.ch"),
+    ],
+)
+def test_paths_repositories_and_addresses_are_protected(text: str, literal: str) -> None:
+    assert literal in protect(text).literals.values()
+
+
+@pytest.mark.parametrize("text", ["you and/or your spouse", "a speed in km/h", "the input/output ratio"])
+def test_a_slash_in_prose_is_not_a_path(text: str) -> None:
+    assert protect(text).count == 0
+
+
+def test_a_paragraph_number_after_an_article_head_is_put_back_where_it_stood():
+    """TCK's "Madde 178- (1) Herkesin ..." came back as "Article 178- A person ..." on every arm:
+    the model drops the token after the head, and the paragraph number was lost with it."""
+    protection = protect(" Madde 178- (1) Herkesin gelip geçtiği yerlerde")
+
+    text, lost = restore("Article 178- A person who fails to place signs", protection)
+
+    assert (text, lost) == ("Article 178- (1) A person who fails to place signs", 0)
+
+
+def test_a_leading_value_the_model_dropped_is_put_back_in_front():
+    protection = protect("(2) Bu fiil taksirle işlenirse")
+
+    assert restore("If this act is committed negligently", protection) == (
+        "(2) If this act is committed negligently", 0)
+
+
+def test_a_value_lost_from_mid_sentence_is_still_reported_not_guessed():
+    protection = protect("Tighten the bolts (3) to 34 Nm and check")
+
+    text, lost = restore("Cıvataları sıkın ve kontrol edin", protection)
+
+    assert lost == 2 and "(3)" not in text
+
+
+def test_a_leading_measurement_is_not_pushed_to_the_front_of_a_reordered_sentence():
+    protection = protect("34 Nm is the torque for these bolts")
+
+    assert restore("Bu cıvataların torku budur", protection)[1] == 1
+
+
+def test_an_article_head_wrapped_in_style_markers_still_places_the_number():
+    """The bench's TCK block is "<0>Madde 178- </0>(1) Herkesin ...": the head is bold."""
+    protection = protect(" <0>Madde 178- </0>(1) Herkesin gelip geçtiği yerlerde")
+
+    text, lost = restore("<0>Article 178- </0>A person who fails", protection)
+
+    assert (text, lost) == ("<0>Article 178- </0> (1) A person who fails", 0)
+
+
+def test_a_short_fragment_keeps_its_leading_value():
+    """CMK's block "2012/108 sayılı " came back as " sayılı": a fragment has no sentence to reorder."""
+    # That value is no longer a token at all (see the next test); a part number stands in for it.
+    protection = protect("00-0288-280 sayılı ")
+
+    assert restore(" numbered", protection) == ("00-0288-280 numbered", 0)
+
+
+def test_a_date_or_a_law_number_is_text_not_a_path():
+    """Arm D lost "2/1/2003" (TMK) and "2012/108" (CMK): the path rule turned them into tokens and
+    the model dropped the token. Digits joined by slashes are a date, a number or a fraction - the
+    model keeps those as they are, and the number check sees it when it does not."""
+    for text in ("2/1/2003 tarihli ve 4778 sayılı Kanun", "2012/108 sayılı", "1/2 cup", "12/05/2024"):
+        assert protect(text).count == 0, text
+
+
+def test_a_repository_path_is_still_protected():
+    assert protect("see Ahmetcanyvz/comp-vs-like for code").count == 1
+    assert protect("files under docs/2024/report.pdf").count == 1

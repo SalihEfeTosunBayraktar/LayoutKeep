@@ -8,23 +8,22 @@ yeni çeviri seçenekleri sunulur. Gözden geçirme editörü kaldırıldı (esk
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
-from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QApplication, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import QEvent, QTimer
+from PySide6.QtWidgets import QApplication, QStackedWidget, QVBoxLayout, QWidget
 
-from layoutkeep.core import tunables
+from layoutkeep import __version__
 from layoutkeep.ui.completion import CompletionWidget
+from layoutkeep.ui.floating_bridge import FloatingBarBridge
 from layoutkeep.ui.floating_progress import FloatingProgress
 from layoutkeep.ui.header import HeaderBar
-from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.job_setup import JobSetupWidget
 from layoutkeep.ui.progress import ProgressWidget
+from layoutkeep.ui.run_controller import RunController
 from layoutkeep.ui.settings import app_settings
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.theme import ThemeManager
 from layoutkeep.ui.welcome import WelcomeDialog
+from layoutkeep.ui.window_appearance import WindowAppearance
 from layoutkeep.ui.worker import TranslationWorker
 
 
@@ -47,23 +46,23 @@ class MainWindow(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("rootWindow")
-        self.setWindowTitle("LayoutKeep")
-        # Wide enough for the header's stepper and the four metric cards in a row, which is
-        # what the mock-ups show. At 880 the stepper labels were clipped and the progress card
-        # had to stack its figures two-by-two.
-        # Fits a 1366x768 laptop with room to spare; the header sheds its subtitle and
-        # shortens the step labels below this rather than forcing the window wider.
-        self.resize(700, 660)
-        # Small enough for a laptop screen, and not smaller than the screens can draw: a
-        # minimum below what the layout needs does not shrink anything, it overlaps the rows.
-        self.setMinimumSize(700, 540)
+        self.setWindowTitle(UIStrings.APP_TITLE)
+        # The size is fixed once the layout is built, at the smallest size that layout actually
+        # needs - see the end of __init__. It used to open at 700x660 with a 700x540 minimum and
+        # stay resizable; the reader wanted a compact window, and a resizable one only ever gets
+        # resized by accident.
         self._settings = app_settings()
 
         self._init_subwidgets()
         self._setup_layout()
         self._wire_signals()
-        self._restore_theme()
-        self._restore_ui_language()
+        self._appearance.restore_theme()
+        self._appearance.restore_language()
+        # The smallest size the built layout asks for, fixed: the reader wanted a compact window
+        # and no reason to resize it. `minimumSizeHint` is what the pages actually need, so nothing
+        # is clipped; the floor guards against a system where the hint comes out implausibly small.
+        hint = self.minimumSizeHint()
+        self.setFixedSize(max(620, hint.width()), max(500, hint.height()))
         # After the window is on screen, so the introduction is not the first thing Qt paints.
         QTimer.singleShot(0, self._maybe_show_welcome)
 
@@ -74,11 +73,14 @@ class MainWindow(QWidget):
         self._setup = JobSetupWidget()
         self._progress = ProgressWidget()
         self._completion = CompletionWidget()
-        #: Owned by this window (destroyed with it) but flagged as its own always-on-top tool
-        #: window, so it stays reachable while the main window is minimised. Parentless was tried
-        #: first and crashed the UI test suite: orphaned top-level widgets outlive the window that
-        #: created them, and the next global stylesheet application touches freed memory.
-        self._floating = FloatingProgress(self)
+        #: Owned by this window (kept alive by this reference, destroyed with it in `closeEvent`),
+        #: but a *parentless* top-level window on purpose. A Qt window with a parent is an owned
+        #: window on Windows, and Windows minimises an owned window together with its owner - so
+        #: minimising the main window took the bar down with it, which is the one thing the bar
+        #: exists to avoid. Parentless was tried before and crashed the UI suite because the
+        #: widget outlived the window that created it; the fix is not a parent but an explicit
+        #: `deleteLater()` in `closeEvent`, and never touching it afterwards.
+        self._floating: FloatingProgress | None = FloatingProgress(None)
 
         self._stack.addWidget(self._setup)
         self._stack.addWidget(self._progress)
@@ -86,7 +88,82 @@ class MainWindow(QWidget):
         #: Set when a job starts, read when it finishes.
         self._last_output_path = ""
         self._completion.back_to_setup_requested.connect(self._return_to_setup)
-        self._worker: TranslationWorker | None = None
+        # Koşunun sahibi: worker, sinyal bağlantıları, duraklat/iptal / The run's owner
+        self._run = RunController(
+            self,
+            header=self._header,
+            stack=self._stack,
+            progress=self._progress,
+            completion=self._completion,
+            bar=lambda: self._bar,
+            output_path=lambda: self._last_output_path,
+            set_output_path=self._set_last_output_path,
+            sync_bar=self._sync_bar_visibility,
+            to_setup=self._return_to_setup,
+        )
+        # Tema ve arayüz dili bu pencerenin kabuğunda tutulur / Theme and language live here
+        self._appearance = WindowAppearance(
+            self._settings,
+            self._header,
+            screens=lambda: (self._setup, self._completion, self._progress, self._bar),
+            step=lambda: self._stack.currentIndex() + 1,
+        )
+        # Pencere ile yüzen çubuk arasındaki geçişler / Every route between window and bar
+        self._bar_bridge = FloatingBarBridge(
+            self,
+            bar=lambda: self._floating,
+            on_new_job=self._return_to_setup,
+            on_pause=self._run.pause,
+            on_resume=self._run.resume,
+            output_path=lambda: self._last_output_path,
+        )
+
+    def _set_last_output_path(self, path: str) -> None:
+        # Bir koşu başlarken çıktı yolunu pencereye yazar / The run records its output path here
+        self._last_output_path = path
+
+    @property
+    def _worker(self) -> TranslationWorker | None:
+        """The run's worker. The controller owns it; the tests set this attribute directly."""
+        return self._run.worker
+
+    @_worker.setter
+    def _worker(self, worker: TranslationWorker | None) -> None:
+        self._run.worker = worker
+
+    @property
+    def _bar(self) -> FloatingProgress:
+        """The floating bar. It exists for the whole life of the window; `closeEvent` clears it."""
+        bar = self._floating
+        if bar is None:  # only reachable after `closeEvent` has taken it down
+            raise RuntimeError("the floating bar was already destroyed")
+        return bar
+
+    def _switch_to_bar(self) -> None:
+        """Hand the run to the floating bar; see `FloatingBarBridge.switch_to_bar`."""
+        self._bar_bridge.switch_to_bar(self._worker)
+
+    def _sync_bar_visibility(self) -> None:
+        """Only one of the window and the bar is on screen; see `FloatingBarBridge.sync`."""
+        self._bar_bridge.sync()
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.WindowStateChange:
+            self._sync_bar_visibility()
+
+    def hideEvent(self, event) -> None:
+        super().hideEvent(event)
+        self._sync_bar_visibility()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._sync_bar_visibility()
+
+    def _on_ui_language_changed(self, lang: str) -> None:
+        # Arayüz dili değiştiğinde ayarı kaydeder ve metinleri günceller / Handles UI language change
+        # İnce delege: testler bu adı çağırıyor / Thin delegate, the tests call this name
+        self._appearance.store_language(lang)
 
     def _setup_layout(self) -> None:
         # Ana dikey düzeni kurar / Sets up main vertical layout
@@ -95,155 +172,39 @@ class MainWindow(QWidget):
         layout.setSpacing(0)
         self._header.tweaks_requested.connect(self._open_tweaks)
         self._header.help_requested.connect(self.show_help)
+        self._header.bar_requested.connect(self._switch_to_bar)
         layout.addWidget(self._header)
         layout.addWidget(self._stack)
 
     def _wire_signals(self) -> None:
         # Olay ve sinyal bağlantılarını yapar / Wires events and signals
-        self._header.theme_toggled.connect(self._on_theme_changed)
-        self._header.ui_language_changed.connect(self._on_ui_language_changed)
-        self._setup.job_ready.connect(self._start_job)
-        self._progress.cancel_requested.connect(self._cancel_job)
-        self._progress.pause_requested.connect(self._pause_job)
-        self._progress.resume_requested.connect(self._resume_job)
-        self._floating.restore_requested.connect(self._restore_from_floating)
-        self._floating.new_job_requested.connect(self._new_job_from_floating)
-        self._floating.open_output_requested.connect(self._open_output_from_floating)
-        self._floating.pause_toggled.connect(self._toggle_pause_from_floating)
-
-    def _restore_theme(self) -> None:
-        # Kayıtlı tema tercihini uygular / Applies saved theme preference
-        is_dark = self._settings.value("dark_mode", False, type=bool)
-        ThemeManager.set_dark(is_dark)
-        self._apply_current_theme()
-
-    def _restore_ui_language(self) -> None:
-        # Kayıtlı arayüz dilini yükler ve uygular / Restores and applies saved UI language
-        lang = str(self._settings.value("ui_language", "en"))
-        UIStrings.set_language(lang)
-        self._header.set_active_language(lang)
-        self.retranslate_ui()
-
-    def _on_ui_language_changed(self, lang: str) -> None:
-        # Arayüz dili değiştiğinde ayarı kaydeder ve metinleri günceller / Handles UI language change
-        self._settings.setValue("ui_language", lang)
-        UIStrings.set_language(lang)
-        self.retranslate_ui()
-
-    def retranslate_ui(self) -> None:
-        # Tüm alt bileşenlerin metinlerini güncel dilde yeniler / Retranslates all subwidgets
-        self._header.retranslate_ui()
-        self._setup.retranslate_ui()
-        self._progress.retranslate_ui()
-        self._completion.retranslate_ui()
-        self._floating.retranslate_ui()
-
-    def _on_theme_changed(self, is_dark: bool) -> None:
-        # Tema değiştiğinde QSS'i yeniler ve kaydeder / Refreshes QSS and saves on theme change
-        self._settings.setValue("dark_mode", is_dark)
-        self._apply_current_theme()
-
-    def _apply_current_theme(self) -> None:
-        # Güncel stil sayfasını tüm uygulamaya uygular / Applies current stylesheet to app
-        app = QApplication.instance()
-        if app is not None:
-            app.setStyleSheet(ThemeManager.get_stylesheet())
-        self._setup.apply_theme()
-        self._completion.apply_theme()
-        self._progress.apply_theme()
-        self._floating.apply_theme()
-        self._header.set_active_step(self._stack.currentIndex() + 1)
-
-    def _start_job(self, config: JobConfig) -> None:
-        # Çeviri işini başlatır / Starts the translation job
-        if not config.input_path or not config.output_path:
-            QMessageBox.warning(self, "Eksik bilgi", "Girdi ve çıktı dosyası seçilmeli.")
-            return
-
-        self._last_output_path = config.output_path
-        self._stack.setCurrentWidget(self._progress)
-        self._header.set_active_step(2)
-        self._progress.start()
-        self._progress.set_model_name(config.provider.model)
-
-        self._worker = TranslationWorker(config, self)
-        self._worker.progress.connect(self._progress.set_progress)
-        self._worker.progress_detailed.connect(self._progress.set_progress_detailed)
-        self._worker.active_segment.connect(self._progress.set_active_segment)
-        self._worker.segment_translated.connect(self._progress.append_segment_pair)
-        self._worker.job_stats.connect(self._completion.set_stats)
-        self._worker.review_flags.connect(self._progress.set_review_flags)
-        self._worker.status.connect(self._progress.set_status)
-        self._worker.memory_stats.connect(self._progress.set_memory_stats)
-        self._worker.batch_timeout.connect(self._progress.set_batch_timeout)
-        self._worker.finished_ok.connect(self._on_finished)
-        self._worker.failed.connect(self._on_failed)
-        # The summary bar reads the same signals as the card, so the two cannot disagree.
-        self._worker.progress.connect(self._floating.set_progress)
-        self._worker.status.connect(self._floating.set_phase)
-        self._worker.finished_ok.connect(self._floating.finish)
-        self._worker.failed.connect(self._floating.fail)
-        if bool(tunables.get("ui.floating_progress")):
-            self._floating.start_job(Path(config.input_path).name)
-        self._worker.start()
-
-    def _restore_from_floating(self) -> None:
-        # Yüzen çubuktan ana pencereye döner / Comes back to the full window from the summary bar
-        self._floating.hide()
-        self.showNormal()
-        self.raise_()
-        self.activateWindow()
-
-    def _new_job_from_floating(self) -> None:
-        # "Yeni çeviri": kurulum ekranına döner / Starts over from the setup screen
-        self._floating.hide()
-        self._return_to_setup()
-        self._restore_from_floating()
-
-    def _open_output_from_floating(self) -> None:
-        # Çıktı dosyasını sistem varsayılanıyla açar / Opens the output with the system default app
-        path = self._last_output_path or self._floating.output_path()
-        if path:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
-
-    def _toggle_pause_from_floating(self) -> None:
-        # Yüzen çubuktaki duraklat/devam düğmesi / The bar's pause-resume toggle
-        if self._floating.is_paused():
-            self._pause_job()
-        else:
-            self._resume_job()
+        self._header.theme_toggled.connect(self._appearance.store_theme)
+        self._header.ui_language_changed.connect(self._appearance.store_language)
+        self._setup.job_ready.connect(self._run.start)
+        self._progress.cancel_requested.connect(self._run.cancel)
+        self._progress.pause_requested.connect(self._run.pause)
+        self._progress.resume_requested.connect(self._run.resume)
+        self._bar.restore_requested.connect(self._bar_bridge.restore_window)
+        self._bar.new_job_requested.connect(self._bar_bridge.start_new_job)
+        self._bar.open_output_requested.connect(self._bar_bridge.open_output)
+        self._bar.pause_toggled.connect(self._bar_bridge.toggle_pause)
 
     def closeEvent(self, event) -> None:
         # Pencere kapanırken çalışan iş parçacığını güvenle durdurur / Safely stops worker on close
-        if self._worker is not None and self._worker.isRunning():
-            self._worker.cancel()
-            self._worker.wait(1500)
-        # The bar is its own window: closing the application has to take it down too, or it would
-        # outlive the window it reports about.
-        self._floating.close()
+        self._run.stop()
+        # The bar is a parentless top-level window, so closing the application has to take it down
+        # explicitly - and delete it, not merely hide it: an orphaned top-level widget outliving
+        # this window is what crashed the UI suite the first time this was tried.
+        if self._floating is not None:
+            self._floating.close()
+            self._floating.deleteLater()
+            self._floating = None
         super().closeEvent(event)
-
-    def _cancel_job(self) -> None:
-        if self._worker is not None:
-            self._worker.cancel()
-
-    def _pause_job(self) -> None:
-        # Çeviriyi duraklatır / Pauses the translation job
-        if self._worker is not None:
-            self._worker.pause()
-
-    def _resume_job(self) -> None:
-        # Çeviriye devam eder / Resumes the translation job
-        if self._worker is not None:
-            self._worker.resume()
 
     def _on_finished(self, project_path: str) -> None:
         # İş tamamlandığında tamamlandı ekranını gösterir / Shows completion screen
-        self._progress.finish(f"tamamlandı: {project_path}")
-        # Çıktıyı göster: dosya varsa aç/klasör butonları etkinleşir.
-        self._completion.set_output_path(self._last_output_path)
-        self._stack.setCurrentWidget(self._completion)
-        self._header.set_active_step(3)
+        # İnce delege: testler bu adı çağırıyor / Thin delegate, the tests call this name
+        self._run.finish(project_path)
 
     def show_help(self) -> None:
         """Open the help screen; the header's "?" and the welcome screen both land here."""
@@ -252,34 +213,36 @@ class MainWindow(QWidget):
         show_help(self)
 
     def _maybe_show_welcome(self) -> None:
-        """First run only: the introduction, unless it has already been dismissed."""
-        if not _welcome_is_wanted() or bool(self._settings.value("welcome_shown", False, type=bool)):
+        """The introduction on a first run - and again after an update.
+
+        The version matters: with a bare boolean, installing a new build left the flag set and the
+        user saw nothing at all, which reads as "the update did not happen". Storing the version
+        the screen was shown for makes an update greet the reader once, the way a release should.
+        """
+        if not _welcome_is_wanted():
+            return
+        shown = bool(self._settings.value("welcome_shown", False, type=bool))
+        seen_version = str(self._settings.value("welcome_shown_version", ""))
+        if shown and seen_version == __version__:
             return
         self.show_welcome()
 
     def show_welcome(self) -> None:
         """Open the introduction and let its language and theme choices reach the application."""
         dialog = WelcomeDialog(self)
-        dialog.language_changed.connect(self._on_ui_language_changed)
-        dialog.theme_changed.connect(self._on_theme_changed)
+        dialog.language_changed.connect(self._appearance.store_language)
+        dialog.theme_changed.connect(self._appearance.store_theme)
         dialog.exec()
 
     def _open_tweaks(self) -> None:
         # Gelişmiş ayarlar penceresini açar / Opens the advanced settings dialog
         from layoutkeep.ui.tweaks_dialog import TweaksDialog
 
-        dialog = TweaksDialog(self)
+        dialog = TweaksDialog(self, document_path=self._setup.input_path())
         dialog.welcome_requested.connect(self.show_welcome)
         dialog.exec()
 
     def _return_to_setup(self) -> None:
         # Tamamlandı ekranından ilk adıma döner / Returns to step 1 after completion
-        self._stack.setCurrentWidget(self._setup)
-        self._header.set_active_step(1)
-
-    def _on_failed(self, message: str) -> None:
-        # İş başarısız olduğunda bildirim verir / Shows error on failure and returns to setup
-        self._progress.finish(f"hata: {message}")
-        QMessageBox.critical(self, "Çeviri başarısız", message)
         self._stack.setCurrentWidget(self._setup)
         self._header.set_active_step(1)

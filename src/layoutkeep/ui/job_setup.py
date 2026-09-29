@@ -16,9 +16,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
-    QFrame,
-    QGridLayout,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -28,15 +25,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from layoutkeep.core import capabilities
+from layoutkeep.core import capabilities, tunables
 from layoutkeep.ui.drop_zone import DropZoneWidget
 from layoutkeep.ui.icons import get_svg_icon
 from layoutkeep.ui.job import JobConfig, ProviderConfig
 from layoutkeep.ui.languages import LANGS, LanguageComboBox, definitions
-from layoutkeep.ui.provider_combo import ProviderComboBox
-from layoutkeep.ui.provider_profile import ProviderProfileStore
 from layoutkeep.ui.provider_settings import ProviderSettingsDialog
 from layoutkeep.ui.settings import app_settings
+from layoutkeep.ui.settings_card import SettingsCardBuilder, SetupCard
+from layoutkeep.ui.setup_controls import (
+    ICON_BUTTON_WIDTH,
+    build_provider_controls,
+    fill_format_combo,
+)
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
@@ -45,15 +46,9 @@ _LANGS = LANGS
 #: Set this to put the test provider back in the list. It does not translate.
 _DEV_PROVIDERS_ENV = "LAYOUTKEEP_DEV_PROVIDERS"
 
-#: The format box holds a short phrase; the path box holds a path but not an essay.
-_FORMAT_BOX_WIDTH = 260
+#: The path box holds a path but not an essay.
 _PATH_BOX_WIDTH = 520
 
-#: Enough for the longest field label, and no more.
-_LABEL_COLUMN_WIDTH = 26
-
-#: A square-ish button for an icon with no text.
-_ICON_BUTTON_WIDTH = 42
 #: Evaluated once, at import, in whatever language was active then - which is why the box read
 #: "Same as Source" in a Turkish window. `_format_choices()` reads the strings when they are
 #: needed instead, and `retranslate_ui` refills the box.
@@ -76,65 +71,6 @@ def _format_choices() -> list[tuple[str, str]]:
 def _language_list() -> list[tuple[str, str]]:
     # Arayuz diline gore adlandirilmis dil listesi / The language list in the interface language
     return definitions(UIStrings.get_language())
-
-
-def _icon_label(icon_name: str, tooltip: str) -> QLabel:
-    """A row marker: the icon says which row this is, the tooltip says it in words."""
-    label = QLabel()
-    label.setPixmap(
-        get_svg_icon(icon_name, color=ThemeManager.current_palette().text_muted, size=18).pixmap(
-            18, 18
-        )
-    )
-    label.setToolTip(tooltip)
-    label.setFixedWidth(20)
-    return label
-
-
-class SetupCard(QFrame):
-    """Mockup-03 style card: accent-colored icon + bold title header, body below.
-
-    İkonlu başlıklı kart. Tek sorumluluğu kart başlığını ve gövdesini sunmaktır.
-    """
-
-    def __init__(self, icon_name: str, title: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setProperty("class", "card")
-        self._icon_name = icon_name
-        self._icon_label = QLabel()
-        self._icon_label.setFixedSize(18, 18)
-
-        self._title_label = QLabel(title)
-        self._title_label.setStyleSheet("font-size: 13px; font-weight: 700;")
-
-        title_row = QHBoxLayout()
-        title_row.setSpacing(6)
-        title_row.addWidget(self._icon_label)
-        title_row.addWidget(self._title_label)
-        title_row.addStretch()
-
-        self._outer = QVBoxLayout(self)
-        self._outer.setContentsMargins(14, 12, 14, 14)
-        self._outer.setSpacing(10)
-        self._outer.addLayout(title_row)
-        self.apply_theme()
-
-    def add_body(self, layout) -> None:
-        # Kart gövdesine düzen ekler / Adds a body layout into the card
-        self._outer.addLayout(layout)
-
-    def add_body_widget(self, w: QWidget) -> None:
-        # Kart gövdesine widget ekler / Adds a body widget into the card
-        self._outer.addWidget(w)
-
-    def retitle(self, title: str) -> None:
-        # Dil değişiminde başlığı tazeler / Refreshes the title on language change
-        self._title_label.setText(title)
-
-    def apply_theme(self) -> None:
-        # İkonu aktif aksan rengiyle bozar / Paints the header icon with the active accent
-        pal = ThemeManager.current_palette()
-        self._icon_label.setPixmap(get_svg_icon(self._icon_name, color=pal.accent, size=18).pixmap(18, 18))
 
 
 class _JobSetupUiBuilder:
@@ -160,9 +96,9 @@ class _JobSetupUiBuilder:
         self._browse_out_btn.setIcon(
             get_svg_icon("folder", color=ThemeManager.current_palette().accent, size=18)
         )
-        self._browse_out_btn.setFixedWidth(_ICON_BUTTON_WIDTH)
+        self._browse_out_btn.setFixedWidth(ICON_BUTTON_WIDTH)
         self._browse_out_btn.setToolTip(
-            f"{UIStrings.BROWSE_BTN} - çıktı klasörünü seçin / Select output folder"
+            UIStrings.SELECT_OUTPUT_FOLDER_BTN
         )
         self._output_format = QComboBox()
         self._fill_format_combo()
@@ -179,127 +115,43 @@ class _JobSetupUiBuilder:
         self._range_input = QLineEdit()
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_input.hide()
+        # What the range means for the OUTPUT, said where the range is chosen: a range used to
+        # narrow only the translation while the output stayed the whole book, and that surprise
+        # is what this line exists to prevent.
+        # Çift dilli PDF: ayrı bir çıktı dosyası, kapalı varsayılan. Seçimi kurulum ekranından
+        # Gelişmiş Ayarlar → "Ek test araçları" altına taşındı (output.dual_mode); burada yalnız
+        # işin kullandığı değer okunur.
+
+        self._range_hint = QLabel(UIStrings.RANGE_HINT)
+        self._range_hint.setObjectName("rangeHint")
+        self._range_hint.setProperty("class", "muted")
+        self._range_hint.setWordWrap(True)
+        self._range_hint.hide()
+
+        self._pair_note = QLabel()
+        self._pair_note.setObjectName("pairNote")
+        self._pair_note.setProperty("class", "muted")
+        self._pair_note.setWordWrap(True)
 
         self._init_provider_controls()
 
     def _init_provider_controls(self) -> None:
-        # Sağlayıcı ve profil kontrollerini kurar / Sets up provider and profile controls
-        # There is deliberately no provider-kind dropdown here. There used to be one, but it
-        # was never added to a layout - invisible, and yet it decided the kind of every job,
-        # which is why DeepL could be chosen nowhere even though the provider was finished.
-        # The profile now carries the kind, and the profile is what this screen selects.
-        self._profile_store = ProviderProfileStore()
-        self._provider_profile_combo = ProviderComboBox()
+        """Delegate: the provider controls are built in setup_controls now."""
+        controls = build_provider_controls()
+        self._profile_store = controls.store
+        self._provider_profile_combo = controls.combo
+        self._provider_config = controls.config
+        self._provider_btn = controls.provider_btn
+        self._start_btn = controls.start_btn
         self._refresh_profile_combo()
 
-        active_prof = self._profile_store.get_profile(self._profile_store.get_active_profile_name())
-        self._provider_config = active_prof.to_config() if active_prof else ProviderConfig(kind="openai")
-
-        self._provider_btn = QPushButton()
-        self._provider_btn.setIcon(
-            get_svg_icon("sliders", color=ThemeManager.current_palette().accent, size=18)
-        )
-        self._provider_btn.setFixedWidth(_ICON_BUTTON_WIDTH)
-        self._provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
-        self._start_btn = QPushButton(UIStrings.START_TRANSLATION_BTN)
-        self._start_btn.setProperty("class", "primary")
-        self._start_btn.setIcon(get_svg_icon("play", color=ThemeManager.current_palette().accent_text, size=18))
-        self._start_btn.setMinimumHeight(42)
-
     def _fill_format_combo(self) -> None:
-        """(Re)fill the format box, keeping whatever was chosen.
-
-        A target this build cannot do well is listed, marked with a lock and the one sentence
-        that says what it would cost, and cannot be picked. Leaving it out would say the project
-        does not convert to EPUB; leaving it selectable would say it does it well. Neither is
-        true - see `core/capabilities.py` and docs/ENGINE-ARCHITECTURE.md.
-        """
-        chosen = self._output_format.currentData()
-        source_suffix = Path(self._input_path.text().strip()).suffix.lower()
-        locked_colour = ThemeManager.current_palette().text_muted
-
-        self._output_format.blockSignals(True)
-        self._output_format.clear()
-        model = self._output_format.model()
-        for row, (ext, label) in enumerate(_format_choices()):
-            unlocked = bool(source_suffix) and capabilities.is_open(source_suffix, ext)
-            text = label if unlocked else f"{label} — {UIStrings.get('LOCKED_SUFFIX')}"
-            self._output_format.addItem(text, ext)
-            if unlocked:
-                continue
-            item = model.item(row)
-            item.setEnabled(False)
-            item.setIcon(get_svg_icon("lock", color=locked_colour, size=14))
-            reason_key = capabilities.lock_reason_key(
-                capabilities.resolve_target(source_suffix, ext)
-            )
-            if reason_key:
-                item.setToolTip(UIStrings.get(reason_key))
-
-        index = self._output_format.findData(chosen) if chosen is not None else -1
-        if index < 0 or not model.item(index).isEnabled():
-            index = next(
-                (row for row in range(self._output_format.count())
-                 if model.item(row).isEnabled()),
-                0,
-            )
-        self._output_format.setCurrentIndex(index)
-        self._output_format.blockSignals(False)
+        """Delegate: the format box's fill lives in setup_controls now."""
+        fill_format_combo(self._output_format, self._input_path.text().strip())
 
     def _build_settings_card(self) -> SetupCard:
-        # Ayarlar kartını ikonlu başlıkla kurar / Builds the icon-titled settings card
-        # "Kaynak Dil:" and "Hedef Dil:" between two language boxes said what the arrow says.
-        self._src_label = _icon_label("globe", UIStrings.SOURCE_LANG_LABEL)
-        self._src_label.hide()
-        self._tgt_label = _icon_label("arrow-right", UIStrings.TARGET_LANG_LABEL)
-        langs_row = QHBoxLayout()
-        langs_row.setSpacing(8)
-        langs_row.addWidget(self._source_lang, 1)
-        langs_row.addWidget(self._tgt_label)
-        langs_row.addWidget(self._target_lang, 1)
-
-        range_row = QHBoxLayout()
-        range_row.addWidget(self._range_mode)
-        range_row.addWidget(self._range_input)
-
-        self._out_fmt_label = _icon_label("file-type", UIStrings.OUTPUT_FORMAT_LABEL)
-        self._out_file_label = _icon_label("file-output", UIStrings.OUTPUT_FILE_LABEL)
-        self._langs_label = _icon_label("globe", UIStrings.LANGS_LABEL)
-        self._range_label = _icon_label("range", UIStrings.RANGE_LABEL)
-        self._provider_label = _icon_label("server", UIStrings.PROVIDER_LABEL)
-
-        grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(10)
-        # Spare width belongs to the fields. Without this the grid shares it out evenly and
-        # the label column grew to a third of the card, holding two words.
-        grid.setColumnStretch(0, 0)
-        grid.setColumnStretch(1, 1)
-        grid.setColumnStretch(2, 0)
-        grid.setColumnMinimumWidth(0, _LABEL_COLUMN_WIDTH)
-        grid.addWidget(self._out_fmt_label, 0, 0)
-        # No stretch and no second column: the longest entry here is a short phrase, and a
-        # box the width of the card for it left the path below looking cramped by comparison.
-        self._output_format.setMaximumWidth(_FORMAT_BOX_WIDTH)
-        grid.addWidget(self._output_format, 0, 1, alignment=Qt.AlignmentFlag.AlignLeft)
-        out_row = QHBoxLayout()
-        out_row.setSpacing(8)
-        out_row.addWidget(self._output_path)
-        out_row.addWidget(self._browse_out_btn)
-        out_row.addStretch()
-        grid.addWidget(self._out_file_label, 1, 0)
-        grid.addLayout(out_row, 1, 1, 1, 2)
-        grid.addWidget(self._langs_label, 2, 0)
-        grid.addLayout(langs_row, 2, 1, 1, 2)
-        grid.addWidget(self._range_label, 3, 0)
-        grid.addLayout(range_row, 3, 1, 1, 2)
-        grid.addWidget(self._provider_label, 4, 0)
-        grid.addWidget(self._provider_profile_combo, 4, 1)
-        grid.addWidget(self._provider_btn, 4, 2)
-
-        card = SetupCard("settings", UIStrings.SETTINGS_CARD_TITLE)
-        card.add_body(grid)
-        return card
+        """Delegate: the card, its rows and its labels are built in settings_card now."""
+        return SettingsCardBuilder(self).build()
 
     def _build_layout(self) -> None:
         # Arayüz düzenini mockup 03'e göre kurar / Builds the mockup-03 style layout
@@ -315,10 +167,10 @@ class _JobSetupUiBuilder:
         inner.setContentsMargins(0, 0, 0, 0)
         inner.setSpacing(12)
         # No stretch: the drop zone takes what it needs and the space goes to the settings
-        # card, which has something in it to read.
+        # card, which has something in it to read. (A stretch used to sit here and left a band of
+        # blank window between the card and the button.)
         inner.addWidget(self._drop_zone)
         inner.addWidget(card)
-        inner.addStretch(1)
 
         scroller = QScrollArea()
         scroller.setWidgetResizable(True)
@@ -329,11 +181,16 @@ class _JobSetupUiBuilder:
         scrolled.setAutoFillBackground(False)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 16)
-        layout.setSpacing(12)
+        # Tight by 16px in total: the window is sized from these pages, and the card's last row was
+        # landing just past the viewport. The scroll area stays as the fallback for bigger fonts.
+        layout.setContentsMargins(16, 8, 16, 12)
+        layout.setSpacing(6)
         layout.addWidget(scroller, 1)
+        # The button sits at the bottom edge. It used to have a stretch under it, so the window's
+        # spare height collected below the button and read as an unfinished screen; the scroller's
+        # own stretch now takes that space, so the button stays at the bottom and the card gets the
+        # room. (Adding a second stretch here split the space with the scroller and cut the card.)
         layout.addWidget(self._start_btn)
-        layout.addStretch()
 
     def retranslate_ui(self) -> None:
         # Arayüz diline göre metinleri günceller / Updates texts for active language
@@ -357,10 +214,15 @@ class _JobSetupUiBuilder:
         self._browse_in_btn.setText(UIStrings.BROWSE_BTN)
         # Icon only - retranslating put the word back and it did not fit the narrow button.
         self._browse_out_btn.setToolTip(
-            f"{UIStrings.BROWSE_BTN} - çıktı klasörünü seçin / Select output folder"
+            UIStrings.SELECT_OUTPUT_FOLDER_BTN
         )
         self._provider_btn.setToolTip(UIStrings.PROVIDER_SETTINGS_BTN)
         self._start_btn.setText(UIStrings.START_TRANSLATION_BTN)
+        # These two were read once at construction and never again, so they stayed in whatever
+        # language the window was built in. Seen by driving the built exe: an English dual-output
+        # hint sitting in a Turkish window next to Turkish labels.
+        self._range_hint.setText(UIStrings.RANGE_HINT)
+        self._refresh_pair_note()
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_mode.setItemText(0, UIStrings.RANGE_ALL)
         self._range_mode.setItemText(1, UIStrings.RANGE_CUSTOM)
@@ -408,6 +270,25 @@ class _JobSetupUiBuilder:
         self._start_btn.clicked.connect(self._emit_job)
 
 
+def _memory_path() -> str | None:
+    """Where the cross-run translation memory lives, or None when the switch is off.
+
+    Read at job start, not at import: the setting is meant to take effect on the next run
+    without restarting the application.
+    """
+    from layoutkeep.core.paths import data_dir
+
+    if not tunables.get("translation.memory"):
+        return None
+    return str(Path(data_dir()) / "memory.sqlite")
+
+
+def _glossary_path() -> str | None:
+    """The configured glossary file, or None. A path that no longer exists is ignored loudly."""
+    configured = str(tunables.get("translation.glossary_path") or "").strip()
+    return configured or None
+
+
 class JobSetupWidget(_JobSetupUiBuilder, QWidget):
     # Çeviri işi ayarlarını toplayıp job_ready sinyali yayan bileşen / Job setup widget
     job_ready = Signal(object)
@@ -419,18 +300,36 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
         self._build_layout()
         self._connect_signals()
         self._load_saved_settings()
+        self._refresh_pair_note()
 
     def _on_source_lang_changed(self, _text: str) -> None:
         # Kaynak dil tercihini anında kalıcı kaydeder / Saves source language preference immediately
         code = self._source_lang.currentText()
         if code:
             self._settings.setValue("source_lang", code)
+        self._refresh_pair_note()
 
     def _on_target_lang_changed(self, _text: str) -> None:
         # Hedef dil tercihini anında kalıcı kaydeder / Saves target language preference immediately
         code = self._target_lang.currentText()
         if code:
             self._settings.setValue("target_lang", code)
+        self._refresh_pair_note()
+
+    def _refresh_pair_note(self) -> None:
+        """Say under the language boxes whether this pair has been measured, and how it scored."""
+        from layoutkeep.core.capabilities import language_pair_measurement
+
+        measured = language_pair_measurement(
+            self._source_lang.currentText() or "auto", self._target_lang.currentText() or ""
+        )
+        if measured is None:
+            self._pair_note.setText(UIStrings.LANG_PAIR_UNMEASURED)
+            return
+        (source, target), numbers = measured
+        self._pair_note.setText(
+            UIStrings.LANG_PAIR_MEASURED.format(pair=f"{source.upper()} → {target.upper()}", **numbers)
+        )
 
     def _on_input_text_changed(self, text: str) -> None:
         # Input path dışarıdan değişirse dropzone ve çıktıyı senkronize eder / Syncs dropzone on path change
@@ -505,7 +404,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             "Tüm Desteklenen Belgeler (*.epub *.pdf *.docx *.png *.jpg *.jpeg *.webp *.bmp *.tiff *.lkproj);;"
             "Belgeler (*.epub *.pdf *.docx *.lkproj);;Görseller (*.png *.jpg *.jpeg *.webp *.bmp *.tiff)"
         )
-        path, _ = QFileDialog.getOpenFileName(self, "Belge Seç", "", filters)
+        path, _ = QFileDialog.getOpenFileName(self, UIStrings.SELECT_DOCUMENT_BTN, "", filters)
         if path:
             self._input_path.setText(path)
             self._drop_zone.set_file_path(path)
@@ -521,7 +420,7 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             if Path(src_parent).exists():
                 initial_dir = src_parent
 
-        folder = QFileDialog.getExistingDirectory(self, "Çıktı Klasörünü Seç", initial_dir)
+        folder = QFileDialog.getExistingDirectory(self, UIStrings.SELECT_OUTPUT_FOLDER_BTN, initial_dir)
         if folder:
             self._settings.setValue("output_folder", folder)
             in_path = self._input_path.text().strip()
@@ -546,11 +445,16 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
 
         saved_folder = str(self._settings.value("output_folder", ""))
         if saved_folder and Path(saved_folder).exists():
-            self._output_path.setPlaceholderText(f"Varsayılan Klasör: {saved_folder}")
+            self._output_path.setPlaceholderText(UIStrings.DEFAULT_FOLDER_PLACEHOLDER.format(saved_folder))
 
     def _on_range_mode_changed(self, index: int) -> None:
         # Aralık modu değiştiğinde özel aralık kutusunu gösterir/gizler / Shows/hides custom range input
         self._range_input.setVisible(index == 1)
+        self._range_hint.setVisible(index == 1)
+
+    def input_path(self) -> str:
+        """The file the screen is pointed at - the document a glossary suggestion reads."""
+        return self._input_path.text().strip()
 
     def _emit_job(self) -> None:
         # Doğrulamadan sonra job_ready sinyali yayar / Validates and emits job_ready signal
@@ -584,6 +488,9 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
             target_lang=self._target_lang.currentText(),
             provider=provider,
             page_range=page_range,
+            dual_mode=str(tunables.get("output.dual_mode") or ""),
+            memory_path=_memory_path(),
+            glossary_path=_glossary_path(),
         )
         self.job_ready.emit(config)
 

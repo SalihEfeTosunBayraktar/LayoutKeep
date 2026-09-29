@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.ui.icons import get_svg_icon
+from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.theme import ThemeManager
 
 # Üretici / Model Ailesi Eşleşmeleri / Vendor and model family pattern mappings
@@ -30,8 +31,8 @@ VENDOR_PATTERNS: list[tuple[str, tuple[str, ...]]] = [
     ("Anthropic / Claude", ("claude", "anthropic/")),
     ("Cohere", ("command", "aya", "c4ai")),
 ]
-OTHER_VENDOR = "Diğer Modeller"
-ALL_VENDORS = "Tüm Üreticiler"
+OTHER_VENDOR = UIStrings.OTHER_MODELS_LABEL
+ALL_VENDORS = UIStrings.ALL_MAKERS_LABEL
 
 
 def classify_vendor(model_id: str) -> str:
@@ -87,7 +88,7 @@ class ModelSelectorWidget(QWidget):
     def _init_ui(self) -> None:
         # Arayüz elemanlarını kurar / Initializes UI controls
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("Model ara… (örn: llama, qwen, 7b)")
+        self._search_input.setPlaceholderText(UIStrings.MODEL_SEARCH_PLACEHOLDER)
         self._search_input.setClearButtonEnabled(True)
         self._search_input.addAction(get_svg_icon("search", size=14), QLineEdit.ActionPosition.LeadingPosition)
 
@@ -100,6 +101,12 @@ class ModelSelectorWidget(QWidget):
         self._model_combo = QComboBox()
         self._model_combo.setEditable(True)
         self._model_combo.setModel(self._item_model)
+        # An empty editable combo is just an empty box: it reads as a layout mistake, which is how
+        # the user reported it. A model name can be typed straight in, so the field stays; the
+        # placeholder is what tells the reader what the box is for.
+        editor = self._model_combo.lineEdit()
+        if editor is not None:
+            editor.setPlaceholderText(UIStrings.MODEL_INPUT_PLACEHOLDER)
 
         top_row = QHBoxLayout()
         top_row.setContentsMargins(0, 0, 0, 0)

@@ -5,15 +5,12 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
-    QLabel,
-    QProgressBar,
     QPushButton,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -21,30 +18,52 @@ from PySide6.QtWidgets import (
 from layoutkeep.core import tunables
 from layoutkeep.ui.eta import EtaCalculator, EtaSnapshot
 from layoutkeep.ui.icons import get_svg_icon
-from layoutkeep.ui.metric_card import MetricCard
+from layoutkeep.ui.progress_controls import ProgressControlsBuilder
 from layoutkeep.ui.strings import UIStrings
-from layoutkeep.ui.theme import ThemeManager
 
 # ---------------------------------------------------------------------------
 # Metin formatlama yardımcıları / Text formatting helpers
 # ---------------------------------------------------------------------------
 
 
+#: What the worker announces as a phase, and the text a person should read. The keys travel
+#: over the `status` signal as short machine names ("writing output"), which used to reach the
+#: screen verbatim; mapping them in one place keeps the card and the floating bar agreeing.
+_PHASE_KEYS = {
+    "reading document": "STATUS_READING",
+    "translating": "STATUS_TRANSLATING",
+    # The fit is its own phase and used to have no announcement at all: the card kept saying
+    # "translating" while the whole run sat in the fitting pass. "applying translation" was showing
+    # the fitting text, which is a different step - it now has its own.
+    "fitting": "STATUS_FITTING",
+    "applying translation": "STATUS_APPLYING",
+    "writing output": "STATUS_WRITING",
+    "verifying output": "STATUS_VERIFYING",
+    "cancelled": "STATUS_CANCELLED",
+}
+
+
+def format_phase(status: str) -> str:
+    """Turn a worker phase into display text, leaving anything already readable alone."""
+    key = _PHASE_KEYS.get(status.strip().lower())
+    return UIStrings.get(key) if key else status
+
+
 def format_progress_status(done: int, total: int) -> str:
-    """İlerleme çubuğu yanındaki durum satırını formatlar / Formats status line."""
+    """İlerleme çubuğu yanındaki durum satırını biçimlendirir / Formats the status line."""
     pct = (done / total * 100) if total else 0.0
-    return f"{done}/{total} segment çevrildi (%{pct:.1f})"
+    return UIStrings.get("PROGRESS_SEGMENTS").format(done=done, total=total, pct=f"{pct:.1f}")
 
 
 def format_memory_stats_text(hits: int, total: int) -> str:
-    """TM isabet oranını yüzde olarak formatlar / Formats TM hit rate as a percent."""
+    """TM isabet oranını biçimlendirir / Formats the memory hit rate."""
     rate = hits / total if total else 0.0
-    return f"TM isabet: {hits}/{total} ({rate:.0%})"
+    return UIStrings.get("PROGRESS_MEMORY_HITS").format(hits=hits, total=total, rate=f"{rate:.0%}")
 
 
 def format_batch_timeout_text(seconds: float) -> str:
-    """Batch üst sınır metnini formatlar / Formats batch upper-bound text."""
-    return f"Beklenen üst sınır: {seconds:.0f}s"
+    """Batch üst sınır metnini biçimlendirir / Formats the batch upper-bound text."""
+    return UIStrings.get("PROGRESS_BATCH_LIMIT").format(s=f"{seconds:.0f}")
 
 
 def format_chars_label_text(done_chars: int, total_chars: int) -> str:
@@ -86,16 +105,6 @@ def apply_pause_button_state(button: QPushButton, is_paused: bool) -> None:
 _PREVIEW_KEEP = 40
 
 
-def _build_preview_pane() -> QTextEdit:
-    # Salt okunur, kaydirilabilir onizleme paneli / Read-only scrollable preview pane
-    pane = QTextEdit()
-    pane.setReadOnly(True)
-    pane.setMinimumHeight(132)
-    pane.setStyleSheet("font-size: 12px; padding: 4px;")
-    pane.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-    return pane
-
-
 class ProgressCardLayout:
     """Progress kartının görsel düzenini kurar / Builds the progress card visual layout.
 
@@ -116,6 +125,8 @@ class ProgressCardLayout:
         # text below them. Stacking them underneath in a 2x2 grid left the card looking
         # scattered at the width the window actually opens at.
         card_layout.addLayout(self._build_stats_grid())
+        # The run's events as they happen (activity_feed.py): the status line alone overwrote them.
+        card_layout.addWidget(self._panel._feed)
         card_layout.addWidget(self._build_preview_card(), 1)
 
         card = QFrame()
@@ -213,81 +224,16 @@ class ProgressWidget(QWidget):
         self._timer.setInterval(500)
         self._timer.timeout.connect(self._on_tick)
 
-        self._init_controls()
+        self._controls = ProgressControlsBuilder(self)
+        self._controls.build()
         layout_builder = ProgressCardLayout(self)
         layout_builder.build_main_layout(layout_builder.build_card())
         self._cancel_btn.clicked.connect(self.cancel_requested.emit)
         self._pause_btn.clicked.connect(self._toggle_pause)
 
-    def _init_controls(self) -> None:
-        # Arayüz kontrollerini başlatır / Initializes UI controls
-        self._title = QLabel(UIStrings.PROGRESS_TITLE)
-        self._title.setStyleSheet("font-size: 16px; font-weight: 700;")
-
-        self._status = QLabel("hazır")
-        self._status.setStyleSheet("font-size: 13px; font-weight: 500;")
-
-        self._time_info = QLabel("")
-        self._time_info.setProperty("class", "muted")
-
-        self._eta = QLabel("")
-        self._eta.setProperty("class", "secondary")
-
-        self._bar = QProgressBar()
-        self._bar.setTextVisible(True)
-
-        # Metrik kartları (mockup 09): hız, kalan süre, segmentler, aktif model
-        self._speed_card = MetricCard("gauge", UIStrings.PROGRESS_SPEED)
-        self._eta_card = MetricCard("hourglass", UIStrings.PROGRESS_REMAINING)
-        self._segments_card = MetricCard("layers", UIStrings.PROGRESS_SEGMENTS_LABEL)
-        self._model_card = MetricCard("cpu", UIStrings.PROGRESS_MODEL_LABEL)
-
-        # TM tasarrufu / batch üst sınırı gibi ikincil metinler
-        self._extra_info = QLabel("")
-        self._extra_info.setProperty("class", "muted")
-
-        self._flags_label = QLabel("")
-        self._flags_label.setProperty("class", "muted")
-        self._flags_label.setVisible(False)
-
-        self._preview_title = QLabel(UIStrings.PROGRESS_ACTIVE_TITLE)
-        self._preview_title.setStyleSheet("font-size: 11px; font-weight: 600;")
-        self._preview_title.setProperty("class", "muted")
-
-        # Mockup 09 shows the document being translated as two columns, source beside
-        # translation, filling in as batches come back. A single line of the *source* - which
-        # is what this used to be - showed the app was busy but never that it was working.
-        self._preview_source = _build_preview_pane()
-        self._preview_target = _build_preview_pane()
-        self._preview_source_head = QLabel(UIStrings.PROGRESS_PREVIEW_SOURCE)
-        self._preview_target_head = QLabel(UIStrings.PROGRESS_PREVIEW_TARGET)
-        for head in (self._preview_source_head, self._preview_target_head):
-            head.setProperty("class", "muted")
-            head.setStyleSheet("font-size: 11px; font-weight: 600;")
-        #: Kept so the panes can be capped without re-reading the widgets.
-        self._preview_pairs: list[tuple[str, str]] = []
-
-        self._init_buttons()
-
-    def _init_buttons(self) -> None:
-        # Eylem butonlarını kurar / Sets up action buttons
-        self._pause_btn = QPushButton(UIStrings.PAUSE_BTN)
-        self._pause_btn.setIcon(get_svg_icon("pause", size=16))
-        self._pause_btn.setEnabled(False)
-
-        self._cancel_btn = QPushButton(UIStrings.CANCEL_BTN)
-        self._cancel_btn.setEnabled(False)
-        self._apply_theme_buttons()
-
-    def _apply_theme_buttons(self) -> None:
-        # İkon renklerini aktif temaya göre ayarlar / Colors icons for the active theme
-        pal = ThemeManager.current_palette()
-        self._pause_btn.setIcon(get_svg_icon("pause", color=pal.text_primary, size=16))
-        self._cancel_btn.setIcon(get_svg_icon("close", color=pal.error, size=16))
-
     def apply_theme(self) -> None:
         # Tema değişiminde buton ikonlarını tazeler / Refreshes button icons on theme change
-        self._apply_theme_buttons()
+        self._controls.apply_theme()
 
     def _toggle_pause(self) -> None:
         # Duraklatma ve devam etme durumunu yönetir / Manages pause and resume toggle
@@ -322,12 +268,13 @@ class ProgressWidget(QWidget):
         self._bar.setValue(0)
         self._status.setText(UIStrings.PROGRESS_STARTING)
         self._time_info.setText(f"{UIStrings.PROGRESS_ELAPSED} 00:00")
-        self._eta.setText(f"{UIStrings.PROGRESS_REMAINING} Hesaplanıyor…")
+        self._eta.setText(f"{UIStrings.PROGRESS_REMAINING} {UIStrings.get('ETA_CALCULATING')}")
         self._segments_card.set_value(f"0 / {total_segments}" if total_segments else "0 / ?")
         self._model_card.set_value("—")
         self._extra_info.setText("")
         self._flags_label.setVisible(False)
         self._flags_label.setText("")
+        self._feed.start_over()
         self._preview_pairs.clear()
         self._preview_source.clear()
         self._preview_target.clear()
@@ -337,7 +284,8 @@ class ProgressWidget(QWidget):
         self._cancel_btn.setEnabled(True)
 
     def set_status(self, text: str) -> None:
-        self._status.setText(text)
+        self._status.setText(format_phase(text))
+        self._feed.add(format_phase(text))
 
     def set_review_flags(self, flagged: int, done: int) -> None:
         """Show how many segments have been flagged so far.
@@ -349,6 +297,7 @@ class ProgressWidget(QWidget):
         self._flags_label.setVisible(bool(flagged))
         if flagged:
             self._flags_label.setText(UIStrings.PROGRESS_FLAGS.format(count=flagged))
+            self._feed.add(UIStrings.PROGRESS_FLAGS.format(count=flagged))
 
     def set_active_segment(self, index: int, preview: str) -> None:
         # Aktif işlenen segmentin başlığını günceller / Updates the active segment heading

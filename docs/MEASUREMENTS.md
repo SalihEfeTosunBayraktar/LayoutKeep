@@ -174,3 +174,126 @@ Tek dil çifti, tek kitap, iki model, iki pasaj. Edebi düzyazı - teknik belged
 farklı davranabilir. Ölçüt Türkçe'yi 5 karakterlik gövdelerle yaklaşıklıyor, çekim ekleri
 yüzünden doğru çeviriyi tutarsız sayabilir; bu yüzden kollar arası fark anlamlı, mutlak oran
 değil.
+
+## 7. Taranmış PDF — metin katmanı olmayan belge
+
+`C:\PhoneLink\computer-systems-Architecture.pdf`: 524 sayfa, **0 çıkarılabilir karakter**,
+sayfa başına bir tam sayfa görseli (600 DPI tarama, bazı sayfalar 150 DPI). Uygulama bu
+belgede "çevrilecek metin yok" diyordu — okuyucu hiç blok üretmiyordu.
+
+### OCR çözünürlüğü — **200 DPI**
+
+Sayfa 61 üzerinde ölçüldü:
+
+| DPI | kutu | karakter | ortalama güven |
+|---|---|---|---|
+| 200 | 47 | 1750 | **0.959** |
+| 300 | 47 | 1748 | 0.976 ama bir satır bozuldu |
+
+Yüksek çözünürlük kendiliğinden daha iyi değil: tanıma modelinin tercih ettiği bir glif
+yüksekliği var. 200 DPI iki katı piksel maliyeti olmadan tüm kutuları buldu.
+
+### Kutu yüksekliği punto değildir — **0.957**
+
+19 çok satırlı blokta ölçüldü: ardışık OCR kutuları birbirinden **0.957 kutu-yüksekliği**
+uzakta, yani kutular üst üste biniyor. Kutu yüksekliği **satır adımıdır**, punto değil.
+Punto sanılınca yeniden çizilen her satır ~1.2x uzuyor ve paragraf geldiği kutuya sığmıyor:
+altı sayfada 210 bloğun 120'si taşıyordu. `0.957 / 1.2` çarpanı yeniden çizilen adımı
+taranmış adımın üzerine oturtuyor.
+
+### Satır birleştirme yatay mesafesi — **1.5**
+
+Dikey örtüşme tek başına yetmiyor. Sayfa 61'de:
+
+| birleşme | oran | doğru mu |
+|---|---|---|
+| `46` + `CHAPTER TWO Digital Components` | 0.79 | ✅ gerçek koşan başlık |
+| `decoder` + `D0` | 2.79 | ❌ şeklin iki yakası |
+| `A0` + `2⁰` + `D1` | 5.88 / 4.84 | ❌ diyagram etiket sütunları |
+
+Tek meşru birleşme 0.79'da, sahte olanların hepsi ≥2.79'da. Kaynaşan satırın kutusu tüm
+şekli kapsıyordu; yazıcı da kaynak metni temizlemek için o kutuyu boyayınca **diyagramı
+siliyordu**.
+
+### Uçtan uca (6 gerçek sayfa, yerel model)
+
+| | önce | sonra |
+|---|---|---|
+| blok | 0 | 193 |
+| olduğu gibi sığan | — | 145 |
+| taşan | — | 17 |
+
+### Sessiz kayıp — **%26**
+
+CLI'ın `translated 193/210` satırı, cevabı hiç gelmeyen segmenti saymıyor kadar kötü değil
+ama ne olduğunu da söylemiyor. Çıktı PDF'i ölçüldüğünde **43 düzyazı segmentinin 11'i
+(%26) kelimesi kelimesine İngilizce** kalmıştı. `Segment.translated` yalnızca `bool(target)`
+olduğu için boş cevap "başarısız" görünmüyor, blok kaynak metnini koruyor ve belge yanlış
+dilde bir paragrafla çıkıyor. `providers/passthrough.py:flag_untranslated` bunu bildiriyor.
+
+### Tekrarlamak için
+
+```
+.venv/Scripts/python.exe tools/audit/translation_completeness.py KAYNAK.pdf CEVIRI.pdf
+```
+
+### Bu ölçümün sınırları
+
+Tek kitap, tek tarama kalitesi, tek sütunlu düzen. Çok sütunlu ya da daha gürültülü bir
+taramada hem OCR güveni hem satır birleştirme eşiği farklı davranabilir. 0.957 çarpanı bu
+belgenin dizgisinden türetildi; başka bir kitabın satır aralığı farklıysa çarpan da farklı
+olur — sabit, ölçülen bir orandır, evrensel bir tipografi kuralı değil.
+
+## 8. Tam kitap koşumu — 524 sayfa, uçtan uca
+
+`computer-systems-Architecture.pdf` (524 sayfa, metin katmanı yok) tamamı çevrildi:
+66 parça × 8 sayfa, 8 işçi süreci, 8 paralel model yuvası, **4.6 saat**.
+
+| | başlangıç | sonuç |
+|---|---|---|
+| çıkarılabilir karakter | **0** | **954.585** |
+| sayfa dışına taşan kelime | — | **0** |
+| sayfada ham işaret | — | **0** |
+| kelime kaynaşması | — | 11 |
+| düzyazının çevrilme oranı | %0 | **%96.0** (2.501 blok) |
+
+"Taşma yok" iddiası iki sayıyla verilmeli, tek sayı yanıltır: **sayfa dışına çıkan tek
+kelime yok** — bu kesin. Ama sığdırma geçişi kitap boyunca **1.860 bloğu** taşıyor diye
+işaretledi (parça başına medyan 28). Bunlar okunabilirlik tabanına kadar küçültülüp
+incelemeye bayraklandı; metin sayfada kalıyor ama bir kısmı orijinalinden küçük punto ile.
+
+### Paralellik — yuva ve işçi sayısı eşleşmeli
+
+Kullanıcı "bu paralel değil" dedi ve haklıydı: model 4 yuvayla yüklüyken koşum 8 işçiyle
+çalışıyordu, yani yarısı sürekli sırada bekliyordu. Ölçüm:
+
+| eşzamanlı istek | süre | sıraya alınsaydı | etkin |
+|---|---|---|---|
+| 1 | 3.3 sn | — | — |
+| 4 | 2.9 sn | 13.0 sn | 4.5x |
+| 8 | 3.3 sn | 26.0 sn | **8.0x** |
+
+Yuva sayısını işçi sayısına eşitlemek ~2 kat kazandırdı.
+
+**VRAM paralellikle artmıyor:** `--context-length` toplam bütçedir ve yuvalara bölünür —
+4 yuva 5620 MiB, 8 yuva 5592 MiB. Bağlamı büyütmek de hız vermez: istemler en fazla 745
+token, yuva başına pay 5120. Darboğaz **CPU** (%100 sabit, GPU %28) — OCR ve PDF yazımı.
+
+### Ölçümle çürütülen üç hipotez
+
+Uygulanmış olsalardı boşa emek ve gereksiz yeniden başlatma olurdu:
+
+- **Güven tabanlı şekil koruma.** Bozuk Karnaugh ızgaralarının OCR güveni **1.00** çıktı —
+  tanıma doğru, kaybolan şey iki boyutlu yapı. Çözüm güvende değil, harf oranındaydı.
+- **Yığın boyutlandırıcının çöktüğü.** Aslında düzgün çalışıyor: 1→2→3→4 büyüyor, 5'te
+  başarısız olup 4'te tutunuyor (3.2 segment/istek). İstek maliyetinin %75'i sığdırma
+  geçişinden geliyordu, yığınlardan değil.
+- **İş parçacığı sınırlama.** 27.9x aşırı-abonelik (19 süreçte 446 iş parçacığı, 16
+  çekirdek) **gerçek ama maliyetsiz**: 8 eşzamanlı sayfa-OCR'ı varsayılanla 21.3 sn,
+  2'ye sınırlıyken 21.5 sn.
+
+### Bu ölçümün sınırları
+
+Tek kitap, tek dil çifti, tek model (gemma-4-e4b), tek makine. Çeviri tamlığının tavanını
+artık uygulama değil model belirliyor: kalan %4'ün bir kısmı çevrilmemesi gereken formüller,
+gerisi modelin boş döndürdüğü segmentler (bildiriliyor ve bir kez yeniden deneniyor).

@@ -4,7 +4,23 @@ from __future__ import annotations
 
 import time
 
+import pytest
+
 from layoutkeep.ui.eta import EtaCalculator
+
+
+@pytest.fixture(autouse=True)
+def _english_after_each():
+    """The interface language is global state; leave it English for whatever runs next.
+
+    WHY THIS EXISTS: one test set the language to German and did not put it back, and the next
+    file's pause-button assertion ("Duraklat") failed with "Pause" - a leak that looks like a
+    broken widget.
+    """
+    yield
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
 
 
 def test_eta_format_elapsed():
@@ -15,27 +31,60 @@ def test_eta_format_elapsed():
 
 
 def test_eta_format_remaining():
-    assert EtaCalculator.format_remaining(None) == "Hesaplanıyor…"
-    assert EtaCalculator.format_remaining(3) == "Tamamlanmak üzere"
-    assert EtaCalculator.format_remaining(45) == "~45 sn kaldı"
-    assert EtaCalculator.format_remaining(95) == "~1 dk 35 sn"
-    assert EtaCalculator.format_remaining(120) == "~2 dk"
-    assert EtaCalculator.format_remaining(3660) == "~1 sa 1 dk"
+    """The wording follows the interface language rather than hard-coded Turkish.
+
+    WHY THIS EXISTS: an English window showed "Hesaplanıyor…" because these formatters returned
+    Turkish literals directly. Both languages are pinned here so neither can drift again.
+    """
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    try:
+        assert EtaCalculator.format_remaining(None) == "Calculating…"
+        assert EtaCalculator.format_remaining(3) == "Almost done"
+        assert EtaCalculator.format_remaining(45) == "~45s left"
+        assert EtaCalculator.format_remaining(95) == "~1m 35s"
+        assert EtaCalculator.format_remaining(120) == "~2m"
+        assert EtaCalculator.format_remaining(3660) == "~1h 1m"
+        UIStrings.set_language("tr")
+        assert EtaCalculator.format_remaining(None) == "Hesaplanıyor…"
+        assert EtaCalculator.format_remaining(3) == "Tamamlanmak üzere"
+        assert EtaCalculator.format_remaining(45) == "~45 sn kaldı"
+        assert EtaCalculator.format_remaining(95) == "~1 dk 35 sn"
+        assert EtaCalculator.format_remaining(120) == "~2 dk"
+        assert EtaCalculator.format_remaining(3660) == "~1 sa 1 dk"
+        UIStrings.set_language("de")
+        assert EtaCalculator.format_remaining(None) == "Wird berechnet…"
+        assert EtaCalculator.format_remaining(3660) == "noch ~1 Std 1 Min"
+    finally:
+        UIStrings.set_language("en")
 
 
 def test_eta_format_speed():
-    assert EtaCalculator.format_speed(None) == "Ölçülüyor…"
-    assert EtaCalculator.format_speed(0) == "Ölçülüyor…"
-    assert EtaCalculator.format_speed(15.42) == "~15.4 kar/sn"
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
+    try:
+        assert EtaCalculator.format_speed(None) == "Measuring…"
+        assert EtaCalculator.format_speed(0) == "Measuring…"
+        assert EtaCalculator.format_speed(15.42) == "~15.4 chars/s"
+        UIStrings.set_language("tr")
+        assert EtaCalculator.format_speed(None) == "Ölçülüyor…"
+        assert EtaCalculator.format_speed(15.42) == "~15.4 kar/sn"
+    finally:
+        UIStrings.set_language("en")
 
 
 def test_eta_calculator_happy_path():
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
     calc = EtaCalculator(total_segments=10, total_chars=1000)
     calc.start()
 
     snap = calc.get_snapshot()
     assert snap.percent_done == 0.0
-    assert snap.formatted_remaining == "Hesaplanıyor…"
+    assert snap.formatted_remaining == "Calculating…"
 
     # 2 segment, 200 karakter, 10 saniyede tamamlandı (20 kar/sn)
     calc.record_progress(2, 200, is_from_memory=False, batch_duration_s=10.0)
@@ -46,7 +95,7 @@ def test_eta_calculator_happy_path():
     # Kalan 800 karakter / 20 kar/sn = 40 saniye
     assert snap.remaining_seconds is not None
     assert abs(snap.remaining_seconds - 40.0) < 1.0
-    assert "~40 sn kaldı" in snap.formatted_remaining
+    assert "~40s left" in snap.formatted_remaining
 
 
 def test_eta_calculator_pause_resume():

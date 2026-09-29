@@ -11,7 +11,36 @@ from fixtures.build_epub_fixture import build_sample_epub
 from lxml import etree
 
 from layoutkeep.readers.epub_reader import read_epub
-from layoutkeep.writers.epub_writer import write_epub
+from layoutkeep.writers.epub_writer import _apply_edits, write_epub
+
+
+def test_overlapping_edits_keep_the_markup_between_them() -> None:
+    """Two edits over the same region must not silently swallow what lies between them.
+
+    WHY THIS EXISTS: a held-out EPUB came back from translation with one `<div>` unclosed, a `<span>`
+    pair and three `<a href>` openings missing - invalid XHTML that a stricter reader than MuPDF
+    refuses. The cause was here: with edits sorted by start, an edit that begins before the previous
+    one ended left `text[cursor:start]` empty and then jumped `cursor` forward over markup neither
+    edit replaced.
+    """
+    text = "<div>before<span>keep me</span>after</div>"
+    # Two edits that both touch the span, starting inside it.
+    start = text.index("keep")
+    first = (start, start + 4, "NEW")           # replaces "keep"
+    second = (start + 2, text.index("</span>"), "MORE")  # overlaps the first
+
+    out = _apply_edits(text, [first, second])
+
+    assert "<span>" in out and "</span>" in out, f"inline markup was dropped: {out!r}"
+    assert out.startswith("<div>before<span>"), out
+
+
+def test_edits_inside_an_earlier_one_are_ignored_not_spliced() -> None:
+    """An edit wholly inside an earlier replacement has nothing of its own left to replace."""
+    text = "aaa BBB ccc"
+    out = _apply_edits(text, [(4, 7, "LONGER"), (5, 6, "X")])
+
+    assert out == "aaa LONGER ccc", out
 
 
 def _read(tmp_path: Path):
@@ -23,6 +52,37 @@ def _read(tmp_path: Path):
 def _page_xhtml(epub_path: Path, name: str) -> bytes:
     with zipfile.ZipFile(epub_path) as zf:
         return zf.read(f"OEBPS/{name}")
+
+
+def test_a_link_inside_a_translated_paragraph_keeps_its_tag_and_valid_xhtml(tmp_path: Path) -> None:
+    """A paragraph's `<a href>` must survive the rewrite, and the file must stay well-formed.
+
+    WHY THIS EXISTS: a held-out EPUB came back from translation with one `<div>` unclosed and a
+    `<span>` pair and three `<a href>` openings missing - invalid XHTML that MuPDF tolerates and a
+    stricter reader refuses. The cause was `_block_replacement_html` rebuilding a block from its
+    translated spans, which can only carry bold and italic; a link inside the paragraph was dropped.
+    A block whose source wraps words in something a Span cannot describe now keeps the source's own
+    tags and only its words move, so the words here are asserted one by one: a tag legitimately
+    splits the sentence, and demanding the phrase as one contiguous string would fail on a correct
+    rewrite.
+    """
+    from layoutkeep.core.docir import Line, Span
+
+    src, doc = _read(tmp_path)
+    chap1 = doc.pages[0]
+    note = next(b for b in chap1.blocks if b.text.startswith("See the note"))
+    note.lines = [
+        Line(spans=[Span(text="Nota bakınız [1] aşağıda.", bbox=note.bbox, style=note.dominant_style())])
+    ]
+
+    out = tmp_path / "out.epub"
+    write_epub(doc, src, out)
+
+    after = _page_xhtml(out, "chap1.xhtml")
+    etree.fromstring(after)  # malformed output raises here
+    text = after.decode("utf-8")
+    assert "Nota" in text and "bakınız" in text, "the translation must land in the paragraph"
+    assert 'href="#note1"' in text, "the paragraph's link was dropped by the rewrite"
 
 
 def test_translating_one_block_only_changes_that_blocks_text(tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ and nothing else about the document's visual representation or the PDF/EPUB engi
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 from layoutkeep.core.docir import Segment
 from layoutkeep.providers.batching import ProgressCallback
@@ -38,3 +39,42 @@ class TranslationProvider(ABC):
         request for the whole call are free to ignore it or call it once at the end.
         """
         raise NotImplementedError
+
+
+def chat_callable(provider) -> Callable[[list[dict[str, str]]], str] | None:
+    """The raw chat call under the wrappers, or None for a provider that has none (DeepL).
+
+    WHY THIS EXISTS: a run is handed a stack of decorators - protection, repeat sharing, memory -
+    and not one of them forwards `_chat`, so asking the outermost object for it found nothing and
+    the document-level passes were skipped on every real provider. The call is reached by walking
+    `inner`, the way `ui/worker._set_provider_timeout` already reaches the real timeout.
+    """
+    target = provider
+    while target is not None:
+        chat = getattr(target, "_chat", None)
+        if chat is not None:
+            return _with_first_batch_timeout(target, chat)
+        target = getattr(target, "inner", None)
+    return None
+
+
+def _with_first_batch_timeout(target, chat: Callable[[list[dict[str, str]]], str]):
+    """The chat call, given the first batch's allowance while the timeout is adaptive.
+
+    A document-level call (the automatic glossary) comes before any batch, so it ran under the 60 s
+    starting timeout; a slow local server's forty-term answer did not fit and the glossary was lost.
+    A pinned `timeout` is left alone, and the run's own timeout is restored after the call.
+    """
+    allowance = getattr(target, "first_batch_base_timeout", None)
+    if getattr(target, "timeout", 0) is not None or allowance is None:
+        return chat
+
+    def call(messages: list[dict[str, str]]) -> str:
+        before = target._request_timeout
+        target._request_timeout = max(before, allowance)
+        try:
+            return chat(messages)
+        finally:
+            target._request_timeout = before
+
+    return call

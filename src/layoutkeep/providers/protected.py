@@ -85,7 +85,7 @@ class ProtectedProvider(TranslationProvider):
                 # The inner provider dropped a segment, which it is contractually not allowed to
                 # do. Return the original flagged rather than silently shortening the list.
                 seg.needs_review = True
-                seg.review_reason = "sağlayıcı bu segmenti yanıtlamadı"
+                seg.review_reason = "REVIEW_PROVIDER_EMPTY"
                 out.append(seg)
                 continue
             protection = protections.get(seg.block_id)
@@ -94,9 +94,7 @@ class ProtectedProvider(TranslationProvider):
                 if lost:
                     stats["lost"] += lost
                     result.needs_review = True
-                    result.review_reason = (
-                        f"{lost} korunan değer çeviride yok (ölçü, parça no veya referans)"
-                    )
+                    result.review_reason = f"REVIEW_PROTECTED_VALUE_LOST|{lost}"
             # The wrapped provider translated a tokenised source; the caller must see the real
             # one. The reader's own verdict has to come back too - a segment the reader had
             # already flagged (mirrored text, a shaky OCR line) arrives here as a fresh Segment

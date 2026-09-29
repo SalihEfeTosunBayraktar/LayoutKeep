@@ -19,6 +19,8 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from layoutkeep.core import tunables
+
 SCHEMA_VERSION = 1
 
 
@@ -45,6 +47,8 @@ class BlockRole(StrEnum):
     FORMULA = "formula"
     CODE = "code"
     FIGURE = "figure"          # image region, no text
+    FIGURE_LABEL = "figure_label"  # a prose label inside a figure, translated in its own box
+    BIBLIOGRAPHY = "bibliography"  # references, citation entries
     UNKNOWN = "unknown"
 
 
@@ -55,6 +59,7 @@ NON_TRANSLATABLE_ROLES: frozenset[BlockRole] = frozenset(
         BlockRole.FORMULA,
         BlockRole.CODE,
         BlockRole.FIGURE,
+        BlockRole.BIBLIOGRAPHY,
     }
 )
 
@@ -113,6 +118,9 @@ class Style:
     #: it lands on a sans); a recognised name is always believed over it, because producers set
     #: the flag carelessly and it is wrong about as often as it is right on names we do know.
     serif: bool | None = None
+    #: Whether the source sets this run in a monospaced face (a PDF span's monospace flag). Code
+    #: is set that way, and a block entirely in such a face is read as code, not prose.
+    monospace: bool = False
 
     def key(self) -> tuple[Any, ...]:
         """Identity used to decide whether two adjacent runs can be merged into one span."""
@@ -196,6 +204,9 @@ class Block:
     #: file. Carries the same inline markers as `Segment.source`, so the editor can render the
     #: original's bold and italic runs rather than showing flattened text.
     source_text: str = ""
+    #: True for a label OCR read out of a picture's pixels on a born-digital page: there is no text
+    #: layer to redact, so the writer erases its ink from the picture and draws the translation.
+    raster: bool = False
     #: Grid position for a `role == TABLE` block; -1 on every other block. A reader that finds
     #: a table already knows which cell sits where - the alternative was throwing that away and
     #: asking a writer to guess it back from reading order, which is how a rebuilt table became
@@ -270,6 +281,16 @@ class Page:
     images: list[ImageRef] = field(default_factory=list)
     #: Reader-specific handle back to the source (PDF page index, EPUB href, ...).
     source_ref: str = ""
+    #: True when this page had no text layer and its text came from OCR instead.
+    #:
+    #: The writers need to know, because removing the source text is a different operation in
+    #: each case. On an ordinary page the text is a set of text objects and PDF redaction deletes
+    #: them. On a scanned page the text is *painted into the page image*, so redaction - which is
+    #: deliberately told not to touch images, or every figure in every document would be
+    #: destroyed - removes nothing, and the translation lands on top of the original words. The
+    #: reader is the only part of the pipeline that knows which kind of page it saw, so it says
+    #: so here rather than making each writer re-derive it (D1).
+    scanned: bool = False
 
     def blocks_in_reading_order(self) -> list[Block]:
         return sorted(self.blocks, key=lambda b: b.order)
@@ -317,6 +338,11 @@ class Document:
     source_lang: str | None = None
     target_lang: str | None = None
     metadata: dict[str, str] = field(default_factory=dict)
+    #: What translated this document - version, provider, model, endpoint, reader path, the
+    #: settings that differed from the defaults (`core/provenance.py`). A dict rather than a
+    #: string so it reads as itself in the project file, and optional so every project written
+    #: before it existed still loads.
+    provenance: dict[str, Any] | None = None
 
     def iter_blocks(self) -> Iterator[tuple[Page, Block]]:
         for page in self.pages:
@@ -366,20 +392,51 @@ def segments_from_document(
     """Flatten a Document into the translatable units a provider consumes.
 
     `context_blocks` neighbouring blocks are attached as context on each side. Context improves
-    pronoun and terminology consistency measurably and costs little, but it is never translated.
+    pronoun and terminology consistency measurably but is never translated.
+
+    Its cost was not measured until it was: on the Gutenberg book (2184 segments, the default of one
+    neighbour each side) the context is 1,030,768 characters against 517,300 characters of text to
+    translate - 199% of the source, two thirds of everything sent - while the inline markers that
+    carry bold and italic are 0.35%. The quality benefit and the cost therefore have to be weighed
+    against each other rather than assumed; `tools/audit/` has no A/B for it yet, and the default is
+    unchanged until one exists.
     """
     ordered = [b for _, b in doc.iter_blocks() if b.translatable]
+    # The topic map is optional and a broken one must never cost the run: it is looked up per block
+    # id, not recomputed, so the tool that wrote it and this loop cannot drift apart.
+    keywords: dict[str, list[str]] = {}
+    map_path = str(tunables.get("translation.keyword_map_path") or "").strip()
+    if map_path:
+        try:
+            for part in json.loads(Path(map_path).read_text(encoding="utf-8")):
+                for block_id in part.get("block_ids", []):
+                    keywords[block_id] = list(part.get("keywords") or [])
+        except (OSError, json.JSONDecodeError, AttributeError, TypeError):
+            keywords = {}
     segments: list[Segment] = []
     for i, block in enumerate(ordered):
         before = ordered[max(0, i - context_blocks) : i]
         after = ordered[i + 1 : i + 1 + context_blocks]
+        ctx_before = "\n".join(_plain_original(b) for b in before)
+        ctx_after = "\n".join(_plain_original(b) for b in after)
+        # 0 means no cap, which is the default and leaves every request exactly as it was. A cap
+        # keeps the text nearest the segment - the end of what came before, the start of what
+        # follows - because that is the part that carries pronouns and terminology.
+        cap = int(tunables.get("translation.context_max_chars") or 0)
+        if cap > 0:
+            ctx_before, ctx_after = ctx_before[-cap:], ctx_after[:cap]
+        # Added after the cap so the topic line itself can never be clipped away: it is the whole
+        # point of the map that the model knows what this stretch of the document is about.
+        part_words = keywords.get(block.id)
+        if part_words:
+            ctx_before = "This part is about: " + ", ".join(part_words) + "\n" + ctx_before
         segments.append(
             Segment(
                 block_id=block.id,
                 source=_original_text(block),
                 # Context stays plain: the model reads it, it never has to reproduce it.
-                context_before="\n".join(_plain_original(b) for b in before),
-                context_after="\n".join(_plain_original(b) for b in after),
+                context_before=ctx_before,
+                context_after=ctx_after,
                 confidence=block.confidence,
                 needs_review=block.needs_review,
                 review_reason=block.review_reason,
@@ -411,7 +468,7 @@ def apply_segments(doc: Document, segments: Sequence[Segment]) -> list[str]:
             # The block had inline styling and the translation did not bring the markers back,
             # so bold/italic runs inside it were lost. Surface it instead of hiding it.
             seg.needs_review = True
-            seg.review_reason = seg.review_reason or "kalın/italik biçimlendirme kayboldu"
+            seg.review_reason = seg.review_reason or "REVIEW_FORMATTING_LOST"
         # Carry the segment's verdict onto the block, which is what the review editor reads.
         # Without this every flag raised after the reader ran - a dropped literal, an ignored
         # glossary term, styling lost above, a segment the model handed back untranslated - was
@@ -436,12 +493,26 @@ def apply_segments(doc: Document, segments: Sequence[Segment]) -> list[str]:
 _MARKER_RE = re.compile(r"<(/?)(\d+)>")
 
 
+#: What separates two lines of the same paragraph in the text a provider is handed.
+#:
+#: A line break inside a paragraph is a word separator. It used to be a bare newline, and
+#: OCR line text carries no trailing space, so the boundary carried no separator at all - a
+#: model that collapses the newline without putting anything in its place fuses the words
+#: either side of it. Real output: "guclen cok daha azdir.Tamponun amaci" and
+#: "Bu kitaptaikili degisken".
+#:
+#: A space rather than a preserved break, because the writer re-wraps the translation to its
+#: box and a translation is a different length from its source - the original break positions
+#: are not wanted and could not be honoured anyway.
+_LINE_JOIN = " "
+
+
 def _block_runs(block: Block) -> list[tuple[str, Style | None]]:
     """Flatten a block's spans into (text, style) runs, with a newline run between lines."""
     runs: list[tuple[str, Style | None]] = []
     for i, line in enumerate(block.lines):
-        if i:
-            runs.append(("\n", None))
+        if i and not runs[-1][0].endswith(_LINE_JOIN):
+            runs.append((_LINE_JOIN, None))
         runs.extend((span.text, span.style) for span in line.spans)
     return runs
 
@@ -456,7 +527,9 @@ def _inline_styles(block: Block) -> list[Style]:
     styles: list[Style] = []
     seen: set[tuple[Any, ...]] = set()
     for text, style in _block_runs(block):
-        if style is None or not text or style.key() == dominant or style.key() in seen:
+        # A run of nothing but whitespace carries no formatting a reader can see; marking it lost
+        # section numbers (NIST contents: "5.2.1<0> </0>Basic ..." came back without "5.2.1").
+        if style is None or not text.strip() or style.key() == dominant or style.key() in seen:
             continue
         seen.add(style.key())
         styles.append(style)
@@ -483,7 +556,11 @@ def _plain_original(block: Block) -> str:
 
 def block_source_text(block: Block) -> str:
     """The text handed to a provider: plain, or with inline markers when the block needs them."""
-    plain = block.text
+    # A paragraph, not a set of lines: see `_LINE_JOIN`. `Block.text` keeps its
+    # newlines - the writer walks the lines itself, and the review editor shows them
+    # as they were read.
+    plain = _LINE_JOIN.join(line.text for line in block.lines)
+    plain = plain.replace(_LINE_JOIN * 2, _LINE_JOIN)
     styles = _inline_styles(block)
     if not styles or _MARKER_RE.search(plain):
         # Nothing to mark, or the text already looks like markers and we would corrupt it.
@@ -492,7 +569,7 @@ def block_source_text(block: Block) -> str:
     dominant = block.dominant_style().key()
     out: list[str] = []
     for text, style in _block_runs(block):
-        if style is None or style.key() == dominant:
+        if style is None or style.key() == dominant or not text.strip():
             out.append(text)
         else:
             n = index[style.key()]
@@ -548,10 +625,43 @@ def _replace_block_text(block: Block, text: str) -> bool:
         # zaten `faithful=False` ile raporlaniyor (apply_segments -> needs_review), ama
         # `<0>BOLUM I.</0>` gibi marker karakterleri okura sizmemeli.
         # Strip unusable markers instead of leaking them raw into the output.
-        clean = _MARKER_RE.sub("", text) if styles else text
+        # Unconditionally, not `if styles`. A block with no styled runs was never given
+        # markers, so any that come back are the model's invention - and that was exactly
+        # the branch that passed them through. They reached a real page as readable text:
+        # "<0>Carpimlarin toplami</0> formu ve <1>Toplamlarin carpimi</1> formu."
+        clean = strip_markers(text)
         spans = [Span(text=clean, bbox=block.bbox, style=dominant, direction=block.direction)]
     block.lines = [Line(spans=spans, bbox=block.bbox)]
     return faithful
+
+
+def strip_markers(text: str) -> str:
+    """`text` without the inline marker syntax, which is markup the writer consumes, not glyphs."""
+    return _MARKER_RE.sub("", text)
+
+
+def drawn_runs(block: Block, text: str) -> list[Span]:
+    """The runs the page will carry for `text` in `block`.
+
+    Same split as `_replace_block_text` - the markers become the styled runs they stand for, and a
+    marker the block has no style for is stripped - so anything that has to reason about the text
+    as *drawn* (its length, its line breaks, its runs) reads this rather than the marked string.
+    Why it exists: the fitting pass measured `Segment.target` with its markers in place, i.e. 8
+    characters of syntax per marked run counted as text at the block's own size, and the writer
+    never draws one. Measured on the 17-source bench: 123 of 226 flagged blocks carried markers.
+    """
+    dominant = block.dominant_style()
+    styles = _inline_styles(block)
+    spans = (
+        _spans_from_marked_text(text, dominant, styles, block.bbox, block.direction)
+        if styles
+        else None
+    )
+    if spans is None:
+        # Exactly `_replace_block_text`'s fallback: unusable or invented markers are markup the
+        # page will not show, so the plain text is what gets drawn.
+        spans = [Span(text=strip_markers(text), bbox=block.bbox, style=dominant, direction=block.direction)]
+    return spans
 
 
 # --------------------------------------------------------------------------------------
@@ -578,6 +688,9 @@ def from_dict(payload: dict[str, Any]) -> Document:
         source_lang=payload.get("source_lang"),
         target_lang=payload.get("target_lang"),
         metadata=dict(payload.get("metadata", {})),
+        # Absent from every project written before runs recorded what translated them; such a
+        # project opens with no record rather than failing to open.
+        provenance=payload.get("provenance"),
     )
 
 
@@ -599,6 +712,7 @@ def _page_from_dict(p: dict[str, Any]) -> Page:
             for img in p.get("images", [])
         ],
         source_ref=p.get("source_ref", ""),
+        scanned=p.get("scanned", False),
     )
 
 
@@ -616,6 +730,7 @@ def _block_from_dict(b: dict[str, Any]) -> Block:
         review_reason=b.get("review_reason", ""),
         source_text=b.get("source_text", ""),
         rotation=b.get("rotation", 0.0),
+        raster=b.get("raster", False),
     )
 
 

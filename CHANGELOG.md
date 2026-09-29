@@ -2,6 +2,86 @@
 
 All notable changes to LayoutKeep. Dates are the day the work landed on the release branch.
 
+## 0.9.12 — 2026-09-25
+
+Arm G (commit 5692d98, same bench and model): term consistency 95.0% / 94.9%, layout 94.5% / 95.0%
+(EN→TR / TR→EN), quality 94.8 / 96.3.
+
+- The first request carries each PDF box's character budget by default (`translation.prefit_budget`
+  = loose, D-022).
+- Turkish and German long words break at soft hyphens in narrow boxes instead of shrinking the block.
+- A request states only the glossary terms its segments contain; a segment that missed a term is
+  asked once more with only those terms.
+- A table cell wrapped over several lines is read as one block (one form: 88 blocks became 41).
+- Labels inside figures can be translated (`translation.figure_text`, off by default): prose labels
+  from the text layer, and labels in the picture's pixels via OCR, erased and redrawn; names and
+  signals stay as they are.
+- The progress screen shows a live feed of the run's events, in the interface language.
+- The architecture atlas is on the site in English, Turkish and German.
+
+## 0.9.11 — 2026-09-24
+
+Arm E (commit 7dd70ab, the same bench and model as 0.9.10's arm D): quality 94.4 / 96.1, term
+consistency 91.3% / 90.5%, layout 93.0% / 90.4% (EN→TR / TR→EN); 14 of 21 sources lossless (12).
+
+- A link's underline goes with the words it underlined: it no longer runs through the translated
+  text like a strike-through (61 stray lines on one Wikipedia page → 4, all under untranslated blocks).
+- A date or a law number written with slashes ("2/1/2003", "2012/108") is sent as text, not as a
+  protected token the model could drop; the number check still sees it.
+- Measured and decided (D-021): the model's thinking stays off — on the same four sources it took
+  2.8× the time for the same quality. EN→DE reaches 95.6 quality but 85% consistency and layout,
+  so it stays unmeasured (experimental) in the application.
+- The bench can measure a new pair (`--to`), and a measurement can switch thinking on
+  (`LAYOUTKEEP_REASONING_EFFORT`) without changing what the application sends.
+
+## 0.9.10 — 2026-09-23
+
+Measured on a fixed bench (`tools/audit/bench.py`, 21 sources × 3 pages, both directions) with three
+bars per direction: quality (MQM judge), term consistency, and layout (share of blocks drawn intact).
+Arm D (commit 961de7a, google/gemma-4-e4b Q4): quality 94.8 / 96.0 mean, 92% / 94% acceptable;
+layout 93.9% / 90.4% (EN→TR / TR→EN), up from 80.1% / 73.6%; 12 of 21 sources lossless.
+Consistency 94.2% / 92.7%: every bar is above 90 in both directions.
+
+### Translation quality
+- An automatic document glossary (`translation.auto_glossary`, off by default): the document's
+  recurring terms are rendered once and enforced and checked in every segment.
+- A glossary term counts as honoured when inflected, capitalised or with a softened final consonant.
+- Grammar (Turkish postpositions, function words) is no longer offered as a term.
+- A block cut mid-sentence is translated as the fragment it is, never completed or trimmed.
+- Paths, repository names and e-mail addresses are protected; paragraph and list numbers
+  (`(1)`, `(b)`, `4.Text`) survive the model dropping them.
+- Academic reference lists can be kept untranslated from the application too
+  (`translation.preserve_references`).
+- A book translated in chunks is translated with one term list for the whole book, not one per
+  chunk; the list is asked for with the first batch's time allowance, and a reply cut off mid-list
+  keeps the terms it finished.
+- A paragraph number the model dropped goes back where it stood ("Madde 178- (1)"), as does the
+  leading value of a two-word fragment ("2012/108 sayılı").
+
+### Layout
+- A line may use the blank paper beside it, not only the space below (`write.grant_room_right_pt`).
+- Unchanged blocks (names, codes) are no longer fitted, shrunk and flagged.
+- Inline markers are no longer measured as drawn glyphs.
+- A Word PDF's leftover lines form one block per run; whitespace-only lines join none.
+- Two lines are not enough to call a block justified; titles are no longer stretched.
+- Restored form XObjects are matched by their box (a badge and an ORCID icon were destroyed).
+- A source font subset is reused only when it holds every letter the translation draws
+  (English w/q/x were drawn from another face).
+
+### Product
+- Every translated file records what translated it: version, commit, model, settings
+  (`core/provenance.py`); `docs/campaign/RUNS.md` lists every run on disk.
+- The command line and the book tool read the stored settings, as the application does (D-020).
+- A number written with another thousands separator (3.657 / 3657) is no longer reported lost.
+- Every interface text follows the chosen language (tr/en/de), settings included.
+- The setup screen says under the language boxes whether the pair has been measured: EN→TR and
+  TR→EN with their three numbers, every other pair as unmeasured (experimental).
+- A short document fills every configured parallel slot (32 segments used two of eight), and the
+  extra parallel chains carry the merged glossary into the translation memory's key.
+- The comparison site can be built from one bench arm, each page saying which version, commit and
+  model translated it and how it scored (`comparison_site.py --bench`).
+- The desktop run checks glossary terms in the output; the CLI's memory key carries the glossary.
+
 ## 0.9.0 — 2026-09-10
 
 The first published build, and it does one thing.

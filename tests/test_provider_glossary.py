@@ -73,3 +73,34 @@ def test_verify_ignores_segments_without_glossary_terms():
 
     assert checked[0].needs_review is False
     assert report == {"checked": 0, "honoured": 0}
+
+
+def _honoured(term: str, target: str) -> bool:
+    glossary = Glossary({"buffer": term})
+    checked, _report = glossary.verify(
+        [Segment(block_id="b1", source="The buffer is full", target=target)]
+    )
+    return checked[0].needs_review is False
+
+
+def test_verify_accepts_the_target_term_with_a_suffix():
+    """Agglutinative targets inflect the term: 'tampon' is honoured by 'tamponun', 'tamponlar'."""
+    assert _honoured("tampon", "Bu tamponun boyutu sabit")
+    assert _honoured("tampon", "Tamponlar dolu")
+
+
+def test_verify_accepts_the_target_term_at_a_sentence_start():
+    assert _honoured("tampon", "Tampon dolu")
+    assert _honoured("ilke", "İlke basit")
+
+
+def test_verify_accepts_a_softened_final_consonant():
+    """Turkish softens a final p/ç/t/k before a vowel: 'ışık' -> 'ışığın', 'kitap' -> 'kitabı'."""
+    assert _honoured("ışık", "ışığın hızı")
+    assert _honoured("kitap", "kitabı okudum")
+
+
+def test_verify_still_flags_a_term_that_is_not_there():
+    assert not _honoured("tampon", "Arabellek dolu")
+    # The term must start a word: a match inside another word is not the term.
+    assert not _honoured("tampon", "Karttampon yok")

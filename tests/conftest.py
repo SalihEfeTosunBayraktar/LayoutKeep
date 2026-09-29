@@ -20,9 +20,47 @@ at a temporary directory is what actually isolates them.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator
+
 import pytest
 
 pytest.importorskip("PySide6")
+
+#: Tests must never open the modal welcome screen: there is nobody to dismiss it, and the session
+#: waits in `exec()` forever.
+ENV_NO_WELCOME = "LAYOUTKEEP_NO_WELCOME"
+
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _no_first_run_dialog() -> Iterator[None]:
+    """The introduction is modal, and a test session has nobody to click it away.
+
+    Found the hard way: the suite sat at 89% for fifteen minutes with a PySide6 event loop
+    waiting for input, because a test constructed the main window and the first-run timer fired.
+    """
+    previous = os.environ.get(ENV_NO_WELCOME)
+    os.environ[ENV_NO_WELCOME] = "1"
+    yield
+    if previous is None:
+        os.environ.pop(ENV_NO_WELCOME, None)
+    else:
+        os.environ[ENV_NO_WELCOME] = previous
+
+
+@pytest.fixture(autouse=True)
+def _language_back_to_english():
+    """The interface language is global state; no test may leak it into the next one.
+
+    WHY THIS EXISTS: a test that pinned German left it set, and the next file's pause-button
+    assertion ("Duraklat") failed with "Pause" - a leak that reads as a broken widget rather than
+    as a stray global.
+    """
+    yield
+    from layoutkeep.ui.strings import UIStrings
+
+    UIStrings.set_language("en")
 
 
 @pytest.fixture(autouse=True)
@@ -88,6 +126,24 @@ _OCR_TEST_MODULES = (
     "test_conversion_matrix",
     "test_cross_format",
     "test_outlined_text",
+    # Added when the CI first reached its test step: these drive a scanned page end to end, so
+    # `rapidocr` is imported from inside the reader's engine rather than at module level and its
+    # absence was a collection error rather than a skip. Locally the engine is installed, so the
+    # conditional skip leaves every one of them running.
+    "test_pdf_writer_scanned_paper",
+    "test_pdf_writer_scanned",
+    "test_pdf_writer_scanned_wordless",
+    "test_pdf_writer_scanned_neighbours",
+    "test_pdf_reader_hidden_ocr_layer",
+    "test_pdf_reader_scanned",
+    "test_pdf_reader_scanned_align",
+    "test_pdf_reader_scanned_slack",
+    "test_docir_project_scanned",
+    "test_fit_pass_scanned_no_expand",
+    "test_scanned_ocr_pass_choice",
+    "test_scanned_ocr_retry",
+    "test_scanned_page_density",
+    "test_ocr_engine_packaging",
 )
 
 from layoutkeep.core import paths
@@ -116,3 +172,51 @@ def _isolate_qsettings(tmp_path_factory: pytest.TempPathFactory):
         os.environ.pop(paths.ENV_DATA_DIR, None)
     else:
         os.environ[paths.ENV_DATA_DIR] = previous
+
+
+@pytest.fixture(scope="session")
+def _figures_report_as_read():
+    """The 23-figure NASA report, read once for the whole run.
+
+    Eleven conversion tests read this same PDF, each for about 90 seconds - more than half of a
+    19.5-minute suite. The reading is the same every time; what the tests check is the writers.
+    """
+    from pathlib import Path
+
+    from layoutkeep.writers.converter import read_any_document
+
+    src = Path("_artifacts/corpus/nasa_report.pdf")
+    if not src.exists():
+        pytest.skip("corpus PDF not available")
+    return src, read_any_document(src)
+
+
+@pytest.fixture
+def figures_report(_figures_report_as_read):
+    """(source path, a private copy of its document): tests translate and write it."""
+    import copy
+
+    src, doc = _figures_report_as_read
+    return src, copy.deepcopy(doc)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_installed_layout_model(tmp_path_factory: pytest.TempPathFactory):
+    """Tests read without the layout model a developer's machine may have installed.
+
+    The CLI and the desktop worker use it whenever it is installed, so without this a test's
+    reading - and its result - would depend on what happens to be in LOCALAPPDATA. Tests that
+    exercise the model pass a detector of their own.
+    """
+    import os
+
+    from layoutkeep.ocr.layout_detector import ENV_MODEL
+
+
+    previous = os.environ.get(ENV_MODEL)
+    os.environ[ENV_MODEL] = str(tmp_path_factory.mktemp("no_layout_model") / "absent.onnx")
+    yield
+    if previous is None:
+        os.environ.pop(ENV_MODEL, None)
+    else:
+        os.environ[ENV_MODEL] = previous

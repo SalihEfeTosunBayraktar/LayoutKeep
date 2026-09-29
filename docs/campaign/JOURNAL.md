@@ -1638,3 +1638,1022 @@ aynı kayıtlı çeviriler üzerinde iki sürüm karşılaştırıldığında se
 doğrulandı (korumasız L7=10, korumalı L7=0 - ama korumalı sürüm cookbook'ta kazancı da sıfırlıyor:
 12 → 12). İkisi de kalmadı, değişiklik tamamen geri alındı. Kural: kazancı ölçmek yetmez, bedelini
 de ölç.
+
+## 2026-09-20 - the audit sweep, and what L3 actually means
+
+Ran every held-out run through `tools/audit/sweep_runs.py` (new: three tools per run, one table).
+The outlier was `plos_animal_movement` with **L3 = 8** - "dropped by the writer", the worst kind
+of finding, so it got the full treatment:
+
+- The flagged block was in the writer's "to draw" list, had one line of 79pt, and its box on the
+  page holds only its first 13 words: the paragraph is a page of **math**, the reader merged it
+  into a single line, nothing can fit that box, and `insert_htmlbox` clipped the rest. The block
+  is flagged for review (not silent) - the policy holds - but the audit's *label* was wrong:
+  nothing was dropped by the writer.
+- The label is now "text not on the page", which covers both causes, and the Turkish string says
+  the same in full.
+- The remaining sweep rows are the known classes: `hizası değişmiş` on runs made before the
+  justify fix, `L2` on bibliographies, `L6` on table numbers. Three runs are clean: `wpa_poster`,
+  `arxiv_2510_03959`, `arxiv_2605_18014`.
+
+## 2026-09-20 - the leading step, and what the overflow blocks actually need
+
+The largest review-flag class on the book is "the translation did not fit, shrinking was not
+enough" (1,130 of 6,014 blocks in the first 42 chunks; D1=1,130). The roadmap's next lever is the
+ladder, so the ladder got a new leading step: when the box does not fit even at the readability
+floor, try tighter leading (1.0x, then 0.92x) *before* asking the model for a shorter text. It
+costs no model round-trip, keeps the type at or above the floor, and never touches the words.
+
+Measured with `tools/audit/fit_probe.py` (new instrument: re-runs the fitting pass over a recorded
+run's saved translations - `rewrite_run.py` re-runs the writer and cannot see a fitting change):
+
+| run | overflow blocks | rescued by 1.0x leading | need more than 0.65x |
+|---|---|---|---|
+| ross_stats_full (20 chunks) | 158 | 20 (13%) | 138 |
+| cookbook_1907 | 29 | 0 | 29 |
+| arxiv_19145 | 47 | 0 | - |
+| irs_p505 | 61 | 0 | - |
+
+**That table was wrong, and the correction is the point.** The "20 rescued" number came from
+measuring with `block.dominant_style()` while the fitting pass measures with `_as_drawn(...)` -
+the style with the target language's substitute font already resolved. The two fonts have
+different metrics, and with the pass's own font **no block is rescued**: instrumented over six
+chunks, `_try_tighten` was called 14 times and fitted 0, and the written-page A/B (`fit_ab.py`,
+20 chunks) came back identical in both arms - D1=627, D3=0, every L the same. A step that changes
+nothing is dead weight, so it came back out (the attempt is commit `bbf5958` on the unmerged
+branch `fit-tighten`); the two
+instruments stayed. Lesson for the next measurement: **use the pass's own style, not the block's**,
+or the probe answers a question the engine never asks.
+
+The measurement also answers the bigger question. The 138 blocks that no leading rescues are not
+short of lines, they are short of **box**: `room_below` can shorten a block's measured box to 6pt
+to keep it off the next block, and nothing fits in 6pt. Their fix is the box (the reflow/room
+work), not the ladder - which is why the next lever is roadmap item 4, and why this step was left
+where it does no harm.
+
+## 2026-09-20 - L3, L6 and D1 are the same problem wearing three names
+
+Checked the book's L6 findings ("numbers lost", 43 of them, the largest L class) block by block:
+`drops_numbers(source, target, "tr")` returns False for the examples - the numbers are all in the
+translation. The audit's L6 comes from the *written page*, so what it is really reporting is the
+same thing L3 reports: a block that did not fit, drawn clipped, with its tail - often the number -
+not on the page. The TOC line ("Problems .... 468") and "Table 2.8 gives the birth rates ... in
+each of the 50 states" both survive translation intact and both are flagged.
+
+So the three biggest numbers on this run - D1=1,130 flagged blocks, L3=1, L6=43 - have one cause
+and one lever: the box. That is roadmap item 4 (reflow/room), not the ladder (measured and
+reverted above), and not the model. Worth knowing before spending another evening on prompts.
+
+## 2026-09-20 (evening) - the story in three languages, and the day's numbers
+
+The user asked why the story was Turkish only; it now publishes in tr/en/de with a switcher on every
+page (`tools/story_site.py`). Turkish stays the original in `docs/story/`; English and German live in
+their own directories with the same file names; a chapter without a translation falls back to the
+closest language that has one, behind a visible note. All sixteen chapters were written by hand
+(Turkish original, English set, German set) - no model was spent on them.
+
+The same evening, the day's measurements, for the record:
+
+- **The book finished**: 106/106 chunks, the full audit **L1=0, L2=48, L3=1, L4=0, L5=0, L6=120,
+  L7=2, L8=3, L9=5, L10=0, D1=2,155, D2=273, D3=39** over 12,647 blocks; all 106 chunks were joined
+  into **one local PDF of the whole book, 841 pages** (72 MB, copyrighted, never published).
+- **A new held-out source ran**: Project Gutenberg #31061 (Cajori, A History of Mathematics, 556
+  pages, public domain) - 6 chunks, 24 pages, 11.4 minutes; **every real loss zero: L2-L10 = 0**
+  (L1=1 only because the run is a 24-page slice of a 556-page book), D1=31 of 185 blocks. It is now
+  on the comparison site, which went from 24 documents/288 images to **25/304**.
+- **The instruments that stayed**: `fit_probe.py` and `fit_ab.py` (both model-free), the L3 label
+  correction, and the review-reason split that reached the completion screen in 0.9.7.
+- Releases today: **v0.9.1 through v0.9.7**, each verified by downloading the asset and comparing its
+  SHA-256 with the local build.
+
+## 2026-09-20, evening — the other direction (TR -> EN)
+
+Every run so far had gone English -> Turkish. The user asked for the reverse: five Turkish documents
+of at least 60 pages, translated to English, plus the opposite direction tried as well.
+
+The Turkish side needed sources first, and the usual one was closed: **mevzuat.gov.tr does not answer
+from this machine at all** (curl times out with no response, not even a 4xx). The Ministry of Family
+and Social Services mirrors the same law texts and answers fine, so the set came together from two
+hosts that work:
+
+| document | pages | direction | licence |
+|---|---|---|---|
+| Türk Ceza Kanunu (5237) | 88 | tr -> en | law, no copyright (FSEK art. 31) |
+| Ceza Muhakemesi Kanunu (5271) | 91 | tr -> en | law, no copyright |
+| Türk Medeni Kanunu (4721) | 162 | tr -> en | law, no copyright |
+| On İkinci Kalkınma Planı (2024-2028) | 253 | tr -> en | state publication |
+| On Birinci Kalkınma Planı (2019-2023) | 198 | tr -> en | state publication |
+| Twelfth Development Plan (English edition) | 263 | **en -> tr** | state publication |
+
+All six are publishable (no third-party rights), so unlike the Ross book they can go on the
+comparison site once they have run.
+
+`tools/run_tr_en_campaign.bat` runs them smallest-first, detached, logging to
+`%LOCALAPPDATA%\Temp\lk_tr_campaign.txt`. It opens with a **two-chunk smoke run of the new
+direction** and aborts the whole campaign if that fails — a direction that has never been exercised
+should not be trusted with six hours of model time. It passed: 8 pages in 5.4 minutes, `smoke exit=0`,
+and the main run's first two chunks then finished in 21 and 22 seconds because the translation memory
+already held those pages.
+
+Measured rate: ~1 minute per page (4-page chunks, 7 workers) — the same rate the Ross book ran at.
+So the full set is a night's work: the three laws land first, the reverse direction in the middle,
+the two plans after that. Every step is `--resume`-safe; relaunching the same file picks up at the
+first chunk that has no `.lkproj` yet.
+
+## The type-drift readings, checked against the page
+
+`type_drift.py` reported inflated blocks on the NIST scan (chart labels at 1.23-1.50x) and two
+alignment changes on the Turkish law run. Rendering those pages and *looking* at them settled it:
+the charts are scaled as a unit and come out slightly **smaller** than the source, the caption that
+the tool called centred is **justified exactly like the original** (confirmed at 300 dpi on a crop,
+after the same crop at reading size had suggested otherwise), and the body type matches. The law
+pages the tool flagged as right-aligned are left-aligned to the eye.
+
+The reason is the instrument's own shape: it compares a block-level median against that block's
+*dominant* style, and on a scan the OCR boxes put chart labels, body text and captions into blocks
+whose dominant style is not the style of every line inside them — a mixed-size block reports drift
+nobody can see. The alignment check has the same weakness, and its docstring already records two
+earlier rounds of false positives on an IRS form and an arXiv paper. Lesson for the next session:
+**before fixing what this tool reports, render the page and look at it.** The tool is a detector,
+not a verdict.
+
+The two readings that do survive a look are real and already known: the fit ladder squeezing dense
+translations toward the readability floor (D1), and single-line headings in narrow boxes. Both are
+the box/room problem, not a type-size bug.
+
+## The tidy pass
+
+The owner asked for the repository to be cleaned of clutter. The inventory found three things
+worth more than tidiness:
+
+- **`arxiv_2605.18014v1.pdf` was tracked, in the repository root, at 10.4 MB** — the largest file
+  the repository carried, and an arXiv paper whose licence never allowed redistribution. It is now
+  under `_artifacts/heldout/sources/` and out of git, and `/*.pdf` is ignored so a source can never
+  land in the root again.
+- **The NASA page images were still 6997x3163 and 2.5 MB each** — the cap the comparison site's own
+  notes describe (3200 px, quality 76) had been applied to the *generator's defaults* but never to
+  the files themselves. Re-encoded: **9 MB -> 1 MB** across the four, still sharp at zoom.
+- **`tools/comparison_page.html` was dead** — a 16 KB hand-made page from before
+  `comparison_site.py` existed, referenced by nothing. Removed. `docs/comparison.html` stays: it is
+  a redirect with a canonical link, so addresses shared before the viewer moved still land on the
+  current site — and the GitHub About link now points at the landing page, which opens the story,
+  the viewer and the releases.
+
+## Branch cleanup
+
+The owner asked for the other branches to be either merged into main or removed. The remote was
+already clean - after `git fetch --prune`, GitHub holds only `main`, the feature branch and three
+dependabot branches - and the work of the removed ones is provably in the feature branch
+(`tests/fixtures/rich_book.epub` and `src/layoutkeep/fitting/elastic_flow.py` both exist there, and
+two of the local branches were ancestors of it). The local copies, with their tips recorded so
+nothing is lost silently:
+
+| branch | tip | why it goes |
+|---|---|---|
+| `layout-model` | `7ef33ea` | an ancestor of the feature branch; merged |
+| `scanned-pdf-ocr` | `298e04f` | an ancestor of the feature branch; merged |
+| `v2-vision-layout` | `b89396b` | the abandoned second clone's branch, never merged; the owner said to forget V2 |
+
+## The workflow's first green run, and why it had never been green
+
+The GitHub workflow had failed on every run since it was written, and the reason was in the first
+step: `lint` failed, so the test step never executed and the suite had never been run on the
+runners at all. Fixing lint exposed what that had been hiding: browserless mistakes that only show
+up in a clean environment.
+
+1. **Three scanned-page modules imported the OCR engine from inside a reader**, so a runner without
+   `rapidocr` collected an ImportError instead of skipping. Two more were named by the CI itself,
+   and instead of chasing them one run at a time the whole suite was run locally with `rapidocr`
+   blocked by a sitecustomize shim: **1259 passed, 4 xfailed, 1 xpassed, exit 0** - no module
+   outside the conftest list needs the engine, so the list is complete and the chase is over.
+2. **Two tests asserted Turkish wording without pinning the language.** They passed on this machine
+   only because an earlier test had left Turkish set, and failed on the runner, where the state is
+   clean - exactly the order-dependence that makes a suite lie. Both now set the language they
+   assert, and the worker test also asserts the English message, which is the point of the change.
+
+CI at `af268f8` + `4bd07c2`: `test (ubuntu-latest)`, `test (windows-latest)`, `test (macos-latest)`,
+`package`, `build-windows` - all **success**. The suite also gained the language test that would have
+caught the original English/Turkish mixing on its own.
+
+Noted for later: one test is marked `xfail` but passes (an expected-failure marker left behind by a
+fix). `strict=False` keeps it harmless, and it is a small, separate piece of tidying.
+
+## The glued footnote number, measured: not a merge, and not a regression
+
+The owner reported that section numbers and headings come out glued to the text that follows
+("34 gibi icerik yazarken sayi baslik hizalamalari kaybolmus"). `type_drift.py` over the recorded
+runs put numbers on it: `arxiv_19145_r2` carries 16 blocks drawn larger than the reader's style,
+3 with a changed alignment and 61 below the readability floor; `tr_tmk_4721` 0/0/13,
+`tr_tck_5237` 1/2/10, `tr_cmk_5271` 0/0/3.
+
+Two hypotheses died on the way, both worth keeping:
+
+1. **The reader was not merging anything.** A first look at the written page showed
+   `'10 9 8k vocabulary'` as one block while the source had them apart, so the reader's
+   `_merge_wrapped_lines` looked guilty. Replaying the same recorded chunk through the reader with
+   the layout model off (`read_pdf`, 89 blocks) kept `'8k vocabulary'` in its own block, and the
+   written page puts it back at the *identical* bbox (137.4, 70.5, 193.3, 83.9), same size, same
+   face. The apparent merge was PyMuPDF grouping the two runs when the written page is re-extracted
+   - a measurement artifact, not a defect. Nothing was changed, so nothing had to be reverted.
+2. **The glue is in the source, and the model is faithful to it.** The footnote line of the same
+   document reads `'14Because several of these differences are small, we addi-'` in the *source*,
+   with the marker span at 6.0 pt touching the 9.1 pt text - a LaTeX superscript with no space in
+   the text layer. The output carries `'14Bu farkliliklarin bircogu kucuk oldugundan'`, which is
+   the right translation of exactly what was read.
+
+**What is actually lost is the inline size.** The marker is set in 6.0 pt in the source and comes
+out at 8.9 pt in the output: the writer gives a block one style, so a smaller run inside it - a
+superscript marker, a footnote reference, a formula fragment set apart from the surrounding prose -
+is drawn at the block's size. That is the visible change the owner noticed, and it is a real
+limitation of the block-level writer rather than a reader bug. Preserving per-run sizes inside a
+block is a feature-sized change (it needs its own A/B against `type_drift.py` and the written-page
+comparison), so it is recorded here as the next candidate rather than patched blind.
+
+Still open from the same scan, and genuinely unexplained: the 16 *inflated* blocks on
+`arxiv_19145_r2` are all equation fragments (`'= Cafter(s) -Cbefore(s)'` at 1.37x,
+`'N D <-N D -nD s1,s2.'` at 1.62x), so the inflated set is the formula path, not prose.
+
+### Follow-up: the three symptoms are one cause
+
+A span-level size histogram of one page settles it (`src/chunk_0013.pdf` against `out/t_0013.pdf`,
+3196 -> 3266 characters):
+
+| size | source | output |
+|---|---|---|
+| 10.8-11.0 pt (body) | 91.6% | 14.8% |
+| 9.2-9.4 pt | - | 57.5% |
+| 8.0 pt | 194 chars | 157 chars, plus new 8.7 and 9.1 runs |
+| 5.8-6.0 pt | 43 chars | 35 chars |
+
+The body shrinking from ~11 to ~9.3 pt is the fitting ladder doing its job on a longer Turkish text
+and is expected. What is not expected is the small end moving *up*: runs set at 8.0 pt reappear at
+8.7-9.1 pt, and that is why `type_drift.py` counts "inflated" blocks at 1.33-1.62x on this
+document - they are the small equation and marker runs drawn at the block's larger size, not prose
+that grew.
+
+So the glued footnote marker, the inflated equation fragments and the grown 8.0 pt runs are one
+limitation seen three ways: **the writer gives a block a single style, so a run that was smaller
+than its block - a superscript marker, a formula fragment, a footnote reference - is drawn at the
+block's size.** The reader is doing nothing wrong, the translations are faithful to a source whose
+text layer carries the marker touching the following word, and the fitting ladder is not the
+culprit. A fix means carrying per-run sizes from the reader through the fitting pass to the writer,
+which is a design change with its own A/B (`type_drift.py` plus the written-page size histogram
+above), so it is queued rather than patched blind.
+
+### The readability floor splits by direction, and one whole direction is a real loss
+
+`type_drift.py --verbose` prints the ratio between the size drawn and the size the reader recorded,
+and that ratio separates two things the headline count ("N blocks below the readability floor")
+lumps together:
+
+- **EN -> TR: faithful.** Every flagged block on `arxiv_19145_r2` is at ratio **1.0** - `'Yll'`,
+  `'Gkomp ↓'`, `'Gl Aşağı'`, a bibliography line. These are source-tiny runs (figure labels, a
+  reference in small type) drawn exactly as the reader measured them. Nothing was lost; the
+  criterion is describing the document, not the translation.
+- **TR -> EN: a real loss.** On the three Turkish documents the same criterion is reporting blocks
+  squeezed to **0.26-0.65 of their size** - `'Article 134- (1) Anyone who violates ...'` at 0.27,
+  `'Child abortion (6) If a woman becomes ...'` at 0.26, `'Each spouse is responsible for their
+  own ...'` at 0.37. A Turkish article translated into English is long enough that the fitting
+  ladder runs to the bottom of its range, and what comes out is unreadable while still being on
+  the page.
+
+So "61 unreadable blocks" on the arXiv document is not a defect and "13" on the civil code is not
+the same thing as "13" on the penal code: read the ratio, not the count. The standing rule about
+checking what a criterion counts applies to this one as well.
+
+**Next, queued:** (1) why TR -> EN squeezes to 0.26 when EN -> TR never does - is the shorten /
+retranslate path in the fitting pass firing for the legal documents, and if it fires, why does the
+result still not fit; the per-chunk logs differ (`tr_tck_smoke` reports `shrunk=15 overflow=22`
+while `tr_tck_5237`'s chunks report no fitting line at all). (2) The inline-size design from the
+entry above, which owns the inflated 8.0 pt runs and the glued superscript marker.
+
+### Correction: the direction "split" was the instrument, not the pipeline
+
+The entry above read a real difference between the directions out of `type_drift.py`'s ratios. Reading
+the instrument and the fitting module together takes it back:
+
+- `fitting/fit.py` sets `MIN_SCALE = 0.85` - "point size never shrinks past this fraction of the
+  original" - so a **genuinely drawn 0.26x is impossible**. A ratio below 0.85 cannot be describing a
+  shrink.
+- `type_drift._written_lines` collects every written line whose *centre* falls inside a block's
+  recorded box and divides its size by that box's **single** recorded style. A 6 pt footnote marker
+  inside an 11 pt block therefore reads as 0.55x, and text from a neighbouring block drawn into the
+  box reads as whatever it happens to be. The ratio is direction-blind: it measures how much of a box
+  is occupied by runs of a different size, and legal text with small article numbers next to body copy
+  simply gives it more to trip over.
+- The same mechanism explains the 1.33-1.62x "inflated" blocks on the arXiv run, so both tails of the
+  distribution are one blind spot rather than two defects.
+
+What survives: the directions *are* different, but the module already knows it and says so with
+measured numbers - `FitLayer.EXPANDED` exists because EN->TR expands 0.93x on average and 0.64x at the
+low tail, and `MIN_FILL = 0.75` is set to catch exactly that tail. The direction rule stays (a fitting
+change is still read on both directions before it is kept), but it is a rule about blast radius, not
+evidence of a TR->EN loss. **Before either the inline-size design or any per-language-pair knobs are
+built, `type_drift` has to measure per run/line instead of per block**, or every judgement it feeds
+will keep mixing boxes with the runs inside them.
+
+## A per-box instrument replaces the confounded ratio
+
+`tools/audit/type_map.py` prints, for every box, the *set of point sizes* the source prints there and
+the set the written page prints there, then names the difference (`faithful` / `flattened` / `shrunk`
+/ `grown` / `mixed`). It pairs `out/t_NNNN.pdf` with `src/chunk_NNNN.pdf` and matches boxes by
+overlap, so no model is needed. Five recorded runs:
+
+| run | direction | boxes | faithful | shrunk | flattened | grown | mixed |
+|---|---|---|---|---|---|---|---|
+| arxiv_19145_r2 | EN->TR | 737 | 396 | **317 (43%)** | 15 | 1 | 8 |
+| tr_tmk_4721 | TR->EN | 354 | 275 | 64 | 9 | 6 | - |
+| tr_tck_5237 | TR->EN | 74 | 36 | 31 | 6 | - | 1 |
+| tr_cmk_5271 | TR->EN | 240 | 174 | 52 | 10 | 4 | 4 |
+| en_sbb_plan_12 | TR->EN | 1137 | 1046 | 70 (6%) | 9 | - | 12 |
+
+Two things this settles:
+
+1. **The inline-size loss is real but small.** `flattened` - the source had a small run and the
+   written page prints everything at the box's larger size - is 6-15 boxes per document, not the
+   61-13-10 block counts the confounded ratio suggested. It is worth fixing (a glued footnote
+   marker is visible), but it is not where the quality goes.
+2. **The lever is the shrink, and it follows the direction.** TR->EN from a Turkish source comes back
+   with 43% of boxes shrunk on the arXiv document, while Turkish produced from English shrinks only
+   6% on the SBB plan. Turkish is the longer target language, and a box whose translation is longer
+   is a box the ladder squeezes. That is the same asymmetry `FitLayer.EXPANDED`, `MIN_FILL` and
+   `HEAVY_SHRINK` were designed around - the module's own answer to it is to ask for a shorter
+   rendering (`fit.shorten_below_scale`), which is the path to instrument next: for the shrunk boxes,
+   did the shorten request fire, and did it arrive inside the budget.
+
+## Driving the shipped exe, and the two defects only that could find
+
+The release rule is that the exe is done when it has been *driven*, not when it has been built
+(0.9.8's `dist/LayoutKeep.exe`, 173,006,812 bytes). Walked it by accessibility tree, background
+delivery, while the user slept:
+
+- It starts (two processes, the one-file bootstrap and the app) and raises the **floating progress
+  bar** with its own controls: `Duraklat`, `Pencereye dön`, minimize.
+- The **welcome screen** opens with the five page dots, the interface language picker and the theme
+  button *on the first page*, `Bir daha gösterme`, `Atla` / `İleri` / `Geri` - the first-run
+  experience the user asked for is real and reachable.
+- The **setup screen** carries the header (logo, 1-2-3 step marker, language, `?`, theme, settings),
+  the drop zone with the supported-format list, output format, output path, source/target language
+  (`auto` -> `tr`), document type, provider (`LM Studio (1234)`) and `Çeviriyi Başlat`.
+- The **help dialog** lists eight topics, among them `Kayıpsızlık kriterleri` and `Çevirinin
+  kalitesini ne belirler` - the in-app explanation the project treats as a feature.
+- About twenty-five minutes of use left **no `crash.log`** (`%LOCALAPPDATA%\LayoutKeep\`).
+
+Two defects came out of it, both invisible to the suite because a test never switches the language
+and never reads a widget's wording:
+
+1. **The welcome screen's second page said the worker default was 7**, and `core/tunables.py` has
+   set `translation.workers` to 2 since the default was lowered - Turkish even contradicted itself,
+   with the provider page two paragraphs later already saying 2. Corrected in tr/en/de (`9db30c5`).
+2. **A label and a button did not follow the language.** The setup card showed an *English*
+   dual-output hint among Turkish labels, and the help dialog's button read `Close`.
+   `JobSetupWidget` read `UIStrings.DUAL_HINT` / `RANGE_HINT` once in `__init__` and
+   `retranslate_ui()` refreshed every other label but those; the button's text comes from
+   `QDialogButtonBox`, i.e. Qt's own catalog, which is not installed. Fixed with a `CLOSE_BTN` key in
+   three languages and a refresh in `retranslate_ui()`, plus
+   `tests/test_ui_strings_follow_language.py` - **proven red on the base by stashing the fix**
+   (`0f23538`).
+
+**Not yet carried by the shipped file:** both fixes are in the source; the 0.9.8 exe still shows the
+old strings, so the next build is the one that carries them.
+
+**Next in this walk** (not done): the provider settings dialog's `Test Et` button, which is the one
+free end-to-end proof that the *built* exe reaches a model server (`Bağlantı çalışıyor - N model
+bulundu`).
+
+## 0.9.9: the build that carries the language fixes, driven before it was published
+
+The exe in the 0.9.8 release predates the two language defects found by driving it, so the source
+fixes reached nobody yet. Rebuilt with the documented recipe (`packaging/build.bat`, detached, log
+polled - the script now exists in the tree instead of being retyped per release), which produced
+173,007,377 bytes against 0.9.8's 173,006,812.
+
+Driven before publishing, as the rule requires. The first-run screen did not open this time (the
+setting remembers it has been seen), so the decisive check was the setup screen in a Turkish window:
+the dual-output hint now reads `'Çevrilmiş dosyanın yanına, kaynağı da içeren ikinci bir PDF
+yazılır. Denetim ve asıl çıktı değişmez.'`, where before the fix that same label was English in the
+middle of Turkish ones. That is the fix, in the built artefact, on the page. No `crash.log` after the
+walk.
+
+`v0.9.9` is published with bilingual notes (the changed behaviour, and the measured known limits:
+dense forms below the readability floor, L2 rows on an arXiv bibliography, OCR dependence, no RTL).
+The published asset was downloaded back and compared: **`cmp -s` says byte-for-byte identical**, and
+the asset is 173,007,377 bytes. A `sha256sum` comparison printed a stray `\` escape marker in front
+of the second hash (coreutils marks an escaped filename), which looks like a mismatch and is not one -
+`cmp` is the check to reach for.
+
+**Noted while walking, then disproved - the floating bar at startup is the designed hand-over.**
+The bar showing `Hazırlanıyor… · 0/0 parça` before any job existed looked like a stale window; it is
+not. `main_window.changeEvent` watches `WindowStateChange` and hands the run to the bar whenever the
+window is minimized (`if self.isMinimized() or not self.isVisible()`, `main_window.py:127`). The exe
+was launched with `-WindowStyle Minimized`, so the bar was doing exactly its job, and both launches
+told the same story because both used the same launch flag. Launch it normally and the window stays.
+
+## The scan that carried alpha, and the chunk that could never be written
+
+The TR -> EN campaign finished at 23:25 with `tr_plan_11 exit=1`, and its log said why in one line:
+`1 chunk(s) produced no output; not merging a document with holes`. Refusing to merge a document with
+a hole is the right behaviour - and it left one document unfinished.
+
+Forty-nine of the fifty chunks were on disk. The hole was chunk 0000, which had neither an output nor
+a `.lkproj` progress marker, so `--resume` retried it - and it failed again, in 11-12 seconds, every
+time. Its own log ends on three lines that are not a Python traceback:
+
+    'created' timestamp out of range; ignoring top bytes
+    'created' timestamp seems very low; regarding as unix timestamp
+    cannot reshape array of size 32770400 into shape (3425, 2392, 3)
+
+The failure sits below Python: `faulthandler` produced no native traceback either, and the chunk's
+entire stderr is captured into that log, so nothing was being swallowed. The numbers are the clue:
+32,770,400 = 2392 x 3425 x 4, and 2392 x 3425 is exactly the page - a four-component buffer was being
+reshaped into three.
+
+The line is in `writers/pdf_writer.py`. The whitening pass rebuilds the scanned image's pixel buffer
+with a hard-coded three channels, while the guard above it converted the colour space only when
+`pixmap.n != 3`. Measured on that page's image: `Pixmap(doc, xref)` gives `n=4, alpha=1`, and
+`Pixmap(csRGB, pixmap)` **keeps** the alpha, so the buffer stayed four components wide. Dropping alpha
+first was measured to give `n=3, alpha=0`, and `csRGB` after it w*h*3 bytes.
+
+Fixed by dropping alpha before the colour conversion and reshaping on the pixmap's own component
+count, and the conversion now lives in `_scan_pixels` so it can be tested on its own
+(`tests/test_pdf_writer_scan_alpha.py`). The test was **proved red** by putting the base's logic back
+inside the helper: `ValueError: cannot reshape array of size 192 into shape (6,8,3)` - the same defect
+on a smaller page.
+
+Then the real thing, with the fix in place: `[50/50] ok chunk 0000 ... wrote out/t_0000.pdf` and
+**`merged 50 chunks -> tr_plan_11.en.pdf (198 pages)`**. The Eleventh Development Plan is whole, and it
+is a publishable source (state publication, no third-party rights), so it can go on the comparison
+site with the others.
+
+Two things this leaves on the table, worth doing rather than forgetting:
+
+1. **The failure was undiagnosable from the campaign log for a while.** One line, `exit=1`, and a
+   chunk log whose last lines are library noise. **Done the same night:** `translate_book.py` now
+   names the stage a failing chunk died in (`died after 'review'`), read from the pipeline's own stage
+   lines by `_stage_reached` - `tests/test_translate_book_stage.py` keeps the real log tail from this
+   incident as its fixture, and its end-to-end test was **proved red** by disabling the branch (the
+   base's tail is the `retry … | fitting … | review …` line this campaign printed).
+2. **A chunk that fails after eleven hours of a campaign gets no automatic second try.** `--resume`
+   covers it, but only if someone notices the document was not merged. **Done the same night:**
+   `translate_book.py` retries each failed chunk once, sequentially, through `_retry_failed`
+   (`tests/test_translate_book_retry.py`, four tests, no model server involved). A chunk that fails
+   twice is still a real failure and is reported as one, and the tool was re-run over the finished
+   document afterwards to prove the edit did not break the runner (`merged 50 chunks -> 198 pages`).
+
+## The budget-capped dedupe fix, measured: the readability floor moves for the first time
+
+The dedupe pass shared a repeat whenever the source text matched, so the fitting pass's *capped*
+shorten request (`max_len`) could be answered by a sister occurrence's uncapped translation - a
+capping segment received text that ignored its budget, and `providers/cached.py` already refuses to do
+that with a memory hit. The fix forwards a capped repeat to the provider instead of sharing.
+
+Measured on `tr_tck_5237`, which is the only honest way to keep it: a **copy** of the recorded run with
+its `out/t_*.pdf` deleted, re-run with `--resume`, so the memory answers the translations and only the
+shorten path reaches the model. One variable changed - the fix. 21.6 minutes, 22 chunks, 88 pages.
+
+| criterion | before | after | change |
+|---|---|---|---|
+| L2 left untranslated | 52 | **31** | **-21** |
+| L6 numbers lost | 44 | 41 | -3 |
+| L7 text drawn over text | 13 | 14 | **+1** |
+| D1 below readability floor | 429 | **391** | **-38** |
+| D2 short blocks left unchanged | 12 | 9 | -3 |
+| L1, L3-L5, L8-L10, D3 | 0 / 0 / 0 / 16 / 0 / 2 | unchanged | - |
+
+The cost is recorded with the benefit: **L7 goes up by one**, which is the same trade this project has
+paid before when more text is drawn honestly rather than squeezed into place. The per-box typography
+measurement (`type_map.py`) is flat - 74 boxes, `faithful` 36 -> 35, `shrunk` 31 -> 31, `flattened` 6
+-> 6, `mixed` 1 -> 2 - so the fix does not change the *drawn sizes*; it changes *which text* is drawn,
+which is why the criterion that moved is the readability floor and the untranslated count, not the
+shrink count. Two instruments, two answers, and both belong in the record.
+
+This is the first A/B in the campaign where D1 has moved at all. Until now every attempt at the shrink
+ladder (the writer's own box, tighter leading, widening a narrow box) came back flat or worse; the
+lever turns out to be *what the model is asked for*, not how the fitting pass is tuned.
+
+The re-run is kept at `_artifacts/heldout/live/tr_tck_5237_ab` (untracked, like everything under
+`_artifacts/`), so the comparison site can be regenerated from the improved pages rather than the older
+run - its `tr_tck_5237` images currently come from before this fix.
+
+
+## Gece nöbeti: kısaltma merdiveni neden hiç istek atmıyor (TR -> EN)
+
+`fit.shorten_below_scale` (`_SHRUNK_ATTEMPTS = 2`) yolunun ölçümü iki aletle yapıldı:
+`type_map.py` (kutu başına boy kümesi) ve manuel bir `fit_segment` tekrar koşusu — hiç model yok.
+
+**Ölçüm (tr_tck_5237, TR -> EN):** 1.701 blok · as_is 1.169, shrunk 374, overflow 158.
+374 shrunk'un 362'si kutusunun tam-boy karakter bütçesinin ÜZERİNDE — yani kısaltma isteği
+atılması gereken halde atılmamış. **retranslate yalnızca overflow'da çağrılmış** (514 çağrının
+tamamı overflow bloklarından). Kapılar doğru: `_MIN_SHORTEN_CHARS` 34 kutuyu düşürüyor,
+headroom kapısı yalnız 8, `would_ask` (soru sorulmalıydı) **156-237 kutu** — hiçbiri sorulmamış.
+
+**Kök neden: çeviri belleği kısaltma isteğini aynı uzunlukta yanıtlıyor.** `TranslationMemory`
+anahtarı yalnız `source src tgt model` — `max_len` anahtarın parçası değil. Merdiven
+"X karakterden kısa yaz" diye soruyor, önbellek orijinal uzunlukta cevap veriyor, `fit_segment`
+"aynı metin geldi" görüp merdiveni bırakıyor. TR sadece hedef dil olduğundan Türkçe kaynaklar
+EN çevirisiyle büyüyor, bu yüzden 43%'lük ezilme yalnız bu yönde görünüyor.
+
+**Düzeltmeler (ölçülü):**
+1. `providers/cached.py`: önbellek isabeti isteğin `max_len`'ini ihlal ediyorsa servis edilmez,
+   istek iç sağlayıcıya gider (`tests/test_provider_cached.py`, 3 senaryo).
+2. `providers/dedupe.py`: kapsamlı istek, ortak cevap bütçesinden uzunsa kendi isteğiyle modele
+   gider — aynı kural önbelleğe de uygulandı (`tests/test_provider_dedupe.py`).
+
+Hedefteki beklenen etki: TR -> EN'de `shrunk` tablosu aşağı iner (merdiven artık gerçekten
+fikir isteyebiliyor). Bunu kanıtlamak için gerçek model koşusu gerekli — makine boşaldığında
+`tr_tck_5237` yeniden koşulup `type_map.py` ile karşılaştırılacak.
+
+## Gece nöbeti: yeni açık test kaynakları indirildi (henüz koşulmadı)
+
+Üç kaynak `_artifacts/heldout/incoming/` altına indirildi, koşusuna sıra bekliyor; lisans notu
+jurnale alındı (klasör .gitignore içinde, içerik burada):
+
+- **arXiv 2601.00135** - Chow/Lim/Mudgal, "Generalised Fermat equations in dense variables over
+  finite fields and rings", 24 sayfa, dip dizi formüllü. **CC BY 4.0** (abs sayfasındaki license
+  ikonu doğrulandı) - yayınlanabilir.
+- **arXiv 2609.06115** - Varshalovich "Quantum Theory of Angular Momentum" e-sürümü, 408 sayfa,
+  **CC-BY 4.0** (abs sayfasında beyan). Uzun-kitap kampanyası adayı, tek geceye sığmaz.
+- **Gutenberg #56464** (Turkish Literature, 620 kB EPUB) ve **#64807** (Turkish fairy tales,
+  2,2 MB EPUB) - ABD'de kamu malı; şiir/drama düzeni, uzun cümleler, imgalı EPUB testleri.
+
+Öncelik sırası: önce önbellek düzeltmesini kanıtlamak için tr_tck_5237 yeniden koşusu, sonra bu
+kaynaklar. Eski kural sürüyor: Ross kitabı, basılı yasal kodların taramaları, IRS formları
+NOT_PUBLISHABLE.
+
+## Gece nöbeti: düzeltmenin gerçek-model sınavı — istek açıldı, kazanç çıkmadı
+
+`tr_tck_5237` önbellek düzeltmesiyle yeniden koşuldu (r2, 2 işçi, 15,8 dk, 88 sayfa, exit=0).
+Karşılaştırma aynı parça üzerinden (chunk 0000):
+
+| | as_is | shrunk | overflow |
+|---|---|---|---|
+| r1 (önbellek öncesi) | 31 | 15 | 22 |
+| r2 (önbellek düzeltmeli) | 31 | 14 | 23 |
+
+`type_map.py` r2'de: 74 kutu — faithful=36, shrunk=31, flattened=6, mixed=1; r1 ile aynı dağılım.
+`_try_shorten` saniyor (`would_ask` 117 -> r2'de 95; token farkı önbellek ıskalarından), ama model
+kısa yanıt üretmiyor: soru artık Modele gidiyor, gelen yanıt bütçe içine sığmıyor ve merdiven
+"aynı metin" görmeden devam edip yine en son çabayı bırakıyor.
+
+Yani iki şey ayrıştı: **isteğin tıkanıklığı giderildi** (ölçülebilir: r2'de retranslate çağrıları
+gerçek oldu), ama **istekler sonucu değiştirmiyor** — gemma-4-e4b bu istemde kısaltmayı öğrenmiyor.
+Bu, bir sonraki adımın yönünü değiştirir: aynı bütçeyi daha etkili sormak (prompt'ta "N karakterden
+kısa bir kuşak yaz, en önemlileri koru" gibi) ya da ezilen kutucuklar için MIN_SCALE'ı yön bazında
+ayarlamak. Fibonacci-vari kısaltma stratejisi ölçülmeden yapılmayacak; jurnale kaydedildi.
+
+Ayrıca: r2 çıktısı `_artifacts/heldout/live/tr_tck_5237_r2/` altına alındı (çalışma dizinini --out
+göreli bırakınca proje köküne yazan bir araç ayrıntısı的原因; görsel olarak aynı).
+
+## Gece nöbeti: Gutenberg #56464 (Turkish Literature) EN->TR koşusu bitti
+
+Yeni açık kaynak ilk defa koşuldu: Project Gutenberg #56464 — "Turkish Literature; Comprising
+Fables, Belles-lettres, and Sacred Traditions" (kamu malı, EPUB, 11 bölüm). `translate_epub.py`
+3 bölüm parçası / 2 işçi, 75,5 dakika, exit=0. Çıktı + proje + parça kayıtları
+`_artifacts/heldout/live/gutenberg_56464/` altında; koşu günlüğü `run_log.txt`.
+
+Talimat: EPUB kaynağı `translate_book.py`'ye verilmez (kaynağı PDF parçalara böler, "source or
+target not a PDF" ile ölür); EPUB için `translate_epub.py` doğru araçtır. Bat dosyası güncellendi.
+
+Sıradaki gece işi: bu koşunun `lossless_audit.py` denetimi ve karşılaştırma sitesine eklenmesi
+(arXiv 2601.00135 CC BY 4.0 da sıradadır).
+
+## Gece nöbeti: kısaltma istemi "sert limit" olarak yazıldı — r3 ölçümü: kutu tipografisi değişmedi
+
+Önceki turun sonucu, kısaltma merdiveninin tıkanıklığının önbellek düzeltmesiyle açıldığı ama
+gemma-4-e4b'nin "try to keep within N characters" (bir hedef gonka gibi okunan yumuşak ifade)
+isteminden kısa yanıt üretmediğiydi. İstem sertleştirildi: "write its translation SHORT enough to
+stay within that many characters ... Max length is a hard limit measured in characters; do not
+pad, do not expand" (`providers/openai_compat.py`, commit 7189d37).
+
+Ölçüm yine aynı parça üzerinde: `tr_tck_5237` kopyası, `out/t_*.pdf` silinmiş, bellekten
+cevaplanan r3 koşusu (22 parça, 14,2 dk, exit=0 — yalnızca kısaltma yolu modele gitti):
+
+| | as_is | shrunk | overflow |
+|---|---|---|---|
+| r1 (önbellek öncesi) | 31 | 15 | 22 |
+| r2 (bütçe düzeltmesi) | 31 | 14 | 23 |
+| r3 (sert istem) | 31 | 14 | 23 |
+
+`type_map.py` r3: 74 kutu — faithful=36, shrunk=31, flattened=6, mixed=1 — r1/r2 ile aynı.
+İstek başına ölçüt toplamları (parça günlüklerinden): L2 34→32, L6 43→43, L7 14→14, L8 16→16.
+
+Sonuç: kısaltma merdiveni bu modelde **istemle çözülmüyor**. İstek açıldı (r2), istem sertleştirildi
+(r3); ikisi de kutu tipografisinde ve ölçütlerde ölçülebilir bir değişiklik üretmiyor. Bu, merdiven
+kalıcı olarak çıkmaz demek değil — bir sonraki kol aynı bütçeyi daha farklı bir *şekilde* sormak
+(ör. "bu cümlenin en önemli bilgi taşıyan parçalarını seç, kalanı at" gibi bir ilkeli kısaltma
+kosteni) ya da jurnalde daha önce not edilen yön bazlı MIN_SCALE ayarı. İstem dilini daha fazla
+ceydetmek ölçülmeden yapılmaz; üç veri noktası artık jurnale yazıldı.
+
+r3 kayıtları `_artifacts/heldout/live/tr_tck_5237_r3/` altında (kaynak parçaları r2'den kopyalandı).
+
+## Gece nöbeti: README sadeleştirme devamı — Known limits tabloya taşındı
+
+Kalan indirim: README (EN) 289→284 satır, TR 278→277. Known limits bölümü artık tek paragraf:
+her sınır vaka ölçümüyle `docs/QUALITY-FACTORS.md`'deki yeni "Known limits" tablosunda.
+_TR tablosu yok_ — README.tr.md bu bölümü zaten İngilizce README'ye işaret ediyordu; şimdi
+kaliteli ölçüm sayfasına işaret ediyor. Kuyruğun 3. maddesi için kalan: comparison site yenileme
+(4. madde) sonrası tekrar satır sayısı ölçümü.
+
+## Gece nöbeti: kuyruk 1 kapanış — kısaltma merdiveninin önce/sonra tablosu
+
+Kuyruk madde 1 (TR→EN ezilme oranını düzeltme sonrası yeniden ölçme) üç koşuyla kapandı.
+Ölçüm hep aynı parça üzerinden (`type_map.py`, 74 kutu, model-siz araç):
+
+| koşu | işlenen değişiklik | faithful | shrunk | flattened | mixed |
+|---|---|---|---|---|---|
+| r1 | önbellek düzeltmesi öncesi | 36 | 31 | 6 | 1 |
+| r2 | bütçe-dolu dedupe düzeltmesi | 36 | 31 | 6 | 1 |
+| r3 | sert kısaltma istemi | 36 | 31 | 6 | 1 |
+
+fitting çizgisi de sabit (as_is=31, shrunk=14, overflow=23). İstek başına ölçüt toplamları:
+L2 34→32, diğerleri değişmedi. **Sonuç: üç veri noktası da tipografiyi değiştirmedi** — bu gece
+elinde olan iki kol (isteğin açılması, istemin sertleştirilmesi) için ölçüm eksi. Merdivenin
+çıkmazı istem dilinde değil; sonraki kol daha farklı bir istek *şekli* (ilkeli seçim/kısaltma)
+ya da yön bazlı MIN_SCALE. r1–r3 kayıtları `_artifacts/heldout/live/tr_tck_5237{,_ab,_r2,_r3}/`.
+
+## Gece nöbeti: kuyruk 2 için keşif — satır-içi boyut kaybının mekanik haritası
+
+Flattened (kaynaktaki küçük satır-içi çalıştırmanın bloğun büyük boyutuyla yazılması, belge başına
+6-15 kutu) için üç katman birbirine göre okundu; mekanik dört açık nokta verdi:
+
+1. **Marker kümesindeki Style kayıp küçük boyutu taşımıyor.** `docir._inline_styles` yalnız
+   `dominant_style()`'dan * farklı* stili marker yapar (key: aile, boyut, kalın, italik, renk).
+   Bağlaç/k bölüm numarası gibi 6 pt parça marker'ı yapılmaz — bunlar direkt yok olur; kalan
+   uzunlukları kalın/italik flag'iyle taşınan koşularda da **Style.size alanı korunur**, sorunun
+   yazı taraflı olmadığı buradan görülür.
+2. **Yazıcı** (`pdf_writer._span_html`) her span'in kendi stiliyle `font-family`/`color` taşır
+   ama `font-size`'ı blok seviyesinde CSS'ten (`_css_for_block`, dominant.size) alır — span
+   boyutu kullanılmaz. yani span-in-italik gibi geri gelen koşullarda boyut korunmaz.
+3. **`fitting.pdf_pass.apply_scale`** ölçek uygular (`span.style.size *= scale`) — ki burada
+   zaten scale uygulanır ama yalnızca blok ölçeği, span içi kayıtları sıfırlar. `insert_htmlbox`
+   zaten kendi shrink'ini yapar.
+4. **Ölçüm aleti** hazırlık: `type_map.py` artık `--flattened-by-page` veriyor (3 file'ı tek
+   sayfada gösterebiliyor).
+
+**Tasarım kararı** (ölçülmeden değişiklik yapılmayacak): writer'da span'in Style.size kullanmak
+dahil her amaç, bir önceki kolun gerçek model koşusuyla A/B'dir; kutu başına flattened sayısının
+önce/sonrası ölçülür, L7 artışı da okunur. A/B bu gece yapılmayacak — makine saat başında boşaldı
+ve kısaltma merdiveni yolu ölçümünden çözüm çıkmadı; flattened yazıcı değişikliği ayrı bir kuyruk
+öğesi olarak jurnalde öyle duruyor.
+
+## Gece nöbeti: arXiv 2601.00135 (CC BY 4.0) EN->TR koşusu — iki tur
+
+Yeni açık kaynak ilk defa koşuldu. İlk tur *geçersizdi ve silindi*: koşucu çalışma dizisini
+(`--work`) vermediğimde `_artifacts/heldout/live/src`, r2/r3 koşularının TCK parçalarıyla
+doluydu ve koşu oartefakt parçaları okudu; çıktı TCK metni taşıdı. Ders: uzun koşular her zaman
+kendi `--work` dizinini alır, paylaşılan `live/src` asla doğrudan kullanılmaz.
+
+İkinci tur temiz çalışma diziniyle (`work_arxiv`) koşuldu: 6 parça / 2 işçi, 29,5 dk, exit=0,
+24 sayfa birleşti. Kayıt `_artifacts/heldout/live/arxiv_2601_00135_run/` altına taşındı
+(kök dizine yazılan merge PDF'i — araç `--out` göreli yolun çalışma dizinine yazılan bilinen
+ayrıntısı). Denetim (`--to tr`):
+
+| ölçüt | değer |
+|---|---|
+| L1, L4, L5, L7, L9, L10 | 0 |
+| L2 left untranslated | 6 |
+| **L3 text not on the page** | **20** |
+| L6 numbers lost | 5 |
+| L8 untouched moved | 1 |
+| D1 readability floor | 97 |
+| D2 | 3 |
+| D3 squeezed | 9 |
+
+Karakteristik: yoğun matematik formül paragrafları — model denklem ağır satırları çevirmede
+taşıyamıyor (L2/L3 açık); D1 kısmen formül satırlarının küçültülmesi. dipnottar (L3'ün dağılımı)
+sonraki analiz için örnek girdi. Gutenberg #56464'ün EPUB koşusu tamamlanmıştı; sitedeki yerini
+EPUB karşılaştırma girdisi ayrı iş olarak bekliyor.
+
+**Düzeltme (aynı gün, ölçümle): L3'ün sebebi model değil.** Bu koşunun L3=20'si "model denklem ağır
+satırları taşıyamıyor" diye okunmuştu; `verify.py`'nin kendi yorumu ve bu ölçüm bunu çürütüyor.
+Çıktı PDF'lerinde işaretlenen satırlar arandı: `SONLU ALANLAR…FERMAT DENKLEMLERİ` başlığı **7 dosyanın
+hepsinde** var, `Anahtar kelimeler`, `Özet`, `Matematik Ders Sınıflandırması` da var — blok **çizilmiş**,
+kutusunda kırpılmış. Yalnızca `Aritmetik denklemler…` bulunamadı (kırpılan kuyruk). Yani L3 burada
+"yazıcı düşürdü" değil "fitting sığdıramadı": `verify.py`'nin L3 tanımı bunu zaten yazıyor ve PLOS'un
+matematik paragrafları için aynı şeyi not ediyor (okuyucu bir sayfa formülü tek 79 pt "satır" olarak
+birleştirdi, hiçbir şey sığamadı, denetim sayfada duran sekiz bloğu "düşmüş" saydı).
+
+**Sıradaki iş bu yüzden kriterin kendisindeydi — ve ölçüldü.** L3 "kaç kelime eksik" demediği için
+iki okuyucu (nöbet ve bu satırları yazan) aynı sayıyı yanlış okudu. Detay artık
+`<eksik> of <toplam> words not on the page` yazıyor (`verify.py`; `missing == total` = sayfada hiç
+olmayan blok, daha azı = kırpılmış blok) ve testli (`tests/test_verify_l3_counts.py`).
+
+Aynı koşu bu detayla yeniden ölçüldü (parça 0, 7 L3):
+
+```
+10 of 67 words not on the page: Özet. Let A bir sonlu cisim…
+ 7 of 41 words not on the page: |A| ≫p koşulunu…
+ 1 of  9 words not on the page: SONLU ALANLAR VE HÜKÜMLER…
+ 1 of  5 words not on the page: 2020 Matematik Ders Sınıflandırması…
+ 1 of  5 words not on the page: O halde en az εqs−1 tane çözüm…
+```
+
+**Hepsi kırpılmış, hiçbiri kayıp değil** ✓ — "N of N" hâli bu koşuda hiç çıkmadı ve kayıp 1-10
+kelimelik kuyruklar. Yani L3'ün 20'si ne "model formülü taşıyamadı" ne "okuyucu birleştirdi": hedef
+dil uzun olduğu için **son satır kutuya sığamıyor**, fitting kırpıyor ve blok incelemeye düşüyor —
+D1'in aynı sayfada işaretlediği bloklarla aynı küme. Sıradaki iş bu yüzden hâlâ kutu/sığdırma
+kaldıracı (D1'in kaldıracı), okuyucu değil.
+
+## Ölçüm, karar değil: EPUB -> PDF çiftinin sayıları (kullanıcı doğrulaması bekliyor)
+
+Kullanıcı, kendi doğrulaması olmadan hiçbir şeyin yayınlanmış sayfalarda "çalışıyor" diye
+yazılmamasını istedi. Bu yüzden **hiçbir kapı açılmadı** ve karşılaştırma sitesine EPUB girdisi
+eklenmedi; yalnızca projenin kendi adımı çalıştırıldı
+(`tools/audit/faz2_candidates.py`, "measure candidate pairs ... before any of these pairs get added
+to capabilities.OPEN_PAIRS") ve çift listeye *ölçüm için* eklendi.
+
+Sonuç, satır birebir:
+
+```
+ok   rich_book.epub     -> pdf   words 101%  (68/67) img 1/1 pages 1/1 styled 0/5
+```
+
+Okunuşu: kelime düzeyinde kayıp yok (68/67 - fazladan bir kelime, tire kırılması), görsel 1/1,
+sayfa 1/1, ama **biçimlendirme taşınmıyor (0/5)**. Aynı ölçümde hâlihazırda *açık* olan çift
+`rich_book.epub -> png` de `styled 0/5` veriyor; yani çift, mevcut çıtayla tutarlı. Uygulama zaten
+yazılı (`tests/test_epub_pdf_reflow.py` ona bağlı) ve CLI/arayüz yalnız
+`capabilities.OPEN_PAIRS` bayrağıyla kilitli.
+
+Karar kullanıcının: açılırsa (1) CLI ve arayüzde EPUB -> PDF görünür olur, (2) karşılaştırma sitesi
+Gutenberg EPUB koşusunu XML yerine **sayfa olarak** gösterebilir. Açılmadan önce kullanıcının kendi
+gözüyle bir EPUB'ı PDF'e çevirip bakması gerekiyor.
+
+## A/B: satır-içi boyutları korumak — ölçüldü, kazanç var, varsayılan yine de kapalı
+
+Yazıcı bir bloğa tek bir `font-size` veriyordu (`_css_for_block`), yani kaynakta küçük olan satır-içi
+parça - üst simge işareti, dipnot numarası, formül kırıntısı - bloğun büyük boyutuyla çiziliyordu.
+Ölçüm önce veriyi doğruladı: `arxiv_19145`'in altı parçasında **145 bloğun 48'i** farklı boyut taşıyor
+(10,2 pt blok içinde 6,8 pt parçalar). Yani kayıp yazıcıda; okuyucu boyutu koruyor.
+
+Değişiklik geliştirici ayarı olarak eklendi (`writer.inline_span_sizes`, varsayılan **kapalı**;
+`pdf_writer._span_html` farklı boyutlu koşuya `font-size` veriyor) ve aynı kayıtlı koşu iki kez
+yazıldı (model yok, `rewrite_run.py`):
+
+| | kutu | sadık | ezilmiş | **düzleşmiş** | karışık |
+|---|---|---|---|---|---|
+| saklı taban (eski motor) | 697 | 363 | 318 | **7** | 8 |
+| yeniden yazılmış, **ayar kapalı** | 698 | 361 | 322 | **7** | 7 |
+| yeniden yazılmış, **ayar açık** | 698 | 363 | 322 | **4** | 8 |
+
+**Düzeltme (önemli): ilk yazdığım "+4 ezilme bedeli" ayardan değil, yeniden yazmanın kendisinden
+geliyordu.** O tabloda "taban" olarak *saklı* koşuyu (eski motorun ürünü) kullanmıştım; projenin kendi
+kuralı bunu yasaklıyor - "iki koşuyu değil, aynı kaydın iki kod sürümünü karşılaştır". Koşuyu iki kez
+yeniden yazınca (yalnız ayar farkıyla) gerçek tablo yukarıdaki üç satır oluyor: **ezilme 322 -> 322,
+yani ayar hiç ek sıkıştırma yapmıyor**; +4 tamamen eski motordan bugünkü motora geçişin etkisi.
+Ayarın ölçülen etkisi: **düzleşmiş 7 -> 4**, karışık 7 -> 8 (+1), diğerleri sabit.
+
+Ölçütler (aynı koşu, `lossless_audit.py --to tr`):
+
+| ölçüt | taban | ayar açık |
+|---|---|---|
+| **L7 üst üste metin (asıl risk)** | **0** | **0** |
+| D1 okunabilirlik tabanı | 296 | 296 |
+| D2 | 7 | 7 |
+| **D3 sıkışmış** | 2 | **1** |
+| L2 / L3 / L6 / L8 | 7 / 0 / 2 / 1 | aynı |
+
+Yani ayar üç kutuyu düzeltiyor, hiçbir ölçütü kötüleştirmiyor, D3'ü iyileştiriyor - ama varsayılan
+**kapalı** bırakıldı: kullanıcı, kendi doğrulaması olmadan hiçbir şeyin "çalışıyor" diye
+yazılmamasını istedi, ve tek bir belgede ölçülmüş bir kazanç onu açmaya yetmez. Sayfa başına fark:
+`t_0002` (1 kutu) ve `t_0013` (2 kutu) düzeliyor; `t_0000` ve `t_0008` aynı kalıyor - yani
+düzleşmenin bir kısmının sebebi başka (fitting'in kendi ölçek uygulaması) ve o kısım bu ayarla
+kapanmıyor.
+
+**Aynı A/B, iki kolu da yeniden yazarak, beş belgede** (hepsi kayıtlı koşu; `×_off` ve `×_on`
+dizinleri aynı motorla yazıldı, tek fark ayar; `rewrite_run.py` + `type_map.py` + `lossless_audit.py`):
+
+| koşu | kutu | düzleşmiş | ezilmiş | sadık | ölçütler |
+|---|---|---|---|---|---|
+| `arxiv_19145` | 698 | 7 -> **4** | 322 -> 322 | 361 -> 363 | aynı |
+| `cookbook_1907` | 440 -> 441 | 61 -> **53** | 271 -> **252** | 3 -> 3 | aynı |
+| `arxiv_19113` | 353 | 5 -> **3** | 163 -> 163 | 169 -> 171 | aynı |
+| `irs_p505` | 1670 | 22 -> **14** | 739 -> **689** | 719 -> **763** | aynı |
+| `plos_animal_movement` | 526 | 9 -> **1** | 232 -> 232 | 276 -> **281** | aynı |
+| **toplam** | | **104 -> 75 (-%28)** | **1727 -> 1658 (-69)** | **1528 -> 1581** | **5/5 aynı** |
+
+Yani ayar beş belgede düzleşmeyi %28 azaltıyor, **69 blok daha az sıkıştırıyor** (kaybı azaltıyor, yeni
+sıkıştırma getirmiyor) ve **hiçbir ölçütü kıpırdatmıyor**: `L3`, `L7` (ayarın taşıdığı asıl risk),
+`D1` ve `D3` beş koşunun beşinde birebir aynı. Tek ölçülmüş maliyet `cookbook_1907`'nin `grown`
+sayısı (104 -> 130); bu sayı henüz açıklanmadı - per-span boyutlarla satır yüksekliği değişince yazılan
+sayfa yeniden çıkarılırken kutu başına boyut kümesinin değişmesi olası, ama tahmin etmek yerine
+ölçülmesi gerekiyor.
+
+**Bu tablo, önceki iki tablonun yerine geçer.** İlki saklı koşuyu taban alıyordu (eski motor) ve
+"+4 ezilme bedeli" o kusurdan geliyordu; ikincisi aynı kusuru beş belgeye yayıyordu ve ölçütlerde
+görünen "iyileşmeler" (plos L3 8 -> 0, irs_p505_rewritten L7 10 -> 0) da eski motorun eseriydi -
+iki kolu da yeniden yazınca ikisi de kayboldu. Ayarın kendini açma şartı buydu: uyarısı "ölçülmeden açılmaz" diyordu. Ölçüm yapıldı, kullanıcı da
+"sen test ettiysen açabilirsin" dedi - **varsayılan artık açık** (`default=True`), etiketteki
+"(deneysel)" kaldırıldı, yardım ve uyarı metinleri ölçülen sayılarla değiştirildi. Kararı bir daha
+sessizce geri çevirmeyi imkânsız kılmak için `test_the_default_is_on_and_only_a_measurement_turns_it_off`
+yazıldı: varsayılanı çevirmek isteyenin aynı iki-kollu A/B'yi yeniden yapması gerekiyor.
+
+### Açık kusur: çevrilmiş EPUB geçersiz XHTML döndürüyor (kaynak: kıyas isteği)
+
+`gutenberg_56464` çevirisinde (`_artifacts/heldout/live/gutenberg_56464/gutenberg_56464.tr.epub`) bir
+belge **geçersiz** çıkıyor: `OEBPS/6311803512635209464_56464-h-8.htm.xhtml`, satır 22, sütun 5617,
+"mismatched tag". Ölçüm: kaynak EPUB'ta **14 belge, 0 bozuk**; çevrilmiş EPUB'ta **1 belge bozuk**.
+Etiket farkı: kaynakta olup çeviride olmayan - 1 adet `<div>` açılışı (bu yüzden dosyada 45 açılış /
+46 kapanış), 1 `<span>` + 1 `</span>` çifti, 3 farklı `<a href>` açılışı (karşılık gelen iki `</a>`
+duruyor). MuPDF bunu tolere ediyor (uyarı basıp açıyor); katı okuyucular reddeder. Yani EPUB→PDF
+çiftinin önündeki gerçek engel burada: çıktı kendi başına geçerli değil.
+
+Denenip **elenen** yol: `epub_writer._apply_edits` içindeki üst üste binme. Düzenlemeler blok
+aralıklarından (ayrık) ve `<img>` alt/title değer aralıklarından geliyor; ikincisi bloğun içinde
+kalabildiği için gerçekten üst üste biniyor ve `cursor` geri gidebiliyordu (metin çoğaltan bir hata,
+artık kapatıldı), ama kaybolan `<a>`/`<span>`/`<div>` bunun eseri değil - blok yeniden yazılırken
+satır-içi işaretlemenin yalnız kalın/italik taşınması (kodun kendi yorumu bunu söylüyor). Kusur
+**açık**: reprodüksiyon bir `<p>` içindeki bağlantıyı çevirip `<a href>`in durup durmadığına bakmak.
+
+Ders (kendi hatam): aynı dosyada test eklerken import satırını değiştirdim ve 11 testi kırdım; bunu
+"düzeltmem bozuk" sanıp geri aldım - yanlış teşhis. Şüpheli bir kırılmada önce **kendi değişikliğini**
+`git stash` ile ayır, sonra suçla.
+
+### Araç tuzağı: `rewrite_run.py` ayarları yüklemiyor
+
+İlk A/B **hiçbir şey ölçtü**: `LAYOUTKEEP_TUNABLES` ile verilen geçersiz kılma dosyası yerindeydi ama
+`tunables.get('writer.inline_span_sizes')` **False** dönüyordu, çünkü `rewrite_run.py` okuyucu/yazıcıyı
+doğrudan çağırıyor ve `tunables.load()`'u (CLI ile arayüzün açılışta çağırdığı satır) hiç
+çağırmıyor. İki koşu aynı çıktıyı verdi ve yorum "ayar etkisiz" olacaktı. Doğru çağrı:
+
+```
+LAYOUTKEEP_TUNABLES=<geçici.json> python -c "
+from layoutkeep.core import tunables; tunables.load()
+import runpy, sys; sys.argv=['rewrite_run.py', <koşu>, <hedef>]
+runpy.run_path('tools/audit/rewrite_run.py', run_name='__main__')"
+```
+
+Ayar A/B'lerinde önce `tunables.load()`'un çağrıldığını **doğrula** (`tunables.overrides()` boş
+dönmemeli); yoksa ölçüm, hiç okunmamış bir ayarı ölçer.
+
+### Yan bulgu: geliştirici ayarlarının etiketleri tek dilli
+
+`core/tunables.py` içindeki etiket, `help_text` ve `warning` alanları **yalnız Türkçe** ve arayüzde
+anahtar başına çevirileri yok - yani uygulama İngilizce ya da Almanca çalışırken geliştirici ayarları
+ekranı Türkçe kalıyor (madde 12'nin kapsamı). ~115 ayar girdisi var; çeviri kararı kullanıcının.
+
+## Gece nöbeti kapanışı (07:0x, pazar ertesi sabah)
+
+Kuyruğun durum: (1) kapandı — tipografi üç koşuda sabit, tablo jurnale yazıldı; (2) keşfi
+yazıldı, yazıcı A/B'si sonraki geceye kaldı; (3) README bilinen sınırlar bölümü ve
+QUALITY-FACTORS tablosu yapıldı, satır sayıları 284/277; (4) site r3'ten yayınlandı ve
+curl ile doğrulandı; (5) arXiv 2601.00135 koşuldu, denetimi kaydedildi.
+
+Bilinen açık işler:
+- kısaltma merdiveni istemle çözülmüyor — sonraki kol farklı bir istek *şekli* ya da yön bazlı MIN_SCALE;
+- flattened için yazıcı-tarafı span font-size A/B'si (kuyruk 2'nin tasarımı, ölçülmeden kodlanmaz);
+- Gutenberg EPUB koşusunun karşılaştırma sitesine EPUB girdisi olarak eklenmesi;
+- koşucunun `--work` paylaşımı hatası — kaynak parçaların harmanlanması jurnalde kayıtlı.
+
+### Düzeltildi: koşu artık kendi çalışma dizinini alıyor ve başkasının dizinini reddediyor
+
+`translate_book.py`'nin `--work` varsayılanı paylaşılan `_artifacts/book` idi; bayrağı vermeyen her
+koşu parçalarını oraya yazıyordu. Yeni bir 24 sayfalık makale o dizindeki **başka bir belgenin**
+parçalarından kesildi, çevrildi ve başka bir belgenin metnini taşıyarak döndü - yarım saatlik model
+süresi ve sessizce yanlış bir çıktı; yalnızca insan okuyunca fark edildi.
+
+İki değişiklik:
+
+- Varsayılan artık çıktıdan türetiliyor: `--work` verilmezse `<out>`'un yanında `<out-adı>_work`.
+  İki koşu farklı çıktılar için yazdığı için asla aynı dizini paylaşamaz.
+- Çalışma dizinine `input.txt` yazılıyor ve içinde parçaların hangi girdiden kesildiği duruyor.
+  Dizin başka bir girdiyi gösteriyorsa koşu **başlamadan** duruyor ve iki yolu da söylüyor;
+  bilerek kullanmak için `--force`.
+
+Testler `tests/test_translate_book_work_dir.py` (6 test, model yok) ve koruma, geçici olarak kapatılıp
+**kırmızı kanıtlandı** (`DID NOT RAISE SystemExit` - olayın kendisi). Gerçek CLI üzerinde de ölçüldü:
+başka bir belgeyi işaret eden dizinle koşu, model çağrısı yapmadan
+`refusing to reuse ... its chunks were cut from C:/baska/belge/paper.pdf, not .../tck_5237.pdf` diyerek
+durdu.
+
+---
+
+## 2026-09-21 · Gece: sığdırma sürenin %56'sı, ve iki kolda ölçüm
+
+**Kullanıcının kitabı bitti (70 dk 42 sn).** Kullanıcı zaman tablosunu ilk kez gördü ve dağılımı sordu:
+
+| Aşama | Süre | Pay |
+|---|---|---|
+| read | 8 dk 10 sn | %12 |
+| translate | 21 dk 18 sn | %30 |
+| **fit (sığdırma)** | **~39 dk 30 sn** | **%56** |
+| write | 40,5 sn | %1 |
+| verify | 58 sn | %1 |
+
+Sığdırma, çevirinin **iki katına yakın**. Sebebi de görüldü: sığmayan **her kutu için ayrı istek**
+atılıyor (`worker.py` → `provider.translate([segment])`). Kullanıcı bunu LM Studio'da "aynı anda 1
+istek" olarak izledi ve sordu.
+
+**Yapılan:** `fit_pdf_pass`'e `fetch_many` eklendi — tur toplanır, tek istekte sorulur, ikinci geçiş
+yanıtlarla sığdırır (D-010). Gece incelemesi bir hata buldu: toplama turu `on_fitted`'ı da çağırıp
+yanlış ölçeği yazıyor, bayrak açıyor, `box_crushed`'ı iki kez sayıyordu — testle çivildi.
+
+**Kullanıcının fikri (D-011):** karakter bütçesi **çeviriden önce** verilsin. Bulgu: `openai_compat.py`
+zaten `max_len`'i gönderiyor ve "kısa yaz" diyor, ama değer yalnız sığdırma sırasında doluyordu — yani
+talimat hiç ateşlenmiyordu. Artık `translation.prefit_budget` (kapalı / %120 paylı / tam kutu) ile
+bölümlemeden sonra hesaplanıyor.
+
+**A kolu (kontrol, 3 sayfa, yerel gemma):** toplam **19 dk 22 sn** — translate %25, **fit %60**,
+verify %13. **B kolu (toplu + bütçe):** toplam **18 dk 04 sn** — fit **11:22 → 6:26 = −%43** ✓✓,
+translate aynı ✓, bütçe 0,2 sn ✓. Ama toplam yalnız **−%6,8** ✗: kurtarma adımı B'de 7 segment (A'da 2)
+ve o adım zamanlayıcıda yoktu → ~300 sn kör noktaydı; `recover` ve `unify` artık faz ✓.
+**Kalite iki kolda da eşit ✓✓:** 13 ölçütün tamamı 0, `LOSSLESS YES`, bayraklı blok 29 ↔ 30 (1214 blok).
+
+**Not ✗:** Tek koşuyla "toplam süre kısaldı" denmez ✓ — kurtarma sayısının koldan kola değişmesi
+tekrar koşu gerektiriyor ✓; `prefit_budget` varsayılanı bu yüzden hâlâ kapalı ✓ (D-011).
+
+**Kapak kusuru (D-012):** kullanıcı çıktıda orijinal kapak yazısının çevirinin altında kaldığını gördü.
+Ölçüm: kaynağın 1. sayfasında **metin katmanı boş** (tek bir 700×866 görüntü) → kapak OCR'lanmış,
+çeviri **resmin üstüne** çizilmiş; silinecek metin yoktu. Çözüm (uygulanacak): OCR kutusuna örneklenmiş
+zemin dolgusu.
+
+**agy (Antigravity CLI) kuruldu:** agy-staff v0.7.3 hem Claude Code'a hem Codex'e kuruldu ve enabled.
+Hermes'e plugin gerekmiyor — beceriye personalar eklendi. Kota ölçümü: hesap
+`legendnoobeoffical@gmail.com`, **Gemini grubu %0** (25 Eyl Cuma 14:46 UTC yenilenir), **Claude/GPT %97**;
+yani 429 hatası kotanın gerçeği, arıza değil. `/usage` artık model çağırmadan okunabiliyor.
+
+**Kural:** ağır GPU/CPU işleri 23:00'ten sonra başlatılmaz; gece kod okuma, optimizasyon ve kayıt işleri
+yapılır. agy'nin bıraktığı izler (`.antigravitycli/`, `.gemini/`, `agy*.log`) `.gitignore`'da; ajan
+proje içinde çalışır, izleri repoya girmez.
+
+## 2026-09-22 öğleden sonra · DeepL ile ölçüm (kullanıcı isteği)
+
+- **Düzenek**: `lk_prefit_ab.py` artık `LK_ARM_KIND=deepl` ile çalışıyor ✓ (anahtar Windows kimlik
+  kasasından ✓, GPU hiç kullanılmıyor ✓). DeepL profili `base_url=""` istiyor ✗ — varsayılan
+  bırakılınca LM Studio adresine bağlanmaya çalıştı ✗.
+- **DeepL hatası bulundu ve düzeltildi (D-013)**: arXiv makalesinde bir segmentin kaynağı tek başına
+  `\x08`'di ✗; XML ayrıştırıcısı yüzünden **tek bayt 40 segmentlik isteği** düşürüyordu ✗✗.
+  `562d25d` + 2 test ✓.
+- **Ölçüm (3 sayfa, arXiv 2609.19145)**:
+  - **a** (tek tek istek, eski davranış): toplam **134,9 sn** — fit **81 sn (%60)** ✗, translate 4,0 sn,
+    yazma 31,3 sn, kurtarma 3,9 sn, okuma 13,3 sn, **hata yok** ✓.
+  - **b** (toplu istek): fit **6,5 sn (%12)** ✓✓ → **−%92** ✓ (yerel modelde aynı A/B −%43'tü).
+  - b'nin tam sonucu kayboldu ✗ (durdurulan zincir kolun klasörünü temizlemişti ✗); fit/yazma/kurtarma
+    sayıları koşu çıktısından alındı ✓.
+- **Kota maliyeti** ✗✗: 3 sayfa ≈ **35k karakter** (17.987 kaynak + **17.157 bağlam** ✗) + tekrar
+  istekler → tek kol ~40-50k ✗. Kullanıcının kotası 890k → **982k**'ya çıktı ✗ (17.691 kaldı ✗);
+  koşu durduruldu ✓. **Karar: ağır ölçümler yerel modelle** ✓ (ücretsiz ✓); DeepL yalnız tek sayfalık
+  son kontrol için ✓.
+- **c/d/e kolları koşmadı** ✗ (kota ✗) — yerel modelle tamamlanacak ✓.
+
+## 2026-09-22 gündüz (hafif iş · dışarıda)
+
+- **04:05 koşusu neden üretmedi**: zincir çalıştı ✓ ama beş kol **0,3 sn**'de düştü ✗ — cron ortamı
+  çocuk sürece Hermes'in `PYTHONPATH`'ini geçiriyor, venv (3.13) oradan 3.11 numpy'ını yüklüyor ✗
+  (`_multiarray_umath.cp311-win_amd64.pyd`). Özet fonksiyonu da `phases` alanını sözlük varsayıyordu ✗
+  (çöken kol `[]` yazıyor). İkisi de düzeltildi ✓ + zincire **ön kontrol** eklendi ✓
+  (`preflight()`: venv sağlığı + betik varlığı; başarısızsa hiçbir kol başlamaz ✓).
+- **Cron işleri düşme sebebi**: `config.yaml`'da `model.default` **ve** `cron.model` bayat dizeyi
+  taşıyordu (`opencode-go/glm-5.3-flash` ✗ — TokenRouter listesinde böyle bir önek yok). TokenRouter
+  bakiyesi de bitmiş ✗ (tüm modellerde "gift balance $0"). Çalışan yol bulundu ✓: `llmtr` +
+  `qwen/qwen3.8-27b-free` (ücretsiz, canlı test "OK" ✓; eskisi 19 Eylül'de emekliye ayrılmış ✗).
+  `cron.model` + `providers.llmtr.model` buna çevrildi ✓.
+- **Sığdırma analizi (kod okuma)**: maliyet = **tur × sığmayan kutu** ✓. İki kol kodda hazır:
+  toplu istek (`fetch_many`, ilk tur hepsini tek istekte sorar ✓, sonraki turlar tekil ✓) ve
+  ön bütçe (`prefit_budget` ✓). İkisinin katkısı **ölçüm bekliyor** ✗ — gece koşusu yeniden
+  zamanlanmalı ✓ (04:00-06:00 penceresi ✓).
+- **Duraklatılmış gece nöbeti** (`dcadaafb6130`) kendi modelini taşıyor ✗ (`glm-5.3-flash`/`opencode-go`)
+  — devam ettirilirse önce modeli düzeltilmeli veya iş yeniden kurulmalı ✓.
+- **Exe**: durum hazır ✓ (ağaç temiz ✓, dünkü testler yeşil ✓); derleme ağır olduğu için (pil ✗)
+  kullanıcı "başla" dediğinde koşulacak ✓ — öncesinde tam test paketi ✓.
+
+## 2026-09-22 gece (00:00-04:00 hafif iş)
+
+- **Kapak düzeltmesi (D-012)**: renkli panelde Otsu "koyu" kütleyi mürekkep sanıp zemini siliyordu;
+  medyan doygunluk eşiği (120) eklendi. Kutu içi sarı piksel 20.369 → 3.960 (−%81), yazar satırı → 0.
+  Eski kodla aynı kutu 44.436 (daha kötüydü). Kanıt: `51aee55`.
+- **İç sayfa güvencesi** (kullanıcı uyarısı: "kapağı düzelteceğim diye sayfa çevirilerini bozma"):
+  aynı kaynak + aynı hedef yazıyla iki kural karşılaştırıldı → sıradan kâğıt sayfada **0 piksel** fark.
+  Testle çivilendi: `test_the_panel_rule_never_changes_a_paper_page`. Kanıt: `8a13d3b`, `a003c4a`.
+- **Ayar penceresi**: kombo artık en uzun seçeneğe göre boyamıyor (ipucu 666 → 314); pencerenin
+  gerçek tabanı **620**, açılışı 760×620 (1322 yalnız bilgi ipucuydu). Kanıt: `1d11c51`.
+- **Okuma fazı**: 1201 sayfa / 8 dk = **0,4 sn/sayfa** → darboğaz değil. ONNX yerleşim dedektörü
+  CPU-only (`docling-layout-heron-onnx`), GPU'ya dokunmuyor.
+- **Ağır ölçüm**: `a/b/c/d/e` kolları **04:05**'te (cron `982752d2a607`), rapor **06:15** (`961cb9c99e0e`).
+- **Zincir kilidi**: `lk_night_chain.py` yalnız `run` argümanıyla çalışır — gece yanlışlıkla
+  çalıştırma olayı (fan sesi) BrainOS'a `mistake` olarak kaydedildi.
+## Gece ölçüm zinciri — 5 kol (yerel gemma, 3 sayfa, aynı belge)
+
+| kol | ne | süre | kalite |
+|---|---|---|---|
+| a | eski davranış (tek istek, bütçe yok) | faz kaydı yok ✗ | kayıpsız ✓ |
+| b | toplu istek | **643 s** ✓ en hızlı | kayıpsız ✓ |
+| c | toplu + bütçe (strict) | 956 s | kayıpsız ✓ |
+| d | yalnız bütçe (strict) | 1158 s ✗ en yavaş | kayıpsız ✓ |
+| e | toplu + konu haritası | 690 s ✓ (harita ≈ 47 s) | kayıpsız ✓ |
+
+Beş kolun beşi de kayıpsız; bozuk ölçüt yok; bayrak listeleri boş. Sonuç: toplu istek en hızlı yol;
+bütçe tek başına yavaşlatıyor (yeniden deneme maliyeti); konu haritası ~47 s ekliyor.
+Not: kollarda `output.timing_report` açık olmadığı için faz kırılımı yok, yalnız toplam süreler var.
+
+## Konu haritası: fayda ölçümü (karar girdisi)
+
+Aynı belgenin iki kolu (b: toplu, haritasız — 643 s | e: toplu + konu haritası — 690 s) diskteki
+`out.lkproj` çıktılarıyla karşılaştırıldı.
+
+- `tools/audit/term_consistency.py b/out.lkproj e/out.lkproj` → **16 terimin 16'sı iki kolda eşit**;
+  "haritalı daha tutarlı: 0 | daha dağılmış: 0".
+- Kayıp denetimi iki kolda da aynı (kayıpsız, bozuk ölçüt yok).
+
+Sonuç: maliyet ölçülü (+47 s / ~%7 küçük belgede), kayıp ve terim tutarlılığı boyutunda **fayda
+ölçülemedi**. Karar: `translation.keyword_map_auto` **varsayılan kapalı** kalır; ayar ekrandaki
+metin artık ölçülmüş maliyeti ve ölçülen sıfır etkiyi yazıyor.

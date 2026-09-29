@@ -43,7 +43,7 @@ class CachedProvider(TranslationProvider):
 
         for seg in segments:
             cached = self.memory.get(seg, src_lang, tgt_lang, self.model_id)
-            if cached is not None:
+            if cached is not None and _respects_budget(cached, seg):
                 results[seg.block_id] = cached
                 cached_count += 1
                 cached_chars += len(seg.source)
@@ -95,3 +95,20 @@ class CachedProvider(TranslationProvider):
 
         return [results[seg.block_id] for seg in segments]
 
+
+def _respects_budget(cached: Segment, request: Segment) -> bool:
+    """A cached hit may serve a request only when it obeys the request's length cap.
+
+    WHY THIS EXISTS: the fitting pass re-asks the provider for a *shorter* rendering
+    (`segment.max_len`, the shrink ladder in `fitting/fit.py`); the memory misses that
+    constraint because its key is the source text alone, so the hit came back at the
+    original length, `fit_segment` saw "the same text again" and abandoned the ladder -
+    which is how TR->EN legal documents ended with 43% of their boxes shrunk 0.85-0.95x with
+    no request ever leaving the process (measured, 2026-09-21: 374 shrunk blocks on
+    tr_tck_5237, 362 of them over the box's char budget, retranslate wired and called only
+    on overflow). A miss is unaffected; only the cache answer is length-checked.
+    """
+    limit = request.max_len
+    if not limit or not cached.target:
+        return True
+    return len(cached.target) <= limit

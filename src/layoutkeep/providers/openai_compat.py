@@ -16,10 +16,14 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import time
 from collections import Counter
+from pathlib import Path
 
+from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
+from layoutkeep.core.langs import english_name, script_note
 from layoutkeep.providers._http_compat import OpenAIHTTPTransport
 from layoutkeep.providers.base import TranslationProvider
 from layoutkeep.providers.batching import (
@@ -199,6 +203,13 @@ class OpenAICompatProvider(TranslationProvider):
             # One repair round: ask the model to turn its own broken reply into valid JSON.
             repaired = self._try_repair(reply)
             parsed = _parse_reply(repaired) if repaired is not None else None
+            if parsed is None:
+                # Said out loud: two held-out paragraphs were never answered and nothing recorded
+                # why, so the cause could only be guessed.
+                print(
+                    f"reply     unreadable for {len(segments)} segment(s): {_why_unreadable(reply)}",
+                    file=sys.stderr,
+                )
         by_id = parsed or {}
 
         if adaptive and len(segments) > 1:
@@ -244,7 +255,19 @@ class OpenAICompatProvider(TranslationProvider):
         return self._transport.execute_http_post(req, timeout=self._request_timeout)
 
     def _chat(self, messages: list[dict[str, str]]) -> str:
-        return self._transport.chat(self.model, messages, timeout=self._request_timeout)
+        """Ask the server once. A request that did not fit the context is a batch-size failure.
+
+        Raising `BatchTooLargeError` is what lets the batching layer cut the batch down (and, for
+        a single oversized segment, ask for its sentences one by one) instead of losing the chunk.
+        """
+        try:
+            return self._transport.chat(self.model, messages, timeout=self._request_timeout)
+        except RuntimeError as error:
+            if _is_context_overflow(str(error)):
+                raise BatchTooLargeError(
+                    "REVIEW_CONTEXT_OVERFLOW"
+                ) from error
+            raise
 
     def _try_repair(self, broken_reply: str) -> str | None:
         return try_repair_reply(self._chat, broken_reply)
@@ -333,6 +356,66 @@ def _marker_repair_messages(
     ]
 
 
+#: What a server says when the request did not fit the model's context window. LM Studio answers
+#: a request over the limit with HTTP 500 and "Context size has been exceeded" inside the body -
+#: which the transport then reported as "Model ... bulunamadı veya yüklenmedi", sending the user to
+#: look for a model that was loaded and answering. Measured on the first chunk of an 841-page
+#: textbook that hit it: one segment too large for an 8192-token window.
+_CONTEXT_MARKERS = (
+    "context size",
+    "context length",
+    "maximum context",
+    "context window",
+    "too many tokens",
+    "reduce the length",
+)
+
+
+def _is_context_overflow(text: str) -> bool:
+    lowered = text.lower()
+    return any(marker in lowered for marker in _CONTEXT_MARKERS)
+
+
+#: An opening, closing or self-closing tag with a name - any name, in any script.
+_ANY_TAG = re.compile(r"</?\s*([^\W\d][\w-]*)(?:\s[^<>]*)?/?>", re.UNICODE)
+
+
+#: A list label at the start of a text: "3.", "12)", "1.4.", "a.", "b)", "(1)", "(b)". A space may be
+#: missing before a letter - Turkish statutes set "4.Kapsama" - but not before a digit, so a year or a
+#: decimal ("2012 yılında", "3.5 m") is never taken for a label.
+_LEADING_LABEL = re.compile(
+    r"^\s*((?:\d+(?:\.\d+)*[.)])|(?:[a-z][.)])|(?:\((?:\d{1,2}|[a-z])\)))(?:\s|(?=[^\W\d_]))"
+)
+
+
+def _with_leading_label(source: str, reply: str) -> str:
+    """Put back a list label the source starts with and the reply lost.
+
+    A list number is the list's structure, not text to translate - and the model drops it: a Think
+    Python exercise came back without "3." through three repair rounds.
+    """
+    match = _LEADING_LABEL.match(source)
+    if match is None:
+        return reply
+    label = match.group(1)
+    if reply.lstrip().startswith(label):
+        return reply
+    return f"{label} {reply.lstrip()}"
+
+
+def _without_invented_tags(source: str, reply: str) -> str:
+    """Remove every named tag the source does not itself contain.
+
+    A model formatting a reply invents tags named after anything - "</vagon>" (Turkish for
+    "wagon") reached a page of Electricity in Agriculture, after "<br/>" and "</text" had each been
+    handled by name. What decides it is the source: a tag it contains is content, any other is not.
+    The numeric style markers (<0>...</0>) have no name and are never touched.
+    """
+    allowed = {m.group(0) for m in _ANY_TAG.finditer(source)}
+    cleaned = _ANY_TAG.sub(lambda m: m.group(0) if m.group(0) in allowed else "", reply)
+    return " ".join(cleaned.split())
+
+
 def _apply_result(seg: Segment, target: str | None) -> Segment:
     """Build the outbound Segment for one input segment.
 
@@ -340,6 +423,8 @@ def _apply_result(seg: Segment, target: str | None) -> Segment:
     reply stayed unparsable after the repair attempt) - marked for review, never filled in
     from the source text.
     """
+    if target:
+        target = _with_leading_label(seg.source, _without_invented_tags(seg.source, target))
     return Segment(
         block_id=seg.block_id,
         source=seg.source,
@@ -351,7 +436,7 @@ def _apply_result(seg: Segment, target: str | None) -> Segment:
         needs_review=target is None,
         # K1: model bu id'yi dondurmediyse sebep yazilmali / review must say why
         review_reason=(
-            "sağlayıcı bu segmenti yanıtlamadı / provider did not return this segment"
+            "REVIEW_PROVIDER_EMPTY"
             if target is None
             else ""
         ),
@@ -388,15 +473,29 @@ def _build_messages(
         for seg in segments
     ]
     system_lines = [
-        f"You are a professional translator from {src_lang} to {tgt_lang}.",
+        f"You are a professional translator from {english_name(src_lang)} to {english_name(tgt_lang)}.",
         "Input is a JSON array of segments, each with an id and text to translate.",
+        (
+            f"Write every translation entirely in {english_name(tgt_lang)}: its own spelling, its "
+            "own grammar, its own script. Do not leave the source language's words in place and do "
+            "not answer in a third language." + script_note(tgt_lang)
+        ),
         (
             "context_before and context_after are given ONLY as context - never translate "
             "them and never include them in your output."
         ),
+        # The page cuts blocks where the layout breaks, not where sentences end. Judged on four
+        # documents, 4 of 13 critical errors were a model finishing a cut-off sentence from its
+        # context, or dropping the half-sentence a block began with.
         (
-            "When max_len is set for a segment, try to keep its translation within that "
-            "many characters."
+            "A segment may start or end mid-sentence, because the page breaks it there. Translate "
+            "exactly the words it contains, as a fragment if it is one: never complete it from "
+            "the context, never drop its opening or closing words, never add or leave out content."
+        ),
+        (
+            "When max_len is set for a segment, write its translation SHORT enough to stay "
+            "within that many characters - a shorter statement of the same meaning. Do not "
+            "pad, do not expand, maxLength is a hard limit measured in characters."
         ),
         (
             "Some text contains numbered markers like <0>...</0> or <1>...</1>. Reproduce "
@@ -420,27 +519,126 @@ def _build_messages(
             "per input segment, no prose, no markdown fences."
         ),
     ]
-    if glossary:
-        terms = "; ".join(f"{src} -> {tgt}" for src, tgt in glossary.items())
-        system_lines.append(f"Use this glossary where the term appears: {terms}")
+    # Only the terms this batch contains, as a requirement: all forty on one line let a small model
+    # miss the one that mattered, and a term came out differently from page to page.
+    text = " ".join(seg.source for seg in segments)
+    present = {
+        src: tgt for src, tgt in (glossary or {}).items()
+        if re.search(rf"(?<!\w){re.escape(src)}(?!\w)", text, re.IGNORECASE)
+    }
+    if present:
+        terms = "; ".join(f"{src} -> {tgt}" for src, tgt in present.items())
+        system_lines.append(
+            "These terms occur in the segments. Translate each one exactly as given (inflect it only "
+            f"as the grammar requires), every time it occurs: {terms}"
+        )
+
+    # The wire protocol above is not negotiable: a reply that is not the JSON array, or that lost a
+    # marker or a protected token, is a reply the pipeline cannot put back on the page. What a user
+    # may change is the part that is instruction rather than contract - the role line and whatever
+    # else they want said - so a document preamble and free-form extra lines are appended here, and
+    # a file may replace the role line. Everything the parser depends on stays put.
+    preamble = str(tunables.get("translation.document_preamble") or "").strip()
+    if preamble:
+        system_lines.append(f"About this document (context only, never translate it): {preamble}")
+    extra = str(tunables.get("provider.system_prompt_extra") or "").strip()
+    if extra:
+        system_lines.append(extra)
+    prompt_file = str(tunables.get("provider.system_prompt_file") or "").strip()
+    if prompt_file:
+        try:
+            role = Path(prompt_file).read_text(encoding="utf-8").strip()
+        except OSError:
+            role = ""  # a missing file must not cost the run its instructions
+        if role:
+            system_lines[0] = role
     return [
         {"role": "system", "content": "\n".join(system_lines)},
         {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
     ]
 
 
+def _why_unreadable(reply: str) -> str:
+    """The parser's complaint about a reply, with the text around the fault - never the whole reply."""
+    try:
+        data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
+    except json.JSONDecodeError as exc:
+        start = max(exc.pos - 40, 0)
+        return f"{exc.msg} at character {exc.pos}: {reply[start:exc.pos + 40]!r}"
+    if not isinstance(data, list):
+        return f"a {type(data).__name__}, not a list: {reply[:80]!r}"
+    return f"an item without id and text: {reply[:80]!r}"
+
+
+def _decode_reply(reply: str) -> object:
+    """The JSON in a reply, read as leniently as the replies measured in held-out runs require.
+
+    - A backslash that starts no JSON escape - a set-minus copied from inline math (arXiv
+      2609.19145) - made the whole reply unreadable, the same way on every retry; it is read as
+      the literal character it is.
+    - Items written one after another instead of inside a list (NASA scan: "Extra data at character
+      392") are read as that list.
+    Returns None when nothing readable is there.
+    """
+    for candidate in (reply, _LONE_BACKSLASH.sub(r"\\\\", reply)):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+        items = _json_sequence(candidate)
+        if items is not None:
+            return items
+    return None
+
+
+def _json_sequence(text: str) -> list | None:
+    """Two or more JSON values written one after another (separated by whitespace or commas)."""
+    decoder = json.JSONDecoder()
+    text = text.strip()
+    values, position = [], 0
+    while position < len(text):
+        try:
+            value, position = decoder.raw_decode(text, position)
+        except json.JSONDecodeError:
+            return None
+        values.append(value)
+        while position < len(text) and text[position] in " \t\r\n,":
+            position += 1
+    return values if len(values) > 1 else None
+
+
 def _parse_reply(reply: str) -> dict[str, str] | None:
     """Parse a model reply into {id: translated_text}. Returns None if it isn't the expected
     JSON array of {id, text} objects - the caller treats that as a malformed reply."""
-    try:
-        data = json.loads(reply)
-    except json.JSONDecodeError:
-        return None
+    data = _decode_reply(reply)
+    if isinstance(data, dict) and "id" in data and "text" in data:
+        # Asked for one segment, a model may answer with the item itself rather than a list of one
+        # (held-out Wikipedia "Photosynthesis": logged as "a dict, not a list", paragraph lost).
+        data = [data]
     if not isinstance(data, list):
         return None
     result: dict[str, str] = {}
     for item in data:
         if not isinstance(item, dict) or "id" not in item or "text" not in item:
             return None
-        result[str(item["id"])] = str(item["text"])
+        text = _HTML_BREAK.sub(" ", str(item["text"]))
+        text = _HTML_TAG.sub("", _FIELD_TAG.sub("", text))
+        result[str(item["id"])] = " ".join(text.split())
     return result
+
+
+#: A tag named after a field of the reply format, which the model sometimes wraps or closes a
+#: value with ("...sunmaktadir.</text" on book page 251). No document text is written this way,
+#: and the inline style markers are numeric (<0>...</0>), so these are never content.
+#: HTML the model sometimes formats a reply with ("<br/>" on NIST page 34). The source reached it
+#: as plain text, so no such tag is content. A break becomes a space; other tags are dropped. The
+#: numeric style markers (<0>...</0>) do not match.
+_HTML_BREAK = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
+_HTML_TAG = re.compile(
+    r"</?\s*(?:p|b|i|u|em|strong|span|div|sup|sub|small|font)(?:\s[^>]*)?/?>", re.IGNORECASE
+)
+
+#: A backslash that begins no JSON escape: not a quote, backslash, slash, b f n r t, or u + 4 hex.
+_LONE_BACKSLASH = re.compile(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})')
+
+_FIELD_TAG = re.compile(r"</?\s*(?:text|id)\s*/?(?:>|$)", re.IGNORECASE)

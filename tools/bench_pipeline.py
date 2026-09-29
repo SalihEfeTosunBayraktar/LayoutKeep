@@ -131,7 +131,9 @@ def _fit(doc, segments, provider, target_lang: str) -> int:
             changed += 1
         if result.needs_review:
             seg.needs_review = True
-            seg.review_reason = "çeviri kutuya sığmadı, küçültme yetmedi"
+            # What the application stores since the i18n pass: the UIStrings key, not the
+            # Turkish sentence - the audit's D1 check matches the key.
+            seg.review_reason = "REVIEW_FIT_FAILED"
             block.needs_review = True
             block.review_reason = seg.review_reason
         apply_scale(block, result.scale)

@@ -49,12 +49,22 @@ hiddenimports = [
     "layoutkeep.providers.memory",
     "layoutkeep.providers.glossary",
     "layoutkeep.providers.cached",
+    "layoutkeep.providers.deepl",
+    "layoutkeep.providers.dedupe",
+    "layoutkeep.providers.retry",
     "layoutkeep.core.range_helper",
+    "layoutkeep.core.reference",
+    "layoutkeep.core.repeats",
     "layoutkeep.providers.protected",
     "layoutkeep.providers.passthrough",
+    "layoutkeep.verify",
     "layoutkeep.fitting.fit",
     "layoutkeep.fitting.fontmatch",
     "layoutkeep.fitting.measure",
+    "layoutkeep.fitting.pdf_pass",
+    "layoutkeep.fitting.elastic_flow",
+    "layoutkeep.ui.tweaks_dialog",
+    "layoutkeep.ui.crashlog",
 ]
 # keyring picks its backend at runtime by importing it, which static analysis cannot see.
 hiddenimports += collect_submodules("keyring.backends")

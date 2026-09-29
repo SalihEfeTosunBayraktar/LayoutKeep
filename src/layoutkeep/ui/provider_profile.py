@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 
 from layoutkeep.ui.job import ProviderConfig
 from layoutkeep.ui.settings import app_settings
+from layoutkeep.ui.strings import UIStrings
 
 _SETTINGS_KEY_PROFILES = "provider_profiles_v1"
 _SETTINGS_KEY_ACTIVE = "active_provider_profile"
@@ -17,7 +18,7 @@ _SETTINGS_KEY_ACTIVE = "active_provider_profile"
 #: DeepL needs no base URL and has no model to choose - the key decides the host - so the
 #: profile carries nothing but its kind until the user pastes a key into it.
 _DEEPL_PROFILE = {
-    "name": "DeepL (API anahtarı gerekir)",
+    "name": UIStrings.DEEPL_PROFILE_LABEL,
     "kind": "deepl",
     "base_url": "",
     "model": "",
@@ -25,7 +26,7 @@ _DEEPL_PROFILE = {
 }
 
 _FAKE_PROFILE = {
-    "name": "Test (İşaretleme: [dil] kaynak metin)",
+    "name": UIStrings.TEST_PROFILE_LABEL,
     "kind": "fake",
     "base_url": "",
     "model": "fake",
@@ -36,14 +37,14 @@ _DEFAULT_PROFILES = [
     {
         "name": "LM Studio (1234)",
         "kind": "openai",
-        "base_url": "http://localhost:1234/v1",
-        "model": "",
+        "base_url": "http://127.0.0.1:1234/v1",
+        "model": "google/gemma-4-e4b",
         "timeout": None,
     },
     {
         "name": "Ollama (11434)",
         "kind": "openai",
-        "base_url": "http://localhost:11434/v1",
+        "base_url": "http://127.0.0.1:11434/v1",
         "model": "",
         "timeout": None,
     },
@@ -61,8 +62,8 @@ class ProviderProfile:
     # Kayıtlı sağlayıcı profil veri modeli / Saved provider profile data model
     name: str
     kind: str = "openai"
-    base_url: str = "http://localhost:1234/v1"
-    model: str = ""
+    base_url: str = "http://127.0.0.1:1234/v1"
+    model: str = "google/gemma-4-e4b"
     timeout: float | None = None
     #: Optional heading this endpoint is filed under, e.g. "Yerel" or "Bulut". Empty means
     #: ungrouped, which is how every profile saved before grouping existed reads back.

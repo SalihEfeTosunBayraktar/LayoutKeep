@@ -65,7 +65,19 @@ def test_a_passthrough_is_visible_on_the_block_afterwards() -> None:
 
     block = doc.pages[0].blocks[0]
     assert block.needs_review
-    assert "çevirmeden" in block.review_reason
+    assert "REVIEW_PASSTHROUGH" in block.review_reason
+
+
+def test_engine_keys_store_the_same_ui_key_from_every_front_end() -> None:
+    """The engine reports the machine key `box_crushed`; what lands on the segment must be the
+    UIStrings key, identical whether the desktop runner or the CLI wrote it - a project file
+    must not depend on which front-end produced it."""
+    from layoutkeep.core import review
+
+    assert review.storage_key(review.BOX_CRUSHED) == "REVIEW_BOX_CRUSHED"
+    # Unknown keys stay the front-end's own wording problem, not the mapper's.
+    assert review.storage_key("") == ""
+    assert review.storage_key("a_key_nobody_mapped") == ""
 
 
 def test_a_clean_translation_leaves_the_block_unflagged() -> None:

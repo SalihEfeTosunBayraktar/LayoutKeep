@@ -343,3 +343,16 @@ def test_a_family_name_we_know_outranks_the_documents_serif_flag() -> None:
 
     assert resolve_font("Roboto-Bold", "tr", serif_hint=True).font_class is FontClass.SANS
     assert resolve_font("Times-Roman", "tr", serif_hint=False).font_class is FontClass.SERIF
+
+
+def test_an_embedded_type1_font_does_not_stop_substitution() -> None:
+    """Held-out arXiv 2609.19145: pdfLaTeX embeds its faces as Type 1 programs ("%!PS"), which
+    fontTools cannot open. Checking their glyph coverage raised, the writer gave up on resolving
+    the style altogether, and every paragraph was redrawn in a sans. Coverage of a font that
+    cannot be read is unknown - the substitution goes ahead as if no bytes were given."""
+    from layoutkeep.fitting.fontmatch import FontClass, MatchQuality, resolve_font
+
+    type1 = b"%!PS-AdobeFont-1.0: NimbusRomNo9L-Regu 1.06\n%%CreationDate: 1 Jan 2000\n"
+    match = resolve_font("NimbusRomNo9L-Regu", "tr", embedded_font_bytes=type1, serif_hint=True)
+    assert match.font_class is FontClass.SERIF
+    assert match.resolved_path is not None and match.quality is not MatchQuality.ORIGINAL

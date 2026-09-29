@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import urllib.error
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -24,6 +25,7 @@ from layoutkeep.providers.deepl import (
     to_deepl_lang,
     to_deepl_markup,
 )
+from layoutkeep.ui.strings import UIStrings
 
 
 class FakeDeepL:
@@ -124,6 +126,34 @@ def test_literal_angle_brackets_cannot_become_markup():
     assert from_deepl_markup(wire) == source
 
 
+def test_control_characters_from_a_pdf_cannot_break_the_request():
+    """Measured: page 2 of an arXiv paper carried a lone backspace (\\x08) in one segment's source.
+
+    DeepL parses the text as XML and rejected the whole 40-segment request over that one byte -
+    "Tag handling parsing failed ... not well-formed (invalid token)". XML-illegal control
+    characters are dropped before anything else happens; tab, newline and carriage return are
+    legal and stay.
+    """
+    source = "tok\x08en \x0c and \x1f here\ttab\nnewline"
+
+    wire = to_deepl_markup(source)
+
+    ET.fromstring(f"<r>{wire}</r>")  # noqa: S314 - our own generated string, not untrusted input
+    assert "\x08" not in wire and "\x0c" not in wire and "\x1f" not in wire
+    assert "\t" in wire and "\n" in wire
+    assert from_deepl_markup(wire) == "token  and  here\ttab\nnewline"
+
+
+def test_a_control_character_inside_a_protected_value_is_safe_too():
+    """The protected element is written by us, so it is escaped by us as well."""
+    protection = protect("Tighten the bolts to 1\x0850 Nm.")
+
+    wire = to_deepl_markup(protection.text)
+
+    ET.fromstring(f"<r>{wire}</r>")  # noqa: S314 - our own generated string, not untrusted input
+    assert "\x08" not in wire
+
+
 def test_markers_and_protected_values_together():
     protection = protect("Tighten the <0>4 bolts</0> to 63 Nm.")
     wire = to_deepl_markup(protection.text)
@@ -169,7 +199,7 @@ def test_a_short_reply_flags_rather_than_shifting_every_translation(monkeypatch)
     assert results[1].target == "TR(Two.)"
     assert results[2].target == ""
     assert results[2].needs_review
-    assert "yanıtlamadı" in results[2].review_reason
+    assert "REVIEW_DEEPL_EMPTY" in results[2].review_reason
 
 
 def test_long_documents_are_split_into_several_requests(monkeypatch):
@@ -199,7 +229,11 @@ def test_formality_is_only_sent_when_asked_for(monkeypatch):
 
 @pytest.mark.parametrize(
     ("code", "expected_words"),
-    [(403, ["anahtar", "api-free"]), (456, ["kota"]), (413, ["büyük"])],
+    [
+        (403, [UIStrings.DEEPL_KEY_REJECTED, "api-free"]),
+        (456, [UIStrings.DEEPL_QUOTA_EXHAUSTED]),
+        (413, [UIStrings.DEEPL_REQUEST_TOO_LARGE]),
+    ],
 )
 def test_http_errors_say_what_to_do(monkeypatch, code, expected_words):
     def raiser(request, timeout=None):
@@ -219,7 +253,7 @@ def test_a_missing_target_language_is_refused_before_any_request(monkeypatch):
     fake = FakeDeepL()
     provider = _provider(monkeypatch, fake)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Target language"):
         provider.translate(_segments("Hi."), "en", "")
 
     assert fake.requests == []

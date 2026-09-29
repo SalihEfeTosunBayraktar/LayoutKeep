@@ -84,6 +84,67 @@ class TestApplyScale:
         assert sizes == [5.0, 5.0]
 
 
+class TestBatchedFetch:
+    """`fetch_many` changes how many requests go out, never what the fit decides.
+
+    The batched path walks the segments twice: a collecting pass that asks for nothing and a real
+    pass that fits from the answers. The collecting pass must stay silent - its verdicts are the
+    answer "this does not fit", so reporting them writes a wrong scale onto the block, raises flags
+    the real pass never raises and counts crushed boxes twice.
+    """
+
+    @staticmethod
+    def _fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
+        # `markup` is what the seam passes for a drawn translation (`measure_fit`'s signature);
+        # this stands in for `insert_htmlbox`, which renders it either way.
+        return (len(text) <= 3), 1.0
+
+    def _run(self, monkeypatch, *, batched: bool):
+        monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", self._fake_measure)
+        doc = _doc_with_block()
+        seg = _segment("b1", "uzun çeviri metni sığmıyor buraya")
+        asked: list[tuple[str, int]] = []
+        verdicts: list[tuple[str, bool]] = []
+
+        def on_fitted(s, _b, r):
+            verdicts.append((s.block_id, bool(r.needs_review)))
+
+        if batched:
+            def fetch_many(pairs):
+                asked.extend((s.block_id, budget) for s, budget in pairs)
+                return {(s.block_id, budget): "kısa" for s, budget in pairs}
+
+            result = fit_pdf_pass(
+                doc, [seg], retranslate=lambda s, m: "kısa", fetch_many=fetch_many, on_fitted=on_fitted
+            )
+        else:
+            result = fit_pdf_pass(doc, [seg], retranslate=lambda s, m: "kısa", on_fitted=on_fitted)
+        return result, asked, verdicts
+
+    def test_the_batched_pass_asks_once_and_decides_the_same(self, monkeypatch):
+        plain, _, plain_verdicts = self._run(monkeypatch, batched=False)
+        batched, asked, batched_verdicts = self._run(monkeypatch, batched=True)
+
+        assert asked, "the collecting pass must have asked for the overflowing box"
+        assert batched == plain, f"the same fit is expected either way: {batched} vs {plain}"
+        assert batched_verdicts == plain_verdicts
+
+    def test_the_collecting_pass_does_not_report(self, monkeypatch):
+        monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", self._fake_measure)
+        doc = _doc_with_block()
+        seg = _segment("b1", "uzun çeviri metni sığmıyor buraya")
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [seg],
+            retranslate=lambda s, m: "kısa",
+            fetch_many=lambda pairs: {},
+            on_fitted=lambda s, b, r: seen.append(r),
+        )
+        assert len(seen) == 1, f"on_fitted must fire once per segment, fired {len(seen)} times"
+
+
 class TestFitPdfPass:
     def test_untouched_and_orphan_segments_are_skipped(self, monkeypatch):
         """No engine call, no on_fitted, no summary when nothing is translatable."""
@@ -109,7 +170,7 @@ class TestFitPdfPass:
     def test_translated_segment_goes_through_engine(self, monkeypatch):
         seen_measure: list[str] = []
 
-        def fake_measure(text, style, bbox, scale_low, rotation=0.0):
+        def fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
             seen_measure.append(text)
             # Long text overflows unless shrunk; the engine then shrinks.
             return (len(text) <= 3), 0.5
@@ -132,12 +193,14 @@ class TestFitPdfPass:
         assert result is not None
 
     def test_on_fitted_receives_fit_verdict_fields(self, monkeypatch):
-        def fake_measure(text, style, bbox, scale_low, rotation=0.0):
-            return (len(text) <= 2), 1.0
+        def fake_measure(text, style, bbox, scale_low, rotation=0.0, markup=False):
+            return (len(text) <= 15), 1.0
 
         monkeypatch.setattr("layoutkeep.writers.pdf_writer.measure_fit", fake_measure)
         doc = _doc_with_block()
-        seg = _segment("b1", "abc")  # fits as-is
+        # Long enough to be worth compressing when it does not fit: a text under
+        # `_MIN_SHORTEN_CHARS` never reaches the ladder (see test_fitting_fit).
+        seg = _segment("b1", "a much longer translation than the box can hold at any size")
         fitted: list[object] = []
 
         fit_pdf_pass(
@@ -156,3 +219,55 @@ class TestFitPdfPass:
         )
         doc = Document(source_lang="en", target_lang="tr", pages=[])
         assert fit_pdf_pass(doc, [_segment("x", "text")], retranslate=lambda s, m: "y") is None
+
+
+class TestReviewReasons:
+    """What a flag says is part of the product - it is the line the review list shows.
+
+    Measured on the book: most flags are not text that could not be shortened, they are boxes the
+    pass had to crush to keep clear of the next block (`room_below`), and a 6pt box fits nothing.
+    Telling the user "shrinking was not enough" then sends them to the wrong knob.
+    """
+
+    def test_a_crushed_box_says_the_box_was_the_problem(self, monkeypatch) -> None:
+        doc = _doc_with_block()
+        page = doc.pages[0]
+        # A second block starting deep inside the first: room_below goes strongly negative, so the
+        # measured box is shortened to its 6pt floor and nothing can fit there.
+        under = Block(
+            id="b2",
+            role=BlockRole.BODY,
+            bbox=BBox(0, 9, 100, 150),
+            lines=[Line(spans=[Span(text="under", bbox=BBox(0, 9, 100, 150), style=_style())])],
+            order=1,
+            source_text="under",
+        )
+        page.blocks.append(under)
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [_segment("b1", "uzun bir çeviri metni kutuya sığmıyor")],
+            retranslate=lambda segment, budget: segment.target,
+            on_fitted=lambda _s, _b, result: seen.append(result),
+        )
+
+        assert seen, "the block must reach the engine"
+        assert seen[0].needs_review, seen[0]
+        # The engine reports a key; the front-ends own the words (see core/review.py).
+        assert seen[0].review_reason == "box_crushed", seen[0].review_reason
+
+    def test_an_ordinary_overflow_keeps_the_generic_reason(self) -> None:
+        """A block with room below it is a text problem, and must not claim otherwise."""
+        doc = _doc_with_block()
+        seen: list[object] = []
+
+        fit_pdf_pass(
+            doc,
+            [_segment("b1", "uzun bir çeviri metni kutuya sığmıyor " * 6)],
+            retranslate=lambda segment, budget: segment.target,
+            on_fitted=lambda _s, _b, result: seen.append(result),
+        )
+
+        assert seen and seen[0].needs_review
+        assert seen[0].review_reason == "", seen[0].review_reason

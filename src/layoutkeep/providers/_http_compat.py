@@ -19,11 +19,23 @@ Verified endpoint facts (see .claude/agents/lk-provider.md):
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
 
 from layoutkeep.core import tunables
+
+#: What to ask a reasoning model to spend on thinking before it answers. Translation is a
+#: transformation, not a puzzle, and the thinking is pure cost: measured against gemma-4-e4b on
+#: LM Studio, translating one sentence took 487 completion tokens of which 465 were reasoning,
+#: against 15 tokens and no reasoning with this set to "none" - the same translation, at a
+#: thirty-second of the generated tokens. It was not only slow. The reasoning filled the context
+#: too, and a 524-page run spent its time failing batches with "Context size has been exceeded"
+#: and retrying them smaller.
+#:
+#: `None` sends no field at all, for a model that genuinely translates better when it reasons.
+DEFAULT_REASONING_EFFORT = "none"
 
 #: Longest we will sit on a Retry-After before giving up on it. A free tier occasionally
 #: answers with minutes, and a translation job should fail with a clear message rather than
@@ -64,9 +76,21 @@ class OpenAIHTTPTransport:
     varying timeouts and never holds a mutable `self.timeout`.
     """
 
-    def __init__(self, base_url: str, api_key: str | None) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str | None,
+        reasoning_effort: str | None = DEFAULT_REASONING_EFFORT,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
+        # A measurement can ask for thinking without touching the product default: the bench sets
+        # LAYOUTKEEP_REASONING_EFFORT (e.g. "medium") to compare a run with thinking against one without.
+        self.reasoning_effort = os.environ.get("LAYOUTKEEP_REASONING_EFFORT", reasoning_effort) or None
+        #: How many HTTP calls this run made. The cost of a translation is dominated by
+        #: per-request overhead, so this is the number to look at when a job feels slow: fewer
+        #: requests for the same segments is the only real speed-up a local model offers.
+        self.requests = 0
 
     def headers(self) -> dict[str, str]:
         """Authorization + Content-Type. Sends a placeholder key when `api_key is None`
@@ -88,6 +112,7 @@ class OpenAIHTTPTransport:
     def execute_http_post(self, req: urllib.request.Request, timeout: float) -> dict:
         """POST `req` and return the decoded JSON body. Raises whatever urllib raises -
         callers translate connection-level errors into RuntimeError with a usable message."""
+        self.requests += 1
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
 
@@ -140,14 +165,25 @@ class OpenAIHTTPTransport:
         A `RuntimeError` raised after the last retry is what the batching layer translates
         into `needs_review` (or propagates, if it's the first batch).
         """
-        body = {"model": model, "messages": messages, "temperature": 0.0}
-        data = json.dumps(body).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base_url}/chat/completions",
-            data=data,
-            headers=self.headers(),
-            method="POST",
-        )
+        effort = self.reasoning_effort
+
+        def build() -> urllib.request.Request:
+            body: dict[str, object] = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.0,
+                "max_tokens": _generation_ceiling(messages),
+            }
+            if effort is not None:
+                body["reasoning_effort"] = effort
+            return urllib.request.Request(
+                f"{self.base_url}/chat/completions",
+                data=json.dumps(body).encode("utf-8"),
+                headers=self.headers(),
+                method="POST",
+            )
+
+        req = build()
         max_retries = 3
         last_err: Exception | None = None
         for attempt in range(max_retries):
@@ -159,6 +195,14 @@ class OpenAIHTTPTransport:
                 err_body = err.read().decode("utf-8", errors="replace")
                 if err.code in (429, 503) and attempt < max_retries - 1:
                     time.sleep(_retry_delay(err, attempt))
+                    continue
+                if err.code == 400 and effort is not None:
+                    # `reasoning_effort` is standard but not universal, and a server that does
+                    # not know it answers 400 - the same status as a model that is not loaded.
+                    # Drop the field and ask once more before blaming the model, or the user is
+                    # sent to look for a model that was there all along.
+                    effort = None
+                    req = build()
                     continue
                 if err.code in (400, 404):
                     # K3: model bulunamadi/yuklenmedi - ham JSON yerine ne yapilacagini soyle.
@@ -191,3 +235,22 @@ class OpenAIHTTPTransport:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         return [m["id"] for m in payload.get("data", [])]
+
+
+#: Floor for the generation ceiling: a short label still needs room for the JSON around it.
+_MIN_GENERATION_TOKENS = 1024
+
+
+def _generation_ceiling(messages: list[dict[str, str]]) -> int:
+    """How many tokens the model may generate for this request.
+
+    Without a ceiling a reply that never stops holds its slot until the context is full: the
+    first campaign run returned nothing for 38 minutes while every slot generated without end.
+    A translation is bounded by its input: one output token per character sent, plus room for the
+    JSON. The first ceiling allowed one token per two characters and cut 13 replies on the
+    Electricity book (a 1,213-token request stopped at 915) - Turkish takes more tokens than the
+    English it translates. Still bounded: a 2,000-character request can produce at most ~2,500
+    tokens, not a 56,000-token context.
+    """
+    sent = sum(len(m.get("content", "")) for m in messages if m.get("role") == "user")
+    return max(_MIN_GENERATION_TOKENS, sent + _MIN_GENERATION_TOKENS // 2)

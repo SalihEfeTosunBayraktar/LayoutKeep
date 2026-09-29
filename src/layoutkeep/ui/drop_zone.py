@@ -50,15 +50,19 @@ class DropZoneWidget(QFrame):
     def _init_ui(self) -> None:
         # Arayüz bileşenlerini kurar / Initializes UI elements
         self._icon_label = QLabel()
-        self._icon_label.setFixedSize(44, 44)
+        self._icon_label.setFixedSize(30, 30)
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._set_icon()
 
         self._prompt_label = QLabel(UIStrings.DROPZONE_PROMPT)
+
+
+        self._prompt_label.setWordWrap(True)
         self._prompt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._prompt_label.setStyleSheet("font-weight: 600; font-size: 14px;")
+        self._prompt_label.setStyleSheet("font-weight: 600; font-size: 13px;")
 
         self._hint_label = QLabel(UIStrings.DROPZONE_HINT)
+        self._hint_label.setWordWrap(True)
         self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._hint_label.setProperty("class", "muted")
 
@@ -71,26 +75,51 @@ class DropZoneWidget(QFrame):
 
         self._info_container = self._build_info_container()
 
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Tighter than it was: this is a target to drop a file on, and it was taking half the
-        # window to say so before any file had been chosen.
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(6)
-        # It is a target, not a panel: capped so the settings card below it is on screen
-        # without scrolling at the size the window opens at.
-        self.setMaximumHeight(190)
-        layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._prompt_label)
-        layout.addWidget(self._hint_label)
-        layout.addWidget(self._browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Texts on the left, the button on the right: one row instead of a stack of four centred
+        # rows. The reader asked for this, and it is also what makes the zone short enough to sit
+        # above the settings card without pushing it off screen.
+        self._prompt_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self._hint_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        texts = QVBoxLayout()
+        texts.setContentsMargins(0, 0, 0, 0)
+        texts.setSpacing(1)
+        texts.addWidget(self._prompt_label)
+        texts.addWidget(self._hint_label)
+
+        # The two lines live in their own widget, and they do NOT wrap. A word-wrapped QLabel caps
+        # the height a layout will take from it at the text's own height, so the row sized itself
+        # to 20px, sat centred in the 68px box and left the button hanging out of it - the
+        # misalignment the reader kept seeing. Without wrapping the labels report a normal height
+        # and the row fills the box. The window's width is computed from these labels, so a longer
+        # language makes the window wider instead of clipping the line.
+        self._prompt_label.setWordWrap(False)
+        self._hint_label.setWordWrap(False)
+        text_holder = QWidget()
+        text_holder.setLayout(texts)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 6, 16, 6)
+        layout.setSpacing(12)
+        # No per-item alignment: Qt leaves an aligned item out of the row's height calculation, so
+        # the layout sized itself to the text lines alone (32px), centred at y=18, and the button
+        # hung out of it - which is exactly the misalignment the reader saw. A plain row centres
+        # everything on its own.
+        layout.addWidget(self._icon_label)
+        layout.addWidget(text_holder, 1)
+        layout.addWidget(self._browse_btn)
         layout.addWidget(self._info_container)
+        # One row, so the cap can be far lower than the stacked version needed.
+        self.setMaximumHeight(68)
 
     def _set_icon(self) -> None:
         # Yükleme ikonunu aktif temaya göre boyar / Paints the upload icon for the theme
         pal = ThemeManager.current_palette()
         self._icon_label.setPixmap(
-            get_svg_icon("upload", color=pal.dropzone_border, size=32).pixmap(32, 32)
+            get_svg_icon("upload", color=pal.dropzone_border, size=24).pixmap(24, 24)
         )
 
     def apply_theme(self) -> None:
@@ -165,7 +194,7 @@ class DropZoneWidget(QFrame):
             "Tüm Desteklenen Belgeler (*.epub *.pdf *.docx *.png *.jpg *.jpeg *.webp *.bmp *.tiff *.lkproj);;"
             "Belgeler (*.epub *.pdf *.docx *.lkproj);;Görseller (*.png *.jpg *.jpeg *.webp *.bmp *.tiff)"
         )
-        path, _ = QFileDialog.getOpenFileName(self, "Belge Seç", "", filters)
+        path, _ = QFileDialog.getOpenFileName(self, UIStrings.SELECT_DOCUMENT_BTN, "", filters)
         if path:
             self.set_file_path(path)
 
@@ -177,7 +206,7 @@ class DropZoneWidget(QFrame):
             size_str = _format_size(p.stat().st_size)
             ext_badge = p.suffix.upper().replace(".", "")
             self._info_title.setText(p.name)
-            self._info_meta.setText(f"Tür: {ext_badge} | Boyut: {size_str} | Konum: {p.parent}")
+            self._info_meta.setText(f"{UIStrings.FILE_TYPE_LABEL.format(ext_badge)} | {UIStrings.FILE_SIZE_META.format(size=size_str)} | {UIStrings.FILE_LOCATION_META.format(path=p.parent)}")
             self._info_icon.setPixmap(
                 get_svg_icon("document", color=ThemeManager.current_palette().accent, size=28).pixmap(28, 28)
             )

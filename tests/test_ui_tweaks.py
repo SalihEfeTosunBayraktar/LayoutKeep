@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from layoutkeep.core import tunables
+from layoutkeep.ui.strings import UIStrings
 
 
 @pytest.fixture(autouse=True)
@@ -106,7 +107,7 @@ def test_every_advanced_entry_says_what_breaks():
     """"Be careful" is not a warning. Each one has to name the consequence."""
     for spec in tunables.definitions(tunables.ADVANCED):
         assert spec.warning, f"{spec.key} has no warning"
-        assert len(spec.warning) > 40, f"{spec.key}: warning too vague"
+        assert len(UIStrings.get(spec.warning)) > 40, f"{spec.key}: warning too vague"
 
 
 def test_the_dialog_edits_every_tunable(qtbot):

@@ -1,0 +1,243 @@
+{
+  "vocabulary": 9498,
+  "summary": {
+    "electricity_1922": {
+      "pages": 14,
+      "layer_known_share": 0.7665677546983185,
+      "ours_known_share": 0.7529522909777988,
+      "pages_layer_better": 7
+    },
+    "popular_science_1920": {
+      "pages": 14,
+      "layer_known_share": 0.736145703611457,
+      "ours_known_share": 0.7464990451941439,
+      "pages_layer_better": 4
+    }
+  },
+  "pages": [
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0010",
+      "layer_words": 140,
+      "layer_known": 100,
+      "ours_words": 140,
+      "ours_known": 99
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0020",
+      "layer_words": 203,
+      "layer_known": 160,
+      "ours_words": 195,
+      "ours_known": 156
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0030",
+      "layer_words": 208,
+      "layer_known": 177,
+      "ours_words": 207,
+      "ours_known": 176
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0040",
+      "layer_words": 66,
+      "layer_known": 54,
+      "ours_words": 67,
+      "ours_known": 56
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0050",
+      "layer_words": 82,
+      "layer_known": 53,
+      "ours_words": 81,
+      "ours_known": 53
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0060",
+      "layer_words": 207,
+      "layer_known": 168,
+      "ours_words": 207,
+      "ours_known": 168
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0070",
+      "layer_words": 26,
+      "layer_known": 23,
+      "ours_words": 138,
+      "ours_known": 77
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0080",
+      "layer_words": 215,
+      "layer_known": 184,
+      "ours_words": 214,
+      "ours_known": 183
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0090",
+      "layer_words": 218,
+      "layer_known": 156,
+      "ours_words": 216,
+      "ours_known": 156
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0100",
+      "layer_words": 124,
+      "layer_known": 104,
+      "ours_words": 123,
+      "ours_known": 103
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0110",
+      "layer_words": 182,
+      "layer_known": 160,
+      "ours_words": 180,
+      "ours_known": 159
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0120",
+      "layer_words": 147,
+      "layer_known": 99,
+      "ours_words": 145,
+      "ours_known": 96
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0130",
+      "layer_words": 59,
+      "layer_known": 29,
+      "ours_words": 59,
+      "ours_known": 30
+    },
+    {
+      "book": "electricity_1922",
+      "chunk": "chunk_0140",
+      "layer_words": 145,
+      "layer_known": 83,
+      "ours_words": 145,
+      "ours_known": 82
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0010",
+      "layer_words": 645,
+      "layer_known": 523,
+      "ours_words": 630,
+      "ours_known": 514
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0020",
+      "layer_words": 124,
+      "layer_known": 71,
+      "ours_words": 117,
+      "ours_known": 66
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0030",
+      "layer_words": 444,
+      "layer_known": 346,
+      "ours_words": 434,
+      "ours_known": 343
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0040",
+      "layer_words": 507,
+      "layer_known": 409,
+      "ours_words": 504,
+      "ours_known": 405
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0050",
+      "layer_words": 626,
+      "layer_known": 515,
+      "ours_words": 612,
+      "ours_known": 504
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0060",
+      "layer_words": 561,
+      "layer_known": 455,
+      "ours_words": 543,
+      "ours_known": 443
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0070",
+      "layer_words": 708,
+      "layer_known": 574,
+      "ours_words": 691,
+      "ours_known": 565
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0080",
+      "layer_words": 387,
+      "layer_known": 280,
+      "ours_words": 366,
+      "ours_known": 267
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0090",
+      "layer_words": 532,
+      "layer_known": 221,
+      "ours_words": 532,
+      "ours_known": 223
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0100",
+      "layer_words": 256,
+      "layer_known": 183,
+      "ours_words": 238,
+      "ours_known": 167
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0110",
+      "layer_words": 706,
+      "layer_known": 509,
+      "ours_words": 710,
+      "ours_known": 557
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0120",
+      "layer_words": 277,
+      "layer_known": 178,
+      "ours_words": 285,
+      "ours_known": 178
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0130",
+      "layer_words": 270,
+      "layer_known": 184,
+      "ours_words": 257,
+      "ours_known": 182
+    },
+    {
+      "book": "popular_science_1920",
+      "chunk": "chunk_0140",
+      "layer_words": 381,
+      "layer_known": 281,
+      "ours_words": 365,
+      "ours_known": 277
+    }
+  ]
+}

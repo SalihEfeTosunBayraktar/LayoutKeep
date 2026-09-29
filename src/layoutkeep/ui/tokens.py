@@ -13,6 +13,9 @@ class ColorPalette:
     # Arayüz renk paleti tanımları / UI color palette definitions
     background: str
     surface: str
+    #: The header bar's own shade: the same family as the surface, one step apart, so the bar reads
+    #: as part of the theme without matching the page behind it.
+    header: str
     surface_hover: str
     surface_active: str
     border: str
@@ -34,6 +37,7 @@ class ColorPalette:
 LIGHT_PALETTE = ColorPalette(
     background="#f8fafc",
     surface="#ffffff",
+    header="#e6edfa",
     surface_hover="#f1f5f9",
     surface_active="#e2e8f0",
     border="#cbd5e1",
@@ -55,6 +59,7 @@ LIGHT_PALETTE = ColorPalette(
 DARK_PALETTE = ColorPalette(
     background="#0f172a",
     surface="#1e293b",
+    header="#2e4160",
     surface_hover="#334155",
     surface_active="#475569",
     border="#334155",

@@ -127,16 +127,24 @@ class CompletionWidget(QFrame):
         self._new_btn.setProperty("class", "primary")
         self._new_btn.clicked.connect(self.back_to_setup_requested.emit)
 
+        # Two rows, not one: three buttons side by side asked for 706 pixels on their own, and with
+        # the card's padding that was 762 - wider than the window the reader asked for. The primary
+        # pair stays together; "new translation" sits under them.
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(12)
+        btn_row.setSpacing(8)
         btn_row.addStretch()
         btn_row.addWidget(self._open_btn)
         btn_row.addWidget(self._folder_btn)
-        btn_row.addWidget(self._new_btn)
         btn_row.addStretch()
 
+        new_row = QHBoxLayout()
+        new_row.setSpacing(8)
+        new_row.addStretch()
+        new_row.addWidget(self._new_btn)
+        new_row.addStretch()
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
         layout.addStretch()
         layout.addWidget(self._title)
@@ -148,6 +156,7 @@ class CompletionWidget(QFrame):
         layout.addWidget(self._stats_label)
         layout.addSpacing(12)
         layout.addLayout(btn_row)
+        layout.addLayout(new_row)
         layout.addStretch()
 
         self.apply_theme()
@@ -191,9 +200,48 @@ class CompletionWidget(QFrame):
         ]
         if flagged:
             lines.append(UIStrings.COMPLETION_FLAGGED.format(count=flagged))
+            # How many of those are the box rather than the text: a different problem, and one no
+            # rephrasing fixes, so the screen must not let the two look alike.
+            crushed = int(self._stats.get("flagged_box_crushed", 0) or 0)
+            if crushed:
+                lines.append(UIStrings.COMPLETION_FLAGGED_BOX.format(count=crushed))
+        lines += self._verification_lines()
+        lines += self._glossary_lines()
         self._stats_label.setText("\n".join(lines))
         self._stats_title.setVisible(True)
         self._stats_label.setVisible(True)
+
+    def _verification_lines(self) -> list[str]:
+        """What checking the written output found (layoutkeep/verify.py), when the job was checked."""
+        if "verify_remaining" not in self._stats:
+            return []
+        lines = []
+        repaired = int(self._stats.get("verify_repaired", 0))
+        if repaired:
+            lines.append(UIStrings.COMPLETION_VERIFY_REPAIRED.format(count=repaired))
+        remaining = {k: int(v) for k, v in dict(self._stats["verify_remaining"]).items() if v}
+        if remaining:
+            kinds = ", ".join(
+                f"{UIStrings.get(f'VERIFY_{kind}')} {count}" for kind, count in sorted(remaining.items())
+            )
+            lines.append(
+                UIStrings.COMPLETION_VERIFY_REMAINING.format(count=sum(remaining.values()), kinds=kinds)
+            )
+        else:
+            lines.append(UIStrings.COMPLETION_VERIFY_CLEAN)
+        return lines
+
+    def _glossary_lines(self) -> list[str]:
+        """How the run's own terms fared in the output (providers/glossary.Glossary.verify).
+
+        Shown only when terms were actually checked: a run with no glossary, or one whose terms
+        never occur, has nothing to report and says nothing rather than "0/0".
+        """
+        checked = int(self._stats.get("glossary_checked", 0) or 0)
+        if not checked:
+            return []
+        honoured = int(self._stats.get("glossary_honoured", 0) or 0)
+        return [UIStrings.COMPLETION_GLOSSARY.format(honoured=honoured, checked=checked)]
 
     def apply_theme(self) -> None:
         # Tema değişiminde ikon renklerini günceller / Refreshes icon colors on theme change

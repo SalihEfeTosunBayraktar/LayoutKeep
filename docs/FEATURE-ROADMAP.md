@@ -79,7 +79,12 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
    derdi satır değil **kutu**: `room_below` kutuyu 6pt'ye eziyor ve 6pt'ye hiçbir şey sığmaz. Asıl
    kol bu madde): `reflow` modunu deneysel olmaktan çıkar; "küçült → satır aralığını sık →
    aşağı it" kademesini `fit` içine al. Emek: orta-yüksek. Ölçüm: kitap koşusundaki D1=801'in ve
-   `type_drift` "okunamaz" sayısının düşmesi (bugünkü düzeltme 12→2 yaptı; kalan sınıf bu).
+   `type_map.py`'nin kutu başına verdiği `shrunk` / `flattened` sayılarının düşmesi (bugünkü
+   düzeltme 12→2 yaptı; kalan sınıf bu).
+   **Ölçülmüş taban (2026-09-20, beş kayıtlı koşu):** Türkçeye çevrilen belgede kutuların **%43'ü**
+   ezilirken (arxiv, EN→TR) İngilizceye çevrilen SBB planında yalnız **%6** (TR→EN) — ezilme hedef
+   dilin uzunluğunu izliyor, yani kaldıraç tam bu merdiven. Satır-içi boyut kaybı (`flattened`)
+   belge başına **6–15 kutu**: görünür ama küçük bir sınıf, o yüzden merdivenin önüne geçmiyor.
    **Ölçülmüş gerekçe (2026-09-20):** kitabın biten 12 parçasında 6.570 bloğun **352'si** "çeviri
    kutuya sığmadı, küçültme yetmedi" ile işaretlendi — en büyük tek sınıf; ikincisi 36 (model
    metni çevirmeden geri verdi). Yani darboğaz model ya da okuyucu değil, **sığdırma merdiveninin
@@ -129,6 +134,7 @@ bayrakları + gerekçe, gerçek held-out örneklerden üretilen karşılaştırm
 |---|---|
 | Kayıp var mı? | `tools/audit/lossless_audit.py --work <koşu>` (L1–L10, D1–D3) |
 | Metin görselin üstünde mi? | `tools/audit/text_over_image.py <koşu>` |
-| Tipografi kaynaktan sapmış mı? | `tools/audit/type_drift.py <koşu>` (büyümüş/küçülmüş/hizası değişmiş/okunamaz) |
+| Tipografi kaynaktan sapmış mı? | `tools/audit/type_drift.py <koşu>` (büyümüş/küçülmüş/hizası değişmiş/okunamaz) — **sayı yanıltıcıdır**: kutunun içindeki her satırı kutunun *tek* stiline böler, o yüzden karışık puntolu bloklar sahte "küçülme" verir |
+| Kutuda hangi punto **kayboldu**? | `tools/audit/type_map.py <koşu>` — kutu başına kaynak ve çıktının punto *kümelerini* karşılaştırır: `faithful` / `flattened` (küçük parça blok boyutunda çizildi) / `shrunk` (merdiven) / `grown` / `mixed`. `type_drift`'in kör noktasını kapatır |
 | İstek sayısı ve süre? | her koşunun sonundaki `spent read | translate | write | verify` satırı |
 | Değişiklik işe yaradı mı? | `rewrite_run.py` (yazıcı) / `reader_ab.py` (okuyucu) — model gerekmez |
