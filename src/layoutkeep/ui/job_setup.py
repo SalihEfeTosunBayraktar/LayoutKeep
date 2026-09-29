@@ -115,6 +115,10 @@ class _JobSetupUiBuilder:
         self._range_input = QLineEdit()
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_input.hide()
+        # Sayfaları küçük resimlerden seçer, aynı alana yazar / Picks pages from thumbnails into the field
+        self._range_pick = QPushButton(UIStrings.RANGE_PICK)
+        self._range_pick.setToolTip(UIStrings.RANGE_PICK_TIP)
+        self._range_pick.hide()
         # What the range means for the OUTPUT, said where the range is chosen: a range used to
         # narrow only the translation while the output stayed the whole book, and that surprise
         # is what this line exists to prevent.
@@ -226,6 +230,8 @@ class _JobSetupUiBuilder:
         self._range_input.setPlaceholderText(UIStrings.RANGE_PLACEHOLDER)
         self._range_mode.setItemText(0, UIStrings.RANGE_ALL)
         self._range_mode.setItemText(1, UIStrings.RANGE_CUSTOM)
+        self._range_pick.setText(UIStrings.RANGE_PICK)
+        self._range_pick.setToolTip(UIStrings.RANGE_PICK_TIP)
         self._drop_zone.retranslate_ui()
         for card in getattr(self, "_cards", []):
             if isinstance(card, SetupCard):
@@ -263,6 +269,7 @@ class _JobSetupUiBuilder:
         self._browse_out_btn.clicked.connect(self._browse_output)
         self._output_format.currentIndexChanged.connect(self._on_format_changed)
         self._range_mode.currentIndexChanged.connect(self._on_range_mode_changed)
+        self._range_pick.clicked.connect(self._pick_pages)
         self._source_lang.currentTextChanged.connect(self._on_source_lang_changed)
         self._target_lang.currentTextChanged.connect(self._on_target_lang_changed)
         self._provider_profile_combo.lineEdit().textChanged.connect(self._on_profile_changed)
@@ -450,7 +457,16 @@ class JobSetupWidget(_JobSetupUiBuilder, QWidget):
     def _on_range_mode_changed(self, index: int) -> None:
         # Aralık modu değiştiğinde özel aralık kutusunu gösterir/gizler / Shows/hides custom range input
         self._range_input.setVisible(index == 1)
+        self._range_pick.setVisible(index == 1)
         self._range_hint.setVisible(index == 1)
+
+    def _pick_pages(self) -> None:
+        # Görsel seçicinin sonucu aralık alanına yazılır / The picker's result goes into the range field
+        from layoutkeep.ui.page_picker import pick_pages
+
+        chosen = pick_pages(self, self.input_path(), self._range_input.text())
+        if chosen is not None:
+            self._range_input.setText(chosen)
 
     def input_path(self) -> str:
         """The file the screen is pointed at - the document a glossary suggestion reads."""

@@ -40,6 +40,24 @@ def parse_page_range(spec: str, total_pages: int) -> set[int]:
     return selected if selected else set(range(1, total_pages + 1))
 
 
+def format_page_range(pages: set[int]) -> str:
+    """The shortest range text that `parse_page_range` reads back as `pages` ({1,2,3,5} -> "1-3, 5").
+
+    Sayfa kümesini en kısa aralık metnine çevirir; görsel seçicinin yazdığı metin budur.
+    """
+    runs: list[str] = []
+    ordered = sorted(pages)
+    start = previous = None
+    for number in [*ordered, None]:
+        if start is not None and number == previous + 1:
+            previous = number
+            continue
+        if start is not None:
+            runs.append(str(start) if start == previous else f"{start}-{previous}")
+        start = previous = number
+    return ", ".join(runs)
+
+
 def block_ids_for_pages(doc: Document, pages: set[int]) -> set[str]:
     """Ids of the blocks living on the selected pages.
 

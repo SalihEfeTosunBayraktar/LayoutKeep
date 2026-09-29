@@ -31,7 +31,8 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "Sayfa aralığı: yalnız seçtiğin sayfalar çevrilir ve çıktı yalnız o sayfaları "
                 "içerir; kaydedilen `.lkproj` ise belgenin tamamını saklar, böylece inceleme "
                 "ekranında geri kalanı da görürsün ve yeniden dışa aktarma belgeyi sessizce "
-                "kısaltmaz."
+                "kısaltmaz. PDF'de \"Sayfaları seç…\" sayfaları küçük resimlerinden işaretletir "
+                "ve aralığı kutuya yazar."
             ),
         },
         "provider": {
@@ -168,7 +169,8 @@ _TEXT: dict[str, dict[str, dict[str, str]]] = {
                 "or “Alternating pages”. The main output and the audit are unchanged.\n"
                 "Page range: only the pages you select are translated, and the output holds only "
                 "those pages; the saved `.lkproj` keeps the whole document, so the review screen "
-                "still shows the rest and re-exporting cannot silently shorten it."
+                "still shows the rest and re-exporting cannot silently shorten it. For a PDF, "
+                "\"Pick pages…\" lets you tick pages on their thumbnails and writes the range for you."
             ),
         },
         "provider": {

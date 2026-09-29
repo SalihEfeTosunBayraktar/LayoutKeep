@@ -112,6 +112,7 @@ class SettingsCardBuilder:
         range_row = QHBoxLayout()
         range_row.addWidget(screen._range_mode)
         range_row.addWidget(screen._range_input)
+        range_row.addWidget(screen._range_pick)
 
         screen._out_fmt_label = _icon_label("file-type", UIStrings.OUTPUT_FORMAT_LABEL)
         screen._out_file_label = _icon_label("file-output", UIStrings.OUTPUT_FILE_LABEL)
