@@ -10,7 +10,9 @@ import time
 import pytest
 
 from layoutkeep.core.docir import Segment
-from layoutkeep.providers.openai_compat import OpenAICompatProvider, _build_messages, _parse_reply
+from layoutkeep.providers.chat_prompts import build_messages
+from layoutkeep.providers.openai_compat import OpenAICompatProvider
+from layoutkeep.providers.reply_parser import parse_reply
 
 
 def _segments() -> list[Segment]:
@@ -151,7 +153,7 @@ def test_headers_use_real_api_key_when_provided():
 
 
 def test_build_messages_never_sends_unsupported_params():
-    messages = _build_messages(_segments(), "en", "fr", glossary=None)
+    messages = build_messages(_segments(), "en", "fr", glossary=None)
     payload = json.dumps(messages)
     for forbidden in ("tool_choice", "logit_bias", "logprobs", '"n":', "\"user\":"):
         assert forbidden not in payload
@@ -159,7 +161,7 @@ def test_build_messages_never_sends_unsupported_params():
 
 def test_build_messages_marks_context_as_not_to_translate():
     segments = [Segment(block_id="b1", source="Hi", context_before="prev", context_after="next")]
-    messages = _build_messages(segments, "en", "fr", glossary=None)
+    messages = build_messages(segments, "en", "fr", glossary=None)
     system_text = messages[0]["content"]
     assert "never translate" in system_text.lower()
 
@@ -167,7 +169,7 @@ def test_build_messages_marks_context_as_not_to_translate():
 def test_build_messages_includes_glossary_terms():
     # A term is sent only when the batch contains it (test_provider_glossary_prompt.py).
     segments = [Segment(block_id="w", source="Attach the widget to the frame.")]
-    messages = _build_messages(segments, "en", "fr", glossary={"widget": "gadget"})
+    messages = build_messages(segments, "en", "fr", glossary={"widget": "gadget"})
     system_text = messages[0]["content"]
     assert "widget -> gadget" in system_text
 
@@ -175,21 +177,21 @@ def test_build_messages_includes_glossary_terms():
 def test_parse_reply_rejects_non_list_json():
     # A single {id, text} item is read as a list of one (see the held-out test below); JSON that is
     # neither a list nor an item is still not a reply.
-    assert _parse_reply(json.dumps({"result": "x"})) is None
-    assert _parse_reply(json.dumps("x")) is None
+    assert parse_reply(json.dumps({"result": "x"})) is None
+    assert parse_reply(json.dumps("x")) is None
 
 
 def test_parse_reply_rejects_items_missing_fields():
-    assert _parse_reply(json.dumps([{"id": "b1"}])) is None
+    assert parse_reply(json.dumps([{"id": "b1"}])) is None
 
 
 def test_parse_reply_accepts_valid_array():
-    parsed = _parse_reply(json.dumps([{"id": "b1", "text": "Bonjour"}]))
+    parsed = parse_reply(json.dumps([{"id": "b1", "text": "Bonjour"}]))
     assert parsed == {"b1": "Bonjour"}
 
 
 def test_build_messages_instructs_marker_preservation():
-    messages = _build_messages(_segments(), "en", "fr", glossary=None)
+    messages = build_messages(_segments(), "en", "fr", glossary=None)
     system_text = messages[0]["content"]
     assert "<0>" in system_text
     assert "renumber" in system_text.lower()
@@ -450,22 +452,22 @@ def test_a_field_name_tag_the_model_appended_is_removed() -> None:
     reply format is a JSON array of {"id", "text"}, and the model sometimes closes the text value
     with a tag named after the field. No source contains it; the inline markers <0>...</0> are
     digits and are not touched."""
-    from layoutkeep.providers.openai_compat import _parse_reply
+    from layoutkeep.providers.reply_parser import parse_reply
 
     reply = (
         '[{"id": "a", "text": "Son bolum RISC kavramini sunmaktadir.</text"},'
         ' {"id": "b", "text": "<text>Bir <0>kalin</0> kelime</text>"}]'
     )
-    parsed = _parse_reply(reply)
+    parsed = parse_reply(reply)
     assert parsed == {"a": "Son bolum RISC kavramini sunmaktadir.", "b": "Bir <0>kalin</0> kelime"}
 
 
 def test_html_line_breaks_the_model_invents_are_removed() -> None:
     """NIST campaign run, page 34: "<br/>" drawn on the page. A document's text reaches the model
     as plain text; an HTML tag in the reply is the model's formatting, not the source's."""
-    from layoutkeep.providers.openai_compat import _parse_reply
+    from layoutkeep.providers.reply_parser import parse_reply
 
-    parsed = _parse_reply('[{"id": "a", "text": "Birinci satir<br/>ikinci <b>satir</b> <0>kalin</0>"}]')
+    parsed = parse_reply('[{"id": "a", "text": "Birinci satir<br/>ikinci <b>satir</b> <0>kalin</0>"}]')
     assert parsed == {"a": "Birinci satir ikinci satir <0>kalin</0>"}
 
 
@@ -473,10 +475,10 @@ def test_a_tag_the_source_does_not_have_is_removed_whatever_its_name() -> None:
     """Electricity in Agriculture: "</vagon>" (Turkish for "wagon") drawn on the page. A model
     that invents tags names them after anything; only a tag the source itself contains is kept."""
     from layoutkeep.core.docir import Segment
-    from layoutkeep.providers.openai_compat import _apply_result
+    from layoutkeep.providers.reply_cleanup import apply_result
 
     seg = Segment(block_id="a", source="The <0>truck</0> is a covered wagon.")
-    out = _apply_result(seg, "<0>Kamyon</0> kapali bir <vagon>vagondur</vagon>.")
+    out = apply_result(seg, "<0>Kamyon</0> kapali bir <vagon>vagondur</vagon>.")
     assert out.target == "<0>Kamyon</0> kapali bir vagondur."
 
 
@@ -485,14 +487,14 @@ def test_a_leading_list_number_the_model_dropped_is_put_back() -> None:
     through three repair rounds. A list number is the list's structure, not text to translate; if
     the source starts with one and the reply does not, it goes back in front."""
     from layoutkeep.core.docir import Segment
-    from layoutkeep.providers.openai_compat import _apply_result
+    from layoutkeep.providers.reply_cleanup import apply_result
 
     src = "3. The wordlist I provided, words.txt, doesn't contain single letter words."
-    out = _apply_result(Segment(block_id="e", source=src), "Sagladigim kelime listesi, words.txt, tek harfli kelimeler icermiyor.")
+    out = apply_result(Segment(block_id="e", source=src), "Sagladigim kelime listesi, words.txt, tek harfli kelimeler icermiyor.")
     assert out.target.startswith("3. Sagladigim")
-    kept = _apply_result(Segment(block_id="e", source=src), "3. Sagladigim kelime listesi tek harfli kelimeler icermiyor.")
+    kept = apply_result(Segment(block_id="e", source=src), "3. Sagladigim kelime listesi tek harfli kelimeler icermiyor.")
     assert kept.target.startswith("3. Sagladigim") and not kept.target.startswith("3. 3.")
-    sub = _apply_result(Segment(block_id="s", source="a. FULL = 1 and EMTY = 0?"), "FULL = 1 ve EMTY = 0 ise?")
+    sub = apply_result(Segment(block_id="s", source="a. FULL = 1 and EMTY = 0?"), "FULL = 1 ve EMTY = 0 ise?")
     assert sub.target.startswith("a. FULL")
 
 
@@ -503,13 +505,13 @@ def test_a_raw_backslash_in_a_reply_does_not_lose_the_whole_batch():
     reject the reply with every segment in it."""
     backslash = chr(92)
     reply = '[{"id": "b1", "text": "Bu, S' + backslash + ' {s} verir."}, {"id": "b2", "text": "Merhaba"}]'
-    assert _parse_reply(reply) == {"b1": "Bu, S" + backslash + " {s} verir.", "b2": "Merhaba"}
+    assert parse_reply(reply) == {"b1": "Bu, S" + backslash + " {s} verir.", "b2": "Merhaba"}
 
 
 def test_valid_escapes_are_left_as_json_means_them():
     text = 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve\tsekme"
     reply = json.dumps([{"id": "b1", "text": text}])
-    assert _parse_reply(reply) == {"b1": 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve sekme"}
+    assert parse_reply(reply) == {"b1": 'Satır "alıntı", ters' + chr(92) + "eğik çizgi ve sekme"}
 
 
 def test_why_a_reply_could_not_be_read_is_said(monkeypatch, capsys):
@@ -529,14 +531,14 @@ def test_a_single_item_reply_without_its_list_is_read():
     """Held-out Wikipedia "Photosynthesis": asked for one segment, the model answered with the item
     itself - {"id": ..., "text": ...} - not a list of one. The logged reason was "a dict, not a list",
     and the paragraph stayed in English."""
-    assert _parse_reply(json.dumps({"id": "b1", "text": "Merhaba"})) == {"b1": "Merhaba"}
+    assert parse_reply(json.dumps({"id": "b1", "text": "Merhaba"})) == {"b1": "Merhaba"}
 
 
 def test_items_written_one_per_line_instead_of_a_list_are_read():
     """Held-out NASA scan: asked for two segments, the model wrote two items one after the other,
     not inside a list. The log said "Extra data at character 392", and both translations were lost."""
     reply = '{"id": "b1", "text": "Daha hızlı ve verimli."}\n{"id": "b2", "text": "Güvenlik"}'
-    assert _parse_reply(reply) == {"b1": "Daha hızlı ve verimli.", "b2": "Güvenlik"}
+    assert parse_reply(reply) == {"b1": "Daha hızlı ve verimli.", "b2": "Güvenlik"}
 
 
 def test_the_prompt_names_the_language_and_its_script() -> None:
@@ -548,17 +550,17 @@ def test_the_prompt_names_the_language_and_its_script() -> None:
     letters, the script to write it in.
     """
     from layoutkeep.core.docir import Segment
-    from layoutkeep.providers.openai_compat import _build_messages
+    from layoutkeep.providers.chat_prompts import build_messages
 
     segment = Segment(block_id="p0#0", source="Water boils at 100 degrees.")
-    system = _build_messages([segment], "en", "vi", None)[0]["content"]
+    system = build_messages([segment], "en", "vi", None)[0]["content"]
     assert "English to Vietnamese" in system
     assert "entirely in Vietnamese" in system
 
-    chinese = _build_messages([segment], "en", "zh", None)[0]["content"]
+    chinese = build_messages([segment], "en", "zh", None)[0]["content"]
     assert "Chinese characters" in chinese, "a non-Latin target must say which script to write in"
 
-    latin = _build_messages([segment], "en", "tr", None)[0]["content"]
+    latin = build_messages([segment], "en", "tr", None)[0]["content"]
     assert "Turkish" in latin
     assert "writing system" not in latin, "Turkish needs no script note"
 
@@ -566,10 +568,10 @@ def test_the_prompt_names_the_language_and_its_script() -> None:
 def test_an_unknown_language_code_is_still_sent_as_it_came() -> None:
     """A code nobody listed must not become "None" in the prompt."""
     from layoutkeep.core.docir import Segment
-    from layoutkeep.providers.openai_compat import _build_messages
+    from layoutkeep.providers.chat_prompts import build_messages
 
     segment = Segment(block_id="p0#0", source="Hello.")
-    system = _build_messages([segment], "en", "xx", None)[0]["content"]
+    system = build_messages([segment], "en", "xx", None)[0]["content"]
     assert "to xx" in system
 
 
@@ -579,7 +581,7 @@ def test_build_messages_forbids_completing_or_dropping_a_fragment():
     The quality judge found the model finishing a cut-off sentence from its context (content added)
     and dropping a leading 'are added.' (content lost): 4 of 13 critical errors on four documents.
     """
-    messages = _build_messages(_segments(), "en", "tr", glossary=None)
+    messages = build_messages(_segments(), "en", "tr", glossary=None)
     system_text = messages[0]["content"].lower()
     assert "mid-sentence" in system_text
     assert "never complete" in system_text

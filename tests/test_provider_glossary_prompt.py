@@ -9,13 +9,13 @@ the terms its text contains.
 from __future__ import annotations
 
 from layoutkeep.core.docir import Segment
-from layoutkeep.providers.openai_compat import _build_messages
+from layoutkeep.providers.chat_prompts import build_messages
 
 GLOSSARY = {"tokeniser": "belirteçleyici", "vocabulary": "kelime dağarcığı", "cake": "kek"}
 
 
 def _system(segments):
-    return _build_messages(segments, "en", "tr", GLOSSARY)[0]["content"]
+    return build_messages(segments, "en", "tr", GLOSSARY)[0]["content"]
 
 
 def test_only_the_terms_in_the_batch_are_sent():

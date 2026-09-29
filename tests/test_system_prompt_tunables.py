@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
-from layoutkeep.providers.openai_compat import _build_messages
+from layoutkeep.providers.chat_prompts import build_messages
 
 _KEYS = ("provider.system_prompt_file", "provider.system_prompt_extra", "translation.document_preamble")
 _PROTOCOL = "Reply with ONLY a JSON array"
@@ -24,7 +24,7 @@ _PROTOCOL = "Reply with ONLY a JSON array"
 
 def _prompt() -> str:
     seg = Segment(block_id="b1", source="Hello world", context_before="", context_after="")
-    messages = _build_messages([seg], "en", "tr", None)
+    messages = build_messages([seg], "en", "tr", None)
     return messages[0]["content"]
 
 

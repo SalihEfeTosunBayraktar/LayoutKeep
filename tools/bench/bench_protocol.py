@@ -7,10 +7,10 @@ and a model fine-tuned purely for translation can be worse at that structured ta
 smaller general instruct model.
 
 So each model is measured on three axes, in LayoutKeep's exact wire format (built by the real
-`_build_messages` and judged by the real `_parse_reply`):
+`build_messages` and judged by the real `parse_reply`):
 
   PROTOCOL FIDELITY (automatic, decisive)
-    - JSON parses via _parse_reply
+    - JSON parses via parse_reply
     - returned id set == sent id set
     - <N> marker open/close counts balanced, source == target count
     - U+E000..U+E001 protected-token count source == target
@@ -49,7 +49,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from layoutkeep.providers.openai_compat import _build_messages, _parse_reply
+from layoutkeep.providers.chat_prompts import build_messages
+from layoutkeep.providers.reply_parser import parse_reply
 
 BASE_URL = "http://localhost:1234/v1"
 LMS = Path.home() / ".lmstudio" / "bin" / "lms.exe"
@@ -171,7 +172,7 @@ def _token_count(text: str) -> int:
 def _evaluate(model: str, scenario: dict) -> dict:
     src_lang, tgt_lang = scenario["src"], scenario["tgt"]
     items = scenario["user_items"]
-    messages = _build_messages(
+    messages = build_messages(
         _items_to_segments(items, src_lang, tgt_lang), src_lang, tgt_lang, None)
     reply, secs = _http_chat(model, messages)
 
@@ -186,7 +187,7 @@ def _evaluate(model: str, scenario: dict) -> dict:
         result["error"] = "no reply (timeout/conn)"
         return result
 
-    parsed = _parse_reply(reply)
+    parsed = parse_reply(reply)
     if parsed is None:
         result["reply_preview"] = reply[:400]
         return result

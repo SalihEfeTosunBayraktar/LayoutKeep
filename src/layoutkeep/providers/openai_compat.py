@@ -10,20 +10,19 @@ Verified endpoint facts (see .claude/agents/lk-provider.md):
     last-modified time, not a real creation date - don't trust either for anything meaningful.
   - Ollama's OpenAI-compat layer breaks on `n`, `tool_choice`, `logit_bias`, `logprobs`, `user`.
     This adapter never sends any of them.
+
+Bu modül yalnız sağlayıcıyı yönetir; mesajlar `chat_prompts`, yanıt okuma `reply_parser`,
+sonuç temizliği `reply_cleanup` içinde. This module only orchestrates the provider; messages,
+reply parsing and result cleanup live in those three modules.
 """
 
 from __future__ import annotations
 
 import json
-import re
 import sys
 import time
-from collections import Counter
-from pathlib import Path
 
-from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
-from layoutkeep.core.langs import english_name, script_note
 from layoutkeep.providers._http_compat import OpenAIHTTPTransport
 from layoutkeep.providers.base import TranslationProvider
 from layoutkeep.providers.batching import (
@@ -35,15 +34,18 @@ from layoutkeep.providers.batching import (
     batch_timeout,
     run_batches,
 )
+from layoutkeep.providers.chat_prompts import (
+    build_messages,
+    json_repair_messages,
+    marker_repair_messages,
+)
+from layoutkeep.providers.reply_cleanup import apply_result
+from layoutkeep.providers.reply_parser import markers_match, parse_reply, why_unreadable
 
 #: Timeout used for requests that happen before `translate()` has computed anything adaptive
 #: (`list_models()`, or `_chat()` if somehow called first) - only when the caller hasn't pinned
 #: an explicit `timeout`.
 DEFAULT_TIMEOUT = 60.0
-
-#: Matches the numbered inline-style markers DocIR wraps around a run, e.g. `<0>` / `</0>`.
-#: This layer never learns what a marker means (D2) - it only has to carry the token through.
-_MARKER_RE = re.compile(r"<(/?)(\d+)>")
 
 
 class OpenAICompatProvider(TranslationProvider):
@@ -197,17 +199,17 @@ class OpenAICompatProvider(TranslationProvider):
         is already down to one segment, keeps the old behaviour: gaps are resolved to
         `needs_review` right here, never raised.
         """
-        reply = self._chat(_build_messages(segments, src_lang, tgt_lang, glossary))
-        parsed = _parse_reply(reply)
+        reply = self._chat(build_messages(segments, src_lang, tgt_lang, glossary))
+        parsed = parse_reply(reply)
         if parsed is None:
             # One repair round: ask the model to turn its own broken reply into valid JSON.
             repaired = self._try_repair(reply)
-            parsed = _parse_reply(repaired) if repaired is not None else None
+            parsed = parse_reply(repaired) if repaired is not None else None
             if parsed is None:
                 # Said out loud: two held-out paragraphs were never answered and nothing recorded
                 # why, so the cause could only be guessed.
                 print(
-                    f"reply     unreadable for {len(segments)} segment(s): {_why_unreadable(reply)}",
+                    f"reply     unreadable for {len(segments)} segment(s): {why_unreadable(reply)}",
                     file=sys.stderr,
                 )
         by_id = parsed or {}
@@ -223,19 +225,19 @@ class OpenAICompatProvider(TranslationProvider):
         mismatched = [
             block_id
             for block_id, target in by_id.items()
-            if block_id in by_seg and not _markers_match(by_seg[block_id].source, target)
+            if block_id in by_seg and not markers_match(by_seg[block_id].source, target)
         ]
         repair_stats["repaired"] += len(mismatched)
         if mismatched:
             fixed = self._repair_markers([by_seg[i] for i in mismatched], by_id)
             for block_id in mismatched:
                 candidate = (fixed or {}).get(block_id)
-                if candidate is not None and _markers_match(by_seg[block_id].source, candidate):
+                if candidate is not None and markers_match(by_seg[block_id].source, candidate):
                     by_id[block_id] = candidate
                 else:
                     repair_stats["still_mismatched"] += 1
 
-        return [_apply_result(seg, by_id.get(seg.block_id)) for seg in segments]
+        return [apply_result(seg, by_id.get(seg.block_id)) for seg in segments]
 
     def list_models(self) -> list[str]:
         """GET /v1/models, returns the model ids the server currently has loaded/available."""
@@ -284,23 +286,13 @@ class OpenAICompatProvider(TranslationProvider):
         return repair_marker_messages(self._chat, segments, current_targets)
 
 
+
 def try_repair_reply(
     chat_fn, broken_reply: str,
 ) -> str | None:
+    # Bozuk JSON için tek onarım turu / one repair round for a broken JSON reply
     try:
-        return chat_fn(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        'The previous reply was not valid JSON. Return ONLY a valid JSON '
-                        'array of {"id": string, "text": string} objects, no prose, no '
-                        "markdown fences."
-                    ),
-                },
-                {"role": "user", "content": broken_reply},
-            ]
-        )
+        return chat_fn(json_repair_messages(broken_reply))
     except (OSError, KeyError, json.JSONDecodeError):
         return None
 
@@ -308,52 +300,12 @@ def try_repair_reply(
 def repair_marker_messages(
     chat_fn, segments: list[Segment], current_targets: dict[str, str],
 ) -> dict[str, str] | None:
+    # Kaybolan işaretçiler için tek onarım turu / one repair round for lost markers
     try:
-        reply = chat_fn(_marker_repair_messages(segments, current_targets))
+        reply = chat_fn(marker_repair_messages(segments, current_targets))
     except (OSError, KeyError):
         return None
-    return _parse_reply(reply)
-
-
-def _markers_match(source: str, target: str) -> bool:
-    """True when `target` carries exactly the same multiset of markers as `source`.
-
-    Word order changes across languages, so this checks the marker set, not its position.
-    """
-    return Counter(_MARKER_RE.findall(source)) == Counter(_MARKER_RE.findall(target))
-
-
-def _marker_repair_messages(
-    segments: list[Segment], current_targets: dict[str, str]
-) -> list[dict[str, str]]:
-    items = [
-        {
-            "id": seg.block_id,
-            "source": seg.source,
-            "your_previous_translation": current_targets.get(seg.block_id, ""),
-        }
-        for seg in segments
-    ]
-    system_lines = [
-        (
-            "Your previous translation for these segments lost or misplaced the numbered "
-            "markers like <0> and </0> that must stay in the output."
-        ),
-        (
-            "Re-translate each segment's `source`, keeping the same meaning as your previous "
-            "translation, but make sure every marker from `source` reappears exactly once in "
-            "your output, wrapped around the translated equivalent of the words it wrapped in "
-            "the source. Do not renumber markers and do not invent new ones."
-        ),
-        (
-            'Reply with ONLY a JSON array of {"id": string, "text": string} objects, one per '
-            "input segment, no prose, no markdown fences."
-        ),
-    ]
-    return [
-        {"role": "system", "content": "\n".join(system_lines)},
-        {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
-    ]
+    return parse_reply(reply)
 
 
 #: What a server says when the request did not fit the model's context window. LM Studio answers
@@ -374,271 +326,3 @@ _CONTEXT_MARKERS = (
 def _is_context_overflow(text: str) -> bool:
     lowered = text.lower()
     return any(marker in lowered for marker in _CONTEXT_MARKERS)
-
-
-#: An opening, closing or self-closing tag with a name - any name, in any script.
-_ANY_TAG = re.compile(r"</?\s*([^\W\d][\w-]*)(?:\s[^<>]*)?/?>", re.UNICODE)
-
-
-#: A list label at the start of a text: "3.", "12)", "1.4.", "a.", "b)", "(1)", "(b)". A space may be
-#: missing before a letter - Turkish statutes set "4.Kapsama" - but not before a digit, so a year or a
-#: decimal ("2012 yılında", "3.5 m") is never taken for a label.
-_LEADING_LABEL = re.compile(
-    r"^\s*((?:\d+(?:\.\d+)*[.)])|(?:[a-z][.)])|(?:\((?:\d{1,2}|[a-z])\)))(?:\s|(?=[^\W\d_]))"
-)
-
-
-def _with_leading_label(source: str, reply: str) -> str:
-    """Put back a list label the source starts with and the reply lost.
-
-    A list number is the list's structure, not text to translate - and the model drops it: a Think
-    Python exercise came back without "3." through three repair rounds.
-    """
-    match = _LEADING_LABEL.match(source)
-    if match is None:
-        return reply
-    label = match.group(1)
-    if reply.lstrip().startswith(label):
-        return reply
-    return f"{label} {reply.lstrip()}"
-
-
-def _without_invented_tags(source: str, reply: str) -> str:
-    """Remove every named tag the source does not itself contain.
-
-    A model formatting a reply invents tags named after anything - "</vagon>" (Turkish for
-    "wagon") reached a page of Electricity in Agriculture, after "<br/>" and "</text" had each been
-    handled by name. What decides it is the source: a tag it contains is content, any other is not.
-    The numeric style markers (<0>...</0>) have no name and are never touched.
-    """
-    allowed = {m.group(0) for m in _ANY_TAG.finditer(source)}
-    cleaned = _ANY_TAG.sub(lambda m: m.group(0) if m.group(0) in allowed else "", reply)
-    return " ".join(cleaned.split())
-
-
-def _apply_result(seg: Segment, target: str | None) -> Segment:
-    """Build the outbound Segment for one input segment.
-
-    `target is None` means the model never returned this id (refused, dropped it, or the
-    reply stayed unparsable after the repair attempt) - marked for review, never filled in
-    from the source text.
-    """
-    if target:
-        target = _with_leading_label(seg.source, _without_invented_tags(seg.source, target))
-    return Segment(
-        block_id=seg.block_id,
-        source=seg.source,
-        target=target or "",
-        context_before=seg.context_before,
-        context_after=seg.context_after,
-        max_len=seg.max_len,
-        confidence=seg.confidence,
-        needs_review=target is None,
-        # K1: model bu id'yi dondurmediyse sebep yazilmali / review must say why
-        review_reason=(
-            "REVIEW_PROVIDER_EMPTY"
-            if target is None
-            else ""
-        ),
-        from_memory=False,
-    )
-
-
-def _build_messages(
-    segments: list[Segment],
-    src_lang: str,
-    tgt_lang: str,
-    glossary: dict[str, str] | None,
-) -> list[dict[str, str]]:
-    # Wire format note for whoever picks up switching this (tracked separately, not done here -
-    # see AdaptiveBatchSize, which lowers the urgency but doesn't remove the underlying problem):
-    # this asks for one JSON array covering the whole batch and reparses it as a whole
-    # (`_parse_reply`). Measured behaviour (four local models 4B-14B, then gemma-4-e4b on a
-    # correctly configured server) is that this is exactly what breaks as batch size grows - not
-    # a timeout, but the array itself coming back incomplete or malformed (e.g. 3/6 entries at
-    # size 6 for gemma-4-e4b). A format that let a partial reply still be parsed incrementally
-    # (e.g. newline-delimited JSON, one object per line, parsed line by line as it streams)
-    # would likely tolerate a larger batch before failing, and would fail partially instead of
-    # all-or-nothing. Not changed here because AdaptiveBatchSize already recovers a batch that's
-    # too large by shrinking and retrying, so the payoff of a wire format change is smaller now -
-    # but it would still very likely raise the ceiling AdaptiveBatchSize discovers per model.
-    items = [
-        {
-            "id": seg.block_id,
-            "text": seg.source,
-            "context_before": seg.context_before,
-            "context_after": seg.context_after,
-            "max_len": seg.max_len,
-        }
-        for seg in segments
-    ]
-    system_lines = [
-        f"You are a professional translator from {english_name(src_lang)} to {english_name(tgt_lang)}.",
-        "Input is a JSON array of segments, each with an id and text to translate.",
-        (
-            f"Write every translation entirely in {english_name(tgt_lang)}: its own spelling, its "
-            "own grammar, its own script. Do not leave the source language's words in place and do "
-            "not answer in a third language." + script_note(tgt_lang)
-        ),
-        (
-            "context_before and context_after are given ONLY as context - never translate "
-            "them and never include them in your output."
-        ),
-        # The page cuts blocks where the layout breaks, not where sentences end. Judged on four
-        # documents, 4 of 13 critical errors were a model finishing a cut-off sentence from its
-        # context, or dropping the half-sentence a block began with.
-        (
-            "A segment may start or end mid-sentence, because the page breaks it there. Translate "
-            "exactly the words it contains, as a fragment if it is one: never complete it from "
-            "the context, never drop its opening or closing words, never add or leave out content."
-        ),
-        (
-            "When max_len is set for a segment, write its translation SHORT enough to stay "
-            "within that many characters - a shorter statement of the same meaning. Do not "
-            "pad, do not expand, maxLength is a hard limit measured in characters."
-        ),
-        (
-            "Some text contains numbered markers like <0>...</0> or <1>...</1>. Reproduce "
-            "every marker exactly in your translation - never renumber a marker, never add "
-            "one that was not in the source, never drop one - but wrap each pair around the "
-            "translated equivalent of the words it wrapped in the source, not around the "
-            "same word position. Word order changes between languages, so a marker may move. "
-            'Example: source "This is a <0>bold</0> word" translated to German becomes '
-            '"Dies ist ein <0>fettes</0> Wort" - the marker follows "bold" to wherever its '
-            "translation lands, it does not stay on the second word."
-        ),
-        (
-            "Some text contains placeholder tokens: a digit wrapped in the characters U+E000 "
-            "and U+E001. Each one stands for a measurement, a part number or a similar exact "
-            "value that must not be translated. Copy every token through unchanged, keep each "
-            "one exactly once, and move it to wherever its value belongs in the target "
-            "sentence. Never translate, reword, renumber or expand a token."
-        ),
-        (
-            'Reply with ONLY a JSON array of {"id": string, "text": string} objects, one '
-            "per input segment, no prose, no markdown fences."
-        ),
-    ]
-    # Only the terms this batch contains, as a requirement: all forty on one line let a small model
-    # miss the one that mattered, and a term came out differently from page to page.
-    text = " ".join(seg.source for seg in segments)
-    present = {
-        src: tgt for src, tgt in (glossary or {}).items()
-        if re.search(rf"(?<!\w){re.escape(src)}(?!\w)", text, re.IGNORECASE)
-    }
-    if present:
-        terms = "; ".join(f"{src} -> {tgt}" for src, tgt in present.items())
-        system_lines.append(
-            "These terms occur in the segments. Translate each one exactly as given (inflect it only "
-            f"as the grammar requires), every time it occurs: {terms}"
-        )
-
-    # The wire protocol above is not negotiable: a reply that is not the JSON array, or that lost a
-    # marker or a protected token, is a reply the pipeline cannot put back on the page. What a user
-    # may change is the part that is instruction rather than contract - the role line and whatever
-    # else they want said - so a document preamble and free-form extra lines are appended here, and
-    # a file may replace the role line. Everything the parser depends on stays put.
-    preamble = str(tunables.get("translation.document_preamble") or "").strip()
-    if preamble:
-        system_lines.append(f"About this document (context only, never translate it): {preamble}")
-    extra = str(tunables.get("provider.system_prompt_extra") or "").strip()
-    if extra:
-        system_lines.append(extra)
-    prompt_file = str(tunables.get("provider.system_prompt_file") or "").strip()
-    if prompt_file:
-        try:
-            role = Path(prompt_file).read_text(encoding="utf-8").strip()
-        except OSError:
-            role = ""  # a missing file must not cost the run its instructions
-        if role:
-            system_lines[0] = role
-    return [
-        {"role": "system", "content": "\n".join(system_lines)},
-        {"role": "user", "content": json.dumps(items, ensure_ascii=False)},
-    ]
-
-
-def _why_unreadable(reply: str) -> str:
-    """The parser's complaint about a reply, with the text around the fault - never the whole reply."""
-    try:
-        data = json.loads(_LONE_BACKSLASH.sub(r"\\\\", reply))
-    except json.JSONDecodeError as exc:
-        start = max(exc.pos - 40, 0)
-        return f"{exc.msg} at character {exc.pos}: {reply[start:exc.pos + 40]!r}"
-    if not isinstance(data, list):
-        return f"a {type(data).__name__}, not a list: {reply[:80]!r}"
-    return f"an item without id and text: {reply[:80]!r}"
-
-
-def _decode_reply(reply: str) -> object:
-    """The JSON in a reply, read as leniently as the replies measured in held-out runs require.
-
-    - A backslash that starts no JSON escape - a set-minus copied from inline math (arXiv
-      2609.19145) - made the whole reply unreadable, the same way on every retry; it is read as
-      the literal character it is.
-    - Items written one after another instead of inside a list (NASA scan: "Extra data at character
-      392") are read as that list.
-    Returns None when nothing readable is there.
-    """
-    for candidate in (reply, _LONE_BACKSLASH.sub(r"\\\\", reply)):
-        try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
-            pass
-        items = _json_sequence(candidate)
-        if items is not None:
-            return items
-    return None
-
-
-def _json_sequence(text: str) -> list | None:
-    """Two or more JSON values written one after another (separated by whitespace or commas)."""
-    decoder = json.JSONDecoder()
-    text = text.strip()
-    values, position = [], 0
-    while position < len(text):
-        try:
-            value, position = decoder.raw_decode(text, position)
-        except json.JSONDecodeError:
-            return None
-        values.append(value)
-        while position < len(text) and text[position] in " \t\r\n,":
-            position += 1
-    return values if len(values) > 1 else None
-
-
-def _parse_reply(reply: str) -> dict[str, str] | None:
-    """Parse a model reply into {id: translated_text}. Returns None if it isn't the expected
-    JSON array of {id, text} objects - the caller treats that as a malformed reply."""
-    data = _decode_reply(reply)
-    if isinstance(data, dict) and "id" in data and "text" in data:
-        # Asked for one segment, a model may answer with the item itself rather than a list of one
-        # (held-out Wikipedia "Photosynthesis": logged as "a dict, not a list", paragraph lost).
-        data = [data]
-    if not isinstance(data, list):
-        return None
-    result: dict[str, str] = {}
-    for item in data:
-        if not isinstance(item, dict) or "id" not in item or "text" not in item:
-            return None
-        text = _HTML_BREAK.sub(" ", str(item["text"]))
-        text = _HTML_TAG.sub("", _FIELD_TAG.sub("", text))
-        result[str(item["id"])] = " ".join(text.split())
-    return result
-
-
-#: A tag named after a field of the reply format, which the model sometimes wraps or closes a
-#: value with ("...sunmaktadir.</text" on book page 251). No document text is written this way,
-#: and the inline style markers are numeric (<0>...</0>), so these are never content.
-#: HTML the model sometimes formats a reply with ("<br/>" on NIST page 34). The source reached it
-#: as plain text, so no such tag is content. A break becomes a space; other tags are dropped. The
-#: numeric style markers (<0>...</0>) do not match.
-_HTML_BREAK = re.compile(r"<\s*br\s*/?\s*>", re.IGNORECASE)
-_HTML_TAG = re.compile(
-    r"</?\s*(?:p|b|i|u|em|strong|span|div|sup|sub|small|font)(?:\s[^>]*)?/?>", re.IGNORECASE
-)
-
-#: A backslash that begins no JSON escape: not a quote, backslash, slash, b f n r t, or u + 4 hex.
-_LONE_BACKSLASH = re.compile(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})')
-
-_FIELD_TAG = re.compile(r"</?\s*(?:text|id)\s*/?(?:>|$)", re.IGNORECASE)

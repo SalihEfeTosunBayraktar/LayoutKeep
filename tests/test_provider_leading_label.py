@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from layoutkeep.providers.openai_compat import _with_leading_label
+from layoutkeep.providers.reply_cleanup import with_leading_label
 
 
 @pytest.mark.parametrize(
@@ -22,12 +22,12 @@ from layoutkeep.providers.openai_compat import _with_leading_label
     ],
 )
 def test_a_dropped_leading_label_is_put_back(source, reply, expected):
-    assert _with_leading_label(source, reply) == expected
+    assert with_leading_label(source, reply) == expected
 
 
 def test_a_label_the_reply_kept_is_not_doubled():
-    assert _with_leading_label("(1) Metin", "(1) Text") == "(1) Text"
+    assert with_leading_label("(1) Metin", "(1) Text") == "(1) Text"
 
 
 def test_a_number_that_is_not_a_label_is_left_alone():
-    assert _with_leading_label("2012 yılında", "In 2012") == "In 2012"
+    assert with_leading_label("2012 yılında", "In 2012") == "In 2012"
