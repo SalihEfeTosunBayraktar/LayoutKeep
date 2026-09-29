@@ -654,3 +654,35 @@ için payda küçüldü; oran yalnız başına okunmaz). Kalite düşmedi (F: 94
 Almanca ayrı bir sığdırma çalışması ister.
 
 **Kanıt:** `LayoutKeep_bench/_artifacts/bench/5692d98-{f,g,f-de,g-de}/`.
+
+## D-023 · Parça sınırında bağlam: ürün zaten sınırı aşıyor, kitap aracına eklenmez (2026-09-29)
+
+**Soru:** Yol haritası 7. madde: parça sınırında önceki parçanın son blokları isteme eklensin mi?
+L2 (çevrilmemiş) ve D2 (kaynakla aynı kalan) bayraklarını düşürür mü?
+
+**Yöntem:** Önce kod: `segments_from_document` bağlamı belgenin tamamı üzerinden, partilemeden ve
+sayfa aralığından *önce* kurar; sayfa N'in ilk bloğu, sayfa N-1'in son bloğunu `context_before`
+olarak taşır (uygulama ve CLI aynı yolu kullanır). Sınır yalnız `tools/audit/translate_book.py`'nin
+parça başına ayrı süreç açtığı yerde kesiliyor; bench de her sayfayı ayrı parça olarak çevirdiği
+için her sayfanın ilk bloğu bağlamsız. Ölçüm: iki kolun (`5692d98-g`, `7dd70ab-e`) denetim
+örneklerindeki L2/D2 bayrakları, parçanın ilk bloğu ile diğer bloklar arasında karşılaştırıldı
+(model gerekmez).
+
+**Ölçüm:**
+
+| kol | parçanın ilk bloğu | diğer bloklar |
+|---|---|---|
+| G | 2 / 60 (%3.3) | 27 / 1525 (%1.8) |
+| E | 3 / 60 (%5.0) | 32 / 1756 (%1.8) |
+
+İlk bloktaki 5 bayrağın beşi de PLOS'un sayfa başlığı "PLOS ONE": çevrilmeden kalması doğru olan
+bir dergi adı, bağlamla ilgisi yok. Bağlama bağlanabilecek bayrak: **0**.
+
+**Karar:** Kod değişmez. Ürün bağlamı sayfa ve parti sınırında zaten taşıyor
+(`tests/test_context_across_pages.py` bunu sabitler); kitap aracında sınırın ölçülmüş bir bedeli
+yok. Madde yol haritasında kapandı.
+
+**Yanlış giden:** Madde "yok" varsayımıyla yazılmıştı; kod okunmadan.
+
+**Kanıt:** `LayoutKeep_bench/_artifacts/bench/{5692d98-g,7dd70ab-e}/*/audit.json` ve
+`run/out/t_*.lkproj`; betik oturum notlarında (bayrak metni blok metniyle eşleştirildi).
