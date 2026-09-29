@@ -2,13 +2,12 @@ name: CI
 
 on:
   push:
-    # The code lives on the feature branch; `main` is the publication surface - the site, the
-    # READMEs, the docs - and carries an old snapshot of the tree rather than the development one.
-    # A suite run there tested that snapshot, so it failed on every main push for reasons that had
-    # nothing to do with the push, and the failure was noise. The branch that is developed is the
-    # branch that is tested. `master` stays watched because it was the default branch when this
-    # workflow was written.
-    branches: [feature/**, master]
+    # The branch that is developed is the branch that is tested. The code used to live on a
+    # feature branch while `main` carried only the site and docs, so `main` was left out; since
+    # 0.9.12 the code is merged into `main` and developed there, and `main` is the only branch.
+    # `master` stays watched because it was the default branch when this workflow was written.
+    # Kod artık main'de geliştiriliyor; test edilen dal odur.
+    branches: [main, master]
   pull_request:
   workflow_dispatch:
 
