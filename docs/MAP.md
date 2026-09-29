@@ -64,6 +64,9 @@ Each of these is split into single-purpose modules; the entry module keeps the p
 | `writers/pdf_writer.py` (`write_pdf`, `measure_fit`, …) | `writers/_pdf_*.py` | `writer_common`, `measure`, `draw`, `markup`, `fonts`, `redaction`, `scan_cover`, `provenance` |
 | `providers/openai_compat.py` (`OpenAICompatProvider`) | `providers/chat_prompts.py`, `reply_parser.py`, `reply_cleanup.py` | the messages sent, reading the reply, cleaning the result |
 | `ui/worker.py` (`TranslationWorker`) | `ui/batch_timing.py`, `document_io.py`, `provider_factory.py`, `translation_loop.py`, `document_prep.py`, `document_finalizer.py`, `fit_pass_runner.py` | timeouts, reading/writing, the provider chain, the loop, preparation, write-back and fitting |
+| `core/terms.py` (`candidates`, `suggest_from_document`) | `core/stopwords.py` | function words per language, Turkish postpositions, URL/citation pieces, the language guess |
+| `ui/glossary_dialog.py` (`GlossaryDialog`) | `ui/term_candidates_dialog.py`, `providers/glossary.py` (`save_terms`) | the candidate preview; writing JSON/CSV/TSV |
+| `ui/job_setup.py` (`JobSetupWidget`) | `ui/page_picker.py`, `core/range_helper.py` (`format_page_range`) | the thumbnail page picker; pages to range text |
 
 ---
 
