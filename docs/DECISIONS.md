@@ -686,3 +686,42 @@ yok. Madde yol haritasında kapandı.
 
 **Kanıt:** `LayoutKeep_bench/_artifacts/bench/{5692d98-g,7dd70ab-e}/*/audit.json` ve
 `run/out/t_*.lkproj`; betik oturum notlarında (bayrak metni blok metniyle eşleştirildi).
+
+## D-024 · Yeni terim listesi tutarlılığı düşürmedi; `reflow` varsayılan olmaz (2026-09-30)
+
+**Soru:** (1) Çok dilli işlev sözcükleriyle değişen terim adayları (`35fdd26`) otomatik belge
+sözlüğü üzerinden terim tutarlılığını nasıl etkiledi? (2) `fitting.reflow` (aşağı itme) varsayılan
+olabilir mi?
+
+**Yöntem:** Aynı model (google/gemma-4-e4b), G kolunun ayarları, 21 kaynak × 3 sayfa. (1) Eski kod
+`a8b2f80-g` ile yeni kod `a3b168c-h`; tutarlılık ölçeri terimleri `core/terms.candidates` ile
+seçtiği için iki kol da **aynı, güncel ölçerle** yargılandı (DeepSeek v4.1 flash). (2) `a3b168c-h`
+ile aynı commit'te yalnız `--set fitting.reflow=true` farklı `a3b168c-h-reflow`.
+
+**Ölçüm (1), tutarlılık:**
+
+| kol | EN→TR | TR→EN |
+|---|---|---|
+| `a8b2f80-g` (eski aday listesi) | %93.4 (829 geçiş) | %91.7 (349) |
+| `a3b168c-h` (yeni aday listesi) | **%93.8** (777) | **%92.3** (350) |
+
+Kaynak bazında 10 yükseldi, 4 düştü, 6 aynı. Aynı ölçerle %95.0 / %94.9 yerine %93.4 / %91.7 çıkması
+ölçerin artık daha zor terimleri seçmesinden (dilbilgisi sözcükleri listede yok). Düzen iki kolda
+birebir (%94.2 / %94.6).
+
+**Ölçüm (2), reflow:**
+
+| kol | kayıp | L3 | L7 | L7+L8 sayfa | D1 | düzen EN→TR / TR→EN |
+|---|---|---|---|---|---|---|
+| strict (`h`) | 13 | 3 | 1 | 1 | 62 | %94.2 / %94.6 |
+| reflow (`h-reflow`) | **24** | **10** | **5** | **6** | 0 | %98.9 / %99.5 |
+
+Aşağı itilen bloklar sayfa sonundan taşıyor (L3: IRS p505'te 4, yemek kitabında 4 blok) ya da başka
+metnin üstüne biniyor (L7: arXiv 19145'te 2 sayfa). Düzen oranı L7/L8'i saymadığı için yükseliyor.
+
+**Karar:** (1) Yeni aday listesi kalır: tutarlılık iki yönde de hafif yükseldi, düzen değişmedi.
+(2) `fitting.reflow` varsayılan kapalı kalır: yol haritasının kabul ölçütü (L7 ve D3 artmamalı)
+tutmadı. Açılabilmesi için aşağı itmenin sayfa sonunu ve alttaki bloğu sınır olarak tanıması gerek.
+
+**Kanıt:** `_artifacts/bench/{a8b2f80-g,a3b168c-h,a3b168c-h-reflow}/` (BENCH.md, CONSISTENCY.md,
+audit.json).

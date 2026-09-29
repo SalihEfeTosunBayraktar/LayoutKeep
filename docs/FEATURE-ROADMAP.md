@@ -51,9 +51,9 @@ BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2) 
 |---|---|---|---|
 | **Çift dilli çıktı** | BabelDOC, mineru-translate, Doclingo, Lara | **var**: yan yana, almaşık, üst üste (katman) | — |
 | Terim sözlüğü kısıtı | BabelDOC (`--glossary` CSV), DeepL, Lara, Taia | **var** (JSON/CSV/TSV, istem + çıktı denetimi, düzenleyici, dışa aktarma) | — |
-| **Otomatik terim çıkarımı** | BabelDOC | **var** (aday listesi önizlemeli; otomatik belge sözlüğü modelle) | Kalan: tutarlılık yargıcıyla yeni aday listesinin etkisini ölçmek |
+| **Otomatik terim çıkarımı** | BabelDOC | **var** (aday listesi önizlemeli; otomatik belge sözlüğü modelle) | Ölçüldü (D-024): tutarlılık %93.4/%91.7 → %93.8/%92.3 |
 | **Sayfa-ötesi bağlam** | BabelDOC | **var** (bağlam belgenin tamamı üzerinden kurulur; D-023) | — |
-| **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | büyük ölçüde (boş kâğıdı kullanma varsayılan; aşağı itme `reflow`'da; satır aralığı adımı ölçüldü, geri alındı) | Kalan: `reflow`'u varsayılana almak için bench ölçümü |
+| **Örtüşme çözümü kademesi** (küçült → satır aralığını sık → aşağı it) | mineru-translate | büyük ölçüde (boş kâğıdı kullanma varsayılan; aşağı itme `reflow`'da; satır aralığı adımı ölçüldü, geri alındı) | Kalan: aşağı itmenin sayfa sonunu tanıması (D-024) |
 | Çeviri önbelleği (koşular arası) | mineru-translate | **var** (SQLite bellek, sözlük parmak izi anahtarda, tamamlanma ekranında isabet) | — |
 | **Görsel/tablo içi metin çevirisi** | BabelDOC | kısmi (`translation.figure_text`, varsayılan kapalı: metin katmanından ve OCR ile) | Düşük-orta |
 | **Kaynakça + dipnot yeniden kurma** | BabelDOC | kaynakça korunabiliyor (`translation.preserve_references`), "yeniden kurma" yok | Düşük: akademik akış |
@@ -100,7 +100,9 @@ bayrakları + gerekçe, sabit bench (21 kaynak, iki yön, üç ölçüt), gerçe
    - Satır aralığını sıkma adımı: 2026-09-20'de denendi, **geri alındı** (geçişin kendi fontuyla
      hiçbir bloğu kurtarmadı; iki kolun yazılmış sayfası birebir aynıydı).
    - Bugünkü düzen ölçütü (0.9.12, G kolu): bloğun şekli korunan payı EN→TR %94.5, TR→EN %95.0.
-   **Kalan:** `reflow`'u varsayılana almak ancak bench ile (L7 ve D3 artmadan D1 düşerse).
+   **Ölçüldü (2026-09-30, D-024):** `reflow` D1'i 62 → 0'a indiriyor ama kaybı 13 → 24'e, L7'yi 1 → 5'e
+   çıkarıyor (itilen bloklar sayfa sonundan taşıyor ya da üst üste biniyor). Varsayılan kapalı kalır;
+   açılması için aşağı itmenin sayfa sonunu ve alttaki bloğu sınır tanıması gerek.
 5. ~~Otomatik terim adayları~~ **yapıldı (2026-09-20)**. ~~Kalan: önizleme ve çok dilli
    stopword~~ **yapıldı (2026-09-29)**:
    - "Belgeden öner" önce önizleme açar (`ui/term_candidates_dialog.py`): her aday kullanım
@@ -112,8 +114,8 @@ bayrakları + gerekçe, sabit bench (21 kaynak, iki yön, üç ölçüt), gerçe
    - **Ölçüm (bench'in 21 kaynağı, model gerekmez):** 600 adaydan 110'u değişti: `your`,
      `through`, `tarafından`, `yönelik`, `https doi org`, `ncbi nlm nih gov`, `SKA ların` gitti;
      yerine `machine translation`, `estimated tax`, `Sosyal Politikalar Bakanlığı` gibi terimler geldi.
-   **Kalan:** otomatik belge sözlüğü de bu listeyi kullandığı için, terim tutarlılığına etkisi
-   tutarlılık yargıcıyla (bulut modeli) ölçülmeli.
+   **Ölçüldü (2026-09-30, D-024):** aynı ölçerle terim tutarlılığı EN→TR %93.4 → %93.8, TR→EN
+   %91.7 → %92.3; düzen değişmedi.
 6. ~~Küçük editör~~ **yapılmayacak (kullanıcı kararı, 2026-09-29)**: inceleme bayraklı blokları
    uygulama içinde düzeltip yeniden yazma. CONTRACT.md D6'daki kararla aynı yönde: düzeltme
    editörü ürüne geri gelmiyor.
