@@ -7,3 +7,8 @@ boolean, and an update left it set).
 """
 
 __version__ = "0.9.12"
+
+# Uygulamanın adı ve proje adresi tek yerde; ağ istekleri ve arayüz buradan okur.
+# The application's name and project address in one place; network requests and the UI read them.
+__app_name__ = "LayoutKeep"
+__homepage__ = "https://github.com/SalihEfeTosunBayraktar/LayoutKeep"

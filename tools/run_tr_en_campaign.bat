@@ -4,14 +4,17 @@ REM Turkish laws carry no copyright (FSEK art. 31); the SBB development plans ar
 REM so the whole set is publishable on the comparison site.
 REM Runs are sequential on purpose: the model server has one queue, and two jobs at once make both slow.
 REM Every run is resumable (-resume): relaunching this file picks up at the first chunk not yet written.
-cd /d C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep
+REM Depo koku betigin yerinden bulunur / the repository root is found from this script's location.
+cd /d "%~dp0.."
 set PYTHONIOENCODING=utf-8
 set LOG=%LOCALAPPDATA%\Temp\lk_tr_campaign.txt
 set PY=.venv\Scripts\python.exe
 set TB=tools\audit\translate_book.py
 set SRC=_artifacts\heldout\sources
 set LIVE=_artifacts\heldout\live
-set MODEL=google/gemma-4-e4b
+REM Model LK_MODEL ile degistirilebilir / the model can be overridden with LK_MODEL.
+if not defined LK_MODEL set LK_MODEL=google/gemma-4-e4b
+set MODEL=%LK_MODEL%
 
 echo === TR-EN campaign started %DATE% %TIME% === > "%LOG%"
 

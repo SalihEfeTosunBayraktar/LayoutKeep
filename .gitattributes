@@ -1,0 +1,4 @@
+# Windows betikleri CRLF ile çıkar; LF ile cmd.exe goto/call etiketlerini kaçırabilir.
+# Windows scripts check out with CRLF; with LF, cmd.exe can miss goto/call labels.
+*.bat text eol=crlf
+*.cmd text eol=crlf

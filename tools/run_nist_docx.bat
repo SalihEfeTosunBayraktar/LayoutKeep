@@ -1,7 +1,8 @@
 @echo off
 REM NIST DOCX test kaynagini canli kosuyla cevirir (kamu mali kaynak, yayina uygun).
 REM Model mesgulken calistirmayin: LM Studio tek model yukler, istekler sirayla gider.
-cd /d C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep
+REM Depo koku betigin yerinden bulunur / the repository root is found from this script's location.
+cd /d "%~dp0.."
 set PYTHONIOENCODING=utf-8
 set LAYOUTKEEP_DATA_DIR=%LOCALAPPDATA%\Temp\lk-data
 

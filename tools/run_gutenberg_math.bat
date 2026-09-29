@@ -6,12 +6,15 @@ REM
 REM Short by design: 6 chunks x 4 pages keeps the run near half an hour on the local model,
 REM which is enough to measure a long, formula-dense book page by page without blocking the
 REM machine for an evening. Raise --limit-chunks for a longer run.
-cd /d C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep
+REM Depo koku betigin yerinden bulunur / the repository root is found from this script's location.
+cd /d "%~dp0.."
 set PYTHONIOENCODING=utf-8
 set LAYOUTKEEP_DATA_DIR=%LOCALAPPDATA%\Temp\lk-data
+REM Model LK_MODEL ile degistirilebilir / the model can be overridden with LK_MODEL.
+if not defined LK_MODEL set LK_MODEL=google/gemma-4-e4b
 .venv\Scripts\python.exe tools\audit\translate_book.py ^
   "_artifacts/heldout/sources/gutenberg_31061_history_of_mathematics.pdf" ^
-  --to tr --model google/gemma-4-e4b --workers 7 ^
+  --to tr --model %LK_MODEL% --workers 7 ^
   --work "_artifacts/heldout/live/gutenberg_math" ^
   --out "_artifacts/heldout/live/gutenberg_math/gutenberg_math.tr.pdf" ^
   --pages-per-chunk 4 --limit-chunks 6 --layout-detector --resume ^

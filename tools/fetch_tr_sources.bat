@@ -3,7 +3,10 @@ REM Turkish source documents for the TR -> EN direction.
 REM mevzuat.gov.tr is unreachable from this machine (connection times out); the Ministry of Family
 REM and Social Services mirrors the same law texts, and sbb.gov.tr serves the development plan.
 REM Turkish laws carry no copyright (FSEK art. 31); the plan is a state publication.
-cd /d C:\MyProjects\AntigravityProjects\AI_and_LLM\LayoutKeep\_artifacts\heldout\sources\tr
+REM Hedef klasor depo kokune gore bulunur / the target folder is resolved from the repository root.
+set DEST=%~dp0..\_artifacts\heldout\sources\tr
+if not exist "%DEST%" mkdir "%DEST%"
+cd /d "%DEST%"
 echo === indirme basladi %DATE% %TIME% ===
 curl -sL --max-time 600 -o tck_5237.pdf "https://www.aile.tr/uploads/chgm/uploads/pages/kanunlar/5237-sayili-turk-ceza-kanunu.pdf"
 echo tck exit=%ERRORLEVEL%

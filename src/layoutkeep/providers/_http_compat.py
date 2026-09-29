@@ -24,6 +24,7 @@ import time
 import urllib.error
 import urllib.request
 
+from layoutkeep import __app_name__, __homepage__
 from layoutkeep.core import tunables
 
 #: What to ask a reasoning model to spend on thinking before it answers. Translation is a
@@ -105,8 +106,9 @@ class OpenAIHTTPTransport:
             "Authorization": f"Bearer {self.api_key or 'not-needed'}",
         }
         if "openrouter.ai" in self.base_url:
-            headers["HTTP-Referer"] = "https://github.com/layoutkeep"
-            headers["X-Title"] = "LayoutKeep"
+            # Proje adresi ve adı paketten gelir / project address and name come from the package.
+            headers["HTTP-Referer"] = __homepage__
+            headers["X-Title"] = __app_name__
         return headers
 
     def execute_http_post(self, req: urllib.request.Request, timeout: float) -> dict:
