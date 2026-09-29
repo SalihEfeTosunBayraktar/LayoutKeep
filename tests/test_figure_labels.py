@@ -59,3 +59,19 @@ def test_with_the_setting_on_a_prose_label_is_translated_in_its_own_box(tmp_path
     label = next(b for b in read_pdf(src).pages[0].blocks)  # any block: role checked below
     label.role = BlockRole.FIGURE_LABEL
     assert not may_grow(label) and not may_grow_right(label)
+
+
+def test_without_the_ocr_engine_the_text_layer_labels_still_work(tmp_path: Path, monkeypatch) -> None:
+    """The `ocr` extra is optional: without it, reading a figure with the setting on raised
+    ModuleNotFoundError. Only the pixel pass needs OCR; the text layer's label is still found."""
+    from layoutkeep.readers import _pdf_raster_labels
+
+    monkeypatch.setattr(_pdf_raster_labels, "_ocr_available", lambda: False)
+    src = tmp_path / "fig.pdf"
+    _figure(src)
+    tunables.set_value("translation.figure_text", True)
+    try:
+        roles = _roles(src)
+    finally:
+        tunables.set_value("translation.figure_text", False)
+    assert roles["Instruction stream byte queue"] is BlockRole.FIGURE_LABEL

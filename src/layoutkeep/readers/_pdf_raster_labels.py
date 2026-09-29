@@ -25,6 +25,19 @@ _RASTER_LABEL_CONFIDENCE = 0.8
 _raster_engine = None
 
 
+def _ocr_available() -> bool:
+    """Whether the optional OCR engine is installed (the `ocr` extra).
+
+    Without it, turning translation.figure_text on raised ModuleNotFoundError while *reading* any
+    PDF with a picture region - CI, which does not install the extra, failed on it. The labels in
+    the text layer do not need OCR, so only the pixel pass is skipped.
+    OCR eklentisi yoksa yalnız piksel geçişi atlanır; metin katmanındaki etiketler çevrilir.
+    """
+    import importlib.util
+
+    return importlib.util.find_spec("rapidocr") is not None
+
+
 def _raster_labels(page: pymupdf.Page, index: int, owner: int, box: BBox, taken: list[BBox]) -> list[Block]:
     """Labels read from a picture's pixels on a born-digital page (translation.figure_text on).
 
@@ -35,6 +48,8 @@ def _raster_labels(page: pymupdf.Page, index: int, owner: int, box: BBox, taken:
     redraws translated. Names and signals stay part of the picture.
     """
     global _raster_engine
+    if not _ocr_available():
+        return []
     if _raster_engine is None:
         from layoutkeep.ocr.engine import RapidOcrEngine
 

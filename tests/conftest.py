@@ -144,6 +144,9 @@ _OCR_TEST_MODULES = (
     "test_scanned_ocr_retry",
     "test_scanned_page_density",
     "test_ocr_engine_packaging",
+    # Labels inside a figure's pixels are read by OCR (translation.figure_text); CI without the
+    # engine failed here instead of skipping. / Şekil pikselindeki etiketler OCR ile okunur.
+    "test_raster_figure_labels",
 )
 
 from layoutkeep.core import paths

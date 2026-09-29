@@ -209,11 +209,17 @@ def _stalling_server() -> tuple[socket.socket, int, list[socket.socket]]:
     accepted: list[socket.socket] = []
 
     def _accept_and_stall() -> None:
-        try:
-            conn, _ = srv.accept()
+        # Every connection is accepted and left without a reply: the worker may open more than one
+        # (a probe, then the request), and on macOS a second connect that nobody accepts timed out
+        # as "could not connect" instead of the read timeout this test is about.
+        # Her bağlantı kabul edilip cevapsız bırakılır; macOS'ta kabul edilmeyen ikinci bağlantı
+        # okuma değil bağlanma zaman aşımına düşüyordu.
+        while True:
+            try:
+                conn, _ = srv.accept()
+            except OSError:
+                return  # server closed while waiting - fine, test is already done
             accepted.append(conn)
-        except OSError:
-            pass  # server closed while waiting - fine, test is already done
 
     threading.Thread(target=_accept_and_stall, daemon=True).start()
     return srv, port, accepted
