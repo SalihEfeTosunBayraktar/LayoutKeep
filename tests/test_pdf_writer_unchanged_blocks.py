@@ -24,7 +24,8 @@ from layoutkeep.core.docir import (
     segments_from_document,
 )
 from layoutkeep.readers.pdf_reader import read_pdf
-from layoutkeep.writers.pdf_writer import _clearing_reaches, _rect, write_pdf
+from layoutkeep.writers._pdf_writer_common import _rect
+from layoutkeep.writers.pdf_writer import _clearing_reaches, write_pdf
 
 
 def _page(path: Path) -> None:

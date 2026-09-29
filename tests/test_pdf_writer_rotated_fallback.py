@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pymupdf
 
-from layoutkeep.writers.pdf_writer import _line_quads
+from layoutkeep.writers._pdf_draw import _line_quads
 
 
 def test_an_unfindable_line_falls_back_to_its_box() -> None:

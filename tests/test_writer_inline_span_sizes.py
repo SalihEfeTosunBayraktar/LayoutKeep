@@ -20,7 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import BBox, Span, Style
-from layoutkeep.writers.pdf_writer import _FontResolver, _span_html
+from layoutkeep.writers._pdf_fonts import _FontResolver
+from layoutkeep.writers._pdf_markup import _span_html
 
 _KEY = "writer.inline_span_sizes"
 _BOX = BBox(0.0, 0.0, 10.0, 6.0)

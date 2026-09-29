@@ -11,7 +11,7 @@ at least one more line, because the space between paragraphs is blank paper.
 
 Taking it is only safe if it really is blank. The bound cannot be "the next block": a figure
 that OCR found no text in is not a block, so a paragraph above it would grow across the figure,
-and `pdf_writer._cover_scanned_blocks` would then paint the figure out to clear the source text
+and `_pdf_scan_cover._cover_scanned_blocks` would then paint the figure out to clear the source text
 underneath - which is exactly the diagram-destroying bug that `_LINE_JOIN_GAP_RATIO` was added
 to stop. So the reader looks at the actual pixels and stops at the first row with ink in it.
 """

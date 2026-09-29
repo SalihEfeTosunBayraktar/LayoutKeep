@@ -15,6 +15,7 @@ import numpy as np
 import pymupdf
 from PIL import Image, ImageDraw
 
+import layoutkeep.writers._pdf_scan_cover as scan_cover
 import layoutkeep.writers.pdf_writer as pdf_writer
 from layoutkeep.core.docir import apply_segments, segments_from_document
 from layoutkeep.readers.pdf_reader import read_pdf
@@ -94,7 +95,7 @@ def test_the_source_ink_is_still_removed(tmp_path: Path) -> None:
     assert (band.mean(2) < 90).sum() == 0, "source glyphs survived the clearing"
 
 
-def test_the_panel_rule_never_changes_a_paper_page(tmp_path: Path) -> None:
+def test_the_panel_rule_never_changes_a_paper_page(tmp_path: Path, monkeypatch) -> None:
     """The user's worry: "don't break the page translations while fixing the cover". Measured.
 
     The same source and the same target text, written twice - the panel rule at 120 and effectively
@@ -106,7 +107,9 @@ def test_the_panel_rule_never_changes_a_paper_page(tmp_path: Path) -> None:
 
     rendered = []
     for threshold in (120, 255):
-        pdf_writer._SCAN_PAPER_MAX_SATURATION = threshold
+        # Eşik, onu okuyan modülde değiştirilir ve test bitince geri alınır.
+        # The threshold is changed where it is read, and restored when the test ends.
+        monkeypatch.setattr(scan_cover, "_SCAN_PAPER_MAX_SATURATION", threshold)
         doc = read_pdf(src)
         segments = segments_from_document(doc)
         for seg in segments:

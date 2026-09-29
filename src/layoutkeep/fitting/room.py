@@ -1,7 +1,7 @@
 """How much of the writer's slack below a block the page actually has free.
 
 The writer lays a block's text out in its box plus a slack to the right and below (see
-`pdf_writer._layout_rect`): the renderer keeps an inset of its own, and without the slack a short
+`_pdf_measure._layout_rect`): the renderer keeps an inset of its own, and without the slack a short
 label is shrunk to fit a box its glyphs already fill. Below a block, though, the slack is taken from
 whatever is there - and paragraphs set close together have nothing there. On 46 of The Time
 Machine's 120 pages the last line of a paragraph was drawn over the first line of the next (one box

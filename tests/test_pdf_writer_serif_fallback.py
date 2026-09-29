@@ -9,7 +9,7 @@ the name cannot answer, and a name it recognises still wins, as in font resoluti
 from __future__ import annotations
 
 from layoutkeep.core.docir import Style
-from layoutkeep.writers.pdf_writer import _FontResolver
+from layoutkeep.writers._pdf_fonts import _FontResolver
 
 
 def test_an_unresolved_serif_falls_back_to_a_serif() -> None:

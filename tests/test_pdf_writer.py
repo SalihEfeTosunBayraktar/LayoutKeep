@@ -263,7 +263,7 @@ def test_every_bundled_family_can_deliver_every_style(family: str, bold: bool, i
     guard, and quietly lost their metrics wherever a document used bold italic.
     """
     from layoutkeep.fitting.fontmatch import FontRegistry
-    from layoutkeep.writers.pdf_writer import _matches_requested_style, _subset_font
+    from layoutkeep.writers._pdf_fonts import _matches_requested_style, _subset_font
 
     resolved = FontRegistry().find_family(family, bold=bold, italic=italic)
     assert resolved is not None, f"{family} b={bold} i={italic} resolved to nothing"

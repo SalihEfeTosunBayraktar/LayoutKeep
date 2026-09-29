@@ -14,7 +14,7 @@ import pymupdf
 from PIL import Image
 
 from layoutkeep.core.docir import BBox, Block, BlockRole, Line, Span, Style
-from layoutkeep.writers.pdf_writer import _cover_scanned_blocks
+from layoutkeep.writers._pdf_scan_cover import _cover_scanned_blocks
 
 
 def _block(bbox: BBox, text: str, role: BlockRole = BlockRole.LIST) -> Block:

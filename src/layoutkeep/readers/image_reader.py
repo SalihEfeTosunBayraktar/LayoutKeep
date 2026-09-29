@@ -332,7 +332,7 @@ def _grant_blank_paper(page: Page, grey: np.ndarray, *, dpi: float) -> None:
 
     Bounded by the pixels rather than by the next block on purpose. A figure that OCR found no
     text in is not a block, so a "grow until the next block" rule would let a paragraph above it
-    grow across the figure - and `pdf_writer._cover_scanned_blocks` would then paint the figure
+    grow across the figure - and `_pdf_scan_cover._cover_scanned_blocks` would then paint the figure
     out while clearing the source text under that box. That is the same class of damage
     `_LINE_JOIN_GAP_RATIO` exists to prevent, so the growth stops at the first row with ink in
     it.

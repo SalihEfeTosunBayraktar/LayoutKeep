@@ -16,7 +16,7 @@ from fontTools import subset
 
 from layoutkeep.core.docir import Style
 from layoutkeep.fitting.fontmatch import MatchQuality, _bundled_font_dir
-from layoutkeep.writers.pdf_writer import _FontResolver
+from layoutkeep.writers._pdf_fonts import _FontResolver
 
 _TURKISH = "Kara, deniz, hava veya demiryolu ulaşımında kişilerin hayatı"
 

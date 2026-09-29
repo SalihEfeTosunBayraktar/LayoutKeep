@@ -23,7 +23,7 @@ import pymupdf
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from layoutkeep.writers.pdf_writer import _scan_pixels
+from layoutkeep.writers._pdf_scan_cover import _scan_pixels
 
 
 def _rgb_pixmap(width: int = 8, height: int = 6) -> pymupdf.Pixmap:
