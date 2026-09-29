@@ -13,8 +13,9 @@ from pathlib import Path
 import pytest
 
 from layoutkeep.core.docir import load_project
+from layoutkeep.ui.batch_timing import batch_timeout
 from layoutkeep.ui.job import JobConfig, ProviderConfig
-from layoutkeep.ui.worker import TranslationWorker, _batch_timeout
+from layoutkeep.ui.worker import TranslationWorker
 
 sys.path.insert(0, str(Path(__file__).parent / "fixtures"))
 import build_epub_fixture
@@ -166,10 +167,10 @@ def test_timeout_produces_readable_message_not_a_stack_trace(qtbot, tmp_path, mo
     # The same error in English, the interface default: the wording follows the language rather
     # than being a Turkish literal shown to every user.
     from layoutkeep.ui.strings import UIStrings
-    from layoutkeep.ui.worker import _timeout_error_message
+    from layoutkeep.ui.translation_loop import timeout_error_message
 
     UIStrings.set_language("en")
-    english = _timeout_error_message("http://127.0.0.1:1234/v1", 30)
+    english = timeout_error_message("http://127.0.0.1:1234/v1", 30)
     assert "did not answer within" in english
     assert "zaman aşımı" not in english
     UIStrings.set_language("tr")
@@ -257,28 +258,28 @@ def test_real_timeout_against_a_stalling_server_fails_cleanly_without_crashing(q
 
 
 def test_batch_timeout_uses_large_base_for_the_first_batch_to_cover_cold_model_load():
-    first = _batch_timeout(100, is_first=True, chars_per_second=None)
-    warm = _batch_timeout(100, is_first=False, chars_per_second=None)
+    first = batch_timeout(100, is_first=True, chars_per_second=None)
+    warm = batch_timeout(100, is_first=False, chars_per_second=None)
     assert first > warm
 
 
 def test_batch_timeout_grows_with_batch_size():
-    small = _batch_timeout(100, is_first=False, chars_per_second=10.0)
-    large = _batch_timeout(10_000, is_first=False, chars_per_second=10.0)
+    small = batch_timeout(100, is_first=False, chars_per_second=10.0)
+    large = batch_timeout(10_000, is_first=False, chars_per_second=10.0)
     assert large > small
 
 
 def test_batch_timeout_uses_measured_rate_over_the_fallback_guess():
-    slow_guess = _batch_timeout(1000, is_first=False, chars_per_second=None)
-    fast_measured = _batch_timeout(1000, is_first=False, chars_per_second=1000.0)
+    slow_guess = batch_timeout(1000, is_first=False, chars_per_second=None)
+    fast_measured = batch_timeout(1000, is_first=False, chars_per_second=1000.0)
     assert fast_measured < slow_guess
 
 
 def test_batch_timeout_is_clamped_at_both_ends():
-    from layoutkeep.ui.worker import _MAX_BATCH_TIMEOUT_S, _MIN_BATCH_TIMEOUT_S
+    from layoutkeep.ui.batch_timing import _MAX_BATCH_TIMEOUT_S, _MIN_BATCH_TIMEOUT_S
 
-    assert _batch_timeout(0, is_first=False, chars_per_second=1000.0) == _MIN_BATCH_TIMEOUT_S
-    assert _batch_timeout(10**9, is_first=False, chars_per_second=1.0) == _MAX_BATCH_TIMEOUT_S
+    assert batch_timeout(0, is_first=False, chars_per_second=1000.0) == _MIN_BATCH_TIMEOUT_S
+    assert batch_timeout(10**9, is_first=False, chars_per_second=1.0) == _MAX_BATCH_TIMEOUT_S
 
 
 def test_worker_emits_batch_timeout_before_each_batch(qtbot, tmp_path):
@@ -305,17 +306,17 @@ def test_explicit_timeout_override_is_used_verbatim(qtbot, tmp_path):
 
 
 def test_the_gui_stack_protects_literals_like_the_cli_does(tmp_path) -> None:
-    """`_build_provider` says it mirrors cli.py's. It did not: it built no ProtectedProvider,
+    """`build_provider` says it mirrors cli.py's. It did not: it built no ProtectedProvider,
     so every torque figure and part number in a document translated from the desktop app - the
     product, per CONTRACT.md - went to the model unprotected while the CLI held it back.
     """
     from layoutkeep.providers.protected import ProtectedProvider
-    from layoutkeep.ui.worker import _build_provider
+    from layoutkeep.ui.provider_factory import build_provider
 
-    provider, _memory, _glossary = _build_provider(_job(tmp_path))
+    provider, _memory, _glossary = build_provider(_job(tmp_path))
     assert isinstance(provider, ProtectedProvider)
 
-    provider, _memory, _glossary = _build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
+    provider, _memory, _glossary = build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
     assert isinstance(provider, ProtectedProvider)
 
 
@@ -324,13 +325,14 @@ def test_the_adaptive_timeout_reaches_through_every_wrapper(tmp_path) -> None:
     Unwrapping one layer sets the timeout on a CachedProvider, which has none, and every batch
     silently runs on the default instead.
     """
-    from layoutkeep.ui.worker import _build_provider, _set_provider_timeout
+    from layoutkeep.ui.batch_timing import set_provider_timeout
+    from layoutkeep.ui.provider_factory import build_provider
 
     job = _job(tmp_path, memory_path=str(tmp_path / "m.sqlite"))
     job.provider = ProviderConfig(kind="openai", base_url="http://localhost:1234/v1", model="x")
-    provider, _memory, _glossary = _build_provider(job)
+    provider, _memory, _glossary = build_provider(job)
 
-    _set_provider_timeout(provider, 42.0)
+    set_provider_timeout(provider, 42.0)
 
     innermost = provider
     while getattr(innermost, "inner", None) is not None:

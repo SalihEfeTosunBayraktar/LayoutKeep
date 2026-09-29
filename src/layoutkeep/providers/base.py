@@ -47,7 +47,7 @@ def chat_callable(provider) -> Callable[[list[dict[str, str]]], str] | None:
     WHY THIS EXISTS: a run is handed a stack of decorators - protection, repeat sharing, memory -
     and not one of them forwards `_chat`, so asking the outermost object for it found nothing and
     the document-level passes were skipped on every real provider. The call is reached by walking
-    `inner`, the way `ui/worker._set_provider_timeout` already reaches the real timeout.
+    `inner`, the way `ui/batch_timing.set_provider_timeout` already reaches the real timeout.
     """
     target = provider
     while target is not None:

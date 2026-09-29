@@ -45,9 +45,9 @@ for root, dirs, files in os.walk("src"):
 # --- C) Kullanilmayan sabit tarama: _BATCH_SIZE gibi modul seviyesi sabitler ---
 print("\n=== SUPHELI OLU SABITLER ===")
 import re
-dead_candidates = {
-    "ui/worker.py::_BATCH_SIZE": r"^_BATCH_SIZE",
-}
+# ui/worker.py::_BATCH_SIZE kaldirildi (parca boyu `batch.chunk_size` ayarindan gelir).
+# ui/worker.py::_BATCH_SIZE was removed (the chunk size comes from `batch.chunk_size`).
+dead_candidates: dict[str, str] = {}
 for path_pat, pat in dead_candidates.items():
     path, const = path_pat.split("::")
     src = open(f"src/layoutkeep/{path}", encoding="utf-8").read()

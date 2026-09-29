@@ -43,14 +43,14 @@ def test_no_declared_setting_is_unread() -> None:
 def test_the_first_batch_timeout_setting_reaches_the_timeout() -> None:
     """The specific switch that was dead: raising it must raise the first batch's timeout."""
     sys.path.insert(0, str(ROOT / "src"))
-    from layoutkeep.ui.worker import _batch_timeout
+    from layoutkeep.ui.batch_timing import batch_timeout
 
     before = tunables.get("timeout.first_batch_s")
     try:
         tunables.set_value("timeout.first_batch_s", 600.0)
-        assert _batch_timeout(1000, is_first=True, chars_per_second=None) >= 600.0
+        assert batch_timeout(1000, is_first=True, chars_per_second=None) >= 600.0
         tunables.set_value("timeout.first_batch_s", 40.0)
-        assert _batch_timeout(0, is_first=True, chars_per_second=None) == pytest.approx(40.0)
+        assert batch_timeout(0, is_first=True, chars_per_second=None) == pytest.approx(40.0)
     finally:
         tunables.set_value("timeout.first_batch_s", before)
 
@@ -58,12 +58,12 @@ def test_the_first_batch_timeout_setting_reaches_the_timeout() -> None:
 def test_the_warm_batches_do_not_use_the_first_batch_allowance() -> None:
     """The setting is about the cold start only; warm batches keep their own, smaller base."""
     sys.path.insert(0, str(ROOT / "src"))
-    from layoutkeep.ui.worker import _batch_timeout
+    from layoutkeep.ui.batch_timing import batch_timeout
 
     before = tunables.get("timeout.first_batch_s")
     try:
         tunables.set_value("timeout.first_batch_s", 900.0)
-        assert _batch_timeout(0, is_first=False, chars_per_second=1000.0) < 100.0
+        assert batch_timeout(0, is_first=False, chars_per_second=1000.0) < 100.0
     finally:
         tunables.set_value("timeout.first_batch_s", before)
 

@@ -12,7 +12,7 @@ import pytest
 
 from layoutkeep import cli
 from layoutkeep.ocr import layout_detector
-from layoutkeep.ui import worker
+from layoutkeep.ui import document_io
 
 
 def _args(*argv: str) -> argparse.Namespace:
@@ -47,5 +47,5 @@ def test_the_desktop_worker_reads_with_the_installed_model(monkeypatch, tmp_path
         return "doc"
 
     monkeypatch.setattr("layoutkeep.writers.converter.read_any_document", read_any_document)
-    assert worker._read_document(tmp_path / "in.pdf") == "doc"
+    assert document_io.read_document(tmp_path / "in.pdf") == "doc"
     assert seen["layout"] is sentinel

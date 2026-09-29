@@ -7,7 +7,7 @@ report one status line. They live here in the order the loop needs them.
 
 The worker keeps the Qt half: this class holds no signals and emits nothing, it reports through a
 callback. It is handed the function that builds the provider chain rather than importing it, so a
-test that patches `layoutkeep.ui.worker._build_provider` still sees its own chain in here.
+test that patches `layoutkeep.ui.provider_factory.build_provider` still sees its own chain in here.
 """
 
 from __future__ import annotations

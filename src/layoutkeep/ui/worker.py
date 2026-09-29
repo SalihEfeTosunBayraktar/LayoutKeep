@@ -7,10 +7,8 @@ reimplements translation, fitting or I/O logic (see docs/CONTRACT.md, D1/D2).
 
 from __future__ import annotations
 
-import copy
 import threading
 import time
-from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -21,238 +19,14 @@ from layoutkeep.core.docir import (
     Segment,
 )
 from layoutkeep.core.timing import PhaseTimer, TimingReport
-from layoutkeep.providers.glossary import glossary_fingerprint, load_terms
+from layoutkeep.ui import provider_factory
 from layoutkeep.ui.document_finalizer import DocumentFinalizer
+from layoutkeep.ui.document_io import load_layout_detector, read_document
 from layoutkeep.ui.document_prep import DocumentPreparer
 from layoutkeep.ui.fit_pass_runner import FitPassRunner
 from layoutkeep.ui.job import JobConfig
 from layoutkeep.ui.strings import UIStrings
 from layoutkeep.ui.translation_loop import _run_translation_loop
-
-#: How many segments the worker hands the provider at a time.
-#:
-#: This exists so cancellation and pause have somewhere to land: the flags are checked between
-#: chunks, never mid-request. It is NOT the request size - the provider sizes its own requests
-#: adaptively (providers/batching.AdaptiveBatchSize: start at 1, grow while replies come back
-#: valid, shrink on BatchTooLargeError, ceiling 20).
-#:
-#: It used to be 4, which silently capped that adaptation at 4 and stopped it ever finding a
-#: model's real ceiling - measured at 5 for the models tried here, and a model that could
-#: manage more never got the chance. The CLI hands over every segment at once and does not
-#: have this problem, so the two disagreed; CONTRACT-wise the GUI drifting from the CLI is a
-#: bug. Matching the adaptive ceiling lets the provider breathe while keeping cancellation
-#: granular enough to feel responsive.
-_BATCH_SIZE = 20
-
-_FIRST_BATCH_BASE_TIMEOUT_S = 240.0
-_WARM_BATCH_BASE_TIMEOUT_S = 15.0
-_DEFAULT_CHARS_PER_SECOND = 12.0
-_MIN_BATCH_TIMEOUT_S = 30.0
-_MAX_BATCH_TIMEOUT_S = 900.0
-
-
-def _batch_timeout(chars: int, *, is_first: bool, chars_per_second: float | None) -> float:
-    # The first batch pays for a cold model load, and how long that takes is a property of the
-    # machine, not of this code - so it is a setting (`timeout.first_batch_s`), with the constant
-    # as the fallback. It used to be a declared-but-unread switch: visible in the dialog, wired to
-    # nothing.
-    first = tunables.get("timeout.first_batch_s")
-    base = float(first if is_first and first else _FIRST_BATCH_BASE_TIMEOUT_S if is_first else _WARM_BATCH_BASE_TIMEOUT_S)
-    rate = chars_per_second or _DEFAULT_CHARS_PER_SECOND
-    estimate = base + chars / rate
-    return max(_MIN_BATCH_TIMEOUT_S, min(_MAX_BATCH_TIMEOUT_S, estimate))
-
-
-def _set_provider_timeout(provider, seconds: float) -> None:
-    target = provider
-    while (inner := getattr(target, "inner", None)) is not None:
-        target = inner
-    if hasattr(target, "timeout"):
-        target.timeout = seconds
-
-
-#: Says "the caller handed over no layout model", so `_read_document` keeps loading the installed
-#: one by itself while `_run` - which has to record whether a model was in hand - passes the very
-#: detector it read with instead of loading a 171 MB model a second time.
-_UNSET = object()
-
-
-def _load_layout_detector():
-    from layoutkeep.ocr.layout_detector import load_detector
-
-    return load_detector()
-
-
-def _read_document(path: Path, layout=_UNSET) -> Document:
-    from layoutkeep.writers.converter import read_any_document
-
-    # The local layout model when it is installed, as the CLI reads (cli._layout_detector): the
-    # desktop application read every page without it, although the campaign measured every result
-    # with it.
-    if layout is _UNSET:
-        layout = _load_layout_detector()
-    return read_any_document(path, layout=layout)
-
-
-def _write_document(doc: Document, source: Path, out: Path) -> list[Path]:
-    from layoutkeep.writers.converter import write_any_document
-
-    return write_any_document(doc, source, out)
-
-
-def _output_document(doc: Document, config) -> tuple[Document, set[int] | None]:
-    """What the range promises, made true: the written file holds the selected pages.
-
-    WHY THIS EXISTS: a page range used to narrow only what was *translated*, so choosing
-    "40-60" produced a translation of those pages inside a copy of the whole book - reported as
-    "shouldn't it output only the range I selected?". The project still keeps every page (the
-    reviewer needs the rest, and re-exporting must not silently shorten the document), so the
-    range is applied to a copy used for writing, not to the document that is saved.
-
-    Sayfa aralığı artık çıktıyı da daraltır; kaydedilen proje belgenin tamamını korur.
-    """
-    if not (config.page_range and doc.pages):
-        return doc, None
-
-    from layoutkeep.core.range_helper import filter_document_by_pages, parse_page_range
-
-    selected = parse_page_range(config.page_range, len(doc.pages))
-    if len(selected) >= len(doc.pages):
-        return doc, None
-
-    subset = filter_document_by_pages(doc, selected)
-    # The verification pass pairs source page N with output page N through `source_ref`, so the
-    # kept pages are renumbered to their position inside the slice. They are deep-copied first:
-    # filter_document_by_pages shares the Page objects with the project's document, and
-    # renumbering those in place would corrupt the saved project.
-    pages = []
-    for index, page in enumerate(subset.pages):
-        copied = copy.deepcopy(page)
-        copied.source_ref = str(index)
-        pages.append(copied)
-    return replace(subset, pages=pages), selected
-
-
-def _source_slice(src: Path, selected: set[int], destination: Path) -> Path | None:
-    """The selected pages of the source, as their own PDF, so verification compares like with like.
-
-    A subset output cannot be checked against the full source: page 1 of the output is not page 1
-    of the book, and every loss rule would read the wrong pair.
-    """
-    if src.suffix.lower() != ".pdf":
-        return None
-    import pymupdf
-
-    with pymupdf.open(str(src)) as source:
-        out = pymupdf.open()
-        try:
-            for number in sorted(selected):
-                if 1 <= number <= source.page_count:
-                    out.insert_pdf(source, from_page=number - 1, to_page=number - 1)
-            if out.page_count in (0, source.page_count):
-                return None
-            out.save(str(destination))
-        finally:
-            out.close()
-    return destination
-
-
-def load_glossary_terms(path: str | None) -> dict[str, str] | None:
-    """Read a JSON glossary, or None when no file is configured.
-
-    A broken file is not a reason to fail the job: it is reported by the caller and the run goes
-    on without the glossary, which is the same document the user would have got before.
-
-    The reading itself is `providers/glossary.load_terms`, the one the command line uses too; what
-    this name adds is the window's own exception, which its callers report instead of stopping for.
-    """
-    try:
-        return load_terms(path)
-    except (OSError, ValueError) as exc:
-        # A typo in a path or a hand-edited JSON file must not end a two-hour run before it
-        # starts; the caller reports it and the document is translated as it would have been.
-        raise GlossaryUnreadableError(path, str(exc)) from exc
-
-
-class GlossaryUnreadableError(Exception):
-    """The configured glossary file could not be read; the run continues without it."""
-
-
-#: The glossary hash, folding a term list into the memory key. It lives with the glossary now
-#: (`providers/glossary.glossary_fingerprint`) so the command line folds in the same one: two
-#: front-ends computing that key differently is one serving the other's translations.
-_glossary_fingerprint = glossary_fingerprint
-
-
-def _build_provider(config: JobConfig):
-    if config.provider.kind == "fake":
-        from layoutkeep.providers.fake import FakeProvider
-
-        provider, model_id = FakeProvider(), "fake"
-    elif config.provider.kind == "deepl":
-        from layoutkeep.providers.deepl import DeepLProvider
-
-        provider = DeepLProvider(
-            config.provider.api_key or "",
-            base_url=config.provider.base_url or None,
-            timeout=config.provider.timeout or 60.0,
-        )
-        # The key picks the host, so that is what identifies the model for the memory.
-        model_id = f"deepl:{provider.host}"
-    else:
-        from layoutkeep.providers.openai_compat import OpenAICompatProvider
-
-        provider = OpenAICompatProvider(
-            base_url=config.provider.base_url,
-            model=config.provider.model,
-            api_key=config.provider.api_key,
-        )
-        model_id = f"{config.provider.base_url}:{config.provider.model}"
-
-    from layoutkeep.providers.dedupe import DedupeProvider
-    from layoutkeep.providers.protected import ProtectedProvider
-
-    try:
-        terms = load_glossary_terms(config.glossary_path)
-    except GlossaryUnreadableError:
-        terms = None  # the job runs without it; the settings dialog is where this is fixed
-    if terms:
-        model_id = f"{model_id}|gloss:{_glossary_fingerprint(terms)}"
-
-    if not config.memory_path:
-        return ProtectedProvider(DedupeProvider(provider)), None, terms
-
-    from layoutkeep.providers.cached import CachedProvider
-    from layoutkeep.providers.memory import TranslationMemory
-
-    memory = TranslationMemory(config.memory_path)
-    return ProtectedProvider(CachedProvider(DedupeProvider(provider), memory, model_id)), memory, terms
-
-
-# ---------------------------------------------------------------------------
-# Translation loop helpers (module-level, so the worker class stays focused on
-# QThread/signal plumbing). They receive the worker instance to emit signals.
-# ---------------------------------------------------------------------------
-
-
-def _timeout_error_message(base_url: str, timeout: float) -> str:
-    return UIStrings.get("ERROR_TIMEOUT").format(url=base_url, s=f"{timeout:.0f}")
-
-
-def _connection_error_message(base_url: str, exc: Exception) -> str:
-    return UIStrings.get("ERROR_CONNECTION").format(url=base_url, exc=exc)
-
-
-def _compute_batch_timeout(
-    provider, configured_timeout: float | None, chars: int, *, is_first: bool, chars_per_second: float | None
-) -> float:
-    """Compute per-batch timeout and push it through any provider wrappers."""
-    if configured_timeout:
-        timeout = configured_timeout
-    else:
-        timeout = _batch_timeout(chars, is_first=is_first, chars_per_second=chars_per_second)
-    _set_provider_timeout(provider, timeout)
-    return timeout
 
 
 class TranslationWorker(QThread):
@@ -349,10 +123,10 @@ class TranslationWorker(QThread):
         self.status.emit("reading document")
         # Read once, here: the detector is both what the reader uses and part of what the run
         # records about itself (`document_prep.DocumentPreparer._record_provenance`).
-        detector = _load_layout_detector()
+        detector = load_layout_detector()
         try:
             with phases.phase("read", src.suffix.lower() or "input"):
-                doc = _read_document(src, detector)
+                doc = read_document(src, detector)
         except FileNotFoundError as exc:
             # A1: eksik/okunamayan girdi traceback degil, tek cumle / missing input → one line
             self.failed.emit(str(exc))
@@ -367,7 +141,7 @@ class TranslationWorker(QThread):
         # yaşar; worker yalnız hangi sinyalin yayılacağına karar verir. / The whole preparation
         # lives in DocumentPreparer; the worker keeps the signals.
         prepared = DocumentPreparer(
-            on_status=self.status.emit, build_provider=_build_provider
+            on_status=self.status.emit, build_provider=provider_factory.build_provider
         ).prepare(doc, src, out, config, phases=phases, layout_model=detector is not None)
         if prepared is None:
             self.failed.emit(UIStrings.get("ERROR_NO_TEXT"))

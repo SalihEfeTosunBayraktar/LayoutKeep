@@ -18,10 +18,22 @@ import time
 
 from layoutkeep.core import tunables
 from layoutkeep.core.docir import Segment
+from layoutkeep.ui import provider_factory
+from layoutkeep.ui.batch_timing import compute_batch_timeout, set_provider_timeout
 from layoutkeep.ui.strings import UIStrings
 
 #: The smallest batch a short document is cut into, so each request keeps some context.
 _MIN_BATCH = 4
+
+
+def timeout_error_message(base_url: str, timeout: float) -> str:
+    # Zaman aşımı hata metni / the timeout error text, in the interface language
+    return UIStrings.get("ERROR_TIMEOUT").format(url=base_url, s=f"{timeout:.0f}")
+
+
+def connection_error_message(base_url: str, exc: Exception) -> str:
+    # Bağlantı hata metni / the connection error text, in the interface language
+    return UIStrings.get("ERROR_CONNECTION").format(url=base_url, exc=exc)
 
 
 def _segment_preview(source_text: str) -> str:
@@ -50,11 +62,9 @@ def _provider_pool(config, primary, count: int) -> list:
     """
     if count <= 1:
         return [primary]
-    from layoutkeep.ui.worker import _build_provider  # local: worker imports this module
-
     pool = [primary]
     for _ in range(count - 1):
-        other, _memory, _terms = _build_provider(config)
+        other, _memory, _terms = provider_factory.build_provider(config)
         pool.append(other)
     return pool
 
@@ -83,12 +93,6 @@ def _run_translation_loop(
     glossary: dict[str, str] | None = None,
 ) -> list[Segment] | None:
     """Translate `segments`, `translation.workers` batches at a time; None if cancelled or failed."""
-    from layoutkeep.ui.worker import (
-        _compute_batch_timeout,
-        _connection_error_message,
-        _timeout_error_message,
-    )
-
     workers = max(1, int(tunables.get("translation.workers") or 1))
     # A short document is cut into smaller batches so every configured slot gets one: 32 segments
     # in batches of twenty were two requests for eight slots. Never below the floor - a batch still
@@ -114,7 +118,7 @@ def _run_translation_loop(
         wave = batches[wave_start : wave_start + workers]
         wave_chars = sum(len(seg.source) for batch in wave for seg in batch)
         worker.active_segment.emit(wave_start + 1, _segment_preview(wave[0][0].source))
-        timeout = _compute_batch_timeout(
+        timeout = compute_batch_timeout(
             provider,
             worker._config.provider.timeout,
             wave_chars,
@@ -154,9 +158,9 @@ def _run_translation_loop(
         if failure is not None:
             kind, exc = failure
             if kind == "timeout":
-                worker.failed.emit(_timeout_error_message(worker._config.provider.base_url, timeout))
+                worker.failed.emit(timeout_error_message(worker._config.provider.base_url, timeout))
             else:
-                worker.failed.emit(_connection_error_message(worker._config.provider.base_url, exc))
+                worker.failed.emit(connection_error_message(worker._config.provider.base_url, exc))
             return None
 
         produced_any = False
@@ -193,6 +197,4 @@ def _run_translation_loop(
 
 def _set_timeout(provider, timeout: float) -> None:
     """Push a timeout through whatever wrappers the provider chain has."""
-    from layoutkeep.ui.worker import _set_provider_timeout
-
-    _set_provider_timeout(provider, timeout)
+    set_provider_timeout(provider, timeout)

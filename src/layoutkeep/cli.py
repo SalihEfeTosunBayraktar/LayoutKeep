@@ -107,7 +107,7 @@ def _build_provider(args: argparse.Namespace):
     from layoutkeep.providers.protected import ProtectedProvider
 
     # The command line keys its translation memory the way the window does
-    # (`ui/worker._build_provider`): a glossary changes what the model is asked for, so a
+    # (`ui/provider_factory.build_provider`): a glossary changes what the model is asked for, so a
     # translation stored under a different term list is not an answer to this run's question.
     terms = load_terms(args.glossary)
     if terms:

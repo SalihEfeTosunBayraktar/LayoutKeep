@@ -14,7 +14,9 @@ from pathlib import Path
 
 from layoutkeep.core.docir import Document, Segment, apply_segments, save_project
 from layoutkeep.core.timing import PhaseTimer, TimingReport
+from layoutkeep.ui import document_io
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.provider_factory import GlossaryUnreadableError, load_glossary_terms
 from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["DocumentFinalizer"]
@@ -31,9 +33,6 @@ def read_glossary_terms(path: str | None) -> dict[str, str] | None:
     An unreadable file gives None rather than an exception: it is already reported where the
     provider was built, and the run goes on exactly as it would have without a glossary.
     """
-    # Imported lazily: worker.py imports this module, so a top-level import would cycle.
-    from layoutkeep.ui.worker import GlossaryUnreadableError, load_glossary_terms
-
     try:
         return load_glossary_terms(path)
     except GlossaryUnreadableError:
@@ -104,9 +103,6 @@ class DocumentFinalizer:
         phases: PhaseTimer | None = None,
     ) -> None:
         """Everything from the last reply to the finished file, in the CLI's order."""
-        # Imported lazily: worker.py imports this module, so a top-level import would cycle.
-        from layoutkeep.ui.worker import _output_document, _source_slice, _write_document
-
         config = self._config
         from layoutkeep.providers.passthrough import flag_passthrough, flag_untranslated
         from layoutkeep.providers.retry import retry_untranslated
@@ -173,10 +169,10 @@ class DocumentFinalizer:
             apply_segments(doc, translated)
 
         self._on_status("writing output")
-        output_doc, range_pages = _output_document(doc, config)
+        output_doc, range_pages = document_io.output_document(doc, config)
         slice_path = None
         if range_pages is not None:
-            slice_path = _source_slice(src, range_pages, out.with_suffix(".range-src.pdf"))
+            slice_path = document_io.source_slice(src, range_pages, out.with_suffix(".range-src.pdf"))
             self._on_status(UIStrings.get("FEED_RANGE_OUTPUT").format(n=len(range_pages)))
         # The PDF writer renders *from the source file*, page by page, so a range is only honoured
         # when the writer is handed the sliced source: dropping pages from the document alone left
@@ -184,7 +180,7 @@ class DocumentFinalizer:
         write_source = slice_path or src
         try:
             with phases.phase("write", out.suffix.lower() or "output"):
-                _write_document(output_doc, write_source, out)
+                document_io.write_document(output_doc, write_source, out)
             with phases.phase("verify", "lossless audit"):
                 verification = self.verify(
                     output_doc, translated, write_source, out, config, provider,
@@ -235,7 +231,6 @@ class DocumentFinalizer:
         against the matching subset of the source, not against the whole book.
         """
         from layoutkeep.providers.retry import retry_untranslated
-        from layoutkeep.ui.worker import _write_document
         from layoutkeep.verify import verify_and_repair
 
         self._on_status("verifying output")
@@ -255,7 +250,7 @@ class DocumentFinalizer:
             doc,
             translated,
             target_lang=config.target_lang,
-            write=lambda: _write_document(doc, src, out),
+            write=lambda: document_io.write_document(doc, src, out),
             source_pdf=compare_against,
             output_pdf=out if compare_against is not None else None,
             ask_again=ask_again if provider is not None else None,

@@ -17,8 +17,9 @@ import pymupdf
 import pytest
 
 from layoutkeep.core.docir import load_project
+from layoutkeep.ui.document_io import output_document, source_slice
 from layoutkeep.ui.job import JobConfig, ProviderConfig
-from layoutkeep.ui.worker import TranslationWorker, _output_document, _source_slice
+from layoutkeep.ui.worker import TranslationWorker
 
 sys.path.insert(0, str(Path(__file__).parent / "fixtures"))
 import build_pdf_fixture
@@ -106,7 +107,7 @@ def test_the_source_slice_holds_exactly_the_selected_pages(tmp_path) -> None:
     source = _three_page_pdf(tmp_path)
     destination = tmp_path / "slice.pdf"
 
-    written = _source_slice(source, {1, 3}, destination)
+    written = source_slice(source, {1, 3}, destination)
 
     assert written == destination
     with pymupdf.open(str(destination)) as sliced:
@@ -116,7 +117,7 @@ def test_the_source_slice_holds_exactly_the_selected_pages(tmp_path) -> None:
 def test_a_slice_of_everything_is_not_written(tmp_path) -> None:
     """Slicing the whole document would only add a file and a chance of drift."""
     source = _three_page_pdf(tmp_path)
-    assert _source_slice(source, {1, 2, 3}, tmp_path / "none.pdf") is None
+    assert source_slice(source, {1, 2, 3}, tmp_path / "none.pdf") is None
 
 
 def test_the_output_document_helper_leaves_a_ranged_document_alone(tmp_path) -> None:
@@ -128,7 +129,7 @@ def test_the_output_document_helper_leaves_a_ranged_document_alone(tmp_path) -> 
     doc = read_any_document(source)
     config = _job(tmp_path, source)
 
-    same, pages = _output_document(doc, config)
+    same, pages = output_document(doc, config)
 
     assert same is doc
     assert pages is None

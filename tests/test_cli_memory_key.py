@@ -4,7 +4,7 @@
 (source text, source language, target language, model). A glossary changes what the model is asked
 for, so a translation made under a different term list is not an answer to this run's question. The
 desktop chain folds a fingerprint of the glossary into its model id
-(`ui/worker._build_provider`); the command line's `_build_provider` did not, so
+(`ui/provider_factory.build_provider`); the command line's `_build_provider` did not, so
 `--memory --glossary` served translations produced before the terms changed.
 """
 
@@ -81,7 +81,7 @@ def _args(*argv: str):
 def _window_key(glossary: str, memory: Path) -> str:
     """The key the application's own chain computes for that glossary - the one to match."""
     from layoutkeep.ui.job import JobConfig, ProviderConfig
-    from layoutkeep.ui.worker import _build_provider as build_window_provider
+    from layoutkeep.ui.provider_factory import build_provider as build_window_provider
 
     config = JobConfig(
         input_path="in.epub",

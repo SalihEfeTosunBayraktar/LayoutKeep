@@ -153,15 +153,15 @@ class _ChatProvider:
 
 
 def _patch_worker_provider(monkeypatch, reply, seen, chats) -> None:
-    import layoutkeep.ui.worker as worker_module
+    import layoutkeep.ui.provider_factory as factory_module
 
-    real_build = worker_module._build_provider
+    real_build = factory_module.build_provider
 
     def build(config):
         provider, memory, terms = real_build(config)
         return _ChatProvider(provider, reply, seen, chats), memory, terms
 
-    monkeypatch.setattr(worker_module, "_build_provider", build)
+    monkeypatch.setattr(factory_module, "build_provider", build)
 
 
 def _patch_cli_provider(monkeypatch, reply, seen, chats) -> None:
@@ -384,11 +384,11 @@ def test_the_memory_key_carries_the_merged_glossary(qtbot, tmp_path, monkeypatch
     finally:
         tunables.set_value("translation.auto_glossary", False)
 
-    from layoutkeep.ui.worker import _glossary_fingerprint
+    from layoutkeep.ui.provider_factory import glossary_fingerprint
 
     with sqlite3.connect(memory_path) as conn:
         stored = {row[0] for row in conn.execute("SELECT DISTINCT model FROM translations")}
-    assert stored == {f"fake|gloss:{_glossary_fingerprint(merged)}"}, stored
+    assert stored == {f"fake|gloss:{glossary_fingerprint(merged)}"}, stored
 
 
 def test_the_worker_writes_nothing_and_asks_nothing_when_the_setting_is_off(
@@ -424,7 +424,7 @@ def test_the_fitting_pass_is_handed_the_merged_glossary(qtbot, tmp_path, monkeyp
 
     def spy(self, doc, segments, config, provider=None):
         # The pass is replaced by what it is given: the fit reads the glossary from this config.
-        from layoutkeep.ui.worker import load_glossary_terms
+        from layoutkeep.ui.provider_factory import load_glossary_terms
 
         handed.append(load_glossary_terms(config.glossary_path))
 

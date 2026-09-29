@@ -18,6 +18,7 @@ from layoutkeep.core.doc_glossary import build_doc_glossary, merge_glossaries, w
 from layoutkeep.core.docir import Document
 from layoutkeep.providers.base import chat_callable
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.provider_factory import GlossaryUnreadableError, load_glossary_terms
 from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["DocGlossaryBuilder"]
@@ -78,9 +79,6 @@ class DocGlossaryBuilder:
     @staticmethod
     def _user_terms(config: JobConfig) -> dict[str, str]:
         """The terms the user's own glossary file holds: those win where the two disagree."""
-        # Imported lazily: worker.py imports this module, so a top-level import would cycle.
-        from layoutkeep.ui.worker import GlossaryUnreadableError, load_glossary_terms
-
         try:
             return load_glossary_terms(config.glossary_path) or {}
         except GlossaryUnreadableError:

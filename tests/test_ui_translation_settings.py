@@ -14,10 +14,10 @@ import pytest
 from layoutkeep.core import tunables
 from layoutkeep.providers.memory import TranslationMemory
 from layoutkeep.ui.job import JobConfig, ProviderConfig
-from layoutkeep.ui.worker import (
+from layoutkeep.ui.provider_factory import (
     GlossaryUnreadableError,
-    _build_provider,
-    _glossary_fingerprint,
+    build_provider,
+    glossary_fingerprint,
     load_glossary_terms,
 )
 
@@ -48,7 +48,7 @@ def test_both_switches_are_tunables_with_sane_defaults():
 def test_a_configured_glossary_file_reaches_the_provider(tmp_path):
     path = _write_glossary(tmp_path, {"Annual Report": "Yıllık Rapor"})
 
-    provider, _memory, terms = _build_provider(_job(tmp_path, glossary_path=path))
+    provider, _memory, terms = build_provider(_job(tmp_path, glossary_path=path))
 
     assert terms == {"Annual Report": "Yıllık Rapor"}
     assert provider is not None
@@ -62,7 +62,7 @@ def test_a_broken_glossary_file_does_not_stop_the_job(tmp_path):
         load_glossary_terms(str(broken))
 
     # and the job builder swallows that, so the run goes ahead without a glossary
-    provider, _memory, terms = _build_provider(_job(tmp_path, glossary_path=str(broken)))
+    provider, _memory, terms = build_provider(_job(tmp_path, glossary_path=str(broken)))
     assert terms is None
     assert provider is not None
 
@@ -70,8 +70,8 @@ def test_a_broken_glossary_file_does_not_stop_the_job(tmp_path):
 def test_the_memory_key_changes_when_the_glossary_changes(tmp_path):
     """The memory is keyed by (source, languages, model); a glossary changes the request, so it
     has to change the key - otherwise a translation made under the old term policy comes back."""
-    first = _glossary_fingerprint({"Annual Report": "Yıllık Rapor"})
-    second = _glossary_fingerprint({"Annual Report": "Senelik Rapor"})
+    first = glossary_fingerprint({"Annual Report": "Yıllık Rapor"})
+    second = glossary_fingerprint({"Annual Report": "Senelik Rapor"})
 
     assert first != second
     assert len(first) == 12
@@ -86,9 +86,9 @@ def test_a_glossary_run_does_not_reuse_an_unglossed_translation(tmp_path):
     assert terms is not None
 
     plain_key = "fake|none"
-    glossary_key = f"fake|gloss:{_glossary_fingerprint(terms)}"
+    glossary_key = f"fake|gloss:{glossary_fingerprint(terms)}"
 
-    provider, _memory, _terms = _build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
+    provider, _memory, _terms = build_provider(_job(tmp_path, memory_path=str(tmp_path / "m.sqlite")))
 
     # Two stacks over the same memory file, with different keys: the second must not be served
     # the first one's entry, which is what the fingerprint is there to prevent.

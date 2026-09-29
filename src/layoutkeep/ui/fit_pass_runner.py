@@ -14,7 +14,9 @@ from dataclasses import replace
 
 from layoutkeep.core import review, tunables
 from layoutkeep.core.docir import Document, Segment
+from layoutkeep.ui import provider_factory
 from layoutkeep.ui.job import JobConfig
+from layoutkeep.ui.provider_factory import GlossaryUnreadableError, load_glossary_terms
 from layoutkeep.ui.strings import UIStrings
 
 __all__ = ["FitPassRunner"]
@@ -49,16 +51,8 @@ class FitPassRunner:
         from layoutkeep.fitting.pdf_pass import apply_scale, fit_pdf_pass
 
         config = self._config
-        # Imported lazily: worker.py imports this module, so a top-level import would cycle. The
-        # glossary helpers live there too and move with them in a later step.
-        from layoutkeep.ui.worker import (
-            GlossaryUnreadableError,
-            _build_provider,
-            load_glossary_terms,
-        )
-
         if provider is None:
-            provider, _memory, glossary_terms = _build_provider(config)
+            provider, _memory, glossary_terms = provider_factory.build_provider(config)
         else:
             # The worker already built a provider (the normal path); the fit pass still needs the
             # glossary, because a shorter rendering asked for here must obey the same terms.

@@ -110,7 +110,7 @@ def test_batches_really_overlap(monkeypatch) -> None:
     """With four workers, four requests are in flight - not one."""
     provider = _OverlapProvider()
     monkeypatch.setattr(
-        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+        "layoutkeep.ui.provider_factory.build_provider", lambda config: (provider, None, None)
     )
     tunables.set_value(KEY, 4)
     tunables.set_value(CHUNK, 4)  # 16 segments -> 4 batches, so the wave has something to overlap
@@ -131,7 +131,7 @@ def test_batches_really_overlap(monkeypatch) -> None:
 def test_one_worker_stays_sequential(monkeypatch) -> None:
     provider = _OverlapProvider()
     monkeypatch.setattr(
-        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+        "layoutkeep.ui.provider_factory.build_provider", lambda config: (provider, None, None)
     )
     tunables.set_value(KEY, 1)
     tunables.set_value(CHUNK, 4)
@@ -150,7 +150,7 @@ def test_the_translation_comes_back_in_document_order(monkeypatch) -> None:
     """Whichever request finishes first, the output follows the document."""
     provider = _OverlapProvider(delay=0.02)
     monkeypatch.setattr(
-        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+        "layoutkeep.ui.provider_factory.build_provider", lambda config: (provider, None, None)
     )
     tunables.set_value(KEY, 4)
     tunables.set_value(CHUNK, 4)
@@ -172,7 +172,7 @@ def test_a_short_document_still_fills_the_configured_slots(monkeypatch) -> None:
     every configured slot has one - never below the floor, so a batch still carries context."""
     provider = _OverlapProvider()
     monkeypatch.setattr(
-        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+        "layoutkeep.ui.provider_factory.build_provider", lambda config: (provider, None, None)
     )
     tunables.set_value(KEY, 8)
     tunables.set_value(CHUNK, 20)
@@ -190,7 +190,7 @@ def test_a_short_document_still_fills_the_configured_slots(monkeypatch) -> None:
 def test_a_tiny_document_keeps_batches_of_the_floor_size(monkeypatch) -> None:
     provider = _OverlapProvider()
     monkeypatch.setattr(
-        "layoutkeep.ui.worker._build_provider", lambda config: (provider, None, None)
+        "layoutkeep.ui.provider_factory.build_provider", lambda config: (provider, None, None)
     )
     tunables.set_value(KEY, 8)
     tunables.set_value(CHUNK, 20)
