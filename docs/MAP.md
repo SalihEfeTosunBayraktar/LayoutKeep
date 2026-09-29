@@ -27,11 +27,9 @@ LayoutKeep/
 │   ├── MEASUREMENTS.md   Older measurement results
 │   ├── PACKAGING.md      Building the exe
 │   ├── MAP.md            (this file)
-│   ├── comparison/       The published EN/TR comparison site (every document, with audits)
+│   ├── comparison/       The published side-by-side site: every held-out sample, original
+│   │                     against translation, with audits (tools/audit/comparison_site.py)
 │   ├── comparison.html   Redirect to it, for links shared before the site existed
-│   ├── comparison/       The generated side-by-side site: every held-out sample, original
-│   │                     against translation, with a draggable divider
-│   │                     (tools/audit/comparison_site.py)
 │   ├── KAYIPSIZ_MOD_DURUM.md  What lossless mode does today, measured, in Turkish
 │   ├── campaign/         The held-out campaign: HELDOUT.md (the runs) and JOURNAL.md (the log)
 │   ├── notes/            Working notes, in Turkish, for work that is not current
@@ -39,7 +37,7 @@ LayoutKeep/
 ├── packaging/            PyInstaller spec files
 ├── src/layoutkeep/       The application (below)
 ├── tests/                The pytest suite and its fixtures/
-├── tools/                Developer scripts: benchmarks, audits, fixture and asset generators
+├── tools/                Developer scripts (tools/README.md): bench/, site/, samples/, audit/
 ├── pyproject.toml        Package definition and dependencies
 └── README.md             What the project is
 ```
@@ -55,6 +53,17 @@ LayoutKeep/
 | `providers/` | The translation layer (OpenAI-compatible, DeepL, fake, memory, glossary) — knows nothing about layout |
 | `ocr/` | Reading text out of an image |
 | `ui/` | The PySide6 desktop application: set up, run, done |
+
+### Inside the large pieces
+
+Each of these is split into single-purpose modules; the entry module keeps the public API.
+
+| Entry | Helpers | What the helpers hold |
+|---|---|---|
+| `readers/pdf_reader.py` (`read_pdf`) | `readers/_pdf_*.py` | `common` (raw types, thresholds), `images`, `mirror`, `math`, `scan`, `raster_labels`, `layout_regroup`, `table_cells`, `line_merge`, `table_grid`, `reading_order`, `roles` |
+| `writers/pdf_writer.py` (`write_pdf`, `measure_fit`, …) | `writers/_pdf_*.py` | `writer_common`, `measure`, `draw`, `markup`, `fonts`, `redaction`, `scan_cover`, `provenance` |
+| `providers/openai_compat.py` (`OpenAICompatProvider`) | `providers/chat_prompts.py`, `reply_parser.py`, `reply_cleanup.py` | the messages sent, reading the reply, cleaning the result |
+| `ui/worker.py` (`TranslationWorker`) | `ui/batch_timing.py`, `document_io.py`, `provider_factory.py`, `translation_loop.py`, `document_prep.py`, `document_finalizer.py`, `fit_pass_runner.py` | timeouts, reading/writing, the provider chain, the loop, preparation, write-back and fitting |
 
 ---
 

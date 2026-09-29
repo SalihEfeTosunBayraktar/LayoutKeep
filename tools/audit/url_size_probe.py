@@ -10,19 +10,20 @@ Run: python tools/audit/url_size_probe.py
 
 from __future__ import annotations
 
-import sys
+import tempfile
 from pathlib import Path
 
 import pymupdf
 
-sys.path.insert(0, "src")
-
-from layoutkeep.writers.pdf_writer import _NO_WRAP_HINT  # noqa: E402
+# Ölçülen ipucu burada tanımlı; yazıcı bunu hiçbir zaman bir sabit olarak dışa açmadı.
+# The hint under test is defined here; the writer never exported it as a constant.
+_NO_WRAP_HINT = "white-space: nowrap;"
 
 FITS = "https://platform.openai.com/docs/apireference/chat/create"
 TOO_WIDE = "https://platform.openai.com/docs/apireference/chat/create/very-long-tail/segment"
 
-work = Path.home() / "AppData/Local/Temp/lk-live"
+# Çıktı işletim sisteminin geçici klasörüne gider / output goes to the OS temp folder.
+work = Path(tempfile.gettempdir()) / "lk-live"
 work.mkdir(parents=True, exist_ok=True)
 
 for label, text, hint in (
