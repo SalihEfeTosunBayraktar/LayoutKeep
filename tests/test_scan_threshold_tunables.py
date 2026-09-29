@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from layoutkeep.core import tunables
-from layoutkeep.readers import image_reader, pdf_reader
+from layoutkeep.readers import _pdf_scan, image_reader
 from layoutkeep.readers.image_reader import is_scanned_page
 
 #: A page the size of the textbook in the corpus, carrying a cover's worth of words.
@@ -30,7 +30,7 @@ def test_the_defaults_are_the_constants_they_replaced() -> None:
     assert tunables.definition("reader.scan_image_coverage").default == image_reader._SCANNED_IMAGE_COVERAGE
     assert (
         tunables.definition("reader.scan_image_coverage_layer").default
-        == pdf_reader._SCANNED_IMAGE_COVERAGE_FOR_LAYER
+        == _pdf_scan._SCANNED_IMAGE_COVERAGE_FOR_LAYER
     )
 
 

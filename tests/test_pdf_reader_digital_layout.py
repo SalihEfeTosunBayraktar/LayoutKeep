@@ -239,7 +239,7 @@ def test_paragraphs_inside_one_text_region_are_split_at_their_blank_line(tmp_pat
 _TCK_P2_SIZE = (595.32, 841.92)
 
 #: The regions the REAL layout model returned for that page, recorded once by rendering it at
-#: 100 DPI (`pdf_reader._DIGITAL_LAYOUT_DPI`) and running `layout_detector.load_detector()` on the
+#: 100 DPI (`_pdf_layout_regroup._DIGITAL_LAYOUT_DPI`) and running `layout_detector.load_detector()` on the
 #: pixels, `resolve_duplicates` included, then scaled back to page points. Recorded rather than
 #: re-run so the test needs no installed model (conftest switches the model off).
 _TCK_P2_REGIONS = [

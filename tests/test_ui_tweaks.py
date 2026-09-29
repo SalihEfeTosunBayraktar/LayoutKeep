@@ -175,7 +175,7 @@ def test_the_table_settings_reach_the_reader():
     """The reader must look the value up when it uses it. Had it bound the constant at import -
     which is what every one of these replaced - both readings below would be the same."""
     from layoutkeep.core.docir import BBox, Block, BlockRole
-    from layoutkeep.readers.pdf_reader import _similar_height
+    from layoutkeep.readers._pdf_table_grid import _similar_height
 
     short = Block(id="a", role=BlockRole.BODY, bbox=BBox(0, 0, 50, 10))
     tall = Block(id="b", role=BlockRole.BODY, bbox=BBox(60, 0, 110, 30))  # three times as tall

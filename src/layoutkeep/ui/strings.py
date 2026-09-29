@@ -344,7 +344,7 @@ _TRANSLATIONS: dict[str, dict[str, str]] = {
         "TUNABLE_provider.system_prompt_file_warning": "Dosya yalnız ilk satırı değiştirir; protokolü değiştirmeye çalışmak işe yaramaz çünkü protokol satırları bu dosyadan sonra eklenir.",
         "TUNABLE_reader.scan_image_coverage_help_text": "Bir sayfanın taranmış sayılması için görsellerin sayfa alanının en az bu kadarını kaplaması gerekir. Tek başına metin yoğunluğu yetmez: resimsiz küçük bir sayfa da 'az metinli' görünür ve OCR o zaman olmayan bir metni uydurur. Sabitin karşılığı: image_reader._SCANNED_IMAGE_COVERAGE.",
         "TUNABLE_reader.scan_image_coverage_label": "Taranmış sayfa: görsel kapsama eşiği",
-        "TUNABLE_reader.scan_image_coverage_layer_help_text": "Metin katmanı görünmez olan bir PDF'te (aranabilir tarama) görselin sayfayı kaplama oranı bu eşiğin üzerindeyse sayfa tarama sayılır. Sabitin karşılığı: pdf_reader._SCANNED_IMAGE_COVERAGE_FOR_LAYER.",
+        "TUNABLE_reader.scan_image_coverage_layer_help_text": "Metin katmanı görünmez olan bir PDF'te (aranabilir tarama) görselin sayfayı kaplama oranı bu eşiğin üzerindeyse sayfa tarama sayılır. Sabitin karşılığı: _pdf_scan._SCANNED_IMAGE_COVERAGE_FOR_LAYER.",
         "TUNABLE_reader.scan_image_coverage_layer_label": "Aranabilir tarama: görsel kapsama eşiği",
         "TUNABLE_reader.scan_image_coverage_layer_warning": "Düşürmek, metin katmanı görünmez olan normal PDF'leri tarama saymaya başlar; yükseltmek gerçek aranabilir taramaları metin sayar ve üstlerindeki görüntüyü çevirmez.",
         "TUNABLE_reader.scan_image_coverage_warning": "Yükseltmek, kenarında küçük bir görsel olan normal sayfaları tarama saymaya başlar.",

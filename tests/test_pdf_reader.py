@@ -23,7 +23,8 @@ from fixtures.build_pdf_fixture import (
 
 from layoutkeep.core.docir import BBox, BlockRole, Line, Span, Style
 from layoutkeep.readers._layout import infer_alignment
-from layoutkeep.readers.pdf_reader import _looks_like_math, read_pdf
+from layoutkeep.readers._pdf_math import _looks_like_math
+from layoutkeep.readers.pdf_reader import read_pdf
 
 # -- S6: mathematics blocks must be classified FORMULA, not BODY -------------------------
 
