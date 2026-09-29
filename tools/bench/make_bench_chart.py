@@ -4,7 +4,7 @@
 numbers into one picture: a stacked bar per run, so the answer to "where did the time go" is
 visible rather than counted off a table.
 
-    .venv/Scripts/python.exe tools/make_bench_chart.py docs/samples/bench_*.json out.png
+    .venv/Scripts/python.exe tools/bench/make_bench_chart.py docs/samples/bench_*.json out.png
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from PySide6.QtCore import QPointF, QRectF, Qt
@@ -161,7 +161,7 @@ def draw(runs: list[dict], target: Path) -> Path:
     painter.drawText(
         QRectF(MARGIN + 108, height - 58, WIDTH - MARGIN * 2, 18), 0,
         f"{segments:,} segments, {flagged} flagged for review - measured with "
-        f"tools/bench_pipeline.py",
+        f"tools/bench/bench_pipeline.py",
     )
 
     painter.end()

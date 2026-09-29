@@ -8,13 +8,13 @@ different - those live outside the repository, and the site says which ones are 
 
 | file | what it is | how it is made |
 |---|---|---|
-| `academic_paper.pdf` | a long, dense two-column paper - the stress case for layout preservation | `python tools/make_academic_paper.py docs/samples/academic_paper.pdf 100` (the page count is the last argument) |
+| `academic_paper.pdf` | a long, dense two-column paper - the stress case for layout preservation | `python tools/samples/make_academic_paper.py docs/samples/academic_paper.pdf 100` (the page count is the last argument) |
 | `academic_paper_10.pdf`, `academic_paper_20.pdf` | the same paper at 10 and 20 pages, for runs that should not take an hour | same command, different page count |
-| `sample_report.pdf` | a one-page report with a heading, a table and a chart | `python tools/make_sample_document.py docs/samples/sample_report.pdf` |
+| `sample_report.pdf` | a one-page report with a heading, a table and a chart | `python tools/samples/make_sample_document.py docs/samples/sample_report.pdf` |
 | `battery_test_report.docx` | the same kind of report as a Word file, with an embedded chart | `tests/fixtures/build_rich_fixture.py` |
 | `battery_test_report*.png` | page renders of that DOCX | rendered from the DOCX |
 | `*.tr.pdf` | **LayoutKeep's own output** for the file beside it - the reference a regression is measured against | `layoutkeep translate` on the source beside it |
-| `bench_fake_100.json`, `bench_deepl_100.json`, `bench_deepl_10_fixed.json` | recorded benchmark runs, the numbers `docs/BENCHMARK.md` quotes | `tools/bench_pipeline.py` |
+| `bench_fake_100.json`, `bench_deepl_100.json`, `bench_deepl_10_fixed.json` | recorded benchmark runs, the numbers `docs/BENCHMARK.md` quotes | `tools/bench/bench_pipeline.py` |
 | `format_matrix.json` | the format-by-format lossless matrix the README quotes | `tools/audit/format_matrix.py` |
 | `sample_memory.sqlite` | a small translation memory, so a test can exercise cache hits without a real one | produced by a run |
 

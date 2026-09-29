@@ -9,7 +9,7 @@ numbers that must survive untouched, and a paragraph that grows when translated.
 Written here rather than taken from anywhere, so the repository can publish it and the images
 made from it without a licence question.
 
-    .venv/Scripts/python.exe tools/make_sample_document.py docs/samples/sample_report.pdf
+    .venv/Scripts/python.exe tools/samples/make_sample_document.py docs/samples/sample_report.pdf
 """
 
 from __future__ import annotations

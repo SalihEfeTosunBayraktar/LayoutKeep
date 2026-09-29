@@ -10,7 +10,7 @@ the source language, and one that treats them as body text scatters them.
 Everything here is written for this fixture, so the repository can publish the document and the
 images made from it without a licence question.
 
-    .venv/Scripts/python.exe tools/make_academic_paper.py docs/samples/academic_paper.pdf 100
+    .venv/Scripts/python.exe tools/samples/make_academic_paper.py docs/samples/academic_paper.pdf 100
 """
 
 from __future__ import annotations

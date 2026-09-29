@@ -34,7 +34,7 @@ training/merged_model/
 training/gguf_model/
 training/live_metrics.json
 
-# The 100-page fixture and its translation: 6 MB of something `tools/make_academic_paper.py`
+# The 100-page fixture and its translation: 6 MB of something `tools/samples/make_academic_paper.py`
 # rebuilds on demand. The 10-page pair is committed because the README and the comparison page
 # are built from it; the measurements taken at 100 pages live in docs/samples/bench_*.json.
 docs/samples/academic_paper.pdf

@@ -27,7 +27,7 @@ Two edge cases per model, both directions where meaningful:
   - single segment with a marker + a protected token
   - multi-segment (3) array, one with a marker, one with a protected token
 
-Usage:  .venv/Scripts/python.exe tools/bench_protocol.py MODEL_ID [MODEL_ID ...]
+Usage:  .venv/Scripts/python.exe tools/bench/bench_protocol.py MODEL_ID [MODEL_ID ...]
 Run while LM Studio is serving http://localhost:1234/v1. Each model is loaded via the `lms`
 CLI (unload all first) to give it a fair, isolated context.
 
@@ -46,7 +46,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from layoutkeep.providers.openai_compat import _build_messages, _parse_reply

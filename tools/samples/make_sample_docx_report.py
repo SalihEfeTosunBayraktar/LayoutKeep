@@ -10,7 +10,7 @@ Written here rather than taken from anywhere, so the repository can publish it a
 built from it without a licence question. The content is invented; any resemblance to a real
 test programme is coincidental.
 
-    .venv/Scripts/python.exe tools/make_sample_docx_report.py docs/samples/battery_test_report.docx
+    .venv/Scripts/python.exe tools/samples/make_sample_docx_report.py docs/samples/battery_test_report.docx
 """
 
 from __future__ import annotations

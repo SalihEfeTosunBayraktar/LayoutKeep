@@ -5,8 +5,8 @@ records what each stage cost, how much text each stage handled, and - for a paid
 much quota the run consumed. The numbers land in a JSON file so a later run can be compared
 against an earlier one rather than against a memory of it.
 
-    .venv/Scripts/python.exe tools/bench_pipeline.py docs/samples/academic_paper.pdf fake
-    .venv/Scripts/python.exe tools/bench_pipeline.py docs/samples/academic_paper.pdf deepl --out out.pdf
+    .venv/Scripts/python.exe tools/bench/bench_pipeline.py docs/samples/academic_paper.pdf fake
+    .venv/Scripts/python.exe tools/bench/bench_pipeline.py docs/samples/academic_paper.pdf deepl --out out.pdf
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 

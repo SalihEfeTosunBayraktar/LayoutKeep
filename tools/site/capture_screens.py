@@ -4,8 +4,8 @@ Runs the real widgets - the same classes the application shows - rather than moc
 screen that has drifted from its design is visible here. Offscreen by default, so it works on
 a machine with no display and in CI.
 
-    .venv/Scripts/python.exe tools/capture_screens.py                 # the published set, English
-    .venv/Scripts/python.exe tools/capture_screens.py --lang tr --out docs/screenshots/tr
+    .venv/Scripts/python.exe tools/site/capture_screens.py                 # the published set, English
+    .venv/Scripts/python.exe tools/site/capture_screens.py --lang tr --out docs/screenshots/tr
 
 The interface language is a parameter because it is global state: the READMEs carry captions in
 one language each, and a Turkish capture under an English caption is what the published set used
@@ -20,7 +20,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 # The native platform on purpose. Under "offscreen" Qt finds no system fonts on Windows and

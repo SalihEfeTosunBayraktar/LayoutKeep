@@ -1,18 +1,18 @@
 # Where the time goes
 
 Measured, not estimated. Every number here comes from
-[`tools/bench_pipeline.py`](../tools/bench_pipeline.py), which runs one document through the real
+[`tools/bench/bench_pipeline.py`](../tools/bench/bench_pipeline.py), which runs one document through the real
 pipeline and records what each stage cost. The raw measurements are checked in beside the sample
 documents (`docs/samples/bench_*.json`) so a later run can be compared against an earlier one
 rather than against a memory of it.
 
 ```bash
-.venv/Scripts/python.exe tools/bench_pipeline.py docs/samples/academic_paper_10.pdf deepl --out out.pdf --json run.json
+.venv/Scripts/python.exe tools/bench/bench_pipeline.py docs/samples/academic_paper_10.pdf deepl --out out.pdf --json run.json
 ```
 
 The test document is a generated academic paper — two columns, numbered sections, labelled line
 charts, tables with header rows, raster micrographs, a running head and page numbers. It is built
-by [`tools/make_academic_paper.py`](../tools/make_academic_paper.py), so the measurement can be
+by [`tools/samples/make_academic_paper.py`](../tools/samples/make_academic_paper.py), so the measurement can be
 reproduced from an empty checkout.
 
 ![Phase breakdown, 10 pages](images/bench_10_pages.png)

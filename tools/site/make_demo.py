@@ -3,8 +3,8 @@ side-by-side text dump so the result can be read without unzipping anything.
 
 Dev tooling, not part of the shipped product. Run it from the repo root:
 
-    .venv/Scripts/python.exe tools/make_demo.py
-    .venv/Scripts/python.exe tools/make_demo.py --provider openai --model <id>
+    .venv/Scripts/python.exe tools/site/make_demo.py
+    .venv/Scripts/python.exe tools/site/make_demo.py --provider openai --model <id>
 
 Everything lands under _artifacts/ (git-ignored).
 """
@@ -16,7 +16,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 ARTIFACTS = ROOT / "_artifacts"
 INPUT_DIR = ARTIFACTS / "input"
 OUTPUT_DIR = ARTIFACTS / "output"

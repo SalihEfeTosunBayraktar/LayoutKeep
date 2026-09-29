@@ -3,8 +3,8 @@
 Drawn rather than assembled by hand so it can be regenerated when the wording or the palette
 changes, and so both languages are guaranteed to be the same picture with different text.
 
-    .venv/Scripts/python.exe tools/make_banner.py en docs/images/banner_en.png
-    .venv/Scripts/python.exe tools/make_banner.py tr docs/images/banner_tr.png
+    .venv/Scripts/python.exe tools/site/make_banner.py en docs/images/banner_en.png
+    .venv/Scripts/python.exe tools/site/make_banner.py tr docs/images/banner_tr.png
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from PySide6.QtCore import QPointF, QRectF, Qt

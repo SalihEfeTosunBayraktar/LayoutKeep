@@ -4,8 +4,8 @@ The artifact host serves one file, so the twenty page images travel inside it as
 They are rendered here rather than checked in: the translated PDF changes whenever the pipeline
 does, and a stale image would be a comparison of something that no longer happens.
 
-    .venv/Scripts/python.exe tools/make_comparison_page.py . out.html tools/comparison_page.html
-    .venv/Scripts/python.exe tools/make_comparison_page.py . docs/comparison.html tools/comparison_page.html --standalone
+    .venv/Scripts/python.exe tools/site/make_comparison_page.py . out.html tools/site/comparison_page.html
+    .venv/Scripts/python.exe tools/site/make_comparison_page.py . docs/comparison.html tools/site/comparison_page.html --standalone
 
 The artifact host supplies the document skeleton, so the default output is the page body alone.
 `--standalone` wraps it into a complete document instead, for the copy that lives in the

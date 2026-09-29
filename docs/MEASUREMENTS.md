@@ -81,7 +81,7 @@ Aynı altı segment, aynı koşullar. **Çeviri kalitesi tek kriter değil** —
 Altılı parti hepsini zorladı; beşli partide `gemma-4-e4b` 40/40 yaptı.
 
 Aynı modellerin LayoutKeep'in gerçek tel protokolünde (JSON segment dizisi + `<N>` marker +
-korunan değer token'ı) güncel ölçümü: `tools/bench_protocol.py` + `tools/bench_chart.py`
+korunan değer token'ı) güncel ölçümü: `tools/bench/bench_protocol.py` + `tools/bench/bench_chart.py`
 (bkz. `_artifacts/benchmark_report.html`).
 
 ---

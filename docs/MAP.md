@@ -93,7 +93,7 @@ Test inputs live under `_artifacts\corpus\` and `_artifacts\input\`; tests reach
 
 ```powershell
 .venv\Scripts\python.exe tools\audit\format_matrix.py docs\samples\format_matrix.json
-.venv\Scripts\python.exe tools\bench_pipeline.py docs\samples\academic_paper_10.pdf deepl --json run.json
+.venv\Scripts\python.exe tools\bench\bench_pipeline.py docs\samples\academic_paper_10.pdf deepl --json run.json
 ```
 
 The first says what every format pair keeps and loses; the second says what a translation costs

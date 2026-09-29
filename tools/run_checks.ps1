@@ -18,7 +18,7 @@ Write-Host "=== lint ===" -ForegroundColor Cyan
 
 Write-Host ""
 Write-Host "=== demo artefacts ===" -ForegroundColor Cyan
-& $py tools\make_demo.py | Tee-Object -FilePath "$reports\demo.txt"
+& $py tools\site\make_demo.py | Tee-Object -FilePath "$reports\demo.txt"
 
 Write-Host ""
 Write-Host "reports written to $reports" -ForegroundColor Green

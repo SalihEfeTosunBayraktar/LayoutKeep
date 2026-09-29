@@ -4,7 +4,7 @@ The claim the project makes is about layout, and a claim about layout has to be 
 than described. This renders the first page of each file at the same scale, puts them side by
 side with a label over each, and writes one PNG.
 
-    .venv/Scripts/python.exe tools/make_comparison_image.py source.pdf translated.pdf out.png \
+    .venv/Scripts/python.exe tools/site/make_comparison_image.py source.pdf translated.pdf out.png \
         --left "Source (EN)" --right "Translation (TR)"
 """
 

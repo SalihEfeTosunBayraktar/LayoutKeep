@@ -69,7 +69,7 @@ Aşağıdaki sayfa DeepL üzerinden İngilizce→Türkçe çevrildi. İki görü
 sayfası, aynı ölçekte: iki kolon, sayfa üstü ve altı, şekil ve altyazısı, tablodaki sayılar,
 kalın ve italik parçalar — hepsi bulundukları yerde. Kaynak belge ve çevrilmiş çıktı
 [`docs/samples/`](docs/samples/) altında; iki görüntü de
-[`tools/make_comparison_image.py`](tools/make_comparison_image.py) ile yeniden üretilir.
+[`tools/site/make_comparison_image.py`](tools/site/make_comparison_image.py) ile yeniden üretilir.
 
 ![Kaynak ve çeviri yan yana](docs/images/comparison_tr.png)
 
@@ -98,7 +98,7 @@ Yukarıdaki tek bir sayfa. Bu on sayfa: iki sütunlu, numaralı bölümleri, eti
 grafikleri, başlık satırlı tabloları, mikroskop görüntüleri, üst bilgisi ve sayfa numaraları olan
 üretilmiş bir akademik makale, DeepL ile İngilizceden Türkçeye çevrildi. Kaynak ve çıktı
 [`docs/samples/`](docs/samples/) içinde (`academic_paper_10.pdf` ve `academic_paper_10.tr.pdf`),
-üreteci [`tools/make_academic_paper.py`](tools/make_academic_paper.py) — boş bir kopyadan
+üreteci [`tools/samples/make_academic_paper.py`](tools/samples/make_academic_paper.py) — boş bir kopyadan
 yeniden kurulabilir.
 
 ![Süre nereye gidiyor](docs/images/bench_10_pages.png)
