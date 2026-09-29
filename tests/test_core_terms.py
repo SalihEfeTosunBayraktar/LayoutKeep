@@ -169,3 +169,71 @@ def test_common_english_function_words_do_not_frame_a_term() -> None:
 
     assert not any(phrase.split()[0] in ("each", "shall") or phrase.split()[-1] in ("each", "shall")
                    for phrase in found)
+
+
+def test_a_suffix_after_an_apostrophe_leaves_the_name() -> None:
+    """Turkish writes a name's case ending after an apostrophe; the stem is the term, not
+    "Türkiye nin" or "ların" (both offered on the 12th Development Plan)."""
+    text = "Türkiye’nin hedefi. Türkiye’de üretim. Türkiye’ye yatırım. SKA’ların SKA’ların SKA’ların"
+
+    found = [item.phrase for item in candidates([text], minimum_count=3)]
+
+    assert "Türkiye" in found
+    assert not any(phrase.casefold() in ("nin", "ların") or " nin" in phrase for phrase in found)
+
+
+def test_a_phrase_never_runs_across_a_suffix() -> None:
+    """ "Türkiye’nin ulusal" is not in the text as "Türkiye ulusal", so it cannot be a term."""
+    text = "Türkiye’nin ulusal planı. " * 4
+
+    found = [item.phrase for item in candidates([text], minimum_count=3, languages=["tr"])]
+
+    assert "Türkiye ulusal" not in found
+
+
+def test_citation_debris_is_not_a_term() -> None:
+    text = "See https doi org 10.1/x and https doi org 10.2/y and https doi org 10.3/z. " * 2
+
+    found = [item.phrase.casefold() for item in candidates([text], minimum_count=3)]
+
+    assert not any(word in phrase.split() for phrase in found for word in ("https", "doi", "org"))
+
+
+def test_english_grammar_no_longer_frames_a_term() -> None:
+    """Measured on IRS p505: 'your estimated tax', 'your first', 'through' were offered."""
+    text = "Enter your estimated tax through the year. Pay your estimated tax through June. " * 2
+
+    found = [item.phrase.casefold() for item in candidates([text], minimum_count=3)]
+
+    assert "estimated tax" in found
+    assert not any(phrase.split()[0] in ("your", "through") for phrase in found)
+
+
+def test_turkish_grammar_no_longer_frames_a_term() -> None:
+    """Measured on SHK 2828: 'Bakanlığı tarafından' and 'süre içinde' were offered."""
+    text = "Sosyal Politikalar Bakanlığı tarafından verilen süre içinde kapatılır. " * 3
+
+    found = [item.phrase.casefold() for item in candidates([text], minimum_count=3)]
+
+    assert "sosyal politikalar bakanlığı" in found
+    assert not any(word in phrase.split() for phrase in found for word in ("tarafından", "içinde"))
+
+
+def test_one_languages_function_word_does_not_block_anothers_term() -> None:
+    """'sea' is a Spanish function word; in an English document 'sea level' is a term."""
+    english = "The sea level rose. The sea level fell. The sea level held. The sea level rose."
+    spanish = "sin embargo sea como sea, sin embargo sea como sea, sin embargo sea como sea"
+
+    in_english = [item.phrase.casefold() for item in candidates([english], minimum_count=3)]
+    in_spanish = [item.phrase.casefold() for item in candidates([spanish], minimum_count=3)]
+
+    assert "sea level" in in_english
+    assert not any(phrase.split()[0] in ("sin", "sea") for phrase in in_spanish)
+
+
+def test_the_language_is_guessed_from_the_text() -> None:
+    from layoutkeep.core import stopwords
+
+    assert stopwords.guess(["bu", "kanun", "ve", "ilgili", "yönetmelik", "için"]) == "tr"
+    assert stopwords.guess(["the", "law", "and", "the", "rules", "for", "it"]) == "en"
+    assert stopwords.guess(["xyzzy"]) is None

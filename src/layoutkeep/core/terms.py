@@ -16,30 +16,16 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 
-#: Words that cannot begin or end a candidate phrase. Deliberately short: a long list of English
-#: stopwords would be wrong for the other languages this project reads, and the rule that matters
-#: (a phrase must not start or end on a function word) survives a short one.
-_STOPWORDS = {
-    "the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "by", "as", "at",
-    "is", "are", "was", "were", "be", "been", "that", "this", "these", "those", "it", "its",
-    "from", "but", "not", "no", "if", "then", "than", "so", "such", "which", "who", "whom",
-    "ve", "bir", "ile", "için", "olarak", "bu", "şu", "da", "de", "ki", "mi", "veya", "ya",
-    "der", "die", "das", "und", "oder", "für", "mit", "von", "zu", "ist", "sind",
-    # Measured on the bench's consistency pass: these framed "terms" that were grammar.
-    "each", "every", "other", "also", "only", "more", "most", "any", "all", "some", "per",
-    "shall", "will", "may", "must", "can", "should", "would", "has", "have", "had",
-    "her", "tüm", "bütün", "daha", "çok", "olan", "ise", "ancak", "sonra", "önce",
-    "jede", "jeder", "auch", "nur", "wird", "werden", "kann",
-}
+from layoutkeep.core import stopwords
 
-#: Words that may not appear anywhere in a candidate. A Turkish postposition makes the phrase around
-#: it a clause, not a name: the Turkish Penal Code offered "yıla kadar hapis" and "kadar" itself, and
-#: a glossary pinning "kadar -> up to" forces one rendering onto every sentence that uses it.
-_NEVER_INSIDE = {"kadar", "gibi", "göre", "ile", "için", "şekilde", "halinde", "hâlinde", "üzere", "dolayı"}
-
-_WORD = re.compile(r"[^\W\d_][\w'-]*", re.UNICODE)
+#: A word, with what follows an apostrophe kept apart: Turkish writes a name's suffix after one
+#: ("Türkiye’nin", "SKA’ların") and English a possessive ("Gutenberg’s"). Split on the apostrophe,
+#: the suffix came out as a word of its own and "SKA ların" was offered as a term.
+#: Kesme işaretinden sonraki ek ayrı tutulur; öneri kökü verir ("Türkiye’nin" -> "Türkiye").
+_WORD = re.compile(r"([^\W\d_][\w-]*)((?:['’]\w*)?)", re.UNICODE)
 
 #: A phrase shorter than this many characters is not worth offering (a glossary of two-letter
 #: entries is noise).
@@ -60,8 +46,14 @@ class Candidate:
         return self.count * (1.0 + 0.35 * (self.phrase.count(" ") ))
 
 
-def _phrases(text: str, max_words: int) -> list[str]:
-    words = _WORD.findall(text)
+def _tokens(text: str) -> tuple[list[str], list[bool]]:
+    """The words of `text`, and for each whether a suffix followed it after an apostrophe."""
+    pairs = _WORD.findall(text)
+    return [word for word, _ in pairs], [bool(suffix) for _, suffix in pairs]
+
+
+def _phrases(text: str, max_words: int, edges: frozenset[str], inside: frozenset[str]) -> list[str]:
+    words, suffixed = _tokens(text)
     lowered = [word.casefold() for word in words]
     found: list[str] = []
     for start in range(len(words)):
@@ -69,16 +61,32 @@ def _phrases(text: str, max_words: int) -> list[str]:
             window = lowered[start : start + length]
             if len(window) < length:
                 break
-            if window[0] in _STOPWORDS or window[-1] in _STOPWORDS:
+            if window[0] in edges or window[-1] in edges:
                 continue
-            if any(len(word) < 3 for word in window) or _NEVER_INSIDE.intersection(window):
+            if any(len(word) < 3 for word in window) or inside.intersection(window):
+                continue
+            # A suffix may only close the phrase: "Türkiye’nin ulusal" is not in the text as
+            # "Türkiye ulusal". / Ek yalnız öbeğin sonunda olabilir.
+            if any(suffixed[start : start + length - 1]):
                 continue
             found.append(" ".join(words[start : start + length]))
         # Single words too: a long word that recurs is a term in its own right.
-        if (len(words[start]) >= _MIN_CHARS and lowered[start] not in _STOPWORDS
-                and lowered[start] not in _NEVER_INSIDE):
+        if (len(words[start]) >= _MIN_CHARS and lowered[start] not in edges
+                and lowered[start] not in inside):
             found.append(words[start])
     return found
+
+
+def _lists(texts: list[str], languages: Iterable[str] | None) -> tuple[frozenset[str], frozenset[str]]:
+    """The function-word lists for the given languages, or for the language the text reads as.
+
+    Verilen dillerin ya da metinden tahmin edilen dilin sözcük listeleri.
+    """
+    codes = [code for code in (languages or ()) if code]
+    if not any(code.strip().lower() in stopwords.FUNCTION_WORDS for code in codes):
+        guessed = stopwords.guess(word.casefold() for text in texts for word in _tokens(text)[0])
+        codes = [guessed] if guessed else []
+    return stopwords.lists_for(codes)
 
 
 def candidates(
@@ -88,16 +96,19 @@ def candidates(
     limit: int = 40,
     max_words: int = 3,
     exclude: set[str] | None = None,
+    languages: Iterable[str] | None = None,
 ) -> list[Candidate]:
     """Rank the phrases that recur across `texts`, most useful first.
 
     `exclude` holds phrases already in the glossary (case-insensitive): offering a term the user
-    has already decided about wastes their attention.
+    has already decided about wastes their attention. `languages` picks the function-word lists;
+    without a known one the language is guessed from the text (`core/stopwords.py`).
     """
     already = {phrase.strip().casefold() for phrase in (exclude or set()) if phrase.strip()}
+    edges, inside = _lists(texts, languages)
     counts: Counter[str] = Counter()
     for text in texts:
-        for phrase in _phrases(text, max_words):
+        for phrase in _phrases(text, max_words, edges, inside):
             key = phrase.casefold()
             if key in already or len(phrase) < _MIN_CHARS:
                 continue
@@ -112,11 +123,18 @@ def candidates(
     return ranked[:limit]
 
 
-def suggest_from_document(document, *, limit: int = 40, exclude: set[str] | None = None):
-    """Candidates from a DocIR document: every translatable block's text, in reading order."""
+def suggest_from_document(
+    document, *, limit: int = 40, exclude: set[str] | None = None, language: str | None = None
+):
+    """Candidates from a DocIR document: every translatable block's text, in reading order.
+
+    `language` is the source language when the caller knows it; else the document's own, else a
+    guess from its text. / Kaynak dil biliniyorsa verilir; yoksa belgeninki, o da yoksa tahmin.
+    """
     texts = [
         block.text
         for _page, block in document.iter_blocks()
         if getattr(block, "translatable", True) and block.text.strip()
     ]
-    return candidates(texts, limit=limit, exclude=exclude)
+    known = language or getattr(document, "source_lang", None)
+    return candidates(texts, limit=limit, exclude=exclude, languages=[known] if known else None)

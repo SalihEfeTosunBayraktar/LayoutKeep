@@ -121,7 +121,7 @@ def build_doc_glossary(
     """
     from layoutkeep.core.terms import suggest_from_document
 
-    candidates = suggest_from_document(document, limit=limit, exclude=exclude)
+    candidates = suggest_from_document(document, limit=limit, exclude=exclude, language=source_lang)
     if not candidates:
         return {}
     # Keyed by the candidate's own spelling: `Glossary` matches a source term case-sensitively, so

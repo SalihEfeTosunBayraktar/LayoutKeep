@@ -46,6 +46,7 @@ _IGNORED_PATHS = {
     "layoutkeep/ui/languages.py",
     "layoutkeep/core/copies.py",
     "layoutkeep/core/terms.py",
+    "layoutkeep/core/stopwords.py",
     "layoutkeep/core/protect.py",
     "layoutkeep/core/langs.py",
     "layoutkeep/core/hyphenate.py",
