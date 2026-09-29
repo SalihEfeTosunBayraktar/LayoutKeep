@@ -16,6 +16,10 @@ from pathlib import Path
 
 from layoutkeep.core.docir import Segment
 
+#: First cells that mark a table's header row (English, Turkish, German), not a term.
+#: Bir tablonun başlık satırını belirten ilk hücreler.
+_HEADER_WORDS: tuple[str, ...] = ("source", "kaynak", "quellbegriff")
+
 
 def _target_pattern(term: str) -> re.Pattern[str]:
     """How the target term is found in a translation: at a word start, in any case, inflected.
@@ -75,18 +79,25 @@ class Glossary:
         import csv
         import io
 
+        # A header row names the delimiter outright: sniffed, a TSV whose terms carry commas or
+        # semicolons ("a, b") was read as CSV. / Başlık satırı ayırıcıyı kesin söyler.
+        first = next((line for line in text.splitlines() if line.strip()), "")
+        header = re.match(rf"\s*(?:{'|'.join(_HEADER_WORDS)})\s*([,\t;])", first, re.IGNORECASE)
         sample = " ".join(line for line in text.splitlines() if line.strip())[:2048]
         try:
             dialect = csv.Sniffer().sniff(sample, delimiters=",	;")
         except csv.Error:
             dialect = csv.excel
-        rows = list(csv.reader(io.StringIO(text), dialect))
+        rows = list(
+            csv.reader(io.StringIO(text), delimiter=header.group(1)) if header
+            else csv.reader(io.StringIO(text), dialect)
+        )
         pairs: dict[str, str] = {}
         for index, row in enumerate(rows):
             cells = [cell.strip() for cell in row]
             if len(cells) < 2 or not cells[0]:
                 continue
-            if index == 0 and cells[0].casefold() in {"source", "kaynak", "quellbegriff"}:
+            if index == 0 and cells[0].casefold() in _HEADER_WORDS:
                 continue  # a header row, not a term
             pairs[cells[0]] = cells[1]
         return pairs
@@ -145,6 +156,35 @@ def load_terms(path: str | Path | None) -> dict[str, str] | None:
     if not path:
         return None
     return Glossary.load(path).terms or None
+
+
+#: File suffix -> column delimiter for the table formats `save_terms` writes; any other suffix is
+#: written as JSON. / Tablo biçimleri için sütun ayırıcı; diğer uzantılar JSON yazılır.
+TABLE_DELIMITERS: dict[str, str] = {".csv": ",", ".tsv": "\t", ".txt": "\t"}
+
+#: The header row a table export starts with: `Glossary._read_delimited` skips it on the way back.
+TABLE_HEADER: tuple[str, str] = ("source", "target")
+
+
+def save_terms(path: str | Path, terms: dict[str, str]) -> Path:
+    """Write `terms` in the format the suffix names: CSV, TSV, or JSON for anything else.
+
+    The mirror of `Glossary.load`, so an exported file reads back as the same list - a table for a
+    spreadsheet or another tool's glossary import, JSON for this one.
+    Uzantıya göre CSV/TSV/JSON yazar; `Glossary.load` aynı listeyi geri okur.
+    """
+    import csv
+
+    target = Path(path)
+    delimiter = TABLE_DELIMITERS.get(target.suffix.lower())
+    if delimiter is None:
+        target.write_text(json.dumps(terms, ensure_ascii=False, indent=2), encoding="utf-8")
+        return target
+    with target.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, delimiter=delimiter)
+        writer.writerow(TABLE_HEADER)
+        writer.writerows(terms.items())
+    return target
 
 
 def glossary_fingerprint(terms: dict[str, str]) -> str:

@@ -9,7 +9,6 @@ application can save back to the same file the run will read.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from PySide6.QtWidgets import (
@@ -30,6 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from layoutkeep.core import tunables
+from layoutkeep.providers.glossary import Glossary, save_terms
 from layoutkeep.ui.strings import UIStrings
 
 
@@ -54,6 +54,9 @@ class GlossaryDialog(QDialog):
         self._remove_btn = QPushButton(UIStrings.GLOSSARY_REMOVE)
         self._load_btn = QPushButton(UIStrings.GLOSSARY_LOAD)
         self._save_btn = QPushButton(UIStrings.GLOSSARY_SAVE)
+        self._export_btn = QPushButton(UIStrings.GLOSSARY_EXPORT)
+        self._export_btn.setToolTip(UIStrings.GLOSSARY_EXPORT_TIP)
+        self._export_btn.clicked.connect(self._export)
         self._suggest_btn = QPushButton(UIStrings.GLOSSARY_SUGGEST)
         self._suggest_btn.setToolTip(UIStrings.GLOSSARY_SUGGEST_TIP)
         self._suggest_btn.setEnabled(False)
@@ -83,6 +86,7 @@ class GlossaryDialog(QDialog):
         row.addStretch(1)
         row.addWidget(self._load_btn)
         row.addWidget(self._save_btn)
+        row.addWidget(self._export_btn)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._caption)
@@ -140,11 +144,12 @@ class GlossaryDialog(QDialog):
         self._suggest_btn.setEnabled(self._document is not None and self._document.exists())
 
     def _suggest(self) -> None:
-        """Fill the table with terms the document repeats, targets left for the person to write.
+        """Offer the terms the document repeats for preview; add the ones the person ticks.
 
-        This is a list to edit, never a glossary applied silently: the extraction is a frequency
-        rule (core/terms.py), so its output is a suggestion with an empty translation column, and
-        nothing enters a run until the user saves it.
+        This is a list to review, never a glossary applied silently: the extraction is a frequency
+        rule (core/terms.py), so the candidates are shown first (term_candidates_dialog.py), the
+        ticked ones enter with an empty translation column, and nothing reaches a run until the
+        user saves it. / Adaylar önce önizlenir; yalnız işaretlenenler boş hedefle eklenir.
         """
         if self._document is None or not self._document.exists():
             self._status.setText(UIStrings.GLOSSARY_SUGGEST_NONE)
@@ -156,22 +161,27 @@ class GlossaryDialog(QDialog):
             from layoutkeep.writers.converter import read_any_document
 
             document = read_any_document(self._document)
-            found = suggest_from_document(document, limit=25, exclude=set(self.terms()))
+            limit = int(tunables.get("translation.suggest_limit"))
+            found = suggest_from_document(document, limit=limit, exclude=set(self.terms()))
         except Exception as error:  # noqa: BLE001 - a suggestion that fails (a corrupt
             # file, an unsupported format) must not take the editing session down with it.
             self._status.setText(f"{type(error).__name__}: {error}")
             return
         existing = {source.strip().casefold() for source in self.terms()}
-        added = 0
-        for candidate in found:
-            if candidate.phrase.casefold() in existing:
-                continue
-            self._append(candidate.phrase, "")
-            added += 1
-        if added:
-            self._status.setText(UIStrings.GLOSSARY_SUGGEST_ADDED.format(count=added))
-        else:
+        fresh = [candidate for candidate in found if candidate.phrase.casefold() not in existing]
+        if not fresh:
             self._status.setText(UIStrings.GLOSSARY_SUGGEST_EMPTY)
+            return
+        from layoutkeep.ui.term_candidates_dialog import TermCandidatesDialog
+
+        preview = TermCandidatesDialog(fresh, self)
+        if not preview.exec():
+            self._status.setText("")
+            return
+        chosen = preview.chosen()
+        for phrase in chosen:
+            self._append(phrase, "")
+        self._status.setText(UIStrings.GLOSSARY_SUGGEST_ADDED.format(count=len(chosen)))
 
     def _load(self) -> None:
         chosen, _ = QFileDialog.getOpenFileName(
@@ -180,15 +190,36 @@ class GlossaryDialog(QDialog):
         if not chosen:
             return
         try:
-            data = json.loads(Path(chosen).read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            QMessageBox.warning(self, UIStrings.GLOSSARY_TITLE, str(exc))
-            return
-        if not isinstance(data, dict):
-            QMessageBox.warning(self, UIStrings.GLOSSARY_TITLE, UIStrings.GLOSSARY_BAD_FILE)
+            # The run's own reader: JSON, CSV or TSV, as the file filter promises.
+            # Çalışmanın kendi okuyucusu: filtrenin söz verdiği JSON, CSV veya TSV.
+            terms = Glossary.load(chosen).terms
+        except (OSError, ValueError, TypeError) as exc:
+            QMessageBox.warning(self, UIStrings.GLOSSARY_TITLE, f"{UIStrings.GLOSSARY_BAD_FILE}\n{exc}")
             return
         self._path = Path(chosen)
-        self.set_terms({str(k): str(v) for k, v in data.items()})
+        self.set_terms(terms)
+
+    def _export(self) -> None:
+        chosen, _ = QFileDialog.getSaveFileName(
+            self, UIStrings.GLOSSARY_EXPORT, str((self._path or Path("glossary")).with_suffix(".csv")),
+            UIStrings.GLOSSARY_EXPORT_FILTER,
+        )
+        if chosen:
+            self.export_to(Path(chosen))
+
+    def export_to(self, path: Path) -> Path | None:
+        """Write a copy of the table to `path` (CSV, TSV or JSON by its suffix).
+
+        A copy on purpose: the run keeps reading the file the setting points at, so exporting for a
+        spreadsheet never moves the glossary a job uses. / Kopya yazar; ayardaki dosya değişmez.
+        """
+        try:
+            save_terms(path, self.terms())
+        except OSError as exc:
+            QMessageBox.warning(self, UIStrings.GLOSSARY_TITLE, str(exc))
+            return None
+        self._status.setText(UIStrings.GLOSSARY_EXPORTED.format(count=len(self.terms()), path=path))
+        return path
 
     def _save_as(self) -> Path | None:
         chosen, _ = QFileDialog.getSaveFileName(
@@ -204,9 +235,7 @@ class GlossaryDialog(QDialog):
         if self._path is None:
             return None
         try:
-            self._path.write_text(
-                json.dumps(self.terms(), ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            save_terms(self._path, self.terms())
         except OSError as exc:
             QMessageBox.warning(self, UIStrings.GLOSSARY_TITLE, str(exc))
             return None
@@ -240,8 +269,6 @@ class GlossaryDialog(QDialog):
             return
         self._path = Path(configured)
         try:
-            data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+            self.set_terms(Glossary.load(self._path).terms)
+        except (OSError, ValueError, TypeError):
             return
-        if isinstance(data, dict):
-            self.set_terms({str(k): str(v) for k, v in data.items()})

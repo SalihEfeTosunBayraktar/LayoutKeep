@@ -79,6 +79,18 @@ TUNABLES: tuple[Tunable, ...] = (
         help_text="TUNABLE_translation.glossary_path_help_text",
     ),
     Tunable(
+        # How many term candidates the glossary editor's "suggest" offers for preview.
+        # Sözlük düzenleyicisinin önizlemede sunduğu en fazla aday sayısı.
+        key="translation.suggest_limit",
+        label="TUNABLE_translation.suggest_limit_label",
+        default=25,
+        kind="int",
+        group="TRANSLATION",
+        minimum=5,
+        maximum=200,
+        help_text="TUNABLE_translation.suggest_limit_help_text",
+    ),
+    Tunable(
         key="translation.reuse_repeats",
         group="TRANSLATION",
         label="TUNABLE_translation.reuse_repeats_label",

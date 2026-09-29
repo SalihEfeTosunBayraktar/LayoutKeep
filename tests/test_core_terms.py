@@ -93,9 +93,13 @@ def test_candidates_come_from_a_real_document(tmp_path) -> None:
     assert all(item.count >= 3 for item in found)
 
 
-def test_the_editor_offers_terms_from_the_job_document(qtbot, tmp_path) -> None:
+def test_the_editor_offers_terms_from_the_job_document(qtbot, tmp_path, monkeypatch) -> None:
     """The whole point: the editor can fill itself from the document the job is about to read."""
     import pymupdf
+
+    from layoutkeep.ui.term_candidates_dialog import TermCandidatesDialog
+
+    monkeypatch.setattr(TermCandidatesDialog, "exec", lambda self: 1)
 
     from layoutkeep.ui.glossary_dialog import GlossaryDialog
 
@@ -126,8 +130,12 @@ def test_the_editor_offers_terms_from_the_job_document(qtbot, tmp_path) -> None:
     assert "candidates added" in dialog._status.text() or "aday" in dialog._status.text()
 
 
-def test_the_editor_does_not_offer_what_is_already_there(qtbot, tmp_path) -> None:
+def test_the_editor_does_not_offer_what_is_already_there(qtbot, tmp_path, monkeypatch) -> None:
     import pymupdf
+
+    from layoutkeep.ui.term_candidates_dialog import TermCandidatesDialog
+
+    monkeypatch.setattr(TermCandidatesDialog, "exec", lambda self: 1)
 
     from layoutkeep.ui.glossary_dialog import GlossaryDialog
 
