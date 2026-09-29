@@ -156,7 +156,11 @@ _MIN_CONTENT_PIXELS = 4
 #: sparse pages this exists for - a DOCX header, footer or footnote alone on an A4 sheet -
 #: measured at 2-6% of the page; a typical full page of body text sits at 70-85%. The threshold
 #: sits well clear of both, so cropping only ever fires on the page shape it was written for.
-_MIN_SPARSE_RATIO = 0.5
+#: It was 0.5, and the dense test page (a full report page) measured 49.5% with a newer Pillow
+#: drawing the variable font a little narrower - so it was cropped. 0.3 is still five times the
+#: sparse pages and far below any page of body text, and no longer depends on glyph widths.
+#: 0.5 iken yoğun test sayfası (%49,5) yeni Pillow'da kırpılıyordu; 0.3 iki ölçümden de uzak.
+_MIN_SPARSE_RATIO = 0.3
 
 
 def _content_crop(array: np.ndarray) -> tuple[int, int, int, int] | None:
