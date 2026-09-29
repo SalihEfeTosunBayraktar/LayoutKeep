@@ -17,8 +17,8 @@ Doctranslate, Bluente).
 > ölçülüp karara bağlandı: sözlüğü dışa aktarma, önizlemeli ve çok dilli terim adayları, ayar
 > profilleri (zaten vardı; rapor eskimişti), üst üste çift dilli PDF, görsel sayfa seçici. 4. madde
 > (örtüşme kademesi) büyük ölçüde yapılmış durumda; 7. madde (sayfa-ötesi bağlam) ölçüldü ve üründe
-> zaten var olduğu görüldü (D-023). Açık kalan tek madde 6 (küçük editör), o da CONTRACT.md D6 ile
-> çeliştiği için kullanıcı kararı bekliyor.
+> zaten var olduğu görüldü (D-023). Madde 6 (küçük editör) kullanıcı kararıyla yapılmayacak
+> (CONTRACT.md D6 ile aynı yönde).
 
 ---
 
@@ -57,7 +57,7 @@ BabelDOC'un kendi karşılaştırma tablosundan (arXiv 2605.10845, Tablo 1–2) 
 | Çeviri önbelleği (koşular arası) | mineru-translate | **var** (SQLite bellek, sözlük parmak izi anahtarda, tamamlanma ekranında isabet) | — |
 | **Görsel/tablo içi metin çevirisi** | BabelDOC | kısmi (`translation.figure_text`, varsayılan kapalı: metin katmanından ve OCR ile) | Düşük-orta |
 | **Kaynakça + dipnot yeniden kurma** | BabelDOC | kaynakça korunabiliyor (`translation.preserve_references`), "yeniden kurma" yok | Düşük: akademik akış |
-| **Editör / sonradan düzeltme** | Doclingo, Lara, X-doc | yok (D6 akışı bilinçli kaldırıldı) | Kullanıcı kararı bekliyor (madde 6) |
+| **Editör / sonradan düzeltme** | Doclingo, Lara, X-doc | yok (D6 akışı bilinçli kaldırıldı) | Yapılmayacak (madde 6, kullanıcı kararı) |
 | **Eklenti ekosistemi** (Zotero, Word) | BabelDOC/PDFMathTranslate | yok | Düşük: kapsam dışı, bilinçli |
 | **Kurumsal uygunluk** (SOC2/ISO) | Bluente | yok | Düşük: yerel-önce olmamız zaten farklı bir cevap |
 
@@ -114,10 +114,9 @@ bayrakları + gerekçe, sabit bench (21 kaynak, iki yön, üç ölçüt), gerçe
      yerine `machine translation`, `estimated tax`, `Sosyal Politikalar Bakanlığı` gibi terimler geldi.
    **Kalan:** otomatik belge sözlüğü de bu listeyi kullandığı için, terim tutarlılığına etkisi
    tutarlılık yargıcıyla (bulut modeli) ölçülmeli.
-6. **Küçük editör** (açık, **kullanıcı kararı bekliyor**): inceleme bayraklı blokları uygulama
-   içinde düzeltip yeniden yazma. CONTRACT.md D6, düzeltme editörünü bilinçli olarak kaldırdı; bu
-   madde o kararı geri almak demek. Emek: yüksek. Ölçüm: bayrak kapatma oranı, çıktıda L-kriterleri
-   bozulmadan.
+6. ~~Küçük editör~~ **yapılmayacak (kullanıcı kararı, 2026-09-29)**: inceleme bayraklı blokları
+   uygulama içinde düzeltip yeniden yazma. CONTRACT.md D6'daki kararla aynı yönde: düzeltme
+   editörü ürüne geri gelmiyor.
 7. ~~Sayfa-ötesi bağlam~~ **ölçüldü, üründe zaten var (2026-09-29, D-023)**: bağlam belgenin tamamı
    üzerinden, partilemeden ve sayfa aralığından önce kurulur; sayfanın ilk bloğu önceki sayfanın son
    bloğunu bağlam olarak taşır (`tests/test_context_across_pages.py`). Sınır yalnız kitap aracının
@@ -131,6 +130,8 @@ bayrakları + gerekçe, sabit bench (21 kaynak, iki yön, üç ölçüt), gerçe
 - **Tüm format çiftlerini açmak**: `format_matrix` ölçümü gösterdi ki çapraz dönüşümlerin bir kısmı
   içerik kaybediyor; açma kararı ürün kararı olarak duruyor, koda gömülü değil.
 - **Eklenti ekosistemi** (Zotero/Word): bakım maliyeti, tek geliştiricili proje için gerçekçi değil.
+- **Uygulama içi düzeltme editörü**: CONTRACT.md D6 ile kaldırıldı, 2026-09-29'da kullanıcı yeniden
+  onayladı (madde 6).
 
 ## 5. Bugünkü dürüst tablo (nerede zayıfız)
 
