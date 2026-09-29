@@ -209,11 +209,10 @@ def _stalling_server() -> tuple[socket.socket, int, list[socket.socket]]:
     accepted: list[socket.socket] = []
 
     def _accept_and_stall() -> None:
-        # Every connection is accepted and left without a reply: the worker may open more than one
-        # (a probe, then the request), and on macOS a second connect that nobody accepts timed out
-        # as "could not connect" instead of the read timeout this test is about.
-        # Her bağlantı kabul edilip cevapsız bırakılır; macOS'ta kabul edilmeyen ikinci bağlantı
-        # okuma değil bağlanma zaman aşımına düşüyordu.
+        # Every connection is accepted and left without a reply: the worker may retry and open more
+        # than one. (The macOS failure was not this: there the send timed out, which urllib wraps in
+        # URLError - see test_http_timeout_kind.py.)
+        # Her bağlantı kabul edilip cevapsız bırakılır; işçi yeniden deneyip birden çok açabilir.
         while True:
             try:
                 conn, _ = srv.accept()

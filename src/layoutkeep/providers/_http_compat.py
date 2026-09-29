@@ -227,6 +227,12 @@ class OpenAIHTTPTransport:
                     continue
                 raise
             except urllib.error.URLError as err:
+                if isinstance(err.reason, TimeoutError):
+                    # urllib wraps a timeout while connecting or sending in URLError, and one while
+                    # waiting for the reply not at all; both are "no answer in time" to the user.
+                    # Seen on macOS CI: the send timed out and was reported as "could not connect".
+                    # Bağlanırken/gönderirken dolan süre de zaman aşımıdır, "bağlanılamadı" değil.
+                    raise TimeoutError(str(err.reason)) from err
                 raise RuntimeError(f"Sunucuya ({self.base_url}) bağlanılamadı: {err.reason}") from err
 
         raise RuntimeError(f"Yapay zeka yanıt vermedi: {last_err}")
